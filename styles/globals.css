@@ -1,0 +1,43 @@
+/* styles/globals.css (수정될 부분만) */
+
+/* ... (기존 html, body, a, * 스타일은 그대로) ... */
+
+/* Header 컴포넌트 스타일 */
+.main-header { /* header 태그 대신 클래스 선택자로 변경 */
+    width: 100%;
+    background-color: #007bff; /* 헤더 배경색 - 메인 블루 톤 */
+    color: white;
+    padding: 15px 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* 로고와 메뉴 등을 양 끝으로 분리 */
+    position: sticky; /* 상단 고정 */
+    top: 0; /* 상단에 딱 붙게 */
+    z-index: 1000; /* 다른 요소 위에 오도록 */
+  }
+  
+  .main-header .logo { /* 로고 클래스도 .main-header 아래로 이동 */
+    font-size: 1.8em;
+    font-weight: bold;
+    color: white;
+    text-decoration: none;
+  }
+  
+  /* ... (nav, main, button 등 나머지 스타일은 그대로) ... */
+  
+  
+  /* 푸터 스타일 */
+  .main-footer { /* footer 태그 대신 클래스 선택자로 변경 */
+    width: 100%;
+    padding: 20px;
+    background-color: #007bff; /* 푸터 배경색 - 메인 블루 톤 */
+    color: white;
+    text-align: center;
+    margin-top: auto; /* main이 남은 공간을 차지하도록 한 후 푸터를 바닥으로 밀어냄 */
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }

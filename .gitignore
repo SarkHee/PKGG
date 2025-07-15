@@ -1,0 +1,18 @@
+# node modules
+node_modules/
+
+# next build output
+.next/
+
+# local env
+.env.local
+.env.*
+
+# macOS용
+.DS_Store
+
+# vscode 설정
+.vscode/
+
+# log files
+*.log
