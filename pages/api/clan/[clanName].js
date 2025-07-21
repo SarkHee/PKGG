@@ -1,7 +1,6 @@
 // pages/api/clan/[clanName].js
 
-import { promises as fs } from 'fs';
-import path from 'path';
+import { PrismaClient } from '@prisma/client';
 
 // PUBG API 키를 환경 변수에서 가져옵니다.
 // NOTE: `Bearer` 접두사는 Authorization 헤더를 보낼 때만 추가해야 합니다.
@@ -45,77 +44,97 @@ async function getPubgIdByNickname(nickname) {
 export default async function handler(req, res) {
   const { clanName } = req.query;
 
-  const clanFilePath = path.join(process.cwd(), 'data', 'clans.json');
-
   if (!clanName) {
     return res.status(400).json({ error: '클랜 이름이 필요합니다.' });
   }
-
-  let allClans = {};
+  const prisma = new PrismaClient();
+  let targetClan;
   try {
-    const clanRaw = await fs.readFile(clanFilePath, 'utf-8');
-    allClans = JSON.parse(clanRaw);
+    targetClan = await prisma.clan.findUnique({
+      where: { name: clanName },
+      include: { members: true }
+    });
   } catch (error) {
-    console.error('[API Handler] 클랜 파일 읽기 실패:', error);
-    if (error.code === 'ENOENT') { // File Not Found Error
-      return res.status(404).json({ error: '클랜 데이터 파일을 찾을 수 없습니다. 경로를 확인해주세요.' });
-    }
-    return res.status(500).json({ error: '클랜 데이터 파일을 불러올 수 없습니다. 파일 경로 및 형식을 확인해주세요.' });
+    console.error('[API Handler] DB 읽기 실패:', error);
+    return res.status(500).json({ error: 'DB에서 클랜 정보를 불러올 수 없습니다.' });
   }
-
-  const targetClan = allClans[clanName];
   if (!targetClan) {
     return res.status(404).json({ error: `클랜 '${clanName}'을(를) 찾을 수 없습니다. 클랜 이름을 확인해주세요.` });
   }
 
   if (req.method === 'GET') {
-    return res.status(200).json({ members: targetClan.members });
+    // DB에서 멤버 정보 반환
+    return res.status(200).json({
+      clan: {
+        name: targetClan.name,
+        leader: targetClan.leader,
+        description: targetClan.description,
+        announcement: targetClan.announcement,
+        memberCount: targetClan.memberCount,
+        avgScore: targetClan.avgScore,
+        mainStyle: targetClan.mainStyle,
+        members: targetClan.members.map(m => ({
+          nickname: m.nickname,
+          score: m.score,
+          style: m.style,
+          avgDamage: m.avgDamage
+        }))
+      }
+    });
   } else if (req.method === 'POST') {
-    const { nickname } = req.body;
-
+    const { nickname, score = 0, style = '-', avgDamage = 0 } = req.body;
     if (!nickname) {
       return res.status(400).json({ error: '추가할 클랜원 닉네임이 필요합니다.' });
     }
-
-    if (targetClan.members.includes(nickname)) {
+    // 이미 존재하는지 확인
+    const exists = targetClan.members.some(m => m.nickname === nickname);
+    if (exists) {
       return res.status(409).json({ error: `'${nickname}'은(는) 이미 클랜에 등록되어 있습니다. 다른 닉네임을 시도해주세요.` });
     }
-
-    const pubgId = await getPubgIdByNickname(nickname);
-    if (!pubgId) {
-      // PUBG API에서 플레이어를 찾지 못했거나 오류 발생
-      return res.status(400).json({ error: `'${nickname}'은(는) 유효한 PUBG 플레이어 닉네임이 아닙니다. API에서 찾을 수 없습니다. 닉네임을 정확히 입력해주세요.` });
-    }
-
-    targetClan.members.push(nickname);
-
+    // PUBG ID 확인 (옵션)
+    // const pubgId = await getPubgIdByNickname(nickname);
+    // if (!pubgId) {
+    //   return res.status(400).json({ error: `'${nickname}'은(는) 유효한 PUBG 플레이어 닉네임이 아닙니다.` });
+    // }
     try {
-      await fs.writeFile(clanFilePath, JSON.stringify(allClans, null, 2), 'utf-8');
-      return res.status(201).json({ message: `'${nickname}' 클랜에 성공적으로 추가되었습니다.`, pubgId: pubgId });
+      await prisma.clanMember.create({
+        data: {
+          nickname,
+          score,
+          style,
+          avgDamage,
+          clanId: targetClan.id
+        }
+      });
+      // 멤버 카운트 갱신
+      await prisma.clan.update({
+        where: { id: targetClan.id },
+        data: { memberCount: targetClan.memberCount + 1 }
+      });
+      return res.status(201).json({ message: `'${nickname}' 클랜에 성공적으로 추가되었습니다.` });
     } catch (error) {
-      console.error('[API Handler] 클랜 파일 쓰기 실패 (POST):', error);
-      return res.status(500).json({ error: '클랜 데이터 파일 업데이트에 실패했습니다. 서버 로그를 확인해주세요.' });
+      console.error('[API Handler] DB 쓰기 실패 (POST):', error);
+      return res.status(500).json({ error: 'DB 업데이트에 실패했습니다.' });
     }
   } else if (req.method === 'DELETE') {
     const { nickname } = req.body;
-
     if (!nickname) {
       return res.status(400).json({ error: '삭제할 클랜원 닉네임이 필요합니다.' });
     }
-
-    const initialLength = targetClan.members.length;
-    targetClan.members = targetClan.members.filter(member => member !== nickname);
-
-    if (targetClan.members.length === initialLength) {
+    const member = targetClan.members.find(m => m.nickname === nickname);
+    if (!member) {
       return res.status(404).json({ error: 'Member not found' });
     }
-
     try {
-      await fs.writeFile(clanFilePath, JSON.stringify(allClans, null, 2), 'utf-8');
+      await prisma.clanMember.delete({ where: { id: member.id } });
+      await prisma.clan.update({
+        where: { id: targetClan.id },
+        data: { memberCount: targetClan.memberCount - 1 }
+      });
       return res.status(200).json({ message: `'${nickname}' 클랜에서 성공적으로 삭제되었습니다.` });
     } catch (error) {
-      console.error('[API Handler] 클랜 파일 쓰기 실패 (DELETE):', error);
-      return res.status(500).json({ error: '클랜 데이터 파일 업데이트에 실패했습니다. 서버 로그를 확인해주세요.' });
+      console.error('[API Handler] DB 쓰기 실패 (DELETE):', error);
+      return res.status(500).json({ error: 'DB 업데이트에 실패했습니다.' });
     }
   } else {
     res.setHeader('Allow', ['GET', 'POST', 'DELETE']);

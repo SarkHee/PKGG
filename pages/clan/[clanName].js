@@ -31,8 +31,9 @@ export default function ClanDetailsPage() {
         const data = await res.json();
 
         if (res.ok) {
-          setClanMembers(data.members || []);
-          console.log('클랜 멤버스 API 응답:', data.members); // 콘솔 로깅 추가
+          // DB 기반 API는 data.clan.members 배열을 반환
+          setClanMembers((data.clan && data.clan.members) ? data.clan.members.map(m => m.nickname) : []);
+          console.log('클랜 멤버스 API 응답:', data.clan?.members);
         } else {
           setError(data.error || '클랜 정보를 불러오는 데 실패했습니다.');
           setClanMembers([]);
@@ -149,7 +150,7 @@ export default function ClanDetailsPage() {
             {clanMembers.length === 0 ? (
               <p>클랜원 데이터가 없습니다.</p>
             ) : (
-              clanMembers.map((member) => (
+              clanMembers.map(member => (
                 <li key={member} style={{
                   border: '1px solid #e0e0e0',
                   padding: '15px',
@@ -166,6 +167,22 @@ export default function ClanDetailsPage() {
                       스타일: {memberStats[member]?.playStyle || 'N/A'}
                     </div>
                   )}
+                  <button
+                    style={{ marginLeft: 10, padding: '4px 10px', fontSize: '0.9em', background: '#eee', border: '1px solid #bbb', borderRadius: 4, cursor: 'pointer' }}
+                    onClick={async () => {
+                      const res = await fetch('/api/clan/update-member', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ clanName, nickname: member })
+                      });
+                      if (res.ok) {
+                        alert('DB에 최신 통계 저장 완료!');
+                      } else {
+                        const data = await res.json();
+                        alert('DB 저장 실패: ' + (data.error || '오류'));
+                      }
+                    }}
+                  >DB에 최신 통계 저장</button>
                 </li>
               ))
             )}

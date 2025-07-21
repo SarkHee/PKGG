@@ -1,0 +1,33 @@
+// Prisma schema for clans and clan members
+// Save as prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Clan {
+  id           Int           @id @default(autoincrement())
+  name         String        @unique
+  leader       String
+  description  String?
+  announcement String?
+  memberCount  Int
+  avgScore     Int?
+  mainStyle    String?
+  members      ClanMember[]
+}
+
+model ClanMember {
+  id        Int     @id @default(autoincrement())
+  nickname  String
+  score     Int
+  style     String
+  avgDamage Float
+  clanId    Int
+  clan      Clan    @relation(fields: [clanId], references: [id])
+}
