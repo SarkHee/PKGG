@@ -21,7 +21,7 @@ function EmptyCard({ label }) {
   return <div>아직 {label} 경기가 없습니다.</div>;
 }
 
-export default function PlayerDashboard({ profile, summary, clanAverage, clanMembers, clanTier, synergyTop, clanSynergyStatusList, bestSquad, rankedStats, seasonStats }) {
+export default function PlayerDashboard({ profile, summary, clanAverage, clanMembers, clanTier, synergyTop, clanSynergyStatusList, bestSquad, rankedStats, seasonStats, aboveAvgWithClan }) {
   // 클랜 시너지 상태
   const synergyStatus = clanSynergyStatusList && clanSynergyStatusList.length > 0 ?
     clanSynergyStatusList.sort((a,b) => a === "좋음" ? -1 : 1)[0] : "-";
@@ -45,6 +45,8 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
         <StatCard title="함께한 클랜원 TOP3" value={<>{synergyTop?.map(p => <div key={p.name}>{p.name}</div>)}</>} />
         <StatCard title="클랜 시너지" value={<span>😊</span>} sub={synergyStatus} />
         <StatCard title="Best Squad 추천" value={bestSquad?.names?.join(", ") ?? "-"} />
+        <StatCard title="클랜 평균 이상 경기 수" value={aboveAvgWithClan ?? "-"} />
+        <StatCard title="클랜 시너지 상세" value={Array.isArray(clanSynergyStatusList) ? clanSynergyStatusList.join(", ") : "-"} />
       </div>
       <div>
         <StatCard title="평균점수" value={summary.averageScore ?? "-"} />

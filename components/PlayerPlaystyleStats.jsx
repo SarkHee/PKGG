@@ -10,14 +10,21 @@ export default function PlayerPlaystyleStats({ summary }) {
   return (
     <section style={{ margin: '32px 0' }}>
       <h2 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12, color: '#2563eb' }}>플레이스타일 & 주요 통계</h2>
-      <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', marginBottom: 16 }}>
+        <StatBox label="평균 점수" value={summary.averageScore ?? '-'} />
+        <StatBox label="평균 딜량" value={summary.avgDamage ?? '-'} />
+        <StatBox label="시즌 평균 딜량" value={summary.seasonAvgDamage ?? '-'} />
         <StatBox label="평균 생존 시간" value={summary.avgSurvivalTime ? `${Math.round(summary.avgSurvivalTime)}초` : '-'} />
         <StatBox label="평균 이동 거리" value={summary.avgDistance ? `${(summary.avgDistance/1000).toFixed(2)}km` : '-'} />
         <StatBox label="평균 교전 거리" value={summary.avgCombatDistance ? `${Math.round(summary.avgCombatDistance)}m` : '-'} />
         <StatBox label="평균 킬" value={summary.avgKills ?? '-'} />
-        <StatBox label="평균 데미지" value={summary.avgDamage ?? '-'} />
         <StatBox label="평균 어시스트" value={summary.avgAssists ?? '-'} />
         <StatBox label="평균 랭크" value={summary.avgRank ?? '-'} />
+      </div>
+      <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', marginBottom: 8 }}>
+        <StatBox label="플레이 스타일" value={summary.playstyle ?? '-'} />
+        <StatBox label="실제 플레이 성향" value={summary.realPlayStyle ?? '-'} />
+        <StatBox label="이동 성향 힌트" value={summary.distanceStyleHint ?? '-'} />
       </div>
     </section>
   );

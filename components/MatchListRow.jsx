@@ -31,13 +31,28 @@ export default function MatchListRow({ match, isOpen, onToggle, prevMatch }) {
         </div>
         {/* 데미지 */}
         <div style={{ minWidth: 60, textAlign: 'center' }}>
-          <div style={{ fontWeight: 700 }}>{match.damage ?? 0}</div>
+              <div style={{ fontWeight: 700 }}>{(match.damage ?? 0).toFixed(1)}</div>
           <div style={{ fontSize: 12, color: '#888' }}>데미지</div>
         </div>
         {/* 이동거리 */}
         <div style={{ minWidth: 70, textAlign: 'center' }}>
           <div style={{ fontWeight: 700 }}>{match.distance ? (match.distance/1000).toFixed(2) : '0.00'}km</div>
           <div style={{ fontSize: 12, color: '#888' }}>이동</div>
+        </div>
+        {/* opGrade */}
+        <div style={{ minWidth: 60, textAlign: 'center' }}>
+          <div style={{ fontWeight: 700, color: '#f59e42' }}>{match.opGrade ?? '-'}</div>
+          <div style={{ fontSize: 12, color: '#888' }}>등급</div>
+        </div>
+        {/* 승/패, Top10 */}
+        <div style={{ minWidth: 60, textAlign: 'center' }}>
+          <div style={{ fontWeight: 700, color: match.win ? '#2563eb' : '#888' }}>{match.win ? 'WIN' : '-'}</div>
+          <div style={{ fontSize: 12, color: '#888' }}>{match.top10 ? 'Top10' : ''}</div>
+        </div>
+        {/* 팀 전체 딜량 */}
+        <div style={{ minWidth: 70, textAlign: 'center' }}>
+              <div style={{ fontWeight: 700 }}>{typeof match.totalTeamDamage === 'number' ? match.totalTeamDamage.toFixed(1) : '-'}</div>
+          <div style={{ fontSize: 12, color: '#888' }}>팀딜</div>
         </div>
         {/* 팀원 */}
         <div style={{ flex: 1, minWidth: 120, fontSize: 14, color: '#222' }}>

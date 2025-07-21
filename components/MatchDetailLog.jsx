@@ -38,7 +38,7 @@ export default function MatchDetailLog({ match }) {
             {match.weaponStats && Object.keys(match.weaponStats).length > 0 ? (
               <ul style={{ margin: 0, paddingLeft: 18 }}>
                 {Object.entries(match.weaponStats).map(([weapon, dmg]) => (
-                  <li key={weapon}>{weapon}: {dmg} 데미지</li>
+                      <li key={weapon}>{weapon}: {typeof dmg === 'number' ? dmg.toFixed(1) : dmg} 데미지</li>
                 ))}
               </ul>
             ) : (

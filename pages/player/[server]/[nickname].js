@@ -1,6 +1,15 @@
 
+import { useState, useRef, useEffect } from 'react';
+import Head from 'next/head';
+
+import RankedStatsSection from '../../../components/RankedStatsSection';
+
 
 import PlayerPlaystyleStats from '../../../components/PlayerPlaystyleStats.jsx';
+import PlayerDashboard from '../../../components/PlayerDashboard';
+import MmrTrendChart from '../../../components/MmrTrendChart';
+import RecentDamageTrendChart from '../../../components/RecentDamageTrendChart.jsx';
+import MatchListRow from '../../../components/MatchListRow';
 
 // 반드시 export default 함수 바깥에 위치!
 function MatchList({ recentMatches }) {
@@ -33,7 +42,57 @@ export async function getServerSideProps(context) {
       }
       return { props: { error: errorData.error || '데이터를 불러오는 데 실패했습니다.', playerData: null } };
     }
-    const playerData = await res.json();
+    let playerData = await res.json();
+    // recentMatches 필드 보강: 누락 필드 기본값 보장
+    if (playerData && Array.isArray(playerData.recentMatches)) {
+      playerData.recentMatches = playerData.recentMatches.map(match => ({
+        // 기존 필드 유지
+        ...match,
+        // 누락 필드 기본값 보장
+        opGrade: match.opGrade ?? '-',
+        totalTeamDamage: match.totalTeamDamage ?? 0,
+        rank: match.rank ?? '-',
+        killLog: Array.isArray(match.killLog) ? match.killLog : [],
+        movePath: match.movePath ?? '',
+        weaponStats: match.weaponStats ?? {},
+        teammatesDetail: Array.isArray(match.teammatesDetail) ? match.teammatesDetail : [],
+        win: match.win ?? false,
+        top10: match.top10 ?? false,
+        avgMmr: match.avgMmr ?? null,
+        matchTimestamp: match.matchTimestamp ?? null,
+        kills: match.kills ?? 0,
+        damage: match.damage ?? 0,
+        distance: match.distance ?? 0,
+      }));
+    }
+    // summary, seasonStats, rankedStats 주요 필드 기본값 보장
+    function safeNum(val, def = 0) { return typeof val === 'number' && !isNaN(val) ? val : def; }
+    if (playerData) {
+      if (playerData.summary) {
+        playerData.summary.seasonAvgDamage = safeNum(playerData.summary.seasonAvgDamage);
+        playerData.summary.seasonAvgSurvivalTime = safeNum(playerData.summary.seasonAvgSurvivalTime);
+        playerData.summary.seasonAvgDistance = safeNum(playerData.summary.seasonAvgDistance);
+        playerData.summary.seasonAvgEngageDistance = safeNum(playerData.summary.seasonAvgEngageDistance);
+        playerData.summary.seasonAvgKills = safeNum(playerData.summary.seasonAvgKills);
+        playerData.summary.seasonAvgAssists = safeNum(playerData.summary.seasonAvgAssists);
+      }
+      if (playerData.seasonStats) {
+        playerData.seasonStats.avgDamage = safeNum(playerData.seasonStats.avgDamage);
+        playerData.seasonStats.avgSurvivalTime = safeNum(playerData.seasonStats.avgSurvivalTime);
+        playerData.seasonStats.avgDistance = safeNum(playerData.seasonStats.avgDistance);
+        playerData.seasonStats.avgEngageDistance = safeNum(playerData.seasonStats.avgEngageDistance);
+        playerData.seasonStats.avgKills = safeNum(playerData.seasonStats.avgKills);
+        playerData.seasonStats.avgAssists = safeNum(playerData.seasonStats.avgAssists);
+      }
+      if (playerData.rankedStats) {
+        playerData.rankedStats.avgDamage = safeNum(playerData.rankedStats.avgDamage);
+        playerData.rankedStats.avgSurvivalTime = safeNum(playerData.rankedStats.avgSurvivalTime);
+        playerData.rankedStats.avgDistance = safeNum(playerData.rankedStats.avgDistance);
+        playerData.rankedStats.avgEngageDistance = safeNum(playerData.rankedStats.avgEngageDistance);
+        playerData.rankedStats.avgKills = safeNum(playerData.rankedStats.avgKills);
+        playerData.rankedStats.avgAssists = safeNum(playerData.rankedStats.avgAssists);
+      }
+    }
     return { props: { playerData, error: null } };
   } catch (err) {
     return { props: { error: '서버 오류가 발생했습니다.', playerData: null } };
@@ -172,8 +231,31 @@ export default function PlayerPage({ playerData, error }) {
         <RankDistributionChart distribution={playerData.rankDistribution} myScore={playerData.myRankScore} />
       )}
 
-      {/* 최근 경기 내역 섹션 */}
 
+
+      {/* 최근 20경기 딜량 그래프 */}
+      <RecentDamageTrendChart matches={recentMatches} />
+
+      {/* 최근 폼 메시지 */}
+      {(() => {
+        if (!recentMatches || recentMatches.length === 0 || !summary || typeof summary.seasonAvgDamage !== 'number') return null;
+        const avgRecentDamage = recentMatches.reduce((sum, m) => sum + (m.damage ?? 0), 0) / recentMatches.length;
+        const seasonAvgDamage = summary.seasonAvgDamage;
+        const diff = avgRecentDamage - seasonAvgDamage;
+        let msg = '';
+        if (diff >= 50) msg = '📈 최근 폼이 크게 상승했습니다!';
+        else if (diff >= 20) msg = '🔼 최근 경기력이 좋아지고 있어요.';
+        else if (diff <= -50) msg = '📉 최근 폼이 급감했습니다. 컨디션을 점검해보세요!';
+        else if (diff <= -20) msg = '🔽 최근 경기력이 다소 저하됐습니다.';
+        else msg = '⚖️ 시즌 평균과 비슷한 경기력을 유지 중입니다.';
+        return (
+          <div className="my-2 text-center text-base font-semibold text-blue-700 dark:text-blue-300">
+            {msg} <span style={{fontWeight:400, fontSize:13, color:'#888'}}> (최근평균 {avgRecentDamage.toFixed(1)} / 시즌평균 {seasonAvgDamage.toFixed(1)})</span>
+          </div>
+        );
+      })()}
+
+      {/* 최근 경기 내역 섹션 */}
       <section className="recent-matches-section mt-12">
         <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-200">최근 20경기 내역</h2>
         {recentMatches && recentMatches.length > 0 ? (
