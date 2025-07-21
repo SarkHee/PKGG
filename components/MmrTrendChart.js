@@ -13,15 +13,14 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
  */
 const MmrTrendChart = ({ matches }) => {
   if (!Array.isArray(matches) || matches.length === 0) {
-      return (
-        <div className="card text-center text-gray-500 bg-gray-100 rounded-lg shadow-inner">
+    return (
+      <div className="card text-center text-gray-500 bg-gray-100 rounded-lg shadow-inner">
         <p>최근 MMR 추이 데이터를 불러올 수 없습니다. 경기를 더 플레이해보세요!</p>
       </div>
     );
   }
 
-  // 매치 데이터를 matchTimestamp를 기준으로 오래된 순서대로 정렬합니다.
-  // API 응답에서 matchTimestamp가 string 형태로 오므로 Date 객체로 변환하여 비교합니다.
+  // PK.GG 내부 점수 기반으로 정렬 및 시각화
   const sortedMatches = [...matches].sort((a, b) => {
     const dateA = new Date(a.matchTimestamp);
     const dateB = new Date(b.matchTimestamp);
@@ -29,22 +28,21 @@ const MmrTrendChart = ({ matches }) => {
   });
 
   const labels = sortedMatches.map((match, index) => {
-    // 경기 시간을 'MM/DD HH:MM' 형태로 표시
     const date = new Date(match.matchTimestamp);
     return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   });
 
   const mmrData = sortedMatches.map(match => {
-    return typeof match.avgMmr === 'number' && !isNaN(match.avgMmr) ? match.avgMmr : 0;
+    return typeof match.mmrScore === 'number' && !isNaN(match.mmrScore) ? match.mmrScore : 0;
   });
 
   const hasValidMmrData = mmrData.some(mmr => mmr > 0);
   if (!hasValidMmrData) {
-        return (
-          <div className="card text-center text-gray-500 bg-gray-100 rounded-lg shadow-inner">
-              <p>유효한 MMR 추이 데이터가 부족합니다. (MMR이 모두 0 또는 계산 불가)</p>
-          </div>
-      );
+    return (
+      <div className="card text-center text-gray-500 bg-gray-100 rounded-lg shadow-inner">
+        <p>유효한 MMR 추이 데이터가 부족합니다. (MMR이 모두 0 또는 계산 불가)</p>
+      </div>
+    );
   }
 
   const data = {

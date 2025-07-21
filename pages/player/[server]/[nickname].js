@@ -1,3 +1,4 @@
+import SynergyHeatmap from '../../../components/SynergyHeatmap.jsx';
 
 import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
@@ -8,6 +9,7 @@ import RankedStatsSection from '../../../components/RankedStatsSection';
 import PlayerPlaystyleStats from '../../../components/PlayerPlaystyleStats.jsx';
 import PlayerDashboard from '../../../components/PlayerDashboard';
 import MmrTrendChart from '../../../components/MmrTrendChart';
+import ModeDistributionChart from '../../../components/ModeDistributionChart';
 import RecentDamageTrendChart from '../../../components/RecentDamageTrendChart.jsx';
 import MatchListRow from '../../../components/MatchListRow';
 
@@ -45,25 +47,57 @@ export async function getServerSideProps(context) {
     let playerData = await res.json();
     // recentMatches 필드 보강: 누락 필드 기본값 보장
     if (playerData && Array.isArray(playerData.recentMatches)) {
-      playerData.recentMatches = playerData.recentMatches.map(match => ({
-        // 기존 필드 유지
-        ...match,
-        // 누락 필드 기본값 보장
-        opGrade: match.opGrade ?? '-',
-        totalTeamDamage: match.totalTeamDamage ?? 0,
-        rank: match.rank ?? '-',
-        killLog: Array.isArray(match.killLog) ? match.killLog : [],
-        movePath: match.movePath ?? '',
-        weaponStats: match.weaponStats ?? {},
-        teammatesDetail: Array.isArray(match.teammatesDetail) ? match.teammatesDetail : [],
-        win: match.win ?? false,
-        top10: match.top10 ?? false,
-        avgMmr: match.avgMmr ?? null,
-        matchTimestamp: match.matchTimestamp ?? null,
-        kills: match.kills ?? 0,
-        damage: match.damage ?? 0,
-        distance: match.distance ?? 0,
-      }));
+      playerData.recentMatches = playerData.recentMatches.map(match => {
+        const kills = typeof match.kills === 'number' ? match.kills : 0;
+        const damage = typeof match.damage === 'number' ? match.damage : 0;
+        const survivalTime = typeof match.survivalTime === 'number' ? match.survivalTime : 0;
+        // PK.GG MMR 공식 적용
+        const mmrScore = (kills * 30) + (damage * 0.7) + (survivalTime * 0.1);
+        return {
+          ...match,
+          opGrade: match.opGrade ?? '-',
+          totalTeamDamage: match.totalTeamDamage ?? 0,
+          rank: match.rank ?? '-',
+          killLog: Array.isArray(match.killLog) ? match.killLog : [],
+          movePath: match.movePath ?? '',
+          weaponStats: match.weaponStats ?? {},
+          teammatesDetail: Array.isArray(match.teammatesDetail) ? match.teammatesDetail : [],
+          win: match.win ?? false,
+          top10: match.top10 ?? false,
+          avgMmr: match.avgMmr ?? null,
+          matchTimestamp: match.matchTimestamp ?? null,
+          kills,
+          damage,
+          distance: match.distance ?? 0,
+          survivalTime,
+          mmrScore,
+        };
+      });
+      // 최근 20경기 모드 비율 계산
+      const modeCount = { ranked: 0, normal: 0, event: 0 };
+      playerData.recentMatches.forEach(match => {
+        // PUBG 공식 gameMode 분류 기준 정확히 반영
+        // 경쟁전: squad-fpp, duo-fpp, solo-fpp (Ranked Season 있음)
+        // 일반전: normal-로 시작하는 모든 모드 (normal-squad, normal-duo, normal-solo 등)
+        // 이벤트전: event, zombie, war, esports, 기타 특수 모드
+        const mode = match.gameMode || match.mode || '';
+        if (["squad-fpp", "duo-fpp", "solo-fpp"].includes(mode)) {
+          modeCount.ranked++;
+        } else if (typeof mode === 'string' && mode.startsWith('normal-')) {
+          modeCount.normal++;
+        } else if (typeof mode === 'string' && (mode.includes('event') || mode.includes('zombie') || mode.includes('war') || mode.includes('esports'))) {
+          modeCount.event++;
+        } else {
+          // 기타 특수 모드(정상적인 일반/경쟁전이 아니면 이벤트로 분류)
+          modeCount.event++;
+        }
+      });
+      const total = playerData.recentMatches.length || 1;
+      playerData.modeDistribution = {
+        ranked: Math.round((modeCount.ranked / total) * 100),
+        normal: Math.round((modeCount.normal / total) * 100),
+        event: Math.round((modeCount.event / total) * 100)
+      };
     }
     // summary, seasonStats, rankedStats 주요 필드 기본값 보장
     function safeNum(val, def = 0) { return typeof val === 'number' && !isNaN(val) ? val : def; }
@@ -215,10 +249,22 @@ export default function PlayerPage({ playerData, error }) {
       />
 
 
-      {/* 최근 경기 MMR 추이 그래프 */}
-      <div className="mt-10 mb-8">
-        <MmrTrendChart matches={recentMatches} />
+
+
+      {/* 모드 비율 시각화 (최근 20경기) */}
+      {playerData?.modeDistribution && (
+        <div className="mb-8">
+          <ModeDistributionChart modeDistribution={playerData.modeDistribution} />
+        </div>
+      )}
+
+      {/* PK.GG MMR 안내 */}
+      <div className="text-center text-sm text-gray-500 dark:text-gray-400 my-2">
+        PK.GG MMR은 공식 랭킹 RP가 아닌, 킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다.
       </div>
+
+      {/* 함께한 유저 시너지 히트맵 */}
+      <SynergyHeatmap matches={recentMatches} myNickname={profile.nickname} />
 
 
       {/* 시즌별 통계(이전 시즌 포함) */}

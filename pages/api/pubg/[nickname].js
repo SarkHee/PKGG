@@ -739,6 +739,7 @@ export default async function handler(req, res) {
       matches.push({
         matchId,
         mode: modeKor,
+        gameMode: matchData.data.attributes.gameMode, // 원본 gameMode 필드 추가
         playedAt: matchData.data.attributes.createdAt,
         playedAgo,
         survivedStr,
@@ -886,13 +887,32 @@ export default async function handler(req, res) {
         .map(([name]) => name);
     }
 
-    // 클랜원 리스트 및 각 멤버별 시즌 평균 딜량
+    // 클랜원 리스트 및 각 멤버별 시즌 평균 딜량 (clanStats.json 활용)
     let clanMembersStats = [];
     if (clanInfo && Array.isArray(clanInfo.members)) {
-      clanMembersStats = clanInfo.members.map(nick => ({
-        nickname: nick,
-        seasonAvgDamage: allPlayersSeasonAvgDamages.get(nick) ?? null,
-      }));
+      try {
+        const clanStatsPath = path.join(process.cwd(), "data", "clanStats.json");
+        const clanStatsRaw = await fs.readFile(clanStatsPath, "utf-8");
+        const clanStats = JSON.parse(clanStatsRaw);
+        clanMembersStats = clanInfo.members.map(nick => {
+          const lower = nick.toLowerCase();
+          const stat = clanStats[lower] || {};
+          return {
+            nickname: nick,
+            avgDamage: stat.avgDamage ?? null,
+            avgKills: stat.avgKills ?? null,
+            rounds: stat.rounds ?? null,
+            wins: stat.wins ?? null,
+            kd: stat.kd ?? null,
+          };
+        });
+      } catch (e) {
+        // fallback: 기존 방식
+        clanMembersStats = clanInfo.members.map(nick => ({
+          nickname: nick,
+          seasonAvgDamage: allPlayersSeasonAvgDamages.get(nick) ?? null,
+        }));
+      }
     }
 
     // 추천 스쿼드 조합
