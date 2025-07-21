@@ -65,56 +65,28 @@ const MatchDetailCard = ({ match }) => {
 
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 mb-4 transform hover:scale-105 transition duration-300 ease-in-out border border-gray-200 dark:border-gray-700">
-      <div className="flex justify-between items-start mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-        <div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">경기 상세 정보</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {formatMatchTime(match.matchTimestamp)}
-          </p>
-        </div>
-        <span className="text-sm text-gray-500 dark:text-gray-400">Match ID: {match.matchId?.substring(0, 8)}...</span>
+    <div className="match-card">
+      <div className="flex items-center justify-between mb-2">
+        <div className="font-extrabold text-lg text-[#2563eb] tracking-tight">{mapName}</div>
+        <div className="text-xs text-gray-400">{formatMatchTime(match.matchTimestamp)}</div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700 dark:text-gray-300">
-        <p className="text-lg">
-          <span className="font-semibold">맵:</span> {mapName}
-        </p>
-        <p className="text-lg">
-          <span className="font-semibold">모드:</span> {gameMode.toUpperCase()}
-        </p>
-        <p className="text-lg">
-          <span className="font-semibold">최종 순위:</span> {rank}위 / 총 스쿼드: {totalSquads} ({opGrade})
-        </p>
-        <p className="text-lg">
-          <span className="font-semibold">생존 시간:</span> {formatSurvivalTime(survivalTime)}
-        </p>
-        <p className="text-lg">
-          <span className="font-semibold">평균 MMR:</span> {avgMmr}
-        </p>
-        <p className="text-lg">
-          <span className="font-semibold">승리:</span> {win ? '✅' : '❌'}
-          <span className="ml-4 font-semibold">TOP 10:</span> {top10 ? '✅' : '❌'}
-        </p>
-        <p className="text-lg col-span-full">
-          <span className="font-semibold">총 딜량 (팀):</span> <span className="text-blue-500 dark:text-blue-400">{totalTeamDamage}</span>
-        </p>
+      <div className="flex flex-wrap gap-2 mb-2">
+        <span className="px-3 py-1 rounded-full bg-[#2563eb] text-white text-xs font-semibold">{gameMode}</span>
+        <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs">순위: {rank} / {totalSquads}</span>
+        <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">OP: {opGrade}</span>
+        {win && <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">WIN</span>}
+        {top10 && !win && <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">TOP10</span>}
       </div>
-
-      <div className="mt-6">
-        <h4 className="text-md font-semibold mb-3 text-gray-800 dark:text-gray-200">팀원 딜량 리스트 (딜량 높은 순)</h4>
-        <ul className="space-y-2">
-          {teammatesDetail
-            .sort((a, b) => b.damage - a.damage)
-            .map((tm, index) => (
-              <li key={tm.name || index} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
-                <span className="font-medium text-gray-700 dark:text-gray-300">{tm.name || '알 수 없는 팀원'}</span>
-                <span className="text-blue-600 dark:text-blue-300">{tm.damage} dmg</span>
-              </li>
-            ))}
-        </ul>
-        {teammatesDetail.length === 0 && (
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">팀원 정보가 없거나 솔로 매치입니다.</p>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm mb-2">
+        <div>딜량: <span className="font-bold text-[#2563eb]">{match.damage}</span></div>
+        <div>생존: <span className="font-bold">{formatSurvivalTime(survivalTime)}</span></div>
+        <div>이동거리: <span className="font-bold">{match.distance}m</span></div>
+        <div>평균 MMR: <span className="font-bold text-[#2563eb]">{avgMmr}</span></div>
+        <div>팀 총딜: <span className="font-bold">{totalTeamDamage}</span></div>
+      </div>
+      <div className="flex flex-wrap gap-2 mt-2">
+        {match.teammates && match.teammates.length > 0 && (
+          <span className="text-xs text-gray-500">팀원: {match.teammates.join(", ")}</span>
         )}
       </div>
     </div>

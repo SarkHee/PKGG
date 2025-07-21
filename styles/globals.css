@@ -1,43 +1,445 @@
-/* styles/globals.css (수정될 부분만) */
+/* 경기 확장 카드 (op.gg/피그마 스타일) */
+.match-expandable-card {
+  background: #f7f7f7;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.03);
+  margin-bottom: 0.5rem;
+  transition: box-shadow 0.2s;
+}
+.match-expandable-card.open {
+  box-shadow: 0 4px 16px 0 rgba(0,0,0,0.08);
+}
+.match-expandable-header {
+  padding: 0.5rem 1rem 0.5rem 0.5rem;
+}
+.expand-arrow-btn {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #888;
+  cursor: pointer;
+  transition: border 0.2s, background 0.2s;
+  margin-left: 0.5rem;
+}
+.expand-arrow-btn.open {
+  background: #e0e7ff;
+  border-color: #6366f1;
+  color: #3730a3;
+}
+.match-expandable-detail {
+  animation: fadeIn 0.2s;
+  border-radius: 0 0 10px 10px;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: none; }
+}
+.match-expandable-detail table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+.match-expandable-detail th, .match-expandable-detail td {
+  border: 1px solid #e5e7eb;
+  padding: 0.25rem 0.5rem;
+}
+.match-expandable-detail th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+.match-expandable-detail tr:nth-child(even) {
+  background: #f9fafb;
+}
+/* === Figma 대시보드형 카드/그리드 스타일 === */
+.player-dashboard {
+  width: 100%;
+  margin: 0 auto;
+  max-width: 1200px;
+}
+.dash-grid {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 32px;
+}
+.dash-grid-clan {
+  grid-template-columns: repeat(6, 1fr);
+}
+.dash-grid-personal {
+  grid-template-columns: repeat(5, 1fr);
+}
+.dash-grid-modes {
+  grid-template-columns: repeat(3, 1fr);
+}
+.dash-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 28px 0 18px 0;
+  text-align: center;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.dash-card-title {
+  font-size: 1.02em;
+  color: #888;
+  margin-bottom: 6px;
+}
+.dash-card-value {
+  font-size: 2.1em;
+  font-weight: 700;
+  color: #222;
+}
+.dash-card-sub {
+  font-size: 1.1em;
+  color: #2563eb;
+  margin-top: 2px;
+}
+.dash-card-empty {
+  background: #f7f8fa;
+  color: #bbb;
+  font-size: 1.08em;
+  min-height: 90px;
+}
+.synergy-emoji {
+  font-size: 2.2em;
+  display: block;
+}
+.dash-mode-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 22px 18px 16px 18px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.dash-mode-title {
+  font-weight: 700;
+  font-size: 1.13em;
+  margin-bottom: 8px;
+  color: #2563eb;
+}
+.dash-mode-games {
+  font-size: 0.95em;
+  color: #888;
+  margin-left: 8px;
+}
+.dash-mode-main {
+  display: flex;
+  gap: 16px;
+  font-size: 1.08em;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.dash-mode-main span {
+  min-width: 90px;
+}
+.dash-mode-sub {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 0.98em;
+  color: #888;
+  margin-top: 8px;
+}
+.dash-mode-sub span {
+  min-width: 90px;
+}
+/* === op.gg 스타일 경쟁전 요약/모드 카드 === */
+.ranked-summary-card {
+  background: #444e58;
+  color: #fff;
+  border-radius: 10px;
+  padding: 28px 32px 18px 32px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+.ranked-summary-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 1.1em;
+  margin-bottom: 8px;
+}
+.ranked-summary-mode {
+  font-weight: 700;
+  font-size: 1.15em;
+}
+.ranked-summary-tier {
+  background: #f7c873;
+  color: #222;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-weight: 700;
+  font-size: 1em;
+}
+.ranked-summary-main {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  font-size: 2.1em;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.ranked-summary-bar-wrap {
+  background: #2d3741;
+  border-radius: 4px;
+  height: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.ranked-summary-bar {
+  background: #f7c873;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.ranked-summary-table {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 24px;
+  font-size: 1.08em;
+  margin-top: 8px;
+}
+.ranked-summary-table > div {
+  display: flex;
+  justify-content: space-between;
+  opacity: 0.95;
+}
 
-/* ... (기존 html, body, a, * 스타일은 그대로) ... */
+.ranked-modes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+.ranked-mode-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 22px 18px 16px 18px;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  position: relative;
+}
+.ranked-mode-header {
+  font-weight: 700;
+  font-size: 1.13em;
+  margin-bottom: 8px;
+}
+.ranked-mode-main {
+  display: flex;
+  gap: 16px;
+  font-size: 1.08em;
+  margin-bottom: 8px;
+}
+.ranked-mode-table {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  font-size: 0.98em;
+}
+.ranked-mode-table > div {
+  display: flex;
+  justify-content: space-between;
+}
+.ranked-mode-card.empty {
+  background: #f3f4f6;
+  color: #888;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  font-size: 1.08em;
+}
+.empty-icon {
+  font-size: 2.2em;
+  margin-bottom: 8px;
+}
+.empty-text {
+  color: #888;
+  font-size: 1em;
+}
+/* === 경쟁전(랭크) 탭/상세 카드 피그마 스타일 === */
+.ranked-section {
+  margin-bottom: 18px;
+}
+.ranked-detail-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 16px rgba(37,99,235,0.07);
+  padding: 28px 24px;
+  margin-top: 8px;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.ranked-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.13em;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.ranked-row:last-child {
+  border-bottom: none;
+}
+.tab-list {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  justify-content: center;
+}
+.tab {
+  background: #f1f5f9;
+  color: #2563eb;
+  border-radius: 10px 10px 0 0;
+  padding: 12px 32px;
+  font-weight: 600;
+  font-size: 1.08em;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.04);
+}
+.tab.active {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.10);
+  z-index: 2;
+}
 
-/* Header 컴포넌트 스타일 */
-.main-header { /* header 태그 대신 클래스 선택자로 변경 */
-    width: 100%;
-    background-color: #007bff; /* 헤더 배경색 - 메인 블루 톤 */
-    color: white;
-    padding: 15px 20px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    display: flex;
-    align-items: center;
-    justify-content: space-between; /* 로고와 메뉴 등을 양 끝으로 분리 */
-    position: sticky; /* 상단 고정 */
-    top: 0; /* 상단에 딱 붙게 */
-    z-index: 1000; /* 다른 요소 위에 오도록 */
-  }
-  
-  .main-header .logo { /* 로고 클래스도 .main-header 아래로 이동 */
-    font-size: 1.8em;
-    font-weight: bold;
-    color: white;
-    text-decoration: none;
-  }
-  
-  /* ... (nav, main, button 등 나머지 스타일은 그대로) ... */
-  
-  
-  /* 푸터 스타일 */
-  .main-footer { /* footer 태그 대신 클래스 선택자로 변경 */
-    width: 100%;
-    padding: 20px;
-    background-color: #007bff; /* 푸터 배경색 - 메인 블루 톤 */
-    color: white;
-    text-align: center;
-    margin-top: auto; /* main이 남은 공간을 차지하도록 한 후 푸터를 바닥으로 밀어냄 */
-    box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
-  }
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+/* === Figma 기반 PK.GG 글로벌 스타일 === */
+
+html, body {
+  font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', Arial, sans-serif;
+  background: #F7F8FA;
+  color: #222;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  color: #2563eb;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+a:hover {
+  color: #1e40af;
+}
+
+/* 버튼 스타일 */
+button, .btn {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+}
+button:hover, .btn:hover {
+  background: #1e40af;
+}
+
+/* 카드 스타일 */
+.card, .stat-card, .match-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  padding: 24px 20px;
+  margin-bottom: 24px;
+}
+
+/* 입력창 스타일 */
+input, select, textarea {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 1rem;
+  background: #fff;
+  transition: border 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+/* 탭 스타일 */
+.tab-list {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.tab {
+  background: #f1f5f9;
+  color: #222;
+  border-radius: 10px 10px 0 0;
+  padding: 10px 22px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, color 0.2s;
+}
+.tab.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* 헤더/푸터 스타일 (피그마 컬러 반영) */
+.main-header {
+  width: 100%;
+  background: #2563eb;
+  color: #fff;
+  padding: 18px 32px;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+.main-header .logo {
+  font-size: 2.1em;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1px;
+}
+.main-footer {
+  width: 100%;
+  padding: 24px 0 18px 0;
+  background: #2563eb;
+  color: #fff;
+  text-align: center;
+  margin-top: auto;
+  box-shadow: 0 -2px 8px rgba(37,99,235,0.08);
+  font-size: 1.05em;
+}
+
+/* 로딩 스피너 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

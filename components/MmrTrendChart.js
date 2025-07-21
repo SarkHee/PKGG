@@ -13,8 +13,8 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
  */
 const MmrTrendChart = ({ matches }) => {
   if (!Array.isArray(matches) || matches.length === 0) {
-    return (
-      <div className="text-center p-5 text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-inner">
+      return (
+        <div className="card text-center text-gray-500 bg-gray-100 rounded-lg shadow-inner">
         <p>최근 MMR 추이 데이터를 불러올 수 없습니다. 경기를 더 플레이해보세요!</p>
       </div>
     );
@@ -40,8 +40,8 @@ const MmrTrendChart = ({ matches }) => {
 
   const hasValidMmrData = mmrData.some(mmr => mmr > 0);
   if (!hasValidMmrData) {
-      return (
-          <div className="text-center p-5 text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-inner">
+        return (
+          <div className="card text-center text-gray-500 bg-gray-100 rounded-lg shadow-inner">
               <p>유효한 MMR 추이 데이터가 부족합니다. (MMR이 모두 0 또는 계산 불가)</p>
           </div>
       );
