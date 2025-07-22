@@ -23,11 +23,48 @@ model Clan {
 }
 
 model ClanMember {
-  id        Int     @id @default(autoincrement())
-  nickname  String
-  score     Int
-  style     String
-  avgDamage Float
-  clanId    Int
-  clan      Clan    @relation(fields: [clanId], references: [id])
+  id             Int     @id @default(autoincrement())
+  nickname       String
+  score          Int
+  style          String
+  avgDamage      Float
+  avgKills       Float   @default(0)
+  avgAssists     Float   @default(0)
+  avgSurviveTime Float   @default(0)
+  winRate        Float   @default(0)
+  top10Rate      Float   @default(0)
+  clanId         Int
+  clan           Clan    @relation(fields: [clanId], references: [id])
+  matches        PlayerMatch[]
+  modeStats      PlayerModeStats[]
+}
+
+model PlayerMatch {
+  id           Int      @id @default(autoincrement())
+  clanMember   ClanMember @relation(fields: [clanMemberId], references: [id])
+  clanMemberId Int
+  matchId      String   // PUBG match id
+  mode         String   // solo/duo/squad 등
+  mapName      String?
+  placement    Int
+  kills        Int
+  assists      Int
+  damage       Float
+  surviveTime  Float
+  createdAt    DateTime @default(now())
+}
+
+model PlayerModeStats {
+  id           Int      @id @default(autoincrement())
+  clanMember   ClanMember @relation(fields: [clanMemberId], references: [id])
+  clanMemberId Int
+  mode         String   // solo/duo/squad/fpp/tpp 등
+  matches      Int
+  wins         Int
+  top10s       Int
+  avgDamage    Float
+  avgKills     Float
+  avgAssists   Float
+  winRate      Float
+  top10Rate    Float
 }

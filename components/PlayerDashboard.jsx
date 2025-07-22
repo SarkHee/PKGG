@@ -26,6 +26,9 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
   const synergyStatus = clanSynergyStatusList && clanSynergyStatusList.length > 0 ?
     clanSynergyStatusList.sort((a,b) => a === "좋음" ? -1 : 1)[0] : "-";
 
+  // profile.clan이 객체일 경우 안전하게 문자열로 변환
+  const clanName = profile.clan && typeof profile.clan === 'object' && 'name' in profile.clan ? profile.clan.name : (profile.clan ?? '-');
+
   // 모드별 카드
   const modes = ["solo", "duo", "squad"];
   return (
@@ -39,7 +42,7 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
       </div>
       {/* 상단 클랜/개인 요약 카드 그리드 */}
       <div>
-        <StatCard title="클랜명" value={profile.clan} />
+        <StatCard title="클랜명" value={clanName} />
         <StatCard title="클랜 평균 딜" value={clanAverage ?? "-"} />
         <StatCard title="클랜 내 티어" value={profile.clanTier ?? "-"} />
         <StatCard title="함께한 클랜원 TOP3" value={<>{synergyTop?.map(p => <div key={p.name}>{p.name}</div>)}</>} />

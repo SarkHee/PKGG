@@ -1,9 +1,11 @@
 // pages/clan/[clanName].js
 
+
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Header from '../../components/Header.jsx'; // .jsx 확장자 명시
-import Footer from '../../components/Footer.jsx'; // .jsx 확장자 명시
+import Header from '../../components/Header.jsx';
+import Footer from '../../components/Footer.jsx';
 
 export default function ClanDetailsPage() {
   const router = useRouter();
@@ -15,6 +17,20 @@ export default function ClanDetailsPage() {
   const [loadingStats, setLoadingStats] = useState(false);
   const [error, setError] = useState(null);
   const [statsError, setStatsError] = useState(null);
+
+  // 클랜 전체 평균 점수 및 주요 스타일 계산
+  const clanAvgScore = clanMembers.length
+    ? (
+        clanMembers.reduce((sum, m) => sum + (Number(memberStats[m]?.avgScore) || 0), 0) / clanMembers.length
+      ).toFixed(1)
+    : 'N/A';
+
+  const styleCount = {};
+  clanMembers.forEach(m => {
+    const style = memberStats[m]?.playStyle;
+    if (style) styleCount[style] = (styleCount[style] || 0) + 1;
+  });
+  const clanMainStyle = Object.entries(styleCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
   // 클랜 멤버 정보 가져오기
   useEffect(() => {
@@ -50,15 +66,17 @@ export default function ClanDetailsPage() {
     fetchClanMembers();
   }, [clanName]); // clanName이 변경될 때마다 재실행
 
-  // 각 클랜 멤버의 PUBG 통계 정보 가져오기
+
+
+  // 각 클랜 멤버의 PUBG 통계 정보 가져오기 및 DB 저장
   useEffect(() => {
     if (clanMembers.length === 0 || loadingClan) {
-      setMemberStats({}); // 클랜 멤버가 없거나 로딩 중이면 통계 초기화
+      setMemberStats({});
       setLoadingStats(false);
       return;
     }
 
-    const fetchMemberStats = async () => {
+    const fetchAndSaveMemberStats = async () => {
       setLoadingStats(true);
       setStatsError(null);
       const newMemberStats = {};
@@ -68,19 +86,39 @@ export default function ClanDetailsPage() {
         try {
           const res = await fetch(`/api/pubg/${encodeURIComponent(member)}`);
           const data = await res.json();
-
           if (res.ok) {
             newMemberStats[member] = {
               avgScore: data.avgScore,
               playStyle: data.playStyle,
+              avgDamage: data.avgDamage,
+              avgKills: data.avgKills,
+              avgAssists: data.avgAssists,
+              avgSurviveTime: data.avgSurviveTime,
+              winRate: data.winRate,
+              top10Rate: data.top10Rate
             };
+            // DB에 저장 (기본적으로 필요한 값 모두 포함)
+            await fetch('/api/clan/update-member', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                clanName,
+                nickname: member,
+                score: data.avgScore || 0,
+                style: data.playStyle || '-',
+                avgDamage: data.avgDamage || 0,
+                avgKills: data.avgKills || 0,
+                avgAssists: data.avgAssists || 0,
+                avgSurviveTime: data.avgSurviveTime || 0,
+                winRate: data.winRate || 0,
+                top10Rate: data.top10Rate || 0
+              })
+            });
           } else {
-            console.warn(`플레이어 ${member} 통계 불러오기 실패:`, data.error || '알 수 없는 오류');
             newMemberStats[member] = { avgScore: 'N/A', playStyle: 'N/A', error: data.error || '데이터 없음' };
             hasError = true;
           }
         } catch (err) {
-          console.error(`플레이어 ${member} 통계 fetch 중 오류:`, err);
           newMemberStats[member] = { avgScore: 'N/A', playStyle: 'N/A', error: '네트워크 오류' };
           hasError = true;
         }
@@ -91,9 +129,8 @@ export default function ClanDetailsPage() {
       }
       setLoadingStats(false);
     };
-
-    fetchMemberStats();
-  }, [clanMembers, loadingClan]); // clanMembers 또는 loadingClan이 변경될 때 재실행
+    fetchAndSaveMemberStats();
+  }, [clanMembers, loadingClan]);
 
   if (loadingClan) {
     return (
@@ -128,20 +165,15 @@ export default function ClanDetailsPage() {
       <Header />
       <main style={{ padding: '20px 0', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.5em', color: '#007bff', marginBottom: '30px' }}>{clanName} 클랜 분석</h1>
-
         <div style={{ border: '1px solid #e0e0e0', padding: '20px', borderRadius: '8px', backgroundColor: '#f9f9f9', marginBottom: '30px' }}>
           <p style={{ fontSize: '1.2em', margin: '5px 0' }}>클랜원 수: {clanMembers.length}명</p>
-          {/* TODO: 평균 점수, 주요 스타일 등 클랜 전체 통계는 나중에 추가 */}
-          <p style={{ fontSize: '1.2em', margin: '5px 0' }}>평균 점수: (추후 구현)</p>
-          <p style={{ fontSize: '1.2em', margin: '5px 0' }}>주요 스타일: (추후 구현)</p>
+          <p style={{ fontSize: '1.2em', margin: '5px 0' }}>평균 점수: {clanAvgScore}</p>
+          <p style={{ fontSize: '1.2em', margin: '5px 0' }}>주요 스타일: {clanMainStyle}</p>
         </div>
-
         <button onClick={() => window.location.reload()} style={{ padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginBottom: '20px' }}>
           데이터 다시 불러오기
         </button>
-
         {statsError && <p style={{ color: 'orange', fontWeight: 'bold' }}>{statsError}</p>}
-
         <h2 style={{ fontSize: '2em', color: '#333', marginBottom: '20px' }}>클랜원 리스트</h2>
         {loadingStats ? (
           <p style={{ color: 'blue', fontSize: '1.1em' }}>클랜원 통계 데이터를 불러오는 중입니다...</p>
@@ -167,22 +199,7 @@ export default function ClanDetailsPage() {
                       스타일: {memberStats[member]?.playStyle || 'N/A'}
                     </div>
                   )}
-                  <button
-                    style={{ marginLeft: 10, padding: '4px 10px', fontSize: '0.9em', background: '#eee', border: '1px solid #bbb', borderRadius: 4, cursor: 'pointer' }}
-                    onClick={async () => {
-                      const res = await fetch('/api/clan/update-member', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ clanName, nickname: member })
-                      });
-                      if (res.ok) {
-                        alert('DB에 최신 통계 저장 완료!');
-                      } else {
-                        const data = await res.json();
-                        alert('DB 저장 실패: ' + (data.error || '오류'));
-                      }
-                    }}
-                  >DB에 최신 통계 저장</button>
+                  {/* per-member DB 저장 버튼 제거됨 */}
                 </li>
               ))
             )}

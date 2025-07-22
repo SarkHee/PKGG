@@ -77,12 +77,27 @@ export default async function handler(req, res) {
           nickname: m.nickname,
           score: m.score,
           style: m.style,
-          avgDamage: m.avgDamage
+          avgDamage: m.avgDamage,
+          avgKills: m.avgKills,
+          avgAssists: m.avgAssists,
+          avgSurviveTime: m.avgSurviveTime,
+          winRate: m.winRate,
+          top10Rate: m.top10Rate
         }))
       }
     });
   } else if (req.method === 'POST') {
-    const { nickname, score = 0, style = '-', avgDamage = 0 } = req.body;
+    const {
+      nickname,
+      score = 0,
+      style = '-',
+      avgDamage = 0,
+      avgKills = 0,
+      avgAssists = 0,
+      avgSurviveTime = 0,
+      winRate = 0,
+      top10Rate = 0
+    } = req.body;
     if (!nickname) {
       return res.status(400).json({ error: '추가할 클랜원 닉네임이 필요합니다.' });
     }
@@ -91,11 +106,6 @@ export default async function handler(req, res) {
     if (exists) {
       return res.status(409).json({ error: `'${nickname}'은(는) 이미 클랜에 등록되어 있습니다. 다른 닉네임을 시도해주세요.` });
     }
-    // PUBG ID 확인 (옵션)
-    // const pubgId = await getPubgIdByNickname(nickname);
-    // if (!pubgId) {
-    //   return res.status(400).json({ error: `'${nickname}'은(는) 유효한 PUBG 플레이어 닉네임이 아닙니다.` });
-    // }
     try {
       await prisma.clanMember.create({
         data: {
@@ -103,6 +113,11 @@ export default async function handler(req, res) {
           score,
           style,
           avgDamage,
+          avgKills,
+          avgAssists,
+          avgSurviveTime,
+          winRate,
+          top10Rate,
           clanId: targetClan.id
         }
       });
