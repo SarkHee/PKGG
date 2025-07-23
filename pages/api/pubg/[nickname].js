@@ -328,6 +328,7 @@ export default async function handler(req, res) {
     const allPlayersSeasonAvgDamages = new Map();
 
     // 3. 현재 시즌 정보 조회 및 플레이어 시즌 통계 조회
+    let currentSeason = null; // currentSeason을 상위 스코프에서 선언
     const seasonLookupUrl = `${PUBG_BASE_URL}/${shard}/seasons`;
     const seasonRes = await fetch(seasonLookupUrl, {
       headers: {
@@ -338,9 +339,10 @@ export default async function handler(req, res) {
 
     if (seasonRes.ok) {
       const seasonData = await seasonRes.json();
-      const currentSeason = seasonData.data.find(
+      currentSeason = seasonData.data.find(
         s => s.attributes.isCurrentSeason
       );
+      console.log(`[SEASON INFO] 현재 시즌 조회 결과:`, currentSeason ? `ID: ${currentSeason.id}, 활성: ${currentSeason.attributes.isCurrentSeason}` : '현재 시즌 없음');
 
       if (currentSeason) {
         const playerSeasonStatsUrl = `${PUBG_BASE_URL}/${shard}/players/${accountId}/seasons/${currentSeason.id}`;
@@ -433,6 +435,7 @@ export default async function handler(req, res) {
     let rankedStats = [];
     try {
       if (currentSeason && currentSeason.id) {
+        console.log(`[RANKED INFO] 경쟁전 데이터 조회 시작 - 플레이어: ${nickname}, 시즌: ${currentSeason.id}`);
         const rankedStatsUrl = `${PUBG_BASE_URL}/${shard}/players/${accountId}/seasons/${currentSeason.id}/rankedGameModeStats`;
         const rankedRes = await fetch(rankedStatsUrl, {
           headers: {
@@ -442,6 +445,7 @@ export default async function handler(req, res) {
         });
         if (rankedRes.ok) {
           const rankedData = await rankedRes.json();
+          console.log(`[RANKED INFO] 경쟁전 API 응답 성공, 데이터:`, JSON.stringify(rankedData.data?.attributes?.rankedGameModeStats, null, 2));
           const rankedGameModes = rankedData.data?.attributes?.rankedGameModeStats || {};
           const modePriority = ["squad-fpp", "squad", "duo-fpp", "solo-fpp"];
           for (const mode of modePriority) {

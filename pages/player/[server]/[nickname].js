@@ -10,6 +10,7 @@ import MatchListRow from '../../../components/MatchListRow';
 import SeasonStatsTabs from '../../../components/SeasonStatsTabs.jsx';
 import RankDistributionChart from '../../../components/RankDistributionChart.jsx';
 import SynergyHeatmap from '../../../components/SynergyHeatmap.jsx';
+import Header from '../../../components/Header.jsx';
 
 // 반드시 export default 함수 바깥에 위치!
 function MatchList({ recentMatches }) {
@@ -224,8 +225,29 @@ async function getDbOnlyPlayerData(members, prisma, dataSource) {
     modeStats: modeStatsArr || [],
     modeDistribution,
     clanMembers: members || [],
-    rankedStats: [], // DB에는 경쟁전 정보가 없으므로 빈 배열
-    rankedSummary: null // DB에는 경쟁전 요약이 없으므로 null
+    // DB에서 랭크 정보가 없으므로 기본값을 설정하되, API 호출이 가능하면 실시간으로 가져오도록 함
+    rankedStats: [
+      { mode: "squad-fpp", tier: "Unranked", rp: 0, kd: 0, avgDamage: 0, winRate: 0, survivalTime: 0, rounds: 0 },
+      { mode: "squad", tier: "Unranked", rp: 0, kd: 0, avgDamage: 0, winRate: 0, survivalTime: 0, rounds: 0 }, 
+      { mode: "duo-fpp", tier: "Unranked", rp: 0, kd: 0, avgDamage: 0, winRate: 0, survivalTime: 0, rounds: 0 },
+      { mode: "solo-fpp", tier: "Unranked", rp: 0, kd: 0, avgDamage: 0, winRate: 0, survivalTime: 0, rounds: 0 }
+    ],
+    rankedSummary: {
+      mode: "squad-fpp",
+      tier: "Unranked", 
+      rp: 0,
+      games: 0,
+      wins: 0,
+      kd: 0,
+      avgDamage: 0,
+      winRate: 0,
+      top10Rate: 0,
+      kda: 0,
+      avgAssist: 0,
+      avgKill: 0,
+      avgRank: 0,
+      survivalTime: 0
+    }
   };
   
   return { 
@@ -520,60 +542,68 @@ export default function PlayerPage({ playerData, error, dataSource }) {
   const clanName = profile.clan?.name || (typeof profile.clan === 'string' ? profile.clan : '');
 
   return (
-    <div className="container mx-auto p-4 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100 font-sans">
-      <Head>
-        <title>{profile.nickname}님의 PUBG 전적 | PK.GG</title>
-        <meta name="description" content={`${profile.nickname}님의 PUBG 전적, MMR 추이, 플레이스타일 및 클랜 시너지 분석 정보.`} />
-      </Head>
+    <>
+      <Header />
+      <div className="container mx-auto p-4 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100 font-sans">
+        <Head>
+          <title>{profile.nickname}님의 PUBG 전적 | PK.GG</title>
+          <meta name="description" content={`${profile.nickname}님의 PUBG 전적, MMR 추이, 플레이스타일 및 클랜 시너지 분석 정보.`} />
+        </Head>
 
       {/* 데이터 소스 알림 */}
-      {dataSource === 'database' && (
-        <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
-          <div className="flex items-center">
-            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <strong>DB 데이터 표시 중:</strong> 일부 정보(경쟁전, 최신 통계)가 제한될 수 있습니다. 최신화하기를 눌러 실시간 데이터를 가져오세요.
+        {dataSource === 'database' && (
+          <div className="mb-3 p-2 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs">
+                <strong>DB 데이터 표시:</strong> 일부 정보 제한 가능. 최신화하기로 실시간 데이터 조회.
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+        )}        {dataSource === 'db_with_api_enhancement' && (
+          <div className="mb-3 p-2 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs">
+                <strong>향상된 데이터:</strong> DB + PUBG API 실시간 데이터 조합. 백그라운드 업데이트됨.
+              </span>
+            </div>
+          </div>
+        )}
 
-      {dataSource === 'db_with_api_enhancement' && (
-        <div className="mb-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg">
-          <div className="flex items-center">
-            <svg className="w-3 h-3 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            <strong>향상된 데이터:</strong> DB 저장 정보와 PUBG API 실시간 데이터를 조합하여 표시중입니다. 데이터가 백그라운드에서 업데이트되었습니다.
+        {dataSource === 'pubg_api_only' && (
+          <div className="mb-3 p-2 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs">
+                <strong>실시간 데이터:</strong> PUBG API 최신 정보. 
+                {playerData.profile?.clan?.name ? 
+                  `(${playerData.profile.clan.name} 클랜 소속)` : 
+                  '(클랜 미소속)'
+                }
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {dataSource === 'pubg_api_only' && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-          <div className="flex items-center">
-            <svg className="w-3 h-3 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            <strong>실시간 데이터:</strong> PUBG API에서 최신 정보를 가져왔습니다. 
-            {playerData.profile?.clan?.name ? 
-              `(${playerData.profile.clan.name} 클랜 소속 - 기존 클랜이면 DB 저장됨)` : 
-              '(클랜 미소속 - DB 저장 안됨)'
-            }
+        {dataSource === 'pubg_api' && (
+          <div className="mb-3 p-2 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs">
+                <strong>실시간 데이터:</strong> PUBG API 최신 정보 조회됨.
+              </span>
+            </div>
           </div>
-        </div>
-      )}
-
-      {dataSource === 'pubg_api' && (
-        <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-          <div className="flex items-center">
-            <svg className="w-3 h-3 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            <strong>실시간 데이터:</strong> PUBG API에서 최신 정보를 가져왔습니다.
-          </div>
-        </div>
-      )}
+        )}
 
       <div className="flex flex-col items-center gap-2 mb-6">
         <h1 className="text-4xl font-extrabold text-center text-blue-600 dark:text-blue-400 drop-shadow-lg">
@@ -685,7 +715,8 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
       <div className="text-right text-sm text-gray-500 dark:text-gray-400 mt-8">
         데이터 최종 업데이트: {new Date(profile.lastUpdated).toLocaleString('ko-KR')}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

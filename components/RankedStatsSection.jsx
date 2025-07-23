@@ -3,7 +3,8 @@ import RankedSummaryCard from "./RankedSummaryCard";
 import RankedModeCard from "./RankedModeCard";
 
 export default function RankedStatsSection({ rankedSummary, rankedStats }) {
-  const hasRanked = rankedSummary && rankedStats && rankedStats.some(r => r.rounds > 0);
+  // rankedSummary와 rankedStats가 존재하면 표시 (rounds > 0 조건 제거)
+  const hasRanked = rankedSummary && rankedStats && Array.isArray(rankedStats) && rankedStats.length > 0;
   return (
     <section>
       <h2>경쟁전 요약</h2>
