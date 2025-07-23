@@ -475,7 +475,17 @@ export default async function handler(req, res) {
             }
           }
         } else {
-          console.warn(`[RANKED WARN] 경쟁전 데이터 조회 실패 (${rankedRes.status}): ${await rankedRes.text()}`);
+          const responseText = await rankedRes.text();
+          console.warn(`[RANKED WARN] 경쟁전 데이터 조회 실패 (${rankedRes.status}): ${responseText}`);
+          console.log(`[RANKED DEBUG] 요청 URL: ${rankedStatsUrl}`);
+          console.log(`[RANKED DEBUG] 현재 시즌 ID: ${currentSeason.id}`);
+          console.log(`[RANKED DEBUG] 플레이어 ID: ${accountId}`);
+          
+          // 404 에러인 경우 (플레이어가 경쟁전을 플레이하지 않음)
+          if (rankedRes.status === 404) {
+            console.log(`[RANKED INFO] 플레이어 '${nickname}'는 현재 시즌에 경쟁전 게임을 플레이하지 않았습니다.`);
+          }
+          
           const modePriority = ["squad-fpp", "squad", "duo-fpp", "solo-fpp"];
           rankedStats = modePriority.map(mode => ({
             mode,

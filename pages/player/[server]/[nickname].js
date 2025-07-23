@@ -552,55 +552,66 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
       {/* 데이터 소스 알림 */}
         {dataSource === 'database' && (
-          <div className="mb-3 p-2 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
-            <div className="flex items-center">
-              <svg className="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <span className="text-xs">
-                <strong>DB 데이터 표시:</strong> 일부 정보 제한 가능. 최신화하기로 실시간 데이터 조회.
-              </span>
+          <div className="mb-3 p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-200 text-yellow-800 rounded-xl shadow-sm">
+            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center">
+              <div className="inline-block px-3 py-1 bg-yellow-500 text-white text-xs font-semibold rounded-full mb-2">
+                데이터 소스 안내
+              </div>
+              <div className="text-sm font-medium">
+                <strong>DB 데이터 표시:</strong> 일부 정보 제한 가능
+              </div>
+              <div className="text-xs text-yellow-600 mt-1">
+                최신화하기로 실시간 데이터 조회 가능
+              </div>
             </div>
           </div>
         )}        {dataSource === 'db_with_api_enhancement' && (
-          <div className="mb-3 p-2 bg-blue-100 border border-blue-400 text-blue-700 rounded-lg">
-            <div className="flex items-center">
-              <svg className="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="text-xs">
-                <strong>향상된 데이터:</strong> DB + PUBG API 실시간 데이터 조합. 백그라운드 업데이트됨.
-              </span>
+          <div className="mb-3 p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 text-blue-800 rounded-xl shadow-sm">
+            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center">
+              <div className="inline-block px-3 py-1 bg-blue-500 text-white text-xs font-semibold rounded-full mb-2">
+                데이터 소스 안내
+              </div>
+              <div className="text-sm font-medium">
+                <strong>향상된 데이터:</strong> DB + PUBG API 실시간 데이터 조합
+              </div>
+              <div className="text-xs text-blue-600 mt-1">
+                백그라운드에서 자동 업데이트됩니다
+              </div>
             </div>
           </div>
         )}
 
         {dataSource === 'pubg_api_only' && (
-          <div className="mb-3 p-2 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-            <div className="flex items-center">
-              <svg className="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="text-xs">
-                <strong>실시간 데이터:</strong> PUBG API 최신 정보. 
+          <div className="mb-3 p-4 bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 text-green-800 rounded-xl shadow-sm">
+            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center">
+              <div className="inline-block px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full mb-2">
+                데이터 소스 안내
+              </div>
+              <div className="text-sm font-medium">
+                <strong>실시간 데이터:</strong> PUBG API 최신 정보
+              </div>
+              <div className="text-xs text-green-600 mt-1">
                 {playerData.profile?.clan?.name ? 
-                  `(${playerData.profile.clan.name} 클랜 소속)` : 
-                  '(클랜 미소속)'
+                  `${playerData.profile.clan.name} 클랜 소속` : 
+                  '클랜 미소속'
                 }
-              </span>
+              </div>
             </div>
           </div>
         )}
 
         {dataSource === 'pubg_api' && (
-          <div className="mb-3 p-2 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-            <div className="flex items-center">
-              <svg className="w-2 h-2 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="text-xs">
-                <strong>실시간 데이터:</strong> PUBG API 최신 정보 조회됨.
-              </span>
+          <div className="mb-3 p-4 bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 text-green-800 rounded-xl shadow-sm">
+            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center">
+              <div className="inline-block px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full mb-2">
+                데이터 소스 안내
+              </div>
+              <div className="text-sm font-medium">
+                <strong>실시간 데이터:</strong> PUBG API 최신 정보 조회됨
+              </div>
+              <div className="text-xs text-green-600 mt-1">
+                실시간으로 업데이트된 데이터입니다
+              </div>
             </div>
           </div>
         )}
@@ -621,7 +632,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
       {/* 경쟁전 요약/상세 카드 섹션 */}
       <div className="mb-8">
-        <RankedStatsSection rankedSummary={rankedSummary} rankedStats={rankedStats} />
+        <RankedStatsSection rankedSummary={rankedSummary} rankedStats={rankedStats} dataSource={dataSource} />
       </div>
 
       {/* Figma 대시보드형 카드 UI - 메인 통계 대시보드 */}

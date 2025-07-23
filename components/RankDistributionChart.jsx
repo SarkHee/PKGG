@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 /**
  * 랭크 점수 분포(전체 유저 중 내 위치) 차트 (op.gg 스타일)
@@ -7,6 +7,16 @@ import React from "react";
  * @param {number} props.myScore - 내 점수
  */
 export default function RankDistributionChart({ distribution, myScore }) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="text-gray-500 dark:text-gray-400">로딩 중...</div>;
+  }
+
   if (!Array.isArray(distribution) || distribution.length === 0) return <div className="text-gray-500 dark:text-gray-400">점수 분포 데이터가 없습니다.</div>;
   const max = Math.max(...distribution);
   const myIdx = Math.floor(myScore / 100); // 예시: 100점 단위 구간
