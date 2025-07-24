@@ -1,6 +1,9 @@
 import React from 'react';
 
 const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, refreshing, cooldown, refreshMsg }) => {
+  // 디버깅용 로그
+  console.log('PlayerHeader rankedSummary:', rankedSummary);
+  
   // 플레이스타일 값을 안전하게 문자열로 변환 (realPlayStyle 우선, 그 다음 playstyle, 마지막으로 style)
   const getStyleString = (summary) => {
     const style = summary?.realPlayStyle || summary?.playstyle || summary?.style;
