@@ -4,8 +4,8 @@ import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 
 Chart.register(ArcElement, Tooltip, Legend);
 
-const MODE_LABELS = ['경쟁전', '일반전', '이벤트전'];
-const MODE_COLORS = ['#ff6384', '#36a2eb', '#ffcd56'];
+const MODE_LABELS = ['랭크게임', '일반게임', '이벤트게임'];
+const MODE_COLORS = ['#dc2626', '#2563eb', '#f59e0b'];
 const MODE_ICONS = ['🏆', '⚔️', '🎉'];
 
 export default function ModeDistributionChart({ modeDistribution }) {
@@ -32,10 +32,42 @@ export default function ModeDistributionChart({ modeDistribution }) {
   };
 
   return (
-    <div style={{ maxWidth: 320, margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>모드 비율 (최근 20경기)</div>
-      <Doughnut data={chartData} options={{ plugins: { legend: { display: true, position: 'bottom' } } }} />
-      <div style={{ marginTop: 12, fontSize: 14, color: '#444' }}>{summary}</div>
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+      <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 text-center">
+        게임 모드 분포 (최근 20경기)
+      </h3>
+      <div style={{ maxWidth: 300, margin: '0 auto' }}>
+        <Doughnut 
+          data={chartData} 
+          options={{ 
+            plugins: { 
+              legend: { 
+                display: true, 
+                position: 'bottom',
+                labels: {
+                  padding: 15,
+                  usePointStyle: true,
+                  font: {
+                    size: 12
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `${context.label}: ${context.parsed}%`;
+                  }
+                }
+              }
+            },
+            responsive: true,
+            maintainAspectRatio: true
+          }} 
+        />
+      </div>
+      <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center px-2">
+        {summary}
+      </div>
     </div>
   );
 }

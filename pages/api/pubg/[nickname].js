@@ -436,7 +436,9 @@ export default async function handler(req, res) {
     try {
       if (currentSeason && currentSeason.id) {
         console.log(`[RANKED INFO] 경쟁전 데이터 조회 시작 - 플레이어: ${nickname}, 시즌: ${currentSeason.id}`);
-        const rankedStatsUrl = `${PUBG_BASE_URL}/${shard}/players/${accountId}/seasons/${currentSeason.id}/rankedGameModeStats`;
+        // 공식 PUBG API 문서에 따른 올바른 엔드포인트 사용
+        const rankedStatsUrl = `${PUBG_BASE_URL}/${shard}/players/${accountId}/seasons/${currentSeason.id}/ranked`;
+        console.log(`[RANKED DEBUG] 올바른 API URL: ${rankedStatsUrl}`);
         const rankedRes = await fetch(rankedStatsUrl, {
           headers: {
             Authorization: `Bearer ${PUBG_API_KEY_RAW}`,
@@ -445,8 +447,11 @@ export default async function handler(req, res) {
         });
         if (rankedRes.ok) {
           const rankedData = await rankedRes.json();
-          console.log(`[RANKED INFO] 경쟁전 API 응답 성공, 데이터:`, JSON.stringify(rankedData.data?.attributes?.rankedGameModeStats, null, 2));
-          const rankedGameModes = rankedData.data?.attributes?.rankedGameModeStats || {};
+          console.log(`[RANKED INFO] 경쟁전 API 응답 성공, 전체 구조:`, JSON.stringify(rankedData, null, 2));
+          // 응답 구조 확인 후 적절한 경로로 데이터 추출
+          const rankedGameModes = rankedData.data?.attributes?.rankedGameModeStats || 
+                                 rankedData.data?.attributes || 
+                                 rankedData.attributes || {};
           const modePriority = ["squad-fpp", "squad", "duo-fpp", "solo-fpp"];
           for (const mode of modePriority) {
             if (rankedGameModes[mode]) {
@@ -585,6 +590,9 @@ export default async function handler(req, res) {
     const squadCombos = {}; // 추천 스쿼드 조합
     const squadComboHistory = {}; // 조합별 최근 경기 id
 
+    // 모드별 통계 수집용 변수들
+    const modeStatsMap = {};
+
     console.log(`[API INFO] 최근 매치 ${matchRefs.length}개 조회 시작.`);
 
     for (const matchRef of matchRefs) {
@@ -652,7 +660,7 @@ export default async function handler(req, res) {
       const teammatesDetail = [];
       if (myRosterId && rostersMap.has(myRosterId)) {
         const myRoster = rostersMap.get(myRosterId);
-        myRank = myRoster.attributes.stats.rank;
+        myRank = myRoster.attributes.stats.rank || myRoster.attributes.rank || "N/A";
         myTeamId = myRoster.attributes.stats.teamId || myRoster.id;
 
         myRoster.relationships.participants.data.forEach(participantRef => {
@@ -731,6 +739,40 @@ export default async function handler(req, res) {
         if (m === 'solo-fpp' || m === 'solo') return 'SOLO';
         return m.toUpperCase();
       })();
+
+      // 모드별 통계 수집
+      const gameMode = matchData.data.attributes.gameMode;
+      if (!modeStatsMap[gameMode]) {
+        modeStatsMap[gameMode] = {
+          rounds: 0,
+          wins: 0,
+          top10s: 0,
+          kills: 0,
+          assists: 0,
+          damage: 0,
+          survivalTime: 0,
+          rankSum: 0,
+          validRanks: 0
+        };
+      }
+      
+      const modeData = modeStatsMap[gameMode];
+      modeData.rounds++;
+      modeData.kills += myStats.kills || 0;
+      modeData.assists += myStats.assists || 0;
+      modeData.damage += myStats.damageDealt || 0;
+      modeData.survivalTime += myStats.timeSurvived || 0;
+      
+      if (isWin) modeData.wins++;
+      if (isTop10) modeData.top10s++;
+      
+      // 순위가 숫자인 경우에만 평균 등수 계산에 포함
+      if ((typeof myRank === 'number' && myRank > 0) || (typeof myRank === 'string' && !isNaN(Number(myRank)) && Number(myRank) > 0)) {
+        const rankNumber = typeof myRank === 'number' ? myRank : Number(myRank);
+        modeData.rankSum += rankNumber;
+        modeData.validRanks++;
+      }
+
       // 2. 시간 포맷 (몇시간전/몇분전)
       const playedDate = new Date(matchData.data.attributes.createdAt);
       const now = new Date();
@@ -757,6 +799,7 @@ export default async function handler(req, res) {
         playedAt: matchData.data.attributes.createdAt,
         playedAgo,
         survivedStr,
+        survivalTime: myStats.timeSurvived || 0, // 생존시간 초 단위 추가
         rank: myRank,
         rankStr,
         totalSquads,
@@ -821,6 +864,87 @@ export default async function handler(req, res) {
               processedMatchCount
           )
         : 0;
+
+    // 모드별 시즌 통계 계산
+    const seasonModeStats = {};
+    Object.entries(modeStatsMap).forEach(([mode, data]) => {
+      if (data.rounds > 0) {
+        const avgDamage = parseFloat((data.damage / data.rounds).toFixed(1));
+        const avgKills = parseFloat((data.kills / data.rounds).toFixed(1));
+        const avgAssists = parseFloat((data.assists / data.rounds).toFixed(1));
+        const avgSurvivalTime = Math.round(data.survivalTime / data.rounds);
+        const winRate = parseFloat(((data.wins / data.rounds) * 100).toFixed(1));
+        const top10Rate = parseFloat(((data.top10s / data.rounds) * 100).toFixed(1));
+        const kd = data.rounds > data.wins ? parseFloat((data.kills / (data.rounds - data.wins)).toFixed(2)) : data.kills;
+        const avgRank = data.validRanks > 0 ? parseFloat((data.rankSum / data.validRanks).toFixed(1)) : null;
+
+        seasonModeStats[mode] = {
+          rounds: data.rounds,
+          wins: data.wins,
+          top10s: data.top10s,
+          kills: data.kills,
+          assists: data.assists,
+          avgDamage,
+          avgKills,
+          avgAssists,
+          avgSurvivalTime,
+          winRate,
+          top10Rate,
+          kd,
+          avgRank,
+          // 추가 필드들 (기존 호환성 유지)
+          longestKill: 0, // PUBG API에서 직접 제공되지 않음
+          headshots: 0, // PUBG API에서 직접 제공되지 않음
+          maxKills: Math.max(...matches.filter(m => m.gameMode === mode).map(m => m.kills || 0), 0),
+          maxDistanceKill: 0, // PUBG API에서 직접 제공되지 않음
+          headshotRate: 0, // PUBG API에서 직접 제공되지 않음
+          mostAssists: Math.max(...matches.filter(m => m.gameMode === mode).map(m => m.assists || 0), 0)
+        };
+      }
+    });
+
+    // 게임 모드별 분포 계산 (최근 매치 기반)
+    const modeDistribution = {
+      normal: 0,  // 일반게임
+      ranked: 0,  // 랭크게임  
+      event: 0    // 이벤트게임
+    };
+
+    // 게임 모드 분류 함수
+    const classifyGameMode = (gameMode) => {
+      if (!gameMode) return 'normal';
+      
+      const mode = gameMode.toLowerCase();
+      
+      // 랭크게임 모드들
+      if (mode.includes('competitive') || mode.includes('ranked')) {
+        return 'ranked';
+      }
+      
+      // 이벤트게임 모드들
+      if (mode.includes('arcade') || mode.includes('event') || 
+          mode.includes('tdm') || mode.includes('war') || 
+          mode.includes('training') || mode.includes('custom')) {
+        return 'event';
+      }
+      
+      // 일반게임 모드들 (squad, duo, solo, squad-fpp, duo-fpp, solo-fpp)
+      return 'normal';
+    };
+
+    // 최근 매치들을 분류
+    matches.forEach(match => {
+      const category = classifyGameMode(match.gameMode);
+      modeDistribution[category]++;
+    });
+
+    // 백분율로 변환
+    const totalMatches = matches.length || 1;
+    const modeDistributionPercent = {
+      normal: Math.round((modeDistribution.normal / totalMatches) * 100),
+      ranked: Math.round((modeDistribution.ranked / totalMatches) * 100),
+      event: Math.round((modeDistribution.event / totalMatches) * 100)
+    };
 
     // 플레이스타일 및 이동 성향 힌트
     const playstyle =
@@ -1097,13 +1221,15 @@ export default async function handler(req, res) {
       rankedStats, // [{mode, tier, rp, kd, avgDamage, winRate, survivalTime, rounds}]
 
       // 4. 모드별 시즌 통계
-      seasonStats: modeStats, // {solo, duo, squad, ...}
+      seasonStats: seasonModeStats, // {solo, duo, squad, ...}
 
       // 5. 최근 20경기 요약 리스트 (op.gg 스타일 필드만 포함)
       recentMatches: matches,
 
+      // 6. 모드별 분포 (원형 그래프용)
+      modeDistribution: modeDistributionPercent,
 
-      // 6. 클랜원 분석
+      // 7. 클랜원 분석
       clanMembers: clanMembersStats, // [{nickname, seasonAvgDamage}]
       clanAverage,
       clanMatchPercentage:
@@ -1115,16 +1241,16 @@ export default async function handler(req, res) {
       aboveAvgWithClan,
       clanTop3WithMe, // 최근 20경기 내역 중 함께 플레이한 클랜원 TOP3 닉네임
 
-      // 7. 시너지 분석 (같이 자주한 팀원)
+      // 8. 시너지 분석 (같이 자주한 팀원)
       synergyAnalysis, // [{name, togetherCount, togetherWinRate, togetherAvgRank, togetherAvgDamage}]
       synergyTop,
       clanSynergyStatusList,
 
-      // 8. 추천 스쿼드
+      // 9. 추천 스쿼드
       recommendedSquad, // {members, score, isNew}
       bestSquad,
 
-      // 9. 선택적 확장 요소
+      // 10. 선택적 확장 요소
       killMapTelemetryUrl, // 킬맵/이동맵 URL (예시)
       timeActivityGraph, // {morning, afternoon, night}
     });
