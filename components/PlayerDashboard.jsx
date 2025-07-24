@@ -22,29 +22,26 @@ function EmptyCard({ label }) {
   return <div>아직 {label} 경기가 없습니다.</div>;
 }
 
-export default function PlayerDashboard({ profile, summary, clanAverage, clanMembers, clanTier, synergyTop, clanSynergyStatusList, bestSquad, rankedStats, seasonStats, aboveAvgWithClan }) {
+export default function PlayerDashboard({ profile, summary, clanAverage, clanMembers, clanTier, synergyTop, clanSynergyStatusList, bestSquad, seasonStats, aboveAvgWithClan }) {
   // 클랜 시너지 상태
   const synergyStatus = clanSynergyStatusList && clanSynergyStatusList.length > 0 ?
     clanSynergyStatusList.sort((a,b) => a === "좋음" ? -1 : 1)[0] : "-";
 
   // profile.clan이 객체일 경우 안전하게 문자열로 변환
   const clanName = profile.clan && typeof profile.clan === 'object' && 'name' in profile.clan ? profile.clan.name : (profile.clan ?? '-');
+  
+  // clanAverage가 객체인 경우 안전하게 처리
+  const clanAverageValue = typeof clanAverage === 'number' ? clanAverage : (typeof clanAverage === 'object' && clanAverage !== null ? Object.values(clanAverage)[0] : "-");
+  
+  // aboveAvgWithClan이 객체인 경우 안전하게 처리
+  const aboveAvgValue = typeof aboveAvgWithClan === 'number' ? aboveAvgWithClan : (typeof aboveAvgWithClan === 'object' && aboveAvgWithClan !== null ? Object.values(aboveAvgWithClan)[0] : "-");
 
-  // 모드별 카드
-  const modes = ["solo", "duo", "squad"];
   return (
     <div>
-      {/* 랭크 티어 아이콘 및 등급 */}
-      <div>
-        {profile.tierIcon && (
-          <img src={profile.tierIcon} alt={profile.tier || "티어"} />
-        )}
-        <span>{profile.tier || 'Unranked'}</span>
-      </div>
-      {/* 상단 클랜/개인 요약 카드 그리드 */}
+      {/* 클랜 및 팀플레이 요약 카드 그리드 */}
       <div>
         <StatCard title="클랜명" value={clanName} />
-        <StatCard title="클랜 평균 딜" value={clanAverage ?? "-"} />
+        <StatCard title="클랜 평균 딜" value={clanAverageValue} />
         <StatCard title="클랜 내 티어" value={profile.clanTier ?? "-"} />
         <StatCard title="함께한 클랜원 TOP3" value={<>{synergyTop?.map(p => 
           <div key={p.name}>
@@ -78,41 +75,15 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
           ) : "-"} 
           sub={bestSquad ? `평균 MMR: ${bestSquad.avgMmr} (${bestSquad.count}경기)` : undefined}
         />
-        <StatCard title="클랜 평균 이상 경기 수" value={aboveAvgWithClan ?? "-"} />
+        <StatCard title="클랜 평균 이상 경기 수" value={aboveAvgValue} />
         <StatCard title="클랜 시너지 상세" value={Array.isArray(clanSynergyStatusList) ? clanSynergyStatusList.join(", ") : "-"} />
       </div>
-      <div>
-        <StatCard title="평균점수" value={summary.averageScore ?? "-"} />
-        <StatCard title="시즌 평균 데미지" value={seasonStats?.squad?.avgDamage ?? "-"} />
-        <StatCard title="20판 평균 데미지" value={summary.avgDamage ?? "-"} />
-        <StatCard title="평균 이동거리" value={summary.averageDistance ? summary.averageDistance + "M" : "-"} />
-        <StatCard title="플레이 스타일" value={summary.playstyle} sub={summary.realPlayStyle} />
-      </div>
-      {/* 하단 모드별 카드 */}
-      <div>
-        {modes.map(mode => {
-          const stat = seasonStats?.[mode];
-          if (!stat || !stat.rounds) return <EmptyCard key={mode} label={modeLabels[mode+"-fpp"]||mode.toUpperCase()} />;
-          return (
-            <div key={mode}>
-              <div>{modeLabels[mode+"-fpp"]||mode.toUpperCase()} <span>{stat.rounds} 게임</span></div>
-              <div>
-                <span>K/D <b>{stat.kd}</b></span>
-                <span>경기당 데미지 <b>{stat.avgDamage}</b></span>
-                <span>승률 <b>{stat.winRate}%</b></span>
-                <span>TOP10 <b>{stat.top10Rate}%</b></span>
-              </div>
-              <div>
-                <span>헤드샷 {stat.headshots}</span>
-                <span>최대킬 {stat.maxKills}</span>
-                <span>최대거리킬 {stat.maxDistanceKill}m</span>
-                <span>평균 등수 #{stat.avgRank}</span>
-                <span>평균 생존시간 {stat.avgSurvivalTime ? (Math.floor(stat.avgSurvivalTime/60)+":"+("0"+Math.floor(stat.avgSurvivalTime%60)).slice(-2)) : "-"}</span>
-                <span>KDA {stat.kda ?? "-"}</span>
-              </div>
-            </div>
-          );
-        })}
+      
+      {/* 클랜 관련 안내 메시지 */}
+      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+        <div className="text-sm text-blue-700 dark:text-blue-300 text-center">
+          💡 <strong>클랜 & 팀플레이 분석:</strong> 함께 플레이한 클랜원들과의 시너지와 추천 스쿼드 조합을 확인하세요
+        </div>
       </div>
     </div>
   );

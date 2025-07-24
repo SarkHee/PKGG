@@ -361,12 +361,16 @@ export default async function handler(req, res) {
             mode => {
               const s = allStats[mode];
               if (s && s.roundsPlayed > 0) {
+                // K/D 계산 수정: deaths = rounds - wins (PUBG에서는 죽지 않고 우승하면 death가 없음)
+                const deaths = s.roundsPlayed - s.wins;
+                const kd = deaths > 0 ? parseFloat((s.kills / deaths).toFixed(2)) : s.kills;
+                
                 // 기존 PK.GG 계산식 유지, 누락 항목 추가
                 modeStats[mode] = {
                   rounds: s.roundsPlayed,
                   wins: s.wins,
                   top10s: s.top10s,
-                  kd: parseFloat((s.kills / (s.losses > 0 ? s.losses : 1)).toFixed(2)),
+                  kd: kd,
                   avgDamage: parseFloat((s.damageDealt / s.roundsPlayed).toFixed(2)),
                   winRate: parseFloat(((s.wins / s.roundsPlayed) * 100).toFixed(2)),
                   top10Rate: parseFloat(((s.top10s / s.roundsPlayed) * 100).toFixed(2)),
@@ -394,18 +398,41 @@ export default async function handler(req, res) {
               (totalDamageDealt / totalRoundsPlayed).toFixed(1)
             );
 
+            // PK.GG 점수 계산 수정: 경기당 평균 성과 기반 점수
             const kills = relevantSquadStats.kills || 0;
             const damage = relevantSquadStats.damageDealt || 0;
             const survival = relevantSquadStats.timeSurvived || 0;
+            const wins = relevantSquadStats.wins || 0;
+            const top10s = relevantSquadStats.top10s || 0;
+            
+            // 경기당 평균값 계산
+            const avgKills = kills / totalRoundsPlayed;
+            const avgDamage = damage / totalRoundsPlayed;
+            const avgSurvival = survival / totalRoundsPlayed;
+            const winRate = (wins / totalRoundsPlayed) * 100;
+            const top10Rate = (top10s / totalRoundsPlayed) * 100;
+            
+            // PK.GG 점수 공식: 기본 1000점 + 성과 보너스
             averageScore = Math.round(
-              (kills * 30 + damage * 0.7 + survival * 0.1) / totalRoundsPlayed
+              1000 + // 기본 점수
+              (avgKills * 50) + // 킬당 50점
+              (avgDamage * 0.5) + // 딜량당 0.5점
+              (avgSurvival * 0.05) + // 생존시간당 0.05점
+              (winRate * 10) + // 승률 1%당 10점
+              (top10Rate * 3) // Top10 1%당 3점
             );
           } else {
             seasonAvgDamage = 0;
-            averageScore = 0;
+            averageScore = 1000; // 기본 점수
           }
           console.log(
-            `[API INFO] 시즌 평균 딜량 (스쿼드): ${seasonAvgDamage}, 평균 점수: ${averageScore}`
+            `[API INFO] 시즌 평균 딜량 (스쿼드): ${seasonAvgDamage}, PK.GG 점수: ${averageScore}`
+          );
+          console.log(
+            `[PK.GG SCORE] 점수 계산 상세:`,
+            `킬: ${relevantSquadStats?.kills || 0}/${relevantSquadStats?.roundsPlayed || 1} = ${((relevantSquadStats?.kills || 0) / (relevantSquadStats?.roundsPlayed || 1)).toFixed(2)}`,
+            `딜량: ${((relevantSquadStats?.damageDealt || 0) / (relevantSquadStats?.roundsPlayed || 1)).toFixed(0)}`,
+            `승률: ${((relevantSquadStats?.wins || 0) / (relevantSquadStats?.roundsPlayed || 1) * 100).toFixed(1)}%`
           );
 
           // 현재 플레이어의 시즌 평균 딜량 기록 (소문자 닉네임으로)
@@ -456,14 +483,18 @@ export default async function handler(req, res) {
           for (const mode of modePriority) {
             if (rankedGameModes[mode]) {
               const r = rankedGameModes[mode];
+              // K/D 계산 수정: deaths = rounds - wins (PUBG에서는 죽지 않고 우승하면 death가 없음)
+              const deaths = r.roundsPlayed - r.wins;
+              const kd = deaths > 0 ? parseFloat((r.kills / deaths).toFixed(2)) : r.kills;
+              
               rankedStats.push({
                 mode,
                 tier: r.tier || "Unranked",
                 rp: r.currentRankPoint || 0,
-                kd: parseFloat((r.kills / (r.losses || 1)).toFixed(2)),
-                avgDamage: parseFloat((r.damageDealt / r.roundsPlayed).toFixed(2)),
-                winRate: parseFloat(((r.wins / r.roundsPlayed) * 100).toFixed(2)),
-                survivalTime: parseFloat((r.timeSurvived / r.roundsPlayed).toFixed(2)),
+                kd: kd,
+                avgDamage: r.roundsPlayed > 0 ? parseFloat((r.damageDealt / r.roundsPlayed).toFixed(2)) : 0,
+                winRate: r.roundsPlayed > 0 ? parseFloat(((r.wins / r.roundsPlayed) * 100).toFixed(2)) : 0,
+                survivalTime: r.roundsPlayed > 0 ? parseFloat((r.timeSurvived / r.roundsPlayed).toFixed(2)) : 0,
                 rounds: r.roundsPlayed,
               });
             } else {
@@ -713,9 +744,17 @@ export default async function handler(req, res) {
 
       const totalSquads = rostersMap.size;
 
-      // 팀 전체 MMR 계산 (임시 스코어 기반)
+      // 팀 전체 MMR 계산 (개선된 PK.GG 점수 기반)
       const teamTotalScore = teammatesDetail.reduce((sum, p) => {
-        const score = p.kills * 30 + p.damage * 0.7 + p.survivalTime * 0.1;
+        // 개선된 PK.GG 점수 공식 적용
+        const isTeamWin = myRank === 1;
+        const isTeamTop10 = myRank > 0 && myRank <= 10;
+        const score = 1000 + 
+                     (p.kills * 50) + 
+                     (p.damage * 0.5) + 
+                     (p.survivalTime * 0.05) +
+                     (isTeamWin ? 500 : 0) +
+                     (isTeamTop10 ? 200 : 0);
         return sum + score;
       }, 0);
       const avgMmr = Math.round(teamTotalScore / (teammatesDetail.length || 1));
@@ -807,6 +846,7 @@ export default async function handler(req, res) {
         mode: modeKor,
         gameMode: matchData.data.attributes.gameMode, // 원본 gameMode 필드 추가
         playedAt: matchData.data.attributes.createdAt,
+        matchTimestamp: new Date(matchData.data.attributes.createdAt).getTime(), // 타임스탬프로 변환
         playedAgo,
         survivedStr,
         survivalTime: myStats.timeSurvived || 0, // 생존시간 초 단위 추가
@@ -845,8 +885,8 @@ export default async function handler(req, res) {
       if (teammatesWhoAreClanMembers.length > 0) {
         totalClanDamage += myStats.damageDealt || 0;
         clanMatchCount++;
-        if (avgMmr > 1600) aboveAvgWithClan++;
-        clanSynergyStatusList.push(avgMmr >= 1600 ? "좋음" : "나쁨");
+        if (avgMmr > 1400) aboveAvgWithClan++; // 개선된 점수 기준
+        clanSynergyStatusList.push(avgMmr >= 1400 ? "좋음" : "나쁨");
         teammatesWhoAreClanMembers.forEach(tLowerName => {
           const originalName =
             teammatesDetail.find(t => t.name.toLowerCase() === tLowerName)
@@ -984,11 +1024,11 @@ export default async function handler(req, res) {
       event: Math.round((modeDistribution.event / totalMatches) * 100)
     };
 
-    // 플레이스타일 및 이동 성향 힌트
+    // 플레이스타일 및 이동 성향 힌트 (개선된 점수 기반)
     const playstyle =
-      averageScore >= 200
+      averageScore >= 1800
         ? "🔥 캐리형"
-        : averageScore >= 130
+        : averageScore >= 1400
         ? "👀 안정형"
         : "⚡ 교전 기피형";
     const realPlayStyle = analyzePlayStyle(matches);
