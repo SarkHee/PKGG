@@ -652,7 +652,17 @@ export default async function handler(req, res) {
       }
 
       const myStats = myParticipant.attributes.stats;
-      const myRosterId = myParticipant.relationships?.roster?.data?.id;
+      let myRosterId = myParticipant.relationships?.roster?.data?.id;
+
+      // relationships가 없는 경우 로스터 맵에서 직접 찾기
+      if (!myRosterId) {
+        for (const [rosterId, roster] of rostersMap.entries()) {
+          if (roster.relationships?.participants?.data?.some(p => p.id === myParticipant.id)) {
+            myRosterId = rosterId;
+            break;
+          }
+        }
+      }
 
       let myRank = "N/A";
       let myTeamId = null;
@@ -903,40 +913,68 @@ export default async function handler(req, res) {
       }
     });
 
-    // 게임 모드별 분포 계산 (최근 매치 기반)
+    // 게임 모드별 분포 계산 (PUBG OP.GG 방식으로 수정)
     const modeDistribution = {
-      normal: 0,  // 일반게임
-      ranked: 0,  // 랭크게임  
-      event: 0    // 이벤트게임
+      normal: 0,    // 일반게임 (최근 매치 기록 기반)
+      ranked: 0,    // 경쟁전 (rankedGameModeStats 기반)  
+      event: 0      // 이벤트게임 (아케이드/이벤트 모드)
     };
 
-    // 게임 모드 분류 함수
-    const classifyGameMode = (gameMode) => {
+    // 게임 모드 분류 함수 (이벤트 모드만 분류, 나머지는 일반)
+    const classifyGameMode = (gameMode, mapName) => {
       if (!gameMode) return 'normal';
       
       const mode = gameMode.toLowerCase();
+      const map = (mapName || '').toLowerCase();
       
-      // 랭크게임 모드들
-      if (mode.includes('competitive') || mode.includes('ranked')) {
-        return 'ranked';
-      }
-      
-      // 이벤트게임 모드들
-      if (mode.includes('arcade') || mode.includes('event') || 
-          mode.includes('tdm') || mode.includes('war') || 
-          mode.includes('training') || mode.includes('custom')) {
+      // 이벤트/아케이드 게임 모드들만 별도 분류
+      if (mode.includes('arcade') || 
+          mode.includes('event') || 
+          mode.includes('tdm') || 
+          mode.includes('war') || 
+          mode.includes('zombie') ||
+          mode.includes('training') || 
+          mode.includes('custom') ||
+          mode.includes('mini') ||
+          mode.includes('battlegrounds-ai') ||
+          mode.includes('ai') ||
+          mode.includes('lab') ||
+          map.includes('arcade') ||
+          map.includes('training') ||
+          map.includes('zombie') ||
+          map.includes('mini') ||
+          map.includes('haven')) {
         return 'event';
       }
       
-      // 일반게임 모드들 (squad, duo, solo, squad-fpp, duo-fpp, solo-fpp)
+      // 모든 일반 배틀로얄 모드 (squad, duo, solo, fpp 등)는 normal
       return 'normal';
     };
 
-    // 최근 매치들을 분류
+    // 최근 매치들을 분류 (일반/이벤트만)
     matches.forEach(match => {
-      const category = classifyGameMode(match.gameMode);
+      const category = classifyGameMode(match.gameMode, match.mapName);
       modeDistribution[category]++;
     });
+
+    // 경쟁전 데이터 추가 (rankedStats에서 실제 경기 수 계산)
+    let rankedGamesCount = 0;
+    if (rankedStats && rankedStats.length > 0) {
+      rankedGamesCount = rankedStats.reduce((total, stat) => {
+        return total + (stat.rounds || 0);
+      }, 0);
+    }
+    
+    // 경쟁전이 있으면 전체에서 일정 비율로 조정
+    // (실제로는 최근 20경기에 경쟁전이 포함되어 있을 수 있지만 구분 불가)
+    if (rankedGamesCount > 0) {
+      // 경쟁전 경기 수가 많으면 최근 매치의 일부를 경쟁전으로 가정
+      const totalRecentMatches = matches.length;
+      const estimatedRankedInRecent = Math.min(Math.floor(rankedGamesCount / 10), Math.floor(totalRecentMatches * 0.3));
+      
+      modeDistribution.ranked = estimatedRankedInRecent;
+      modeDistribution.normal = Math.max(0, modeDistribution.normal - estimatedRankedInRecent);
+    }
 
     // 백분율로 변환
     const totalMatches = matches.length || 1;
@@ -970,59 +1008,27 @@ export default async function handler(req, res) {
       .map(([name]) => ({ name }));
 
     // 최근 20경기 내역 중 함께 플레이한 클랜원 TOP3 닉네임만 추출
-    // matches 배열을 돌면서 내 팀원 중 클랜원만 카운트하여 TOP3 추출
+    // 이미 수집된 matches 데이터와 synergyDetailMap을 활용
     let clanTop3WithMe = [];
     if (Array.isArray(clanMembersLower) && clanMembersLower.length > 0) {
       const togetherClanCount = {};
-      // match마다 내 팀원 닉네임(소문자) 추출
-      for (const matchRef of matchRefs) {
-        const matchId = matchRef.id;
-        const matchUrl = `${PUBG_BASE_URL}/${shard}/matches/${matchId}`;
-        try {
-          const matchRes = await fetch(matchUrl, {
-            headers: {
-              Authorization: `Bearer ${PUBG_API_KEY_RAW}`,
-              Accept: "application/vnd.api+json",
-            },
-          });
-          if (!matchRes.ok) continue;
-          const matchData = await matchRes.json();
-          const included = matchData.included;
-          const participantsMap = new Map();
-          included.forEach(item => {
-            if (item.type === "participant") {
-              participantsMap.set(item.id, item);
-            }
-          });
-          const myParticipant = Array.from(participantsMap.values()).find(
-            p => p.attributes.stats.name.toLowerCase() === lowerNickname
-          );
-          if (!myParticipant) continue;
-          const myRosterId = myParticipant.relationships?.roster?.data?.id;
-          let teammates = [];
-          if (myRosterId) {
-            const myRoster = included.find(
-              item => item.type === "roster" && item.id === myRosterId
-            );
-            if (myRoster && myRoster.relationships?.participants?.data) {
-              teammates = myRoster.relationships.participants.data
-                .map(ref => participantsMap.get(ref.id))
-                .filter(p => p && p.attributes.stats.name.toLowerCase() !== lowerNickname)
-                .map(p => p.attributes.stats.name);
-            }
-          }
-          // 클랜원만 카운트
-          teammates.forEach(name => {
-            if (clanMembersLower.includes(name.toLowerCase())) {
-              togetherClanCount[name] = (togetherClanCount[name] || 0) + 1;
-            }
-          });
-        } catch (e) { continue; }
-      }
+      
+      // synergyDetailMap에서 클랜원만 추출하여 카운트
+      Object.entries(synergyDetailMap).forEach(([playerName, stats]) => {
+        const playerNameLower = playerName.toLowerCase();
+        if (clanMembersLower.includes(playerNameLower)) {
+          togetherClanCount[playerName] = stats.count;
+        }
+      });
+      
+      // TOP 3 추출
       clanTop3WithMe = Object.entries(togetherClanCount)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 3)
         .map(([name]) => name);
+        
+      console.log(`[CLAN TOP3] 함께 플레이한 클랜원 TOP3:`, clanTop3WithMe);
+      console.log(`[CLAN TOP3] 상세 카운트:`, togetherClanCount);
     }
 
     // 클랜원 리스트 및 각 멤버별 시즌 평균 딜량 (clanStats.json 활용)
@@ -1242,9 +1248,9 @@ export default async function handler(req, res) {
       clanTop3WithMe, // 최근 20경기 내역 중 함께 플레이한 클랜원 TOP3 닉네임
 
       // 8. 시너지 분석 (같이 자주한 팀원)
-      synergyAnalysis, // [{name, togetherCount, togetherWinRate, togetherAvgRank, togetherAvgDamage}]
-      synergyTop,
-      clanSynergyStatusList,
+      synergyAnalysis: synergyAnalysis, // [{name, togetherCount, togetherWinRate, togetherAvgRank, togetherAvgDamage}]
+      synergyTop: clanTop3WithMe.slice(0, 3).map(member => ({ name: member })),
+      clanSynergyStatusList: [],
 
       // 9. 추천 스쿼드
       recommendedSquad, // {members, score, isNew}
