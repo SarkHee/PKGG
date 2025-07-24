@@ -197,8 +197,7 @@ export default async function handler(req, res) {
               damage: m.damage,
               surviveTime: m.surviveTime,
               createdAt: m.createdAt ? new Date(m.createdAt) : new Date()
-            })),
-            skipDuplicates: true
+            }))
           });
         }
         // 3. PlayerModeStats: 기존 삭제 후 일괄 insert
@@ -216,8 +215,7 @@ export default async function handler(req, res) {
               avgAssists: s.avgAssists,
               winRate: s.winRate,
               top10Rate: s.top10Rate
-            })),
-            skipDuplicates: true
+            }))
           });
         }
       })

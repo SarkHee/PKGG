@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 const modeLabels = {
   "squad-fpp": "스쿼드 FPP",
@@ -45,9 +46,38 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
         <StatCard title="클랜명" value={clanName} />
         <StatCard title="클랜 평균 딜" value={clanAverage ?? "-"} />
         <StatCard title="클랜 내 티어" value={profile.clanTier ?? "-"} />
-        <StatCard title="함께한 클랜원 TOP3" value={<>{synergyTop?.map(p => <div key={p.name}>{p.name}</div>)}</>} />
+        <StatCard title="함께한 클랜원 TOP3" value={<>{synergyTop?.map(p => 
+          <div key={p.name}>
+            <Link href={`/player/steam/${encodeURIComponent(p.name)}`}>
+              <span style={{ color: '#007bff', cursor: 'pointer', textDecoration: 'none' }}
+                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
+                {p.name}
+              </span>
+            </Link>
+          </div>
+        )}</>} />
         <StatCard title="클랜 시너지" value={<span>😊</span>} sub={synergyStatus} />
-        <StatCard title="Best Squad 추천" value={bestSquad?.names?.join(", ") ?? "-"} />
+        <StatCard 
+          title="Best Squad 추천" 
+          value={bestSquad?.names ? (
+            <>
+              {bestSquad.names.map((name, index) => (
+                <span key={name}>
+                  <Link href={`/player/steam/${encodeURIComponent(name)}`}>
+                    <span style={{ color: '#007bff', cursor: 'pointer', textDecoration: 'none' }}
+                          onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                          onMouseLeave={(e) => e.target.style.textDecoration = 'none'}>
+                      {name}
+                    </span>
+                  </Link>
+                  {index < bestSquad.names.length - 1 ? ", " : ""}
+                </span>
+              ))}
+            </>
+          ) : "-"} 
+          sub={bestSquad ? `평균 MMR: ${bestSquad.avgMmr} (${bestSquad.count}경기)` : undefined}
+        />
         <StatCard title="클랜 평균 이상 경기 수" value={aboveAvgWithClan ?? "-"} />
         <StatCard title="클랜 시너지 상세" value={Array.isArray(clanSynergyStatusList) ? clanSynergyStatusList.join(", ") : "-"} />
       </div>

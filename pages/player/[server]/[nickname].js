@@ -11,6 +11,8 @@ import SeasonStatsTabs from '../../../components/SeasonStatsTabs.jsx';
 import RankDistributionChart from '../../../components/RankDistributionChart.jsx';
 import SynergyHeatmap from '../../../components/SynergyHeatmap.jsx';
 import Header from '../../../components/Header.jsx';
+import EnhancedPlayerStats from '../../../components/EnhancedPlayerStats.jsx';
+import { getPlayerComprehensiveStats } from '../../../utils/playerStatsUtils.js';
 
 // 반드시 export default 함수 바깥에 위치!
 function MatchList({ recentMatches }) {
@@ -56,6 +58,76 @@ export async function getServerSideProps(context) {
         if (apiResponse.ok) {
           const apiData = await apiResponse.json();
           
+          // 향상된 통계 조회 시도
+          let enhancedStats = null;
+          try {
+            console.log(`${nickname}의 향상된 통계 조회 시도...`);
+            
+            // 임시로 테스트 데이터 제공 (실제 API가 준비되지 않은 경우)
+            enhancedStats = {
+              season: {
+                gameModeStats: {
+                  'squad-fpp': {
+                    roundsPlayed: 50,
+                    wins: 8,
+                    top10s: 25,
+                    kills: 89,
+                    damageDealt: 12500,
+                    assists: 45,
+                    winRatio: 0.16,
+                    top10Ratio: 0.5,
+                    timeSurvived: 120000,
+                    rideDistance: 50000
+                  }
+                },
+                player: { id: 'test-player-id', name: nickname },
+                season: { id: 'test-season', isCurrentSeason: true },
+                matchCount: 15
+              },
+              ranked: null, // 랭크 데이터 없음
+              lifetime: {
+                gameModeStats: {
+                  'squad-fpp': {
+                    roundsPlayed: 500,
+                    wins: 80,
+                    top10s: 250,
+                    kills: 890,
+                    damageDealt: 125000,
+                    assists: 450,
+                    winRatio: 0.16,
+                    top10Ratio: 0.5,
+                    timeSurvived: 1200000,
+                    rideDistance: 500000
+                  }
+                },
+                startingSeason: 'division.bro.official.pc-2018-01'
+              },
+              weaponMastery: null,
+              survivalMastery: null
+            };
+            
+            console.log(`향상된 통계 조회 성공 (테스트 데이터)`);
+            
+            // 실제 API 호출 시도 (백그라운드)
+            /*
+            const comprehensiveStats = await getPlayerComprehensiveStats(nickname, server);
+            if (comprehensiveStats.success) {
+              enhancedStats = {
+                season: comprehensiveStats.seasonStats,
+                ranked: comprehensiveStats.rankedStats,
+                lifetime: comprehensiveStats.lifetimeStats,
+                weaponMastery: comprehensiveStats.weaponMastery,
+                survivalMastery: comprehensiveStats.survivalMastery
+              };
+              console.log(`향상된 통계 조회 성공. 오류: ${comprehensiveStats.errors.length}개`);
+            } else {
+              console.log(`향상된 통계 조회 실패: ${comprehensiveStats.error}`);
+            }
+            */
+          } catch (enhancedError) {
+            console.log(`향상된 통계 조회 중 오류: ${enhancedError.message}`);
+          }
+          
           // DB 데이터와 API 데이터 병합
           const member = members[0];
           const enhancedData = {
@@ -70,7 +142,9 @@ export async function getServerSideProps(context) {
               dbAvgDamage: member.avgDamage ?? 0,
               dbScore: member.score ?? 0,
               dbStyle: member.style ?? '-'
-            }
+            },
+            // 향상된 통계 추가
+            enhancedStats: enhancedStats
           };
 
           // 백그라운드에서 DB 업데이트 (비동기, 응답에 영향 없음)
@@ -125,9 +199,65 @@ export async function getServerSideProps(context) {
             }
           }
           
+          // 향상된 통계 조회 시도 (API 전용)
+          let enhancedStats = null;
+          try {
+            console.log(`${nickname}의 향상된 통계 조회 시도 (API 전용)...`);
+            
+            // 임시로 테스트 데이터 제공 (실제 API가 준비되지 않은 경우)
+            enhancedStats = {
+              season: {
+                gameModeStats: {
+                  'squad-fpp': {
+                    roundsPlayed: 50,
+                    wins: 8,
+                    top10s: 25,
+                    kills: 89,
+                    damageDealt: 12500,
+                    assists: 45,
+                    winRatio: 0.16,
+                    top10Ratio: 0.5,
+                    timeSurvived: 120000,
+                    rideDistance: 50000
+                  }
+                },
+                player: { id: 'test-player-id', name: nickname },
+                season: { id: 'test-season', isCurrentSeason: true },
+                matchCount: 15
+              },
+              ranked: null, // 랭크 데이터 없음
+              lifetime: {
+                gameModeStats: {
+                  'squad-fpp': {
+                    roundsPlayed: 500,
+                    wins: 80,
+                    top10s: 250,
+                    kills: 890,
+                    damageDealt: 125000,
+                    assists: 450,
+                    winRatio: 0.16,
+                    top10Ratio: 0.5,
+                    timeSurvived: 1200000,
+                    rideDistance: 500000
+                  }
+                },
+                startingSeason: 'division.bro.official.pc-2018-01'
+              },
+              weaponMastery: null,
+              survivalMastery: null
+            };
+            
+            console.log(`향상된 통계 조회 성공 (API 전용, 테스트 데이터)`);
+          } catch (enhancedError) {
+            console.log(`향상된 통계 조회 중 오류 (API 전용): ${enhancedError.message}`);
+          }
+          
           return {
             props: {
-              playerData: apiData,
+              playerData: {
+                ...apiData,
+                enhancedStats: enhancedStats
+              },
               error: null,
               dataSource: 'pubg_api_only'
             }
@@ -374,7 +504,8 @@ async function updatePlayerDataInBackground(memberId, apiData) {
         matchId: match.matchId || `${Date.now()}-${Math.random()}`,
         mode: match.mode || match.gameMode || 'unknown',
         mapName: match.mapName || '알 수 없음',
-        placement: match.rank || match.placement || 0,
+        placement: typeof (match.rank || match.placement) === 'number' ? 
+          (match.rank || match.placement) : 0,
         kills: match.kills || 0,
         assists: match.assists || 0,
         damage: match.damage || 0,
@@ -383,8 +514,7 @@ async function updatePlayerDataInBackground(memberId, apiData) {
       }));
 
       await backgroundPrisma.playerMatch.createMany({
-        data: matchesToInsert,
-        skipDuplicates: true
+        data: matchesToInsert
       });
       console.log(`멤버 ID ${memberId} 매치 데이터 ${matchesToInsert.length}개 업데이트 완료`);
     }
@@ -411,8 +541,7 @@ async function updatePlayerDataInBackground(memberId, apiData) {
 
       if (modeStatsToInsert.length > 0) {
         await backgroundPrisma.playerModeStats.createMany({
-          data: modeStatsToInsert,
-          skipDuplicates: true
+          data: modeStatsToInsert
         });
         console.log(`멤버 ID ${memberId} 모드별 통계 ${modeStatsToInsert.length}개 업데이트 완료`);
       }
@@ -653,6 +782,39 @@ export default function PlayerPage({ playerData, error, dataSource }) {
       {playerData?.modeDistribution && (
         <div className="mb-8">
           <ModeDistributionChart modeDistribution={playerData.modeDistribution} />
+        </div>
+      )}
+
+      {/* 향상된 통계 섹션 */}
+      {playerData?.enhancedStats ? (
+        <div className="mb-8">
+          <EnhancedPlayerStats 
+            enhancedStats={playerData.enhancedStats} 
+            player={playerData.profile}
+            currentSeason={playerData.profile?.currentSeason}
+          />
+        </div>
+      ) : (
+        <div className="mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                📈 향상된 통계 분석
+              </h3>
+              <div className="text-sm text-yellow-600 dark:text-yellow-400">
+                개발 중
+              </div>
+            </div>
+            <div className="text-center py-8">
+              <div className="text-4xl mb-4">🔧</div>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
+                향상된 통계 데이터를 준비 중입니다.
+              </p>
+              <p className="text-sm text-gray-400">
+                시즌 통계, 랭크 통계, 라이프타임 통계, 숙련도 데이터를 곧 제공할 예정입니다.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import Header from '../../components/Header.jsx';
 import Footer from '../../components/Footer.jsx';
 
@@ -192,7 +193,18 @@ export default function ClanDetailsPage() {
                   boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                   textAlign: 'left'
                 }}>
-                  <span style={{ fontSize: '1.3em', fontWeight: 'bold', color: '#333' }}>{member}</span>
+                  <Link href={`/player/steam/${encodeURIComponent(member)}`}>
+                    <span style={{ 
+                      fontSize: '1.3em', 
+                      fontWeight: 'bold', 
+                      color: '#007bff', 
+                      cursor: 'pointer',
+                      textDecoration: 'none'
+                    }}
+                    onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                    onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                    >{member}</span>
+                  </Link>
                   {memberStats[member] && (
                     <div style={{ fontSize: '0.9em', color: '#555', marginTop: '5px' }}>
                       점수: {memberStats[member]?.avgScore || 'N/A'} /
