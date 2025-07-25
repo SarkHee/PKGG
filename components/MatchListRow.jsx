@@ -17,6 +17,20 @@ export default function MatchListRow({ match, isOpen, onToggle, prevMatch }) {
   return (
     <div style={{ borderBottom: '1px solid #eee', padding: '12px 0', background: isOpen ? '#f8fafc' : 'none', cursor: 'pointer' }} onClick={onToggle}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        {/* 경기 모드 타입 (경쟁전/일반) */}
+        <div style={{ minWidth: 50, textAlign: 'center' }}>
+          <div style={{ 
+            fontSize: 10, 
+            fontWeight: 700, 
+            color: match.modeType === '경쟁전' ? '#dc2626' : '#059669',
+            backgroundColor: match.modeType === '경쟁전' ? '#fef2f2' : '#f0fdf4',
+            padding: '2px 6px',
+            borderRadius: 4,
+            border: `1px solid ${match.modeType === '경쟁전' ? '#fecaca' : '#bbf7d0'}`
+          }}>
+            {match.modeType || '일반'}
+          </div>
+        </div>
         {/* 경기 시간/날짜 */}
         <div style={{ minWidth: 80, textAlign: 'center' }}>
           <div>{formatRelativeTime(match.matchTimestamp)}</div>

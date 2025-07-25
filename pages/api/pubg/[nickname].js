@@ -943,11 +943,36 @@ export default async function handler(req, res) {
         squadComboHistory[teamKey] = matchId;
       }
 
+      // 팀 전체 딜량 계산
+      const totalTeamDamage = teammatesDetail.reduce((sum, teammate) => {
+        return sum + (teammate.damage || 0);
+      }, 0);
+
+      // 게임 모드 타입 구분 (더 정확한 랭크드 모드 감지)
+      const gameMode = matchData.data.attributes.gameMode;
+      console.log(`[GAMEMODE RAW] 경기 ${matchId}: 원본 gameMode="${gameMode}"`);
+      
+      const isRanked = gameMode && (
+        gameMode.includes('ranked') || 
+        gameMode.includes('competitive') ||
+        gameMode.startsWith('ranked-') ||
+        gameMode === 'ranked-squad-fpp' ||
+        gameMode === 'ranked-squad' ||
+        gameMode === 'ranked-duo-fpp' ||
+        gameMode === 'ranked-duo' ||
+        gameMode === 'ranked-solo-fpp' ||
+        gameMode === 'ranked-solo'
+      );
+      const modeType = isRanked ? '경쟁전' : '일반';
+      
+      console.log(`[MODE DEBUG] 경기 ${matchId}: gameMode="${gameMode}", isRanked=${isRanked}, modeType="${modeType}"`);
+      console.log(`[MODE DETAIL] 경기 ${matchId}: gameMode.includes('ranked')=${gameMode?.includes('ranked')}, gameMode.includes('competitive')=${gameMode?.includes('competitive')}`);
+
       // 최근 20경기 요약 리스트에 추가 (op.gg 스타일로 필요한 필드만 정제)
       // op.gg 스타일에 맞는 데이터 가공
       // 1. 모드명 변환
       const modeKor = (() => {
-        const m = matchData.data.attributes.gameMode;
+        const m = gameMode;
         if (m === 'squad-fpp' || m === 'squad') return 'SQUAD';
         if (m === 'duo-fpp' || m === 'duo') return 'DUO';
         if (m === 'solo-fpp' || m === 'solo') return 'SOLO';
@@ -955,7 +980,6 @@ export default async function handler(req, res) {
       })();
 
       // 모드별 통계 수집
-      const gameMode = matchData.data.attributes.gameMode;
       if (!modeStatsMap[gameMode]) {
         modeStatsMap[gameMode] = {
           rounds: 0,
@@ -1014,10 +1038,12 @@ export default async function handler(req, res) {
       const distanceKm = (distance / 1000).toFixed(1);
       // 5. 순위/전체
       const rankStr = (typeof myRank === 'number' || (typeof myRank === 'string' && !isNaN(Number(myRank)))) ? `#${myRank}/${totalSquads}` : myRank;
+      
       matches.push({
         matchId,
         mode: modeKor,
         gameMode: matchData.data.attributes.gameMode, // 원본 gameMode 필드 추가
+        modeType: modeType, // 경쟁전/일반 구분 추가
         playedAt: matchData.data.attributes.createdAt,
         matchTimestamp: new Date(matchData.data.attributes.createdAt).getTime(), // 타임스탬프로 변환
         playedAgo,
@@ -1035,6 +1061,10 @@ export default async function handler(req, res) {
         longestKill: myStats.longestKill || 0, // 최장 킬 거리 추가
         opGrade: gradeOP(myRank, totalSquads),
         mapName: matchData.data.attributes.mapName,
+        win: isWin, // 승리 여부 추가
+        top10: isTop10, // Top10 여부 추가
+        totalTeamDamage: totalTeamDamage, // 팀 전체 딜량 추가
+        teammatesDetail: teammatesDetail, // 팀원 상세 정보 추가 (시너지 히트맵용)
       });
 
       totalRecentDamageSum += myStats.damageDealt || 0;
@@ -1061,7 +1091,9 @@ export default async function handler(req, res) {
         totalClanDamage += myStats.damageDealt || 0;
         clanMatchCount++;
         if (avgMmr > 1400) aboveAvgWithClan++; // 개선된 점수 기준
-        clanSynergyStatusList.push(avgMmr >= 1400 ? "좋음" : "나쁨");
+        // 시너지 판정: 현재 경기 딜량이 시즌 평균 딜량보다 높거나 같으면 "좋음", 낮으면 "나쁨"
+        const currentMatchDamage = myStats.damageDealt || 0;
+        clanSynergyStatusList.push(currentMatchDamage >= seasonAvgDamage ? "좋음" : "나쁨");
         teammatesWhoAreClanMembers.forEach(tLowerName => {
           const originalName =
             teammatesDetail.find(t => t.name.toLowerCase() === tLowerName)
@@ -1131,6 +1163,12 @@ export default async function handler(req, res) {
           mostAssists: Math.max(...matches.filter(m => m.gameMode === mode).map(m => m.assists || 0), 0)
         };
       }
+    });
+    
+    // 모드별 통계 디버깅 로그
+    console.log(`[API DEBUG] ${nickname} - 생성된 모드별 통계:`, Object.keys(seasonModeStats));
+    Object.entries(seasonModeStats).forEach(([mode, stats]) => {
+      console.log(`[API DEBUG] ${mode}: ${stats.rounds}게임, 평균 딜량 ${stats.avgDamage}, K/D ${stats.kd}`);
     });
 
     // rankedSummary의 헤드샷 데이터를 매치 기반 데이터로 업데이트
@@ -1322,18 +1360,25 @@ export default async function handler(req, res) {
       }
     }
 
-    const bestSquadArray = Object.entries(squadCombos)
+    // 클랜원만 포함된 Best Squad 계산
+    const clanBestSquadArray = Object.entries(squadCombos)
       .map(([key, value]) => ({
         names: key.split(","),
         avgMmr: Math.round(value.totalAvgMmr / value.count),
         count: value.count,
         lastPlayed: value.lastPlayed,
       }))
+      .filter(squad => {
+        // 스쿼드의 모든 멤버가 클랜원인지 확인
+        return squad.names.every(name => 
+          clanMembersLower.includes(name.toLowerCase()) || name.toLowerCase() === lowerNickname
+        );
+      })
       .sort((a, b) => {
         if (b.avgMmr !== a.avgMmr) return b.avgMmr - a.avgMmr;
         return b.lastPlayed - a.lastPlayed;
       });
-    const bestSquad = bestSquadArray.length > 0 ? bestSquadArray[0] : null;
+    const bestSquad = clanBestSquadArray.length > 0 ? clanBestSquadArray[0] : null;
 
     // 클랜 티어 계산
     let clanTier = null;
@@ -1438,8 +1483,10 @@ export default async function handler(req, res) {
       rankedSummary, // op.gg 스타일 상단 요약 카드용
       rankedStats, // [{mode, tier, rp, kd, avgDamage, winRate, survivalTime, rounds}]
 
-      // 4. 모드별 시즌 통계
-      seasonStats: seasonModeStats, // {solo, duo, squad, ...}
+      // 4. 모드별 시즌 통계 (SeasonStatsTabs 컴포넌트 호환 형태로 변경)
+      seasonStats: {
+        'division.bro.official.pc-2024-01': seasonModeStats // 현재 시즌으로 감싸기
+      },
 
       // 5. 최근 20경기 요약 리스트 (op.gg 스타일 필드만 포함)
       recentMatches: matches,

@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
 
 import PlayerDashboard from '../../../components/PlayerDashboard';
-import MmrTrendChart from '../../../components/MmrTrendChart';
 import ModeDistributionChart from '../../../components/ModeDistributionChart';
 import RecentDamageTrendChart from '../../../components/RecentDamageTrendChart.jsx';
 import MatchListRow from '../../../components/MatchListRow';
@@ -617,6 +616,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
   const [refreshMsg, setRefreshMsg] = useState('');
   const [currentSeasonData, setCurrentSeasonData] = useState(null);
   const [currentSeasonId, setCurrentSeasonId] = useState('division.bro.official.pc-2024-01');
+  const [selectedMatchFilter, setSelectedMatchFilter] = useState('전체'); // 경기 필터 상태 추가
 
   // 쿨타임 타이머
   useEffect(() => {
@@ -634,6 +634,38 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
   // 현재 표시할 데이터 결정 (시즌이 변경되었으면 시즌 데이터, 아니면 기본 데이터)
   const displayData = currentSeasonData || playerData;
+
+  // 경기 필터링 로직
+  const filterMatches = (matches, filter) => {
+    if (!matches || matches.length === 0) return [];
+    
+    switch (filter) {
+      case '전체':
+        return matches;
+      case '경쟁전':
+        return matches.filter(match => match.gameMode?.includes('ranked'));
+      case '경쟁전 솔로':
+        return matches.filter(match => match.gameMode?.includes('ranked') && match.gameMode?.includes('solo'));
+      case '솔로':
+        return matches.filter(match => match.gameMode?.includes('solo') && !match.gameMode?.includes('ranked'));
+      case '듀오':
+        return matches.filter(match => match.gameMode?.includes('duo') && !match.gameMode?.includes('ranked'));
+      case '스쿼드':
+        return matches.filter(match => match.gameMode?.includes('squad') && !match.gameMode?.includes('ranked'));
+      case '경쟁전 FPP':
+        return matches.filter(match => match.gameMode?.includes('ranked') && match.gameMode?.includes('fpp'));
+      case '경쟁전 솔로 FPP':
+        return matches.filter(match => match.gameMode?.includes('ranked') && match.gameMode?.includes('solo') && match.gameMode?.includes('fpp'));
+      case '솔로 FPP':
+        return matches.filter(match => match.gameMode?.includes('solo') && match.gameMode?.includes('fpp') && !match.gameMode?.includes('ranked'));
+      case '듀오 FPP':
+        return matches.filter(match => match.gameMode?.includes('duo') && match.gameMode?.includes('fpp') && !match.gameMode?.includes('ranked'));
+      case '스쿼드 FPP':
+        return matches.filter(match => match.gameMode?.includes('squad') && match.gameMode?.includes('fpp') && !match.gameMode?.includes('ranked'));
+      default:
+        return matches;
+    }
+  };
 
   // 최신화 버튼 클릭 핸들러
   const handleRefresh = async () => {
@@ -703,6 +735,9 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
   // profile.clan이 객체일 경우 안전하게 문자열로 출력
   const clanName = profile?.clan?.name || (typeof profile?.clan === 'string' ? profile.clan : '');
+
+  // 필터된 경기 목록 (구조분해할당 이후에 계산)
+  const filteredMatches = filterMatches(recentMatches, selectedMatchFilter);
 
   return (
     <>
@@ -797,46 +832,6 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           refreshMsg={refreshMsg}
         />
 
-      {/* 향상된 통계 분석 섹션 - 개인 상세 아이디 바로 밑으로 이동 */}
-      {playerData?.enhancedStats ? (
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-violet-50 to-violet-100 dark:from-violet-900/20 dark:to-violet-800/20 rounded-xl p-4 mb-4 border-l-4 border-violet-500">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">📈</span>
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">향상된 통계 분석</h2>
-              <span className="text-xs bg-violet-200 dark:bg-violet-700 text-violet-800 dark:text-violet-200 px-2 py-1 rounded-full">시즌별 상세 데이터</span>
-            </div>
-          </div>
-          <EnhancedPlayerStats 
-            enhancedStats={playerData.enhancedStats} 
-            player={playerData.profile}
-            currentSeason={currentSeasonId}
-            onSeasonChange={handleSeasonChange}
-          />
-        </div>
-      ) : (
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-violet-50 to-violet-100 dark:from-violet-900/20 dark:to-violet-800/20 rounded-xl p-4 mb-4 border-l-4 border-violet-500">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">📈</span>
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">향상된 통계 분석</h2>
-              <span className="text-xs bg-yellow-200 dark:bg-yellow-700 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full">개발 중</span>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <div className="text-center py-8">
-              <div className="text-4xl mb-4">🔧</div>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                향상된 통계 데이터를 준비 중입니다.
-              </p>
-              <p className="text-sm text-gray-400">
-                시즌 통계, 랭크 통계, 라이프타임 통계, 숙련도 데이터를 곧 제공할 예정입니다.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 클랜 및 팀플레이 분석 섹션 */}
       <div className="mb-8">
         <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 mb-4 border-l-4 border-blue-500">
@@ -858,17 +853,26 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             bestSquad={bestSquad}
             seasonStats={seasonStats}
           />
+          
+          {/* 클랜원 시너지 히트맵 */}
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
+            <SynergyHeatmap 
+              matches={recentMatches} 
+              myNickname={profile?.nickname}
+              clanMembers={clanMembers}
+              playerClan={clanName}
+            />
+          </div>
         </div>
       </div>
 
-      {/* 모드 비율 시각화 (최근 20경기) */}
+      {/* 시즌 플레이 현황 */}
       {displayData?.modeDistribution && (
         <div className="mb-8">
           <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 mb-4 border-l-4 border-purple-500">
             <div className="flex items-center gap-2">
               <span className="text-lg">📊</span>
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">모드 비율 분석</h2>
-              <span className="text-xs bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200 px-2 py-1 rounded-full">최근 20경기</span>
+              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">시즌 플레이 현황</h2>
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
@@ -886,48 +890,19 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         PK.GG MMR은 공식 랭킹 RP가 아닌, 킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다.
       </div>
 
-      {/* 함께한 유저 시너지 히트맵 */}
-      <div className="mb-8">
-        <div className="bg-gradient-to-r from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 rounded-xl p-4 mb-4 border-l-4 border-teal-500">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🤝</span>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">팀플레이 시너지 분석</h2>
-            <span className="text-xs bg-teal-200 dark:bg-teal-700 text-teal-800 dark:text-teal-200 px-2 py-1 rounded-full">최근 경기 기준</span>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-          <SynergyHeatmap matches={recentMatches} myNickname={profile?.nickname} />
-        </div>
-      </div>
-
       {/* 차트 및 시각화 섹션 */}
       <div className="mb-8">
         <div className="bg-gradient-to-r from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 rounded-xl p-4 mb-4 border-l-4 border-cyan-500">
           <div className="flex items-center gap-2">
             <span className="text-lg">📊</span>
             <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">경기 추이 분석</h2>
-            <span className="text-xs bg-cyan-200 dark:bg-cyan-700 text-cyan-800 dark:text-cyan-200 px-2 py-1 rounded-full">최근 20경기 기준</span>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* MMR 추이 그래프 */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-sm">📈</span>
-              </div>
-              <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100">MMR 추이</h4>
-            </div>
-            <MmrTrendChart matches={recentMatches} />
-          </div>
-          
+        <div className="grid grid-cols-1 gap-8">
           {/* 딜량 추이 그래프 */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-6 h-6 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
-                <span className="text-sm">⚔️</span>
-              </div>
               <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100">딜량 추이</h4>
             </div>
             <RecentDamageTrendChart matches={recentMatches} />
@@ -935,34 +910,16 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         </div>
       </div>
 
-      {/* 상세 통계 섹션 */}
+      {/* 게임 모드별 통계 섹션 */}
       <div className="mb-8">
         <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl p-4 mb-4 border-l-4 border-indigo-500">
           <div className="flex items-center gap-2">
-            <span className="text-lg">📋</span>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">상세 통계</h2>
-            <span className="text-xs bg-indigo-200 dark:bg-indigo-700 text-indigo-800 dark:text-indigo-200 px-2 py-1 rounded-full">시즌별 모드 상세</span>
+            <span className="text-lg">🎮</span>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">게임 모드별 통계</h2>
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
           <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
-        </div>
-      </div>
-
-      {/* 랭크 점수 분포 */}
-      <div className="mb-8">
-        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-xl p-4 mb-4 border-l-4 border-yellow-500">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🏆</span>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">랭크 점수 분포</h2>
-            <span className="text-xs bg-yellow-200 dark:bg-yellow-700 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full">PK.GG 내부 점수</span>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-          <RankDistributionChart 
-            distribution={playerData.rankDistribution || Array.from({length: 20}, () => Math.floor(Math.random() * 100))} 
-            myScore={summary?.score || 1500} 
-          />
         </div>
       </div>
 
@@ -976,12 +933,36 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-          {recentMatches && recentMatches.length > 0 ? (
-            <MatchList recentMatches={recentMatches} />
+          {/* 경기 모드 필터 탭 */}
+          <div className="mb-6 flex justify-center">
+            <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+              {['전체', '경쟁전', '경쟁전 솔로', '솔로', '듀오', '스쿼드', '경쟁전 FPP', '경쟁전 솔로 FPP', '솔로 FPP', '듀오 FPP', '스쿼드 FPP'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setSelectedMatchFilter(tab)}
+                  className={`px-3 py-2 rounded-md text-xs font-medium transition ${
+                    selectedMatchFilter === tab
+                      ? 'bg-blue-500 text-white' 
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {filteredMatches && filteredMatches.length > 0 ? (
+            <MatchList recentMatches={filteredMatches} />
           ) : (
             <div className="text-center py-8">
-              <div className="text-4xl mb-4">🎯</div>
-              <div className="text-gray-500 dark:text-gray-400">최근 경기 데이터가 없습니다.</div>
+              <div className="text-4xl mb-4">📋</div>
+              <div className="text-gray-500 dark:text-gray-400">
+                {selectedMatchFilter === '전체' 
+                  ? '최근 경기 데이터가 없습니다.' 
+                  : `${selectedMatchFilter} 모드의 기록된 전적이 없습니다.`
+                }
+              </div>
             </div>
           )}
         </div>

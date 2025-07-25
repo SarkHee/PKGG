@@ -27,6 +27,13 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
   const synergyStatus = clanSynergyStatusList && clanSynergyStatusList.length > 0 ?
     clanSynergyStatusList.sort((a,b) => a === "좋음" ? -1 : 1)[0] : "-";
 
+  // 시너지 상태에 따른 이모지와 텍스트 결정
+  const getSynergyDisplay = (status) => {
+    if (status === "좋음") return { emoji: "😊", text: "좋음" };
+    if (status === "나쁨") return { emoji: "😞", text: "나쁨" };
+    return { emoji: "😐", text: "보통" };
+  };
+
   // profile.clan이 객체일 경우 안전하게 문자열로 변환
   const clanName = profile.clan && typeof profile.clan === 'object' && 'name' in profile.clan ? profile.clan.name : (profile.clan ?? '-');
   
@@ -41,7 +48,7 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
       {/* 클랜 및 팀플레이 요약 카드 그리드 */}
       <div>
         <StatCard title="클랜명" value={clanName} />
-        <StatCard title="클랜 평균 딜" value={clanAverageValue} />
+        <StatCard title="클랜 시너지 딜량" value={clanAverageValue} />
         <StatCard title="클랜 내 티어" value={profile.clanTier ?? "-"} />
         <StatCard title="함께한 클랜원 TOP3" value={<>{synergyTop?.map(p => 
           <div key={p.name}>
@@ -54,7 +61,16 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
             </Link>
           </div>
         )}</>} />
-        <StatCard title="클랜 시너지" value={<span>😊</span>} sub={synergyStatus} />
+        <StatCard 
+          title="클랜 시너지" 
+          value={
+            <div className="flex items-center gap-1">
+              <span>{getSynergyDisplay(synergyStatus).emoji}</span>
+              <span className="text-sm font-medium">{getSynergyDisplay(synergyStatus).text}</span>
+            </div>
+          } 
+          sub={`클랜원과 함께할 때 ${synergyStatus === "좋음" ? "평균 이상 성과" : synergyStatus === "나쁨" ? "평균 미만 성과" : "데이터 부족"}`} 
+        />
         <StatCard 
           title="Best Squad 추천" 
           value={bestSquad?.names ? (
@@ -75,15 +91,6 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
           ) : "-"} 
           sub={bestSquad ? `평균 MMR: ${bestSquad.avgMmr} (${bestSquad.count}경기)` : undefined}
         />
-        <StatCard title="클랜 평균 이상 경기 수" value={aboveAvgValue} />
-        <StatCard title="클랜 시너지 상세" value={Array.isArray(clanSynergyStatusList) ? clanSynergyStatusList.join(", ") : "-"} />
-      </div>
-      
-      {/* 클랜 관련 안내 메시지 */}
-      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-        <div className="text-sm text-blue-700 dark:text-blue-300 text-center">
-          💡 <strong>클랜 & 팀플레이 분석:</strong> 함께 플레이한 클랜원들과의 시너지와 추천 스쿼드 조합을 확인하세요
-        </div>
       </div>
     </div>
   );
