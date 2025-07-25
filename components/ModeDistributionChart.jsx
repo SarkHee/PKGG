@@ -48,7 +48,7 @@ export default function ModeDistributionChart({ modeDistribution }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
       <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 text-center">
-        게임 모드 분포 (최근 20경기)
+        현재 시즌 플레이 현황
       </h3>
       <div style={{ maxWidth: 300, margin: '0 auto' }}>
         <Doughnut 

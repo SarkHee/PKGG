@@ -953,75 +953,51 @@ export default async function handler(req, res) {
       }
     });
 
-    // 게임 모드별 분포 계산 (PUBG OP.GG 방식으로 수정)
+    // 게임 모드별 분포 계산 (시즌 통계 기반)
     const modeDistribution = {
-      normal: 0,    // 일반게임 (최근 매치 기록 기반)
-      ranked: 0,    // 경쟁전 (rankedGameModeStats 기반)  
+      normal: 0,    // 일반게임
+      ranked: 0,    // 경쟁전 (랭크)
       event: 0      // 이벤트게임 (아케이드/이벤트 모드)
     };
 
-    // 게임 모드 분류 함수 (이벤트 모드만 분류, 나머지는 일반)
-    const classifyGameMode = (gameMode, mapName) => {
-      if (!gameMode) return 'normal';
+    // 시즌 통계 기반으로 모드 분포 계산
+    if (rankedStats && rankedStats.length > 0 && modeStats && Object.keys(modeStats).length > 0) {
+      // rankedStats에서 총 랭크 게임 수 계산
+      const totalRankedGames = rankedStats.reduce((sum, stat) => sum + (stat.rounds || 0), 0);
       
-      const mode = gameMode.toLowerCase();
-      const map = (mapName || '').toLowerCase();
-      
-      // 이벤트/아케이드 게임 모드들만 별도 분류
-      if (mode.includes('arcade') || 
-          mode.includes('event') || 
-          mode.includes('tdm') || 
-          mode.includes('war') || 
-          mode.includes('zombie') ||
-          mode.includes('training') || 
-          mode.includes('custom') ||
-          mode.includes('mini') ||
-          mode.includes('battlegrounds-ai') ||
-          mode.includes('ai') ||
-          mode.includes('lab') ||
-          map.includes('arcade') ||
-          map.includes('training') ||
-          map.includes('zombie') ||
-          map.includes('mini') ||
-          map.includes('haven')) {
-        return 'event';
-      }
-      
-      // 모든 일반 배틀로얄 모드 (squad, duo, solo, fpp 등)는 normal
-      return 'normal';
-    };
-
-    // 최근 매치들을 분류 (일반/이벤트만)
-    matches.forEach(match => {
-      const category = classifyGameMode(match.gameMode, match.mapName);
-      modeDistribution[category]++;
-    });
-
-    // 경쟁전 데이터 추가 (rankedStats에서 실제 경기 수 계산)
-    let rankedGamesCount = 0;
-    if (rankedStats && rankedStats.length > 0) {
-      rankedGamesCount = rankedStats.reduce((total, stat) => {
-        return total + (stat.rounds || 0);
+      // 시즌 통계에서 총 일반 게임 수 계산 (주요 모드들만)
+      const normalModes = ['squad', 'duo', 'solo', 'squad-fpp', 'duo-fpp', 'solo-fpp'];
+      const totalNormalGames = normalModes.reduce((sum, mode) => {
+        return sum + (modeStats[mode]?.rounds || 0);
       }, 0);
-    }
-    
-    // 경쟁전이 있으면 전체에서 일정 비율로 조정
-    // (실제로는 최근 20경기에 경쟁전이 포함되어 있을 수 있지만 구분 불가)
-    if (rankedGamesCount > 0) {
-      // 경쟁전 경기 수가 많으면 최근 매치의 일부를 경쟁전으로 가정
-      const totalRecentMatches = matches.length;
-      const estimatedRankedInRecent = Math.min(Math.floor(rankedGamesCount / 10), Math.floor(totalRecentMatches * 0.3));
       
-      modeDistribution.ranked = estimatedRankedInRecent;
-      modeDistribution.normal = Math.max(0, modeDistribution.normal - estimatedRankedInRecent);
+      // 이벤트/아케이드 게임 수는 0으로 설정 (시즌 통계에 포함되지 않음)
+      const totalEventGames = 0;
+      
+      modeDistribution.normal = totalNormalGames;
+      modeDistribution.ranked = totalRankedGames;
+      modeDistribution.event = totalEventGames;
+      
+      console.log(`[MODE DISTRIBUTION] ${nickname}: Normal=${totalNormalGames}, Ranked=${totalRankedGames}, Event=${totalEventGames} (시즌 통계 기반)`);
+    } else {
+      // 시즌 통계가 없으면 기본값 설정
+      modeDistribution.normal = 1;
+      modeDistribution.ranked = 0;
+      modeDistribution.event = 0;
+      
+      console.log(`[MODE DISTRIBUTION] ${nickname}: 시즌 통계가 없어서 기본값 사용`);
     }
 
-    // 백분율로 변환
-    const totalMatches = matches.length || 1;
-    const modeDistributionPercent = {
-      normal: Math.round((modeDistribution.normal / totalMatches) * 100),
-      ranked: Math.round((modeDistribution.ranked / totalMatches) * 100),
-      event: Math.round((modeDistribution.event / totalMatches) * 100)
+    // 백분율로 변환 (시즌 전체 게임 수 기준)
+    const totalSeasonGames = modeDistribution.normal + modeDistribution.ranked + modeDistribution.event;
+    const modeDistributionPercent = totalSeasonGames > 0 ? {
+      normal: Math.round((modeDistribution.normal / totalSeasonGames) * 100),
+      ranked: Math.round((modeDistribution.ranked / totalSeasonGames) * 100),
+      event: Math.round((modeDistribution.event / totalSeasonGames) * 100)
+    } : {
+      normal: 100,
+      ranked: 0,
+      event: 0
     };
 
     // 플레이스타일 및 이동 성향 힌트 (개선된 점수 기반)
