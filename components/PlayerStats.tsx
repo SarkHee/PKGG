@@ -12,6 +12,7 @@ type ModeStats = {
   top10Rate: number;
   longestKill: number;
   headshots: number;
+  headshotRate?: number; // 헤드샷 비율 추가
 };
 
 type MatchSummary = {
@@ -34,10 +35,10 @@ type Props = {
   };
 };
 
-const formatStat = (label: string, value: any) => (
+const formatStat = (label: string, value: any, className?: string) => (
   <div className="flex justify-between text-sm">
     <span className="text-gray-600">{label}</span>
-    <span className="font-semibold">{value}</span>
+    <span className={`font-semibold ${className || ''}`}>{value}</span>
   </div>
 );
 
@@ -60,8 +61,9 @@ const StatCard = ({ mode, stat, matches }: { mode: string; stat?: ModeStats; mat
         {formatStat("평균 딜량", stat.avgDamage.toFixed(1))}
         {formatStat("승률", `${stat.winRate.toFixed(1)}%`)}
         {formatStat("Top10 비율", `${stat.top10Rate.toFixed(1)}%`)}
+        {formatStat("헤드샷 비율", `${(stat.headshotRate || 0).toFixed(1)}%`, "text-red-600 dark:text-red-400")}
         {formatStat("최장 킬 거리", `${stat.longestKill.toFixed(1)}m`)}
-        {formatStat("헤드샷 수", stat.headshots)}
+        {formatStat("헤드샷 수", stat.headshots || 0)}
         {formatStat("평균 이동 거리", `${avgDistance}m`)}
       </div>
     </div>

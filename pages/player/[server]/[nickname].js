@@ -590,11 +590,11 @@ function ModeStatsTabs({ modeStats }) {
             <li>평균 딜량: <span className="font-medium">{stats.avgDamage}</span></li>
             <li>승률: <span className="font-medium">{stats.winRate}%</span></li>
             <li>Top 10 비율: <span className="font-medium">{stats.top10Rate}%</span></li>
+            <li>헤드샷 비율: <span className="font-medium text-red-600 dark:text-red-400">{stats.headshotRate}%</span></li>
             <li>최장 킬 거리: <span className="font-medium">{stats.longestKill}m</span></li>
             <li>헤드샷 킬: <span className="font-medium">{stats.headshots}</span></li>
             <li>최대 킬: <span className="font-medium">{stats.maxKills}</span></li>
             <li>최대 거리 킬: <span className="font-medium">{stats.maxDistanceKill}m</span></li>
-            <li>헤드샷 비율: <span className="font-medium">{stats.headshotRate}%</span></li>
             <li>평균 등수: <span className="font-medium">{stats.avgRank}</span></li>
             <li>평균 생존시간: <span className="font-medium">{stats.avgSurvivalTime}초</span></li>
             <li>평균 어시스트: <span className="font-medium">{stats.avgAssists}</span></li>

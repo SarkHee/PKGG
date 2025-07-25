@@ -479,10 +479,23 @@ export default async function handler(req, res) {
           const rankedGameModes = rankedData.data?.attributes?.rankedGameModeStats || 
                                  rankedData.data?.attributes || 
                                  rankedData.attributes || {};
+          
+          console.log(`[RANKED DEBUG] rankedGameModes 구조:`, JSON.stringify(rankedGameModes, null, 2)); 
+                                 rankedData.attributes || {};
           const modePriority = ["squad-fpp", "squad", "duo-fpp", "solo-fpp"];
           for (const mode of modePriority) {
             if (rankedGameModes[mode]) {
               const r = rankedGameModes[mode];
+              
+              // 헤드샷 관련 디버깅 로그 추가
+              console.log(`[HEADSHOT DEBUG] Mode: ${mode}`);
+              console.log(`[HEADSHOT DEBUG] Available fields:`, Object.keys(r));
+              console.log(`[HEADSHOT DEBUG] headshotKills:`, r.headshotKills);
+              console.log(`[HEADSHOT DEBUG] headshots:`, r.headshots);
+              console.log(`[HEADSHOT DEBUG] headshotKillRatio:`, r.headshotKillRatio);
+              console.log(`[HEADSHOT DEBUG] headshotRate:`, r.headshotRate);
+              console.log(`[HEADSHOT DEBUG] kills:`, r.kills);
+              
               // K/D 계산 수정: deaths = rounds - wins (PUBG에서는 죽지 않고 우승하면 death가 없음)
               const deaths = r.roundsPlayed - r.wins;
               const kd = deaths > 0 ? parseFloat((r.kills / deaths).toFixed(2)) : r.kills;
@@ -496,6 +509,46 @@ export default async function handler(req, res) {
                 winRate: r.roundsPlayed > 0 ? parseFloat(((r.wins / r.roundsPlayed) * 100).toFixed(2)) : 0,
                 survivalTime: r.roundsPlayed > 0 ? parseFloat((r.timeSurvived / r.roundsPlayed).toFixed(2)) : 0,
                 rounds: r.roundsPlayed,
+                // 기본 필드들
+                currentTier: r.currentTier?.tier || "Unranked", // 현재 티어
+                subTier: r.currentTier?.subTier || 0, // 세부 티어 (1, 2, 3, 4)
+                currentRankPoint: r.currentRankPoint || 0, // 현재 랭크 포인트
+                roundsPlayed: r.roundsPlayed || 0, // 플레이한 라운드 수
+                avgRank: r.avgRank || 0, // 평균 등수
+                top10Ratio: r.top10Ratio || 0, // TOP10 비율
+                winRatio: r.winRatio || 0, // 승률 (API에서 직접)
+                assists: r.assists || 0, // 어시스트 수
+                wins: r.wins || 0, // 승리 수
+                kda: r.kda || 0, // KDA 비율
+                kills: r.kills || 0, // 킬 수
+                deaths: r.deaths || 0, // 데스 수
+                damageDealt: r.damageDealt || 0, // 총 딜량
+                headshotKills: r.headshotKills || r.headshots || 0, // 헤드샷 킬 수 (여러 필드명 시도)
+                headshotKillRatio: r.headshotKillRatio || r.headshotRate || 0, // 헤드샷 비율 (API에서 직접)
+                // 추가 통계들
+                headshots: r.headshotKills || r.headshots || 0, // 헤드샷 킬 수 (중복이지만 호환성)
+                headshotRate: r.headshotKillRatio ? parseFloat((r.headshotKillRatio * 100).toFixed(1)) : 
+                  r.headshotRate ? parseFloat((r.headshotRate * 100).toFixed(1)) :
+                  (r.kills > 0 ? parseFloat(((r.headshotKills || r.headshots || 0) / r.kills * 100).toFixed(1)) : 0), // 헤드샷 비율 계산
+                // 성취 관련
+                bestTier: r.bestTier ? (r.bestTier.tier + (r.bestTier.subTier ? ` ${r.bestTier.subTier}` : "")) : "Unranked", // 최고 달성 티어
+                bestRankPoint: r.bestRankPoint || 0, // 최고 랭크 포인트
+                roundMostKills: r.roundMostKills || 0, // 한 라운드 최다 킬
+                killStreak: r.killStreak || 0, // 킬 스트릭
+                // 전투 관련
+                dBNOs: r.dBNOs || 0, // 기절시킨 수
+                longestKill: r.longestKill || 0, // 최장 킬 거리
+                teamKills: r.teamKills || 0, // 팀킬 수
+                // 서포트/생존 관련
+                reviveRatio: r.reviveRatio || 0, // 부활 비율
+                revives: r.revives || 0, // 부활시킨 수
+                heals: r.heals || 0, // 힐 사용 횟수
+                boosts: r.boosts || 0, // 부스터 사용 횟수
+                // 기타
+                avgSurvivalTime: r.avgSurvivalTime || 0, // 평균 생존 시간
+                weaponsAcquired: r.weaponsAcquired || 0, // 획득한 무기 수
+                playTime: r.playTime || 0, // 총 플레이 시간
+                kdr: r.kdr || 0, // Kill/Death Ratio
               });
             } else {
               rankedStats.push({
@@ -507,6 +560,44 @@ export default async function handler(req, res) {
                 winRate: 0,
                 survivalTime: 0,
                 rounds: 0,
+                // 기본 필드들
+                currentTier: "Unranked",
+                subTier: 0,
+                currentRankPoint: 0,
+                roundsPlayed: 0,
+                avgRank: 0,
+                top10Ratio: 0,
+                winRatio: 0,
+                assists: 0,
+                wins: 0,
+                kda: 0,
+                kills: 0,
+                deaths: 0,
+                damageDealt: 0,
+                headshotKills: 0,
+                headshotKillRatio: 0,
+                // 추가 통계들  
+                headshots: 0, // 헤드샷 킬 수 기본값
+                headshotRate: 0, // 헤드샷 비율 기본값
+                // 성취 관련
+                bestTier: "Unranked",
+                bestRankPoint: 0,
+                roundMostKills: 0,
+                killStreak: 0,
+                // 전투 관련
+                dBNOs: 0,
+                longestKill: 0,
+                teamKills: 0,
+                // 서포트/생존 관련
+                reviveRatio: 0,
+                revives: 0,
+                heals: 0,
+                boosts: 0,
+                // 기타
+                avgSurvivalTime: 0,
+                weaponsAcquired: 0,
+                playTime: 0,
+                kdr: 0,
               });
             }
           }
@@ -532,6 +623,23 @@ export default async function handler(req, res) {
             winRate: 0,
             survivalTime: 0,
             rounds: 0,
+            headshots: 0,
+            headshotRate: 0,
+            bestTier: "Unranked",
+            bestRankPoint: 0,
+            roundMostKills: 0,
+            killStreak: 0,
+            dBNOs: 0,
+            longestKill: 0,
+            teamKills: 0,
+            reviveRatio: 0,
+            revives: 0,
+            heals: 0,
+            boosts: 0,
+            avgSurvivalTime: 0,
+            weaponsAcquired: 0,
+            playTime: 0,
+            kdr: 0,
           }));
         }
       } else {
@@ -546,6 +654,23 @@ export default async function handler(req, res) {
           winRate: 0,
           survivalTime: 0,
           rounds: 0,
+          headshots: 0,
+          headshotRate: 0,
+          bestTier: "Unranked",
+          bestRankPoint: 0,
+          roundMostKills: 0,
+          killStreak: 0,
+          dBNOs: 0,
+          longestKill: 0,
+          teamKills: 0,
+          reviveRatio: 0,
+          revives: 0,
+          heals: 0,
+          boosts: 0,
+          avgSurvivalTime: 0,
+          weaponsAcquired: 0,
+          playTime: 0,
+          kdr: 0,
         }));
       }
     } catch (e) {
@@ -560,6 +685,23 @@ export default async function handler(req, res) {
         winRate: 0,
         survivalTime: 0,
         rounds: 0,
+        headshots: 0,
+        headshotRate: 0,
+        bestTier: "Unranked",
+        bestRankPoint: 0,
+        roundMostKills: 0,
+        killStreak: 0,
+        dBNOs: 0,
+        longestKill: 0,
+        teamKills: 0,
+        reviveRatio: 0,
+        revives: 0,
+        heals: 0,
+        boosts: 0,
+        avgSurvivalTime: 0,
+        weaponsAcquired: 0,
+        playTime: 0,
+        kdr: 0,
       }));
     }
     // [경쟁전 정보 수집 끝]
@@ -577,7 +719,7 @@ export default async function handler(req, res) {
       const top = sorted[0];
       // wins, top10Rate, kda, avgAssist, avgKill, avgRank 계산 보완
       const wins = typeof top.wins === 'number' ? top.wins : (typeof top.win === 'number' ? top.win : 0);
-      const top10Rate = typeof top.top10Rate === 'number' ? top.top10Rate : null;
+      const top10Rate = typeof top.top10Ratio === 'number' ? parseFloat((top.top10Ratio * 100).toFixed(1)) : null;
       const assists = typeof top.assists === 'number' ? top.assists : null;
       const kills = typeof top.kills === 'number' ? top.kills : null;
       const rounds = typeof top.rounds === 'number' && top.rounds > 0 ? top.rounds : 0;
@@ -588,7 +730,7 @@ export default async function handler(req, res) {
       const avgRank = typeof top.avgRank === 'number' ? top.avgRank : null;
       rankedSummary = {
         mode: top.mode,
-        tier: top.tier,
+        tier: top.currentTier || top.tier, // currentTier 우선, fallback으로 tier 사용
         rp: top.rp,
         games: rounds,
         wins: wins,
@@ -596,10 +738,33 @@ export default async function handler(req, res) {
         avgDamage: top.avgDamage,
         winRate: top.winRate,
         top10Rate: top10Rate,
+        headshotRate: top.headshotKillRatio ? parseFloat((top.headshotKillRatio * 100).toFixed(1)) : 
+          top.headshotRate ? parseFloat((top.headshotRate * 100).toFixed(1)) :
+          (top.kills > 0 ? parseFloat(((top.headshotKills || top.headshots || 0) / top.kills * 100).toFixed(1)) : 0), // 헤드샷 비율 계산
         kda: kda,
         avgAssist: avgAssist,
         avgKill: avgKill,
         avgRank: avgRank,
+        // 기본 통계 필드들
+        currentTier: top.currentTier || top.tier,
+        subTier: top.subTier || 0,
+        currentRankPoint: top.currentRankPoint || top.rp,
+        roundsPlayed: top.roundsPlayed || rounds,
+        top10Ratio: top.top10Ratio || 0, // top10Ratio 추가
+        assists: top.assists || 0,
+        kills: top.kills || 0,
+        deaths: top.deaths || 0,
+        damageDealt: top.damageDealt || 0,
+        headshotKills: top.headshotKills || top.headshots || 0, // 일단 기본값 사용
+        // 추가 데이터들
+        bestTier: top.bestTier || "Unranked",
+        bestRankPoint: top.bestRankPoint || 0,
+        roundMostKills: top.roundMostKills || 0,
+        dBNOs: top.dBNOs || 0,
+        longestKill: top.longestKill || 0,
+        revives: top.revives || 0,
+        heals: top.heals || 0,
+        boosts: top.boosts || 0,
       };
     }
 
@@ -801,7 +966,9 @@ export default async function handler(req, res) {
           damage: 0,
           survivalTime: 0,
           rankSum: 0,
-          validRanks: 0
+          validRanks: 0,
+          headshots: 0, // 헤드샷 통계 추가
+          longestKills: [] // 최장 킬 거리 리스트 추가
         };
       }
       
@@ -811,6 +978,12 @@ export default async function handler(req, res) {
       modeData.assists += myStats.assists || 0;
       modeData.damage += myStats.damageDealt || 0;
       modeData.survivalTime += myStats.timeSurvived || 0;
+      modeData.headshots += myStats.headshotKills || 0; // 헤드샷 킬 누적
+      
+      // 최장 킬 거리 수집
+      if (myStats.longestKill && myStats.longestKill > 0) {
+        modeData.longestKills.push(myStats.longestKill);
+      }
       
       if (isWin) modeData.wins++;
       if (isTop10) modeData.top10s++;
@@ -858,6 +1031,8 @@ export default async function handler(req, res) {
         damage: myStats.damageDealt || 0,
         distance: distance,
         distanceKm,
+        headshots: myStats.headshotKills || 0, // 헤드샷 킬 수 추가
+        longestKill: myStats.longestKill || 0, // 최장 킬 거리 추가
         opGrade: gradeOP(myRank, totalSquads),
         mapName: matchData.data.attributes.mapName,
       });
@@ -928,6 +1103,10 @@ export default async function handler(req, res) {
         const kd = data.rounds > data.wins ? parseFloat((data.kills / (data.rounds - data.wins)).toFixed(2)) : data.kills;
         const avgRank = data.validRanks > 0 ? parseFloat((data.rankSum / data.validRanks).toFixed(1)) : null;
 
+        // 매치에서 헤드샷 데이터 수집
+        const headshotRate = data.kills > 0 ? parseFloat(((data.headshots / data.kills) * 100).toFixed(1)) : 0;
+        const longestKill = data.longestKills.length > 0 ? Math.max(...data.longestKills) : 0;
+
         seasonModeStats[mode] = {
           rounds: data.rounds,
           wins: data.wins,
@@ -942,16 +1121,33 @@ export default async function handler(req, res) {
           top10Rate,
           kd,
           avgRank,
+          // 헤드샷 관련 필드
+          headshots: data.headshots,
+          headshotRate: headshotRate,
           // 추가 필드들 (기존 호환성 유지)
-          longestKill: 0, // PUBG API에서 직접 제공되지 않음
-          headshots: 0, // PUBG API에서 직접 제공되지 않음
+          longestKill: longestKill,
           maxKills: Math.max(...matches.filter(m => m.gameMode === mode).map(m => m.kills || 0), 0),
-          maxDistanceKill: 0, // PUBG API에서 직접 제공되지 않음
-          headshotRate: 0, // PUBG API에서 직접 제공되지 않음
+          maxDistanceKill: longestKill,
           mostAssists: Math.max(...matches.filter(m => m.gameMode === mode).map(m => m.assists || 0), 0)
         };
       }
     });
+
+    // rankedSummary의 헤드샷 데이터를 매치 기반 데이터로 업데이트
+    if (rankedSummary && Object.keys(seasonModeStats).length > 0) {
+      const primaryMode = seasonModeStats['squad-fpp'] || seasonModeStats['squad'] || 
+                         Object.values(seasonModeStats)[0] || {};
+      const matchBasedHeadshotKills = primaryMode.headshots || 0;
+      const matchBasedHeadshotRate = primaryMode.headshotRate || 0;
+      const matchBasedLongestKill = primaryMode.longestKill || 0;
+      
+      // rankedSummary 헤드샷 데이터 업데이트
+      rankedSummary.headshotKills = matchBasedHeadshotKills;
+      rankedSummary.headshotRate = matchBasedHeadshotRate;
+      rankedSummary.longestKill = matchBasedLongestKill;
+      
+      console.log(`[HEADSHOT UPDATE] Updated rankedSummary with match data - headshotKills: ${matchBasedHeadshotKills}, headshotRate: ${matchBasedHeadshotRate}%`);
+    }
 
     // 게임 모드별 분포 계산 (시즌 통계 기반)
     const modeDistribution = {

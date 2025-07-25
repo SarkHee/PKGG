@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, refreshing, cooldown, refreshMsg }) => {
   // 디버깅용 로그
   console.log('PlayerHeader rankedSummary:', rankedSummary);
+  
+  // 경쟁전 상세보기 상태
+  const [showRankedDetails, setShowRankedDetails] = useState(false);
   
   // 플레이스타일 값을 안전하게 문자열로 변환 (realPlayStyle 우선, 그 다음 playstyle, 마지막으로 style)
   const getStyleString = (summary) => {
@@ -154,41 +157,148 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
           </div>
         </div>
 
-        {/* 4. 스쿼드 경쟁전 요약 */}
+        {/* 4. 경쟁전 요약 */}
         <div className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-6 border-l-4 border-amber-500">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-lg">🏆</span>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">스쿼드 경쟁전</h2>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">경쟁전</h2>
             <span className="text-xs bg-amber-200 dark:bg-amber-700 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">PUBG 공식</span>
           </div>
           
           {rankedSummary && rankedSummary.games > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
-                <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">랭크</div>
-                <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{rankedSummary.tier || 'Unranked'}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">{rankedSummary.rp || 0} RP</div>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                  <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">랭크</div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {(rankedSummary.currentTier || rankedSummary.tier || 'Unranked')}
+                    {rankedSummary.subTier && rankedSummary.subTier > 0 ? ` ${rankedSummary.subTier}` : ''}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{rankedSummary.rp || 0} RP</div>
+                </div>
+                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                  <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">게임수</div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{rankedSummary.games || 0}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">K/D {(rankedSummary.kd || 0).toFixed(2)}</div>
+                </div>
+                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                  <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">평균 딜량</div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{Math.round(rankedSummary.avgDamage || 0)}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">승률 {(rankedSummary.winRate || 0).toFixed(1)}%</div>
+                </div>
+                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                  <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">TOP10</div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {typeof rankedSummary.top10Ratio === 'number' ? (rankedSummary.top10Ratio * 100).toFixed(1) : 
+                     (rankedSummary.top10Rate || 0).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">평균 등수 {(rankedSummary.avgRank || 0).toFixed(1)}</div>
+                </div>
               </div>
-              <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
-                <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">게임수</div>
-                <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{rankedSummary.games || 0}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">K/D {(rankedSummary.kd || 0).toFixed(2)}</div>
+              
+              {/* 상세보기 버튼 */}
+              <div className="mt-4 text-center">
+                <button
+                  onClick={() => setShowRankedDetails(!showRankedDetails)}
+                  className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-sm font-medium rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all duration-200 shadow-sm"
+                >
+                  {showRankedDetails ? '▲ 상세 통계 숨기기' : '▼ 상세 통계 보기'}
+                </button>
               </div>
-              <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
-                <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">평균 딜량</div>
-                <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{Math.round(rankedSummary.avgDamage || 0)}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">승률 {(rankedSummary.winRate || 0).toFixed(1)}%</div>
-              </div>
-              <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
-                <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">TOP10</div>
-                <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{(rankedSummary.top10Rate || 0).toFixed(1)}%</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">평균 등수 {(rankedSummary.avgRank || 0).toFixed(1)}</div>
-              </div>
-            </div>
+              
+              {/* 상세 통계 섹션 */}
+              {showRankedDetails && (
+                <div className="mt-4 bg-white/40 dark:bg-gray-800/40 rounded-lg p-4 border border-yellow-200 dark:border-yellow-700">
+                  <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-3 text-center">📊 상세 경쟁전 통계</h3>
+                  
+                  {/* 기본 전투 통계 */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-red-600 dark:text-red-400 mb-1">킬 수</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {(rankedSummary.kills || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">데스 수</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {(rankedSummary.deaths || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">어시스트</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {(rankedSummary.assists || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">KDA</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {typeof rankedSummary.kda === 'number' ? rankedSummary.kda.toFixed(2) : '0.00'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 성과 통계 */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-green-600 dark:text-green-400 mb-1">승리 수</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {(rankedSummary.wins || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-orange-600 dark:text-orange-400 mb-1">총 딜량</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {(rankedSummary.damageDealt || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">기절시킨 수</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {(rankedSummary.dBNOs || 0).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 헤드샷 통계 */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-red-600 dark:text-red-400 mb-1">헤드샷 킬 수</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {(rankedSummary.headshotKills || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-red-600 dark:text-red-400 mb-1">헤드샷 비율</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {typeof rankedSummary.headshotRate === 'number' ? rankedSummary.headshotRate.toFixed(1) : '0.0'}%
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 최고 기록 */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-yellow-600 dark:text-yellow-400 mb-1">최고 티어</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {rankedSummary.bestTier || 'Unranked'}
+                      </div>
+                    </div>
+                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
+                      <div className="text-xs text-yellow-600 dark:text-yellow-400 mb-1">최고 RP</div>
+                      <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {(rankedSummary.bestRankPoint || 0).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-6 text-center">
               <div className="text-4xl mb-3">❗</div>
-              <div className="text-gray-600 dark:text-gray-400 font-medium">아직 경쟁전 스쿼드 경기가 없습니다.</div>
+              <div className="text-gray-600 dark:text-gray-400 font-medium">아직 경쟁전 경기가 없습니다.</div>
               <div className="text-sm text-gray-500 dark:text-gray-500 mt-2">경쟁전에 참여하면 랭크 정보가 표시됩니다.</div>
             </div>
           )}
