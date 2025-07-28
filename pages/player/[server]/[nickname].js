@@ -17,7 +17,7 @@ import MatchDetailExpandable from '../../../components/MatchDetailExpandable.jsx
 function MatchList({ recentMatches }) {
   const [openIdx, setOpenIdx] = useState(null);
   return (
-    <div className="match-list-table">
+    <div className="space-y-4">
       {recentMatches.map((match, i) => (
         <MatchListRow
           key={match.matchId}
@@ -742,7 +742,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
   return (
     <>
       <Header />
-      <div className="container mx-auto p-4 bg-gray-50 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100 font-sans">
+      <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen text-gray-900 dark:text-gray-100 font-sans">
         <Head>
           <title>{`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`}</title>
           <meta name="description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 및 클랜 시너지 분석 정보.`} />
@@ -750,15 +750,15 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
         {/* 데이터 소스 알림 */}
         {dataSource === 'database' && (
-          <div className="mb-3 p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 border-2 border-yellow-200 text-yellow-800 rounded-xl shadow-sm">
-            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center">
-              <div className="inline-block px-3 py-1 bg-yellow-500 text-white text-xs font-semibold rounded-full mb-2">
-                데이터 소스 안내
+          <div className="mb-6 p-5 bg-gradient-to-r from-yellow-50 via-yellow-100 to-yellow-50 border-2 border-yellow-200 text-yellow-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="inline-block px-4 py-2 bg-yellow-500 text-white text-sm font-bold rounded-full mb-3 shadow-sm">
+                📊 데이터 소스 안내
               </div>
-              <div className="text-sm font-medium">
+              <div className="text-base font-semibold mb-2">
                 <strong>DB 데이터 표시:</strong> 일부 정보 제한 가능
               </div>
-              <div className="text-xs text-yellow-600 mt-1">
+              <div className="text-sm text-yellow-700">
                 최신화하기로 실시간 데이터 조회 가능
               </div>
             </div>
@@ -766,15 +766,15 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         )}
         
         {dataSource === 'db_with_api_enhancement' && (
-          <div className="mb-3 p-4 bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 text-blue-800 rounded-xl shadow-sm">
-            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center">
-              <div className="inline-block px-3 py-1 bg-blue-500 text-white text-xs font-semibold rounded-full mb-2">
-                데이터 소스 안내
+          <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 via-blue-100 to-blue-50 border-2 border-blue-200 text-blue-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="inline-block px-4 py-2 bg-blue-500 text-white text-sm font-bold rounded-full mb-3 shadow-sm">
+                🚀 데이터 소스 안내
               </div>
-              <div className="text-sm font-medium">
+              <div className="text-base font-semibold mb-2">
                 <strong>향상된 데이터:</strong> DB + PUBG API 실시간 데이터 조합
               </div>
-              <div className="text-xs text-blue-600 mt-1">
+              <div className="text-sm text-blue-700">
                 백그라운드에서 자동 업데이트됩니다
               </div>
             </div>
@@ -782,15 +782,15 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         )}
 
         {dataSource === 'pubg_api_only' && (
-          <div className="mb-3 p-4 bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 text-green-800 rounded-xl shadow-sm">
-            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center">
-              <div className="inline-block px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full mb-2">
-                데이터 소스 안내
+          <div className="mb-6 p-5 bg-gradient-to-r from-green-50 via-green-100 to-green-50 border-2 border-green-200 text-green-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="inline-block px-4 py-2 bg-green-500 text-white text-sm font-bold rounded-full mb-3 shadow-sm">
+                ⚡ 데이터 소스 안내
               </div>
-              <div className="text-sm font-medium">
+              <div className="text-base font-semibold mb-2">
                 <strong>실시간 데이터:</strong> PUBG API 최신 정보
               </div>
-              <div className="text-xs text-green-600 mt-1">
+              <div className="text-sm text-green-700">
                 {(() => {
                   const clanInfo = playerData?.profile?.clan;
                   if (clanInfo) {
@@ -805,15 +805,15 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         )}
 
         {dataSource === 'pubg_api' && (
-          <div className="mb-3 p-4 bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 text-green-800 rounded-xl shadow-sm">
-            <div className="bg-white/60 backdrop-blur-sm rounded-lg p-3 text-center">
-              <div className="inline-block px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full mb-2">
-                데이터 소스 안내
+          <div className="mb-6 p-5 bg-gradient-to-r from-green-50 via-green-100 to-green-50 border-2 border-green-200 text-green-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center">
+              <div className="inline-block px-4 py-2 bg-green-500 text-white text-sm font-bold rounded-full mb-3 shadow-sm">
+                🔄 데이터 소스 안내
               </div>
-              <div className="text-sm font-medium">
+              <div className="text-base font-semibold mb-2">
                 <strong>실시간 데이터:</strong> PUBG API 최신 정보 조회됨
               </div>
-              <div className="text-xs text-green-600 mt-1">
+              <div className="text-sm text-green-700">
                 실시간으로 업데이트된 데이터입니다
               </div>
             </div>
@@ -833,15 +833,15 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         />
 
       {/* 클랜 및 팀플레이 분석 섹션 */}
-      <div className="mb-8">
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 mb-4 border-l-4 border-blue-500">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">�</span>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">클랜 및 팀플레이 분석</h2>
-            <span className="text-xs bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">클랜 시너지</span>
+      <div className="mb-10">
+        <div className="bg-gradient-to-r from-blue-50 via-blue-100 to-purple-50 dark:from-blue-900/20 dark:to-purple-800/20 rounded-2xl p-6 mb-6 border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🤝</span>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">클랜 및 팀플레이 분석</h2>
+            <span className="text-sm bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full font-medium">클랜 시너지</span>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
           <PlayerDashboard
             profile={profile}
             summary={summary}
@@ -855,7 +855,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           />
           
           {/* 클랜원 시너지 히트맵 */}
-          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
+          <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-600">
             <SynergyHeatmap 
               matches={recentMatches} 
               myNickname={profile?.nickname}
@@ -868,42 +868,49 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
       {/* 시즌 플레이 현황 */}
       {displayData?.modeDistribution && (
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 mb-4 border-l-4 border-purple-500">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">📊</span>
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">시즌 플레이 현황</h2>
+        <div className="mb-10">
+          <div className="bg-gradient-to-r from-purple-50 via-purple-100 to-pink-50 dark:from-purple-900/20 dark:to-pink-800/20 rounded-2xl p-6 mb-6 border-l-4 border-purple-500 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📊</span>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">시즌 플레이 현황</h2>
+              <span className="text-sm bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full font-medium">모드별 분석</span>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
             <ModeDistributionChart modeDistribution={displayData.modeDistribution} />
           </div>
         </div>
       )}
 
       {/* PK.GG MMR 안내 */}
-      <div className="text-center text-sm text-gray-500 dark:text-gray-400 my-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-700">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <span className="text-lg">ℹ️</span>
-          <span className="font-semibold text-blue-700 dark:text-blue-300">PK.GG MMR 안내</span>
+      <div className="text-center my-8">
+        <div className="bg-gradient-to-r from-blue-50 via-blue-100 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-800/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-700 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <span className="text-2xl">ℹ️</span>
+            <span className="text-lg font-bold text-blue-700 dark:text-blue-300">PK.GG MMR 안내</span>
+          </div>
+          <div className="text-base text-blue-800 dark:text-blue-200 max-w-3xl mx-auto">
+            PK.GG MMR은 공식 랭킹 RP가 아닌, 킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다.
+          </div>
         </div>
-        PK.GG MMR은 공식 랭킹 RP가 아닌, 킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다.
       </div>
 
       {/* 차트 및 시각화 섹션 */}
-      <div className="mb-8">
-        <div className="bg-gradient-to-r from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 rounded-xl p-4 mb-4 border-l-4 border-cyan-500">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">📊</span>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">경기 추이 분석</h2>
+      <div className="mb-10">
+        <div className="bg-gradient-to-r from-cyan-50 via-cyan-100 to-teal-50 dark:from-cyan-900/20 dark:to-teal-800/20 rounded-2xl p-6 mb-6 border-l-4 border-cyan-500 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">�</span>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">경기 추이 분석</h2>
+            <span className="text-sm bg-cyan-200 dark:bg-cyan-700 text-cyan-800 dark:text-cyan-200 px-3 py-1 rounded-full font-medium">성과 트렌드</span>
           </div>
         </div>
         
         <div className="grid grid-cols-1 gap-8">
           {/* 딜량 추이 그래프 */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100">딜량 추이</h4>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="text-xl">💪</span>
+              <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100">딜량 추이</h4>
             </div>
             <RecentDamageTrendChart matches={recentMatches} />
           </div>
@@ -911,38 +918,39 @@ export default function PlayerPage({ playerData, error, dataSource }) {
       </div>
 
       {/* 게임 모드별 통계 섹션 */}
-      <div className="mb-8">
-        <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl p-4 mb-4 border-l-4 border-indigo-500">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🎮</span>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">게임 모드별 통계</h2>
+      <div className="mb-10">
+        <div className="bg-gradient-to-r from-indigo-50 via-indigo-100 to-blue-50 dark:from-indigo-900/20 dark:to-blue-800/20 rounded-2xl p-6 mb-6 border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🎮</span>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">게임 모드별 통계</h2>
+            <span className="text-sm bg-indigo-200 dark:bg-indigo-700 text-indigo-800 dark:text-indigo-200 px-3 py-1 rounded-full font-medium">상세 분석</span>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
           <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
         </div>
       </div>
 
       {/* 최근 경기 내역 섹션 */}
-      <section className="recent-matches-section mt-12">
-        <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 rounded-xl p-4 mb-4 border-l-4 border-indigo-500">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🎮</span>
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">최근 경기 내역</h2>
-            <span className="text-xs bg-indigo-200 dark:bg-indigo-700 text-indigo-800 dark:text-indigo-200 px-2 py-1 rounded-full">최근 20경기</span>
+      <section className="recent-matches-section mb-10">
+        <div className="bg-gradient-to-r from-orange-50 via-orange-100 to-red-50 dark:from-orange-900/20 dark:to-red-800/20 rounded-2xl p-6 mb-6 border-l-4 border-orange-500 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">�</span>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">최근 경기 내역</h2>
+            <span className="text-sm bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full font-medium">최근 20경기</span>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
           {/* 경기 모드 필터 탭 */}
-          <div className="mb-6 flex justify-center">
-            <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+          <div className="mb-8 flex justify-center">
+            <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 p-2 rounded-xl shadow-inner">
               {['전체', '경쟁전', '경쟁전 솔로', '솔로', '듀오', '스쿼드', '경쟁전 FPP', '경쟁전 솔로 FPP', '솔로 FPP', '듀오 FPP', '스쿼드 FPP'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setSelectedMatchFilter(tab)}
-                  className={`px-3 py-2 rounded-md text-xs font-medium transition ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     selectedMatchFilter === tab
-                      ? 'bg-blue-500 text-white' 
+                      ? 'bg-blue-500 text-white shadow-sm' 
                       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
@@ -955,13 +963,16 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           {filteredMatches && filteredMatches.length > 0 ? (
             <MatchList recentMatches={filteredMatches} />
           ) : (
-            <div className="text-center py-8">
-              <div className="text-4xl mb-4">📋</div>
-              <div className="text-gray-500 dark:text-gray-400">
+            <div className="text-center py-12">
+              <div className="text-6xl mb-6">📋</div>
+              <div className="text-lg text-gray-500 dark:text-gray-400 font-medium">
                 {selectedMatchFilter === '전체' 
                   ? '최근 경기 데이터가 없습니다.' 
                   : `${selectedMatchFilter} 모드의 기록된 전적이 없습니다.`
                 }
+              </div>
+              <div className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                게임을 플레이하면 데이터가 업데이트됩니다.
               </div>
             </div>
           )}
@@ -970,29 +981,34 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
       {/* 경기 상세 정보 표시 */}
       {selectedMatchId && (
-        <div ref={detailRef} className="mt-6 bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-              <span className="text-sm">🔍</span>
+        <div ref={detailRef} className="mt-8 mb-10">
+          <div className="bg-gradient-to-r from-purple-50 via-purple-100 to-pink-50 dark:from-purple-900/20 dark:to-pink-800/20 rounded-2xl p-6 mb-6 border-l-4 border-purple-500 shadow-sm">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🔍</span>
+              <h4 className="text-xl font-bold text-gray-800 dark:text-gray-200">경기 상세 정보</h4>
+              <span className="text-sm bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full font-medium">상세 분석</span>
             </div>
-            <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100">경기 상세 정보</h4>
           </div>
-          <MatchDetailExpandable matchId={selectedMatchId} />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+            <MatchDetailExpandable matchId={selectedMatchId} />
+          </div>
         </div>
       )}
 
       {/* 데이터 정보 섹션 */}
-      <div className="mt-8">
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800/50 dark:to-gray-700/50 rounded-xl p-4 border-l-4 border-gray-400">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">ℹ️</span>
-            <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">데이터 정보</h2>
-          </div>
-          <div className="flex items-center justify-end gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span className="text-base">⏰</span>
-            <span>
-              데이터 최종 업데이트: {profile?.lastUpdated ? new Date(profile.lastUpdated).toLocaleString('ko-KR') : '알 수 없음'}
-            </span>
+      <div className="mt-10 mb-6">
+        <div className="bg-gradient-to-r from-gray-50 via-gray-100 to-slate-50 dark:from-gray-800/50 dark:to-slate-700/50 rounded-2xl p-6 border border-gray-300 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">ℹ️</span>
+              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">데이터 정보</h2>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+              <span className="text-xl">⏰</span>
+              <span className="font-medium">
+                데이터 최종 업데이트: {profile?.lastUpdated ? new Date(profile.lastUpdated).toLocaleString('ko-KR') : '알 수 없음'}
+              </span>
+            </div>
           </div>
         </div>
       </div>

@@ -73,18 +73,14 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
       
       {/* 1. 플레이어 기본 프로필 섹션 */}
       <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-700/50 rounded-xl p-6 mb-6 border-l-4 border-blue-500">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-lg">👤</span>
-          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">플레이어 정보</h2>
+        <div className="flex items-center gap-4 mb-4">
+          <h1 className="text-3xl font-extrabold text-blue-700 dark:text-blue-200" style={{lineHeight:1.1}}>{profile?.nickname || '-'}</h1>
         </div>
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-2xl font-bold text-white">
             {(profile?.nickname || 'P').charAt(0).toUpperCase()}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-              {profile?.nickname || '플레이어'}
-            </h1>
             {/* 시즌 선택 버튼 */}
             <div className="mb-3">
               <select 
@@ -137,43 +133,40 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* 2. 핵심 성과 요약 테이블 */}
+
+        {/* 2. 시즌 성과 카드형 요약 */}
         <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/20 dark:to-slate-800/20 rounded-xl p-6 border-l-4 border-slate-500">
           <div className="flex items-center gap-2 mb-4">
             <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">시즌 성과</h2>
-          </div>          <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-            <table className="w-full text-sm">
-              <tbody className="space-y-2">
-                <tr className="border-b border-gray-200 dark:border-gray-600">
-                  <td className="py-2 text-slate-600 dark:text-slate-400 font-medium">PK.GG 점수</td>
-                  <td className="py-2 text-gray-900 dark:text-gray-100">
-                    {summary?.averageScore || 1000} 
-                    <span className="text-xs text-gray-500 ml-2">
-                      {(summary?.averageScore || 1000) >= 1500 ? '(우수)' : (summary?.averageScore || 1000) >= 1200 ? '(보통)' : '(성장형)'}
-                    </span>
-                  </td>
-                </tr>
-                <tr className="border-b border-gray-200 dark:border-gray-600">
-                  <td className="py-2 text-slate-600 dark:text-slate-400 font-medium">평균 딜량</td>
-                  <td className="py-2 text-gray-900 dark:text-gray-100">{Math.round(summary?.avgDamage || 0)}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 text-slate-600 dark:text-slate-400 font-medium">폼 상태</td>
-                  <td className="py-2">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      summary?.recentForm === '상승' ? 'bg-green-100 text-green-700' :
-                      summary?.recentForm === '하락' || summary?.recentForm === '급감' ? 'bg-red-100 text-red-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {summary?.recentForm || '안정'}
-                    </span>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {summary?.formComment || '최근 성과를 분석 중입니다.'}
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">평균 딜량</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{Math.round(summary?.avgDamage || 0)}</div>
+            </div>
+            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">PK.GG 점수</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{summary?.averageScore || 1000}
+                <span className="text-xs text-gray-500 ml-2">
+                  {(summary?.averageScore || 1000) >= 1500 ? '(우수)' : (summary?.averageScore || 1000) >= 1200 ? '(보통)' : '(성장형)'}
+                </span>
+              </div>
+            </div>
+            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700 col-span-2">
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">폼 상태</div>
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  summary?.recentForm === '상승' ? 'bg-green-100 text-green-700' :
+                  summary?.recentForm === '하락' || summary?.recentForm === '급감' ? 'bg-red-100 text-red-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {summary?.recentForm || '안정'}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {summary?.formComment || '최근 성과를 분석 중입니다.'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -184,12 +177,12 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
+            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
               <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">평균 딜량</div>
               <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{Math.round(summary?.avgDamage || 0)}</div>
             </div>
             
-            <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
+            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
               <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">PK.GG 점수</div>
               <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{summary?.averageScore || 1000}</div>
             </div>

@@ -49,6 +49,8 @@ model PlayerMatch {
   placement    Int
   kills        Int
   assists      Int
+  // UBD 클랜 멤버에 'soo5woo', 'a-ing-a-ing' 추가
+  // ...existing code...
   damage       Float
   surviveTime  Float
   createdAt    DateTime @default(now())

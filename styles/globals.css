@@ -1,41 +1,53 @@
-/* 경기 확장 카드 (op.gg/피그마 스타일) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 경기 확장 카드 (깔끔한 카드 스타일) */
 .match-expandable-card {
-  background: #f7f7f7;
-  border-radius: 10px;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.03);
-  margin-bottom: 0.5rem;
-  transition: box-shadow 0.2s;
+  background: #ffffff;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
 }
 .match-expandable-card.open {
-  box-shadow: 0 4px 16px 0 rgba(0,0,0,0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
 }
 .match-expandable-header {
   padding: 0.5rem 1rem 0.5rem 0.5rem;
 }
 .expand-arrow-btn {
   background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 50%;
+  border: none;
+  border-radius: 8px;
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
-  color: #888;
+  color: #6b7280;
   cursor: pointer;
-  transition: border 0.2s, background 0.2s;
+  transition: all 0.2s ease;
   margin-left: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.expand-arrow-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 .expand-arrow-btn.open {
   background: #e0e7ff;
-  border-color: #6366f1;
   color: #3730a3;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
 }
 .match-expandable-detail {
   animation: fadeIn 0.2s;
-  border-radius: 0 0 10px 10px;
+  border-radius: 0 0 12px 12px;
+  background: #f8f9fa;
+  padding: 16px;
 }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }
@@ -45,17 +57,26 @@
   border-collapse: collapse;
   width: 100%;
   margin-top: 0.5rem;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 .match-expandable-detail th, .match-expandable-detail td {
-  border: 1px solid #e5e7eb;
-  padding: 0.25rem 0.5rem;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 8px 12px;
 }
 .match-expandable-detail th {
-  background: #f3f4f6;
+  background: #f8f9fa;
   font-weight: 600;
+  color: #374151;
 }
 .match-expandable-detail tr:nth-child(even) {
-  background: #f9fafb;
+  background: #fafbfc;
+}
+.match-expandable-detail tr:last-child td {
+  border-bottom: none;
 }
 /* === Figma 대시보드형 카드/그리드 스타일 === */
 .player-dashboard {
@@ -79,15 +100,21 @@
 }
 .dash-card {
   background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-  padding: 28px 0 18px 0;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border: none;
+  padding: 24px 16px 18px 16px;
   text-align: center;
   min-height: 90px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
+}
+.dash-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  transform: translateY(-2px);
 }
 .dash-card-title {
   font-size: 1.02em;
@@ -116,14 +143,20 @@
 }
 .dash-mode-card {
   background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-  padding: 22px 18px 16px 18px;
-  min-height: 180px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border: none;
+  padding: 20px 16px;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
+  transition: all 0.2s ease;
+}
+.dash-mode-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  transform: translateY(-2px);
 }
 .dash-mode-title {
   font-weight: 700;
@@ -162,10 +195,15 @@
 .ranked-summary-card {
   background: #444e58;
   color: #fff;
-  border-radius: 10px;
-  padding: 28px 32px 18px 32px;
+  border-radius: 16px;
+  border: none;
+  padding: 24px 28px 18px 28px;
   margin-bottom: 18px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  transition: all 0.2s ease;
+}
+.ranked-summary-card:hover {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
 }
 .ranked-summary-header {
   display: flex;
@@ -227,15 +265,21 @@
 }
 .ranked-mode-card {
   background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  padding: 22px 18px 16px 18px;
-  min-height: 180px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border: none;
+  padding: 20px 16px;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: flex-start;
   position: relative;
+  transition: all 0.2s ease;
+}
+.ranked-mode-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  transform: translateY(-2px);
 }
 .ranked-mode-header {
   font-weight: 700;
@@ -283,19 +327,24 @@
 }
 .ranked-detail-card {
   background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 2px 16px rgba(37,99,235,0.07);
-  padding: 28px 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(37,99,235,0.08);
+  border: none;
+  padding: 24px 20px;
   margin-top: 8px;
   max-width: 420px;
   margin-left: auto;
   margin-right: auto;
+  transition: all 0.2s ease;
+}
+.ranked-detail-card:hover {
+  box-shadow: 0 4px 24px rgba(37,99,235,0.12);
 }
 .ranked-row {
   display: flex;
   justify-content: space-between;
   font-size: 1.13em;
-  padding: 10px 0;
+  padding: 12px 0;
   border-bottom: 1px solid #f1f5f9;
 }
 .ranked-row:last-child {
@@ -366,10 +415,16 @@ button:hover, .btn:hover {
 /* 카드 스타일 */
 .card, .stat-card, .match-card {
   background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-  padding: 24px 20px;
-  margin-bottom: 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  border: none;
+  padding: 20px 16px;
+  margin-bottom: 20px;
+  transition: all 0.2s ease;
+}
+.card:hover, .stat-card:hover, .match-card:hover {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  transform: translateY(-2px);
 }
 
 /* 입력창 스타일 */

@@ -15,79 +15,111 @@ export default function MatchListRow({ match, isOpen, onToggle, prevMatch }) {
     <div style={{ padding: '16px', textAlign: 'center', color: '#888' }}>경기 데이터 없음</div>
   );
   return (
-    <div style={{ borderBottom: '1px solid #eee', padding: '12px 0', background: isOpen ? '#f8fafc' : 'none', cursor: 'pointer' }} onClick={onToggle}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+    <div 
+      className={`border border-gray-200 dark:border-gray-600 rounded-xl mb-4 p-4 cursor-pointer transition-all hover:shadow-md ${
+        isOpen ? 'bg-blue-50 dark:bg-blue-900/20 shadow-md' : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750'
+      }`} 
+      onClick={onToggle}
+    >
+      <div className="flex items-center gap-4 flex-wrap">
         {/* 경기 모드 타입 (경쟁전/일반) */}
-        <div style={{ minWidth: 50, textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: 10, 
-            fontWeight: 700, 
-            color: match.modeType === '경쟁전' ? '#dc2626' : '#059669',
-            backgroundColor: match.modeType === '경쟁전' ? '#fef2f2' : '#f0fdf4',
-            padding: '2px 6px',
-            borderRadius: 4,
-            border: `1px solid ${match.modeType === '경쟁전' ? '#fecaca' : '#bbf7d0'}`
-          }}>
+        <div className="min-w-[60px] text-center">
+          <div className={`text-xs font-bold px-3 py-1 rounded-full border ${
+            match.modeType === '경쟁전' 
+              ? 'text-red-600 bg-red-50 border-red-200' 
+              : 'text-green-600 bg-green-50 border-green-200'
+          }`}>
             {match.modeType || '일반'}
           </div>
         </div>
+        
         {/* 경기 시간/날짜 */}
-        <div style={{ minWidth: 80, textAlign: 'center' }}>
-          <div>{formatRelativeTime(match.matchTimestamp)}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{formatTime(match.matchTimestamp)}</div>
+        <div className="min-w-[80px] text-center">
+          <div className="font-medium text-gray-900 dark:text-gray-100">{formatRelativeTime(match.matchTimestamp)}</div>
+          <div className="text-xs text-gray-500">{formatTime(match.matchTimestamp)}</div>
         </div>
+        
         {/* 등수 */}
-        <div style={{ minWidth: 60, fontWeight: 700, fontSize: 18, color: '#2563eb' }}>#{match.rank ?? '-'}</div>
+        <div className="min-w-[60px] font-bold text-xl text-blue-600 dark:text-blue-400">
+          #{match.rank ?? '-'}
+        </div>
+        
         {/* 킬 */}
-        <div style={{ minWidth: 48, textAlign: 'center' }}>
-          <div style={{ fontWeight: 700 }}>{match.kills ?? 0}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>킬</div>
+        <div className="min-w-[48px] text-center">
+          <div className="font-bold text-gray-900 dark:text-gray-100">{match.kills ?? 0}</div>
+          <div className="text-xs text-gray-500">킬</div>
         </div>
+        
         {/* 데미지 */}
-        <div style={{ minWidth: 60, textAlign: 'center' }}>
-              <div style={{ fontWeight: 700 }}>{(match.damage ?? 0).toFixed(1)}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>데미지</div>
+        <div className="min-w-[60px] text-center">
+          <div className="font-bold text-gray-900 dark:text-gray-100">{(match.damage ?? 0).toFixed(1)}</div>
+          <div className="text-xs text-gray-500">데미지</div>
         </div>
+        
         {/* 이동거리 */}
-        <div style={{ minWidth: 70, textAlign: 'center' }}>
-          <div style={{ fontWeight: 700 }}>{match.distance ? (match.distance/1000).toFixed(2) : '0.00'}km</div>
-          <div style={{ fontSize: 12, color: '#888' }}>이동</div>
+        <div className="min-w-[70px] text-center">
+          <div className="font-bold text-gray-900 dark:text-gray-100">{match.distance ? (match.distance/1000).toFixed(2) : '0.00'}km</div>
+          <div className="text-xs text-gray-500">이동</div>
         </div>
+        
         {/* opGrade */}
-        <div style={{ minWidth: 60, textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, color: '#f59e42' }}>{match.opGrade ?? '-'}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>등급</div>
+        <div className="min-w-[60px] text-center">
+          <div className="font-bold text-orange-500">{match.opGrade ?? '-'}</div>
+          <div className="text-xs text-gray-500">등급</div>
         </div>
+        
         {/* 승/패, Top10 */}
-        <div style={{ minWidth: 60, textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, color: match.win ? '#2563eb' : '#888' }}>{match.win ? 'WIN' : '-'}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{match.top10 ? 'Top10' : ''}</div>
+        <div className="min-w-[60px] text-center">
+          <div className={`font-bold ${match.win ? 'text-blue-600' : 'text-gray-400'}`}>
+            {match.win ? 'WIN' : '-'}
+          </div>
+          <div className="text-xs text-gray-500">{match.top10 ? 'Top10' : ''}</div>
         </div>
+        
         {/* 팀 전체 딜량 */}
-        <div style={{ minWidth: 70, textAlign: 'center' }}>
-              <div style={{ fontWeight: 700 }}>{typeof match.totalTeamDamage === 'number' ? match.totalTeamDamage.toFixed(1) : '-'}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>팀딜</div>
+        <div className="min-w-[70px] text-center">
+          <div className="font-bold text-gray-900 dark:text-gray-100">
+            {typeof match.totalTeamDamage === 'number' ? match.totalTeamDamage.toFixed(1) : '-'}
+          </div>
+          <div className="text-xs text-gray-500">팀딜</div>
         </div>
+        
         {/* 팀원 */}
-        <div style={{ flex: 1, minWidth: 120, fontSize: 14, color: '#222' }}>
+        <div className="flex-1 min-w-[120px] text-sm">
           {Array.isArray(match.teammatesDetail) && match.teammatesDetail.length > 0 ? (
-            match.teammatesDetail.map((t, i) => (
-              <span key={t.name} style={{ fontWeight: t.isSelf ? 700 : 400, color: t.isSelf ? '#2563eb' : '#222', marginRight: 6 }}>{t.name}</span>
-            ))
+            <div className="flex flex-wrap gap-2">
+              {match.teammatesDetail.map((t, i) => (
+                <span 
+                  key={t.name} 
+                  className={`px-2 py-1 rounded-full text-xs ${
+                    t.isSelf 
+                      ? 'bg-blue-100 text-blue-800 font-bold' 
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {t.name}
+                </span>
+              ))}
+            </div>
           ) : (
-            <span style={{ color: '#aaa' }}>-</span>
+            <span className="text-gray-400">-</span>
           )}
         </div>
+        
         {/* MMR 변화량 */}
-        <div style={{ minWidth: 60, textAlign: 'center' }}>
+        <div className="min-w-[60px] text-center">
           <RankChangeIndicator prevScore={prevScore} currentScore={currentScore} />
         </div>
+        
         {/* 펼치기 화살표 */}
-        <div style={{ minWidth: 32, textAlign: 'center', fontSize: 18, color: '#888' }}>{isOpen ? '▾' : '▸'}</div>
+        <div className="min-w-[32px] text-center text-lg text-gray-400">
+          {isOpen ? '▾' : '▸'}
+        </div>
       </div>
+      
       {/* 상세 정보 (팀원별 스탯, 상세 로그) */}
       {isOpen && (
-        <div style={{ marginTop: 12, background: '#f1f5f9', borderRadius: 6, padding: 12 }}>
+        <div className="mt-6 bg-gray-50 dark:bg-gray-700 rounded-xl p-4 border-t border-gray-200 dark:border-gray-600">
           <MatchTeammateStats teammatesDetail={match.teammatesDetail} />
           <MatchDetailLog match={match} />
         </div>

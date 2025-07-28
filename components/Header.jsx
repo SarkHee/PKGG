@@ -29,6 +29,7 @@ export default function Header() {
   };
 
   return (
+    <>
     <header className="main-header flex items-center justify-between px-4 py-2 bg-white shadow">
       <div className="flex items-center gap-6">
         <Link href="/" passHref>
@@ -39,7 +40,7 @@ export default function Header() {
         </Link>
       </div>
       <form onSubmit={handleSearch} className="flex items-center gap-2">
-        <select value={server} onChange={e => setServer(e.target.value)} className="border rounded px-2 py-1 text-sm">
+        <select value={server} onChange={e => setServer(e.target.value)} className="border rounded px-2 py-1 text-sm text-gray-800 bg-white">
           <option value="steam">Steam</option>
           <option value="kakao">Kakao</option>
         </select>
@@ -48,10 +49,11 @@ export default function Header() {
           placeholder="닉네임 검색"
           value={nickname}
           onChange={e => setNickname(e.target.value)}
-          className="border rounded px-2 py-1 text-sm"
+          className="border rounded px-2 py-1 text-sm text-gray-800 bg-white"
         />
         <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">검색</button>
       </form>
     </header>
+    </>
   );
 }
