@@ -1122,6 +1122,15 @@ export default async function handler(req, res) {
           )
         : 0;
 
+    // 평균 점수 계산 - 기존 averageScore 변수를 업데이트
+    averageScore =
+      processedMatchCount > 0
+        ? Math.round(
+            matches.reduce((sum, m) => sum + (m.avgScore || 0), 0) /
+              processedMatchCount
+          )
+        : 1000;
+
     // 모드별 시즌 통계 계산
     const seasonModeStats = {};
     Object.entries(modeStatsMap).forEach(([mode, data]) => {

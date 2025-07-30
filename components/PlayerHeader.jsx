@@ -1,12 +1,86 @@
 import React, { useState } from 'react';
 import Tooltip from './Tooltip';
 
-const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, refreshing, cooldown, refreshMsg }) => {
+const PlayerHeader = ({ profile, summary, rankedSummary, clanName, recentMatches, onRefresh, refreshing, cooldown, refreshMsg }) => {
   // 디버깅용 로그
   console.log('PlayerHeader rankedSummary:', rankedSummary);
+  console.log('PlayerHeader summary:', summary);
+  console.log('PlayerHeader recentMatches:', recentMatches);
   
   // 경쟁전 상세보기 상태
   const [showRankedDetails, setShowRankedDetails] = useState(false);
+  
+  // 최근 20경기 통계 계산
+  const calculate20MatchStats = (matches) => {
+    if (!matches || matches.length === 0) {
+      return {
+        avgDamage: 0,
+        avgKills: 0,
+        avgAssists: 0,
+        winRate: 0,
+        top10Rate: 0,
+        avgSurvivalTime: 0,
+        totalMatches: 0
+      };
+    }
+
+    const recent20 = matches.slice(0, 20);
+    const totalMatches = recent20.length;
+    
+    const totalDamage = recent20.reduce((sum, match) => sum + (match.damage || 0), 0);
+    const totalKills = recent20.reduce((sum, match) => sum + (match.kills || 0), 0);
+    const totalAssists = recent20.reduce((sum, match) => sum + (match.assists || 0), 0);
+    const totalSurvivalTime = recent20.reduce((sum, match) => sum + (match.surviveTime || 0), 0);
+    
+    const wins = recent20.filter(match => (match.rank || match.placement) === 1).length;
+    const top10s = recent20.filter(match => (match.rank || match.placement) <= 10).length;
+
+    return {
+      avgDamage: totalMatches > 0 ? totalDamage / totalMatches : 0,
+      avgKills: totalMatches > 0 ? totalKills / totalMatches : 0,
+      avgAssists: totalMatches > 0 ? totalAssists / totalMatches : 0,
+      winRate: totalMatches > 0 ? (wins / totalMatches) * 100 : 0,
+      top10Rate: totalMatches > 0 ? (top10s / totalMatches) * 100 : 0,
+      avgSurvivalTime: totalMatches > 0 ? totalSurvivalTime / totalMatches : 0,
+      totalMatches
+    };
+  };
+
+  const recent20Stats = calculate20MatchStats(recentMatches);
+  
+  // PK.GG 점수 계산 (최근 20경기 기준)
+  const calculate20MatchScore = (stats) => {
+    if (stats.totalMatches === 0) return 1000;
+    
+    // 딜량 * 0.4 + 킬 * 40 + Top10 비율 * 100
+    const score = (stats.avgDamage * 0.4) + (stats.avgKills * 40) + (stats.top10Rate);
+    return Math.round(score + 1000); // 기본 1000점에서 시작
+  };
+
+  const recent20Score = calculate20MatchScore(recent20Stats);
+  
+  // 폼 상태 계산 (최근 20경기 기준)
+  const calculateFormStatus = (matches) => {
+    if (!matches || matches.length < 5) return { form: '데이터 부족', comment: '경기가 더 필요합니다.' };
+    
+    const recent5 = matches.slice(0, 5);
+    const previous5 = matches.slice(5, 10);
+    
+    if (previous5.length === 0) return { form: '신규', comment: '신규 플레이어입니다.' };
+    
+    const recent5Avg = recent5.reduce((sum, m) => sum + (m.damage || 0), 0) / recent5.length;
+    const previous5Avg = previous5.reduce((sum, m) => sum + (m.damage || 0), 0) / previous5.length;
+    
+    const improvement = ((recent5Avg - previous5Avg) / previous5Avg) * 100;
+    
+    if (improvement > 15) return { form: '급상승', comment: '최근 성과가 크게 향상되었습니다!' };
+    if (improvement > 5) return { form: '상승', comment: '꾸준히 성과가 향상되고 있습니다.' };
+    if (improvement > -5) return { form: '안정', comment: '일정한 성과를 유지하고 있습니다.' };
+    if (improvement > -15) return { form: '하락', comment: '최근 성과가 다소 아쉽습니다.' };
+    return { form: '급감', comment: '컨디션 회복이 필요해 보입니다.' };
+  };
+
+  const recent20Form = calculateFormStatus(recentMatches);
   
   // 플레이스타일 값을 안전하게 문자열로 변환 (realPlayStyle 우선, 그 다음 playstyle, 마지막으로 style)
   const getStyleString = (summary) => {
@@ -138,13 +212,21 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
         {/* 2. 시즌 성과 카드형 요약 */}
         <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/20 dark:to-slate-800/20 rounded-xl p-6 border-l-4 border-slate-500">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">시즌 성과</h2>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">시즌 성과 (전체 경기)</h2>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
               <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">평균 딜량</div>
               <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{(summary?.avgDamage || 0).toFixed(1)}</div>
             </div>
+            
+            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">평균 생존시간</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                {Math.floor((summary?.averageSurvivalTime || 0) / 60)}분 {Math.floor((summary?.averageSurvivalTime || 0) % 60)}초
+              </div>
+            </div>
+
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
               <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">
                 <Tooltip content="킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다. (공식 랭킹 RP가 아님)">
@@ -153,23 +235,31 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
               </div>
               <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{summary?.averageScore || 1000}
                 <span className="text-xs text-gray-500 ml-2">
-                  {(summary?.averageScore || 1000) >= 1500 ? '(우수)' : (summary?.averageScore || 1000) >= 1200 ? '(보통)' : '(성장형)'}
+                  {((summary?.averageScore || 1000) >= 1500) ? '(우수)' : 
+                   ((summary?.averageScore || 1000) >= 1200) ? '(보통)' : '(성장형)'}
                 </span>
               </div>
             </div>
-            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700 col-span-2">
-              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">폼 상태</div>
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
+
+            <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 border border-slate-200 dark:border-slate-700 col-span-3">
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-2">폼 상태</div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   summary?.recentForm === '상승' ? 'bg-green-100 text-green-700' :
                   summary?.recentForm === '하락' || summary?.recentForm === '급감' ? 'bg-red-100 text-red-700' :
                   'bg-gray-100 text-gray-700'
                 }`}>
                   {summary?.recentForm || '안정'}
                 </span>
-                <span className="text-xs text-gray-500">
-                  {summary?.formComment || '최근 성과를 분석 중입니다.'}
+                <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${playerStyleInfo.bg} text-white`}>
+                  {styleString}
                 </span>
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {summary?.formComment || '시즌 전체 성과를 분석 중입니다.'}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {summary?.distanceStyleHint || '시즌 전체 플레이스타일 분석'}
               </div>
             </div>
           </div>
@@ -178,28 +268,52 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
         {/* 3. 핵심 성과 요약 섹션 */}
         <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-6 border-l-4 border-emerald-500">
           <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">20경기 요약</h2>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">최근 {recent20Stats.totalMatches}경기 요약</h2>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
               <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">평균 딜량</div>
-              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{(summary?.avgDamage || 0).toFixed(1)}</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{recent20Stats.avgDamage.toFixed(1)}</div>
             </div>
             
+            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
+              <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">평균 킬</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{recent20Stats.avgKills.toFixed(1)}</div>
+            </div>
+
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
               <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">
                 <Tooltip content="킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다. (공식 랭킹 RP가 아님)">
                   PK.GG 점수 ℹ️
                 </Tooltip>
               </div>
-              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{summary?.averageScore || 1000}</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{recent20Score}</div>
             </div>
 
-            <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700 col-span-2">
+            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
+              <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">승률</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{recent20Stats.winRate.toFixed(1)}%</div>
+            </div>
+
+            <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
+              <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">Top10 비율</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{recent20Stats.top10Rate.toFixed(1)}%</div>
+            </div>
+
+            <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
               <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">최근 폼 상태</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {summary?.formComment || '데이터 분석 중...'}
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  recent20Form.form === '급상승' || recent20Form.form === '상승' ? 'bg-green-100 text-green-700' :
+                  recent20Form.form === '하락' || recent20Form.form === '급감' ? 'bg-red-100 text-red-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>
+                  {recent20Form.form}
+                </span>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {recent20Form.comment}
               </div>
             </div>
           </div>

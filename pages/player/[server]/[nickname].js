@@ -826,6 +826,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           summary={summary}
           rankedSummary={rankedSummary}
           clanName={clanName}
+          recentMatches={recentMatches}
           onRefresh={handleRefresh}
           refreshing={refreshing}
           cooldown={cooldown}
