@@ -182,7 +182,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {stats?.avgDamage ?? stats?.damageDealt ?? '0'}
+                {(stats?.avgDamage ?? stats?.damageDealt ?? 0).toFixed(1)}
               </div>
               <div className="text-sm text-gray-500 dark:text-gray-400">경기 당 데미지</div>
             </div>

@@ -882,19 +882,6 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         </div>
       )}
 
-      {/* PK.GG MMR 안내 */}
-      <div className="text-center my-8">
-        <div className="bg-gradient-to-r from-blue-50 via-blue-100 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-800/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-700 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <span className="text-2xl">ℹ️</span>
-            <span className="text-lg font-bold text-blue-700 dark:text-blue-300">PK.GG MMR 안내</span>
-          </div>
-          <div className="text-base text-blue-800 dark:text-blue-200 max-w-3xl mx-auto">
-            PK.GG MMR은 공식 랭킹 RP가 아닌, 킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다.
-          </div>
-        </div>
-      </div>
-
       {/* 차트 및 시각화 섹션 */}
       <div className="mb-10">
         <div className="bg-gradient-to-r from-cyan-50 via-cyan-100 to-teal-50 dark:from-cyan-900/20 dark:to-teal-800/20 rounded-2xl p-6 mb-6 border-l-4 border-cyan-500 shadow-sm hover:shadow-md transition-shadow">

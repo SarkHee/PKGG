@@ -78,11 +78,11 @@ const MatchDetailCard = ({ match }) => {
         {top10 && !win && <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">TOP10</span>}
       </div>
       <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm mb-2">
-        <div>딜량: <span className="font-bold text-[#2563eb]">{match.damage}</span></div>
+        <div>딜량: <span className="font-bold text-[#2563eb]">{(match.damage || 0).toFixed(1)}</span></div>
         <div>생존: <span className="font-bold">{formatSurvivalTime(survivalTime)}</span></div>
         <div>이동거리: <span className="font-bold">{match.distance}m</span></div>
         <div>평균 MMR: <span className="font-bold text-[#2563eb]">{avgMmr}</span></div>
-        <div>팀 총딜: <span className="font-bold">{totalTeamDamage}</span></div>
+        <div>팀 총딜: <span className="font-bold">{(totalTeamDamage || 0).toFixed(1)}</span></div>
       </div>
       <div className="flex flex-wrap gap-2 mt-2">
         {match.teammates && match.teammates.length > 0 && (

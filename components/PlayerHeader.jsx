@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Tooltip from './Tooltip';
 
 const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, refreshing, cooldown, refreshMsg }) => {
   // 디버깅용 로그
@@ -142,10 +143,14 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
               <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">평균 딜량</div>
-              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{Math.round(summary?.avgDamage || 0)}</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{(summary?.avgDamage || 0).toFixed(1)}</div>
             </div>
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">PK.GG 점수</div>
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">
+                <Tooltip content="킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다. (공식 랭킹 RP가 아님)">
+                  PK.GG 점수 ℹ️
+                </Tooltip>
+              </div>
               <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{summary?.averageScore || 1000}
                 <span className="text-xs text-gray-500 ml-2">
                   {(summary?.averageScore || 1000) >= 1500 ? '(우수)' : (summary?.averageScore || 1000) >= 1200 ? '(보통)' : '(성장형)'}
@@ -179,11 +184,15 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
               <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">평균 딜량</div>
-              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{Math.round(summary?.avgDamage || 0)}</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{(summary?.avgDamage || 0).toFixed(1)}</div>
             </div>
             
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-emerald-200 dark:border-emerald-700">
-              <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">PK.GG 점수</div>
+              <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">
+                <Tooltip content="킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다. (공식 랭킹 RP가 아님)">
+                  PK.GG 점수 ℹ️
+                </Tooltip>
+              </div>
               <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{summary?.averageScore || 1000}</div>
             </div>
 
@@ -221,7 +230,7 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, onRefresh, re
                 </div>
                 <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
                   <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">평균 딜량</div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{Math.round(rankedSummary.avgDamage || 0)}</div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{(rankedSummary.avgDamage || 0).toFixed(1)}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">승률 {(rankedSummary.winRate || 0).toFixed(1)}%</div>
                 </div>
                 <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
