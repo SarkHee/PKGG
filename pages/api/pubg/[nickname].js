@@ -11,62 +11,87 @@ const PUBG_SHARD = "steam"; // 사용하는 PUBG 서버 샤드 (예: 'steam', 'k
 
 /**
  * 플레이어의 최근 매치 데이터를 기반으로 플레이스타일을 분석합니다.
- * @param {Array<Object>} matches - 플레이어의 최근 매치 데이터 배열. 각 매치 객체는 damage, distance, survivalTime 등의 속성을 포함해야 함.
+ * @param {Array<Object>} matches - 플레이어의 최근 매치 데이터 배열. 각 매치 객체는 damage, distance, survivalTime, kills, headshots, assists, rank 등의 속성을 포함해야 함.
  * @returns {string} 분석된 플레이스타일
  */
 function analyzePlayStyle(matches) {
   if (!Array.isArray(matches) || matches.length === 0) return "분석 불가";
 
   const total = matches.length;
-  let earlyEngage = 0;
-  let longSurvivalLowDmg = 0;
-  let longDistance = 0;
-  let sniper = 0;
-  let midBalance = 0;
-  let sustainedCombat = 0;
-  let ultraPassive = 0;
-  let hyperAggressive = 0;
+  
+  // 기존 8개 유형 (조건 정교화)
+  let hyperAggressive = 0;      // ☠️ 극단적 공격형
+  let earlyRusher = 0;          // 🚀 초반 돌격형
+  let ultraPassive = 0;         // 🛡️ 극단적 수비형
+  let lateSurvivor = 0;         // 🏕️ 후반 존버형
+  let longDistanceScout = 0;    // 🏃 장거리 정찰러
+  let sniper = 0;               // 🎯 저격 위주
+  let midRangeBalanced = 0;     // ⚖️ 중거리 안정형
+  let sustainedCombat = 0;      // 🔥 지속 전투형
+  
+  // 신규 6개 유형
+  let stealthSurvivor = 0;      // 👻 유령 생존자
+  let highRiskParachuter = 0;   // 🪂 도박형 파밍러
+  let burstRusher = 0;          // 📸 순간광폭형
+  let deadlySniper = 0;         // 🦉 치명적 저격수
+  let tacticalAssist = 0;       // 🧠 전략적 어시스트러
+  let efficientFinisher = 0;    // 📊 고효율 승부사
 
   matches.forEach(match => {
     const {
       damage = 0,
       distance = 0,
       survivalTime = 0,
-      firstCombatTime = null,
+      kills = 0,
+      headshots = 0,
+      assists = 0,
+      rank = 100
     } = match;
 
-    if (
-      firstCombatTime !== null &&
-      typeof firstCombatTime === "number" &&
-      firstCombatTime < 120
-    )
-      earlyEngage++;
-    if (survivalTime > 1200 && damage < 150) longSurvivalLowDmg++;
-    if (distance > 4000) longDistance++;
-    if (damage < 150 && survivalTime > 1000 && distance > 2500) sniper++;
-    if (
-      damage >= 150 &&
-      damage <= 200 &&
-      survivalTime >= 800 &&
-      survivalTime <= 1200
-    )
-      midBalance++;
-    if (damage > 250 && survivalTime > 800) sustainedCombat++;
-    if (damage < 100 && survivalTime > 1200 && distance < 1500) ultraPassive++;
-    if (damage > 400 && survivalTime < 600) hyperAggressive++;
+    // 기존 8개 유형 (조건 정교화)
+    if (damage >= 400 && survivalTime <= 600 && kills >= 3) hyperAggressive++;
+    if (survivalTime <= 120 && (kills >= 1 || damage >= 150)) earlyRusher++;
+    if (damage <= 100 && survivalTime >= 1200 && distance <= 1500) ultraPassive++;
+    if (damage <= 150 && survivalTime >= 1200 && kills <= 1) lateSurvivor++;
+    if (distance >= 4000 && kills <= 1 && damage <= 150) longDistanceScout++;
+    if (damage <= 150 && survivalTime >= 1000 && distance >= 2500 && headshots >= 1) sniper++;
+    if (damage > 150 && damage <= 250 && survivalTime > 800 && survivalTime <= 1200 && distance > 2000 && distance <= 3500) midRangeBalanced++;
+    if (damage >= 250 && survivalTime >= 800 && kills >= 2) sustainedCombat++;
+    
+    // 신규 6개 유형
+    if (kills === 0 && assists === 0 && survivalTime >= 1000 && rank <= 10) stealthSurvivor++;
+    if (survivalTime <= 120 && damage === 0 && kills === 0) highRiskParachuter++;
+    if (damage >= 300 && survivalTime <= 400 && kills >= 2) burstRusher++;
+    if (damage >= 200 && headshots >= 2 && kills >= 2 && distance >= 2000) deadlySniper++;
+    if (assists >= 3 && kills <= 1 && damage >= 200 && survivalTime >= 800) tacticalAssist++;
+    if (kills >= 3 && damage <= 200) efficientFinisher++;
   });
 
   const rate = value => value / total;
 
-  if (rate(hyperAggressive) >= 0.4) return "☠️ 극단적 공격형";
-  if (rate(earlyEngage) >= 0.4) return "🚀 초반 돌격형";
+  // 우선순위별 판정 (더 특수한 스타일부터)
+  if (rate(deadlySniper) >= 0.3) return "🦉 치명적 저격수";
+  if (rate(efficientFinisher) >= 0.3) return "📊 고효율 승부사";
+  if (rate(tacticalAssist) >= 0.3) return "🧠 전략적 어시스트러";
+  if (rate(burstRusher) >= 0.3) return "� 순간광폭형";
+  if (rate(hyperAggressive) >= 0.3) return "☠️ 극단적 공격형";
+  if (rate(stealthSurvivor) >= 0.3) return "👻 유령 생존자";
+  if (rate(highRiskParachuter) >= 0.4) return "🪂 도박형 파밍러";
+  if (rate(earlyRusher) >= 0.4) return "🚀 초반 돌격형";
+  if (rate(sustainedCombat) >= 0.3) return "🔥 지속 전투형";
+  if (rate(sniper) >= 0.3) return "🎯 저격 위주";
   if (rate(ultraPassive) >= 0.4) return "🛡️ 극단적 수비형";
-  if (rate(longSurvivalLowDmg) >= 0.4) return "🏕️ 후반 존버형";
-  if (rate(longDistance) >= 0.4) return "🏃 장거리 정찰러";
-  if (rate(sniper) >= 0.4) return "🎯 저격 위주";
-  if (rate(midBalance) >= 0.4) return "⚖️ 중거리 안정형";
-  if (rate(sustainedCombat) >= 0.4) return "🔥 지속 전투형";
-  return "📦 일반 밸런스형";
+  if (rate(lateSurvivor) >= 0.4) return "🏕️ 후반 존버형";
+  if (rate(longDistanceScout) >= 0.4) return "🏃 장거리 정찰러";
+  if (rate(midRangeBalanced) >= 0.4) return "⚖️ 중거리 안정형";
+  
+  // 최종 안전망 - 딜량 기준으로 분류 (모든 경우 커버)
+  const avgDamage = matches.reduce((sum, m) => sum + (m.damage || 0), 0) / total;
+  const avgSurvivalTime = matches.reduce((sum, m) => sum + (m.survivalTime || 0), 0) / total;
+  
+  if (avgDamage >= 200) return "🔥 공격형";
+  if (avgSurvivalTime >= 600) return "�️ 생존형";
+  return "🏃 이동형";
 }
 
 /**
@@ -1248,8 +1273,8 @@ export default async function handler(req, res) {
       averageScore >= 1800
         ? "🔥 캐리형"
         : averageScore >= 1400
-        ? "👀 안정형"
-        : "⚡ 교전 기피형";
+        ? "⚖️ 안정형"
+        : "🛡️ 수비형";
     const realPlayStyle = analyzePlayStyle(matches);
     const distanceStyleHint =
       averageDistance > 3000

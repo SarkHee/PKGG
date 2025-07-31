@@ -98,6 +98,59 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, recentMatches
   };
 
   const styleString = getStyleString(summary);
+  
+  // 기본 플레이스타일과 상세 플레이스타일이 같은지 확인하는 함수
+  const getCleanStyleText = (text) => {
+    if (!text) return '';
+    return text.replace(/^[^\w\s가-힣]+\s*/, '').trim();
+  };
+  
+  const basicStyleText = getCleanStyleText(summary?.playstyle);
+  const detailStyleText = getCleanStyleText(summary?.realPlayStyle);
+  const isDifferentStyles = basicStyleText !== detailStyleText;
+
+  // 플레이스타일별 설명 정의
+  const getStyleDescription = (style) => {
+    const cleanStyle = getCleanStyleText(style);
+    const descriptions = {
+      // 기본 스타일
+      '캐리형': '높은 점수와 딜량으로 팀을 이끄는 핵심 플레이어',
+      '안정형': '균형잡힌 성과로 꾸준한 기여를 하는 플레이어', 
+      '수비형': '생존을 우선시하며 신중하게 플레이하는 타입',
+      
+      // 극단적 스타일
+      '극단적 공격형': '매우 높은 딜량과 킬로 압도적인 공격력을 보이는 하드캐리형',
+      '순간광폭형': '초반에 폭발적인 딜량을 뽑아내지만 빠르게 사망하는 하이리스크형',
+      '극단적 수비형': '최소한의 교전으로 최대한 오래 생존하는 완전 수비형',
+      '도박형 파밍러': '초반 파밍 실패로 즉사하는 경우가 많은 불안정한 타입',
+      
+      // 특화 스타일  
+      '치명적 저격수': '장거리에서 정밀한 헤드샷으로 적을 제거하는 저격 전문가',
+      '고효율 승부사': '적은 딜량으로도 킬을 잘 따내는 마무리 전문가',
+      '전략적 어시스트러': '킬보다는 팀원 지원과 어시스트에 특화된 서포터형',
+      '유령 생존자': '교전을 완전히 피하며 은신으로 높은 순위를 달성하는 타입',
+      
+      // 교전 스타일
+      '지속 전투형': '높은 딜량과 긴 생존시간으로 지속적인 교전을 이어가는 타입',
+      '교전형': '적극적인 교전으로 높은 딜량과 킬을 기록하는 공격적 플레이어',
+      '초반 돌격형': '게임 시작부터 적극적으로 교전에 나서는 어그로형',
+      
+      // 이동/거리 스타일
+      '장거리 정찰러': '넓은 범위를 이동하며 정찰과 포지셔닝을 중시하는 타입',
+      '저격 위주': '원거리에서 저격으로 안정적인 딜량을 누적하는 스타일',
+      
+      // 생존 스타일
+      '후반 존버형': '초중반을 버티고 후반까지 생존하여 높은 순위를 노리는 타입',
+      '중거리 안정형': '중거리 교전을 선호하며 안정적인 성과를 보이는 밸런스형',
+      
+      // 안전망 스타일
+      '공격형': '평균 이상의 딜량으로 공격적인 플레이를 보이는 타입',
+      '생존형': '생존시간을 우선시하며 신중한 플레이를 하는 타입',
+      '이동형': '넓은 범위를 이동하며 포지셔닝을 중시하는 타입'
+    };
+    
+    return descriptions[cleanStyle] || '플레이스타일 분석 중입니다.';
+  };
 
   const getPlayerStyle = (style) => {
     const styles = {
@@ -132,16 +185,16 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, recentMatches
       
       // 간단한 점수 기반 스타일 (playstyle)
       '캐리형': { icon: '🔥', color: 'red', bg: 'from-red-500 to-red-600' },
-      '안정형': { icon: '👀', color: 'blue', bg: 'from-blue-500 to-blue-600' },
-      '교전 기피형': { icon: '⚡', color: 'yellow', bg: 'from-yellow-500 to-yellow-600' },
+      '안정형': { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
+      '수비형': { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
       '🔥 캐리형': { icon: '🔥', color: 'red', bg: 'from-red-500 to-red-600' },
-      '👀 안정형': { icon: '👀', color: 'blue', bg: 'from-blue-500 to-blue-600' },
-      '⚡ 교전 기피형': { icon: '⚡', color: 'yellow', bg: 'from-yellow-500 to-yellow-600' },
+      '⚖️ 안정형': { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
+      '🛡️ 수비형': { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
     };
     return styles[style] || styles['일반 밸런스형'];
   };
 
-  const playerStyleInfo = getPlayerStyle(styleString);
+  const playerStyleInfo = getPlayerStyle(summary?.playstyle || styleString);
 
   return (
     <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg mb-8">
@@ -242,7 +295,7 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, recentMatches
             </div>
 
             <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 border border-slate-200 dark:border-slate-700 col-span-3">
-              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-2">폼 상태</div>
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-2">플레이스타일</div>
               <div className="flex items-center gap-3 mb-2">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   summary?.recentForm === '상승' ? 'bg-green-100 text-green-700' :
@@ -251,15 +304,25 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, recentMatches
                 }`}>
                   {summary?.recentForm || '안정'}
                 </span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${playerStyleInfo.bg} text-white`}>
-                  {styleString}
-                </span>
+                <Tooltip content={getStyleDescription(summary?.playstyle)}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r ${playerStyleInfo.bg} text-white cursor-help`}>
+                    {summary?.playstyle || styleString}
+                  </span>
+                </Tooltip>
+                {summary?.realPlayStyle && isDifferentStyles && (
+                  <Tooltip content={getStyleDescription(summary?.realPlayStyle)}>
+                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700 cursor-help">
+                      {summary.realPlayStyle}
+                    </span>
+                  </Tooltip>
+                )}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                 {summary?.formComment || '시즌 전체 성과를 분석 중입니다.'}
               </div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-gray-500">
                 {summary?.distanceStyleHint || '시즌 전체 플레이스타일 분석'}
+                {summary?.realPlayStyle && isDifferentStyles && ` • 상세: ${summary.realPlayStyle}`}
               </div>
             </div>
           </div>
