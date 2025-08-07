@@ -90,7 +90,7 @@ function analyzePlayStyle(matches) {
   const avgSurvivalTime = matches.reduce((sum, m) => sum + (m.survivalTime || 0), 0) / total;
   
   if (avgDamage >= 200) return "🔥 공격형";
-  if (avgSurvivalTime >= 600) return "�️ 생존형";
+  if (avgSurvivalTime >= 600) return "🛡️ 생존형";
   return "🏃 이동형";
 }
 
@@ -1493,6 +1493,7 @@ export default async function handler(req, res) {
       // 2. 개인 요약 통계
       summary: {
         avgDamage: avgRecentDamage,
+        seasonAvgDamage: seasonAvgDamage, // 시즌 전체 평균 딜량 추가
         averageDistance,
         averageSurvivalTime,
         averageScore,

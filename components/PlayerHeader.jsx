@@ -270,7 +270,7 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, recentMatches
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
               <div className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">평균 딜량</div>
-              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{(summary?.avgDamage || 0).toFixed(1)}</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{(summary?.seasonAvgDamage || 0).toFixed(1)}</div>
             </div>
             
             <div className="bg-white bg-opacity-60 dark:bg-gray-800 dark:bg-opacity-60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
