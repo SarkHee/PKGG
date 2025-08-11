@@ -38,6 +38,9 @@ export default function Header() {
         <Link href="/clans" passHref>
           <span className="text-base font-semibold text-blue-700 hover:underline cursor-pointer">클랜 보기</span>
         </Link>
+        <Link href="/clan-analytics" passHref>
+          <span className="text-base font-semibold text-purple-700 hover:underline cursor-pointer">클랜 분석</span>
+        </Link>
       </div>
       <form onSubmit={handleSearch} className="flex items-center gap-2">
         <select value={server} onChange={e => setServer(e.target.value)} className="border rounded px-2 py-1 text-sm text-gray-800 bg-white">

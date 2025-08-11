@@ -143,10 +143,34 @@ async function saveOrUpdateClanAndMember(player, clanInfo, shard) {
         }
       });
       console.log(`🎉 새 멤버 생성: ${player.attributes.name}`);
+      
+      // 클랜 멤버 수 업데이트
+      await updateClanMemberCount(targetClan.id);
     }
+
+    // 클랜 멤버 수 업데이트 (기존 멤버 업데이트 시에도)
+    await updateClanMemberCount(targetClan.id);
 
   } catch (dbError) {
     console.error('DB 저장 오류:', dbError.message);
     // DB 오류가 있어도 API 응답은 정상적으로 반환
+  }
+}
+
+// 클랜의 실제 멤버 수로 업데이트하는 함수
+async function updateClanMemberCount(clanId) {
+  try {
+    const memberCount = await prisma.clanMember.count({
+      where: { clanId: clanId }
+    });
+    
+    await prisma.clan.update({
+      where: { id: clanId },
+      data: { memberCount: memberCount }
+    });
+    
+    console.log(`📊 클랜 멤버 수 업데이트: ${memberCount}명`);
+  } catch (error) {
+    console.error('클랜 멤버 수 업데이트 실패:', error.message);
   }
 }

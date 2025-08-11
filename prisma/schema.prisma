@@ -27,6 +27,11 @@ model Clan {
   pubgMemberCount Int?       // PUBG API에서 가져온 멤버 수
   lastSynced   DateTime?     // 마지막 PUBG API 동기화 시간
   
+  // 지역/국가 구분 필드들
+  region       String?       // 추정 지역 (KR, NA, EU, AS, OC 등)
+  isKorean     Boolean?      // 한국 클랜 여부 추정
+  shardDistribution String? // 멤버들의 shard 분포 (JSON)
+  
   members      ClanMember[]
 }
 
