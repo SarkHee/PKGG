@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
 import Tooltip from './Tooltip';
 
-const PlayerHeader = ({ profile, summary, rankedSummary, clanName, recentMatches, onRefresh, refreshing, cooldown, refreshMsg }) => {
-  // 디버깅용 로그
-  console.log('PlayerHeader rankedSummary:', rankedSummary);
-  console.log('PlayerHeader summary:', summary);
-  console.log('PlayerHeader recentMatches:', recentMatches);
-  
+const PlayerHeader = ({ profile, summary, rankedSummary, clanInfo, recentMatches, onRefresh, refreshing, cooldown, refreshMsg }) => {
   // 경쟁전 상세보기 상태
   const [showRankedDetails, setShowRankedDetails] = useState(false);
   
@@ -223,9 +218,9 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanName, recentMatches
               </select>
             </div>
             <div className="flex items-center gap-3">
-              {clanName && (
+              {clanInfo && (
                 <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-medium">
-                  {clanName}
+                  [{clanInfo.tag || 'CLAN'}] {clanInfo.name || '클랜'}{clanInfo.level ? ` Lv.${clanInfo.level}` : ''}
                 </span>
               )}
               <div className={`flex items-center gap-2 px-3 py-1 bg-gradient-to-r ${playerStyleInfo.bg} text-white rounded-full text-sm font-medium`}>

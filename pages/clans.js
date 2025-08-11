@@ -6,12 +6,33 @@ import Layout from '../components/Layout';
 export async function getServerSideProps() {
   const prisma = new PrismaClient();
   const clans = await prisma.clan.findMany({ include: { members: true } });
+  
+  // Date 객체를 문자열로 변환하여 직렬화 문제 해결
+  const serializedClans = clans.map(clan => ({
+    name: clan.name,
+    memberCount: clan.memberCount,
+    members: clan.members.map(member => ({
+      id: member.id,
+      nickname: member.nickname,
+      score: member.score,
+      style: member.style,
+      avgDamage: member.avgDamage,
+      avgKills: member.avgKills,
+      avgAssists: member.avgAssists,
+      avgSurviveTime: member.avgSurviveTime,
+      winRate: member.winRate,
+      top10Rate: member.top10Rate,
+      pubgClanId: member.pubgClanId,
+      pubgPlayerId: member.pubgPlayerId,
+      pubgShardId: member.pubgShardId,
+      lastUpdated: member.lastUpdated ? member.lastUpdated.toISOString() : null
+    }))
+  }));
+  
+  await prisma.$disconnect();
+  
   return {
-    props: { clans: clans.map(clan => ({
-      name: clan.name,
-      memberCount: clan.memberCount,
-      members: clan.members
-    })) },
+    props: { clans: serializedClans },
   };
 }
 

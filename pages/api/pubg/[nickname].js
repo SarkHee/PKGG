@@ -345,7 +345,35 @@ export default async function handler(req, res) {
     }
 
     const accountId = player.id;
+    const clanId = player.attributes?.clanId; // PUBG API에서 클랜 ID 추출
     console.log(`[API INFO] 플레이어 ID 조회 완료: ${accountId}`);
+    console.log(`[API INFO] 클랜 ID: ${clanId || '없음'}`);
+
+    // PUBG API에서 클랜 정보 조회
+    let pubgClanInfo = null;
+    if (clanId) {
+      try {
+        const clanLookupUrl = `${PUBG_BASE_URL}/${shard}/clans/${clanId}`;
+        console.log(`[CLAN API] 클랜 정보 조회 URL: ${clanLookupUrl}`);
+        
+        const clanRes = await fetch(clanLookupUrl, {
+          headers: {
+            Authorization: `Bearer ${PUBG_API_KEY_RAW}`,
+            Accept: "application/vnd.api+json",
+          },
+        });
+
+        if (clanRes.ok) {
+          const clanData = await clanRes.json();
+          pubgClanInfo = clanData.data;
+          console.log(`[CLAN API] 클랜 정보 조회 성공: ${pubgClanInfo.attributes.clanName} (레벨 ${pubgClanInfo.attributes.clanLevel})`);
+        } else {
+          console.warn(`[CLAN API] 클랜 정보 조회 실패: ${clanRes.status}`);
+        }
+      } catch (clanError) {
+        console.error(`[CLAN API] 클랜 정보 조회 중 오류:`, clanError);
+      }
+    }
 
     let seasonAvgDamage = 0;
     let averageScore = 0;
@@ -1485,7 +1513,13 @@ export default async function handler(req, res) {
       profile: {
         nickname,
         server: shard,
-        clan: clanInfo?.clanName || '무소속',
+        clan: pubgClanInfo ? {
+          name: pubgClanInfo.attributes.clanName,
+          tag: pubgClanInfo.attributes.clanTag,
+          level: pubgClanInfo.attributes.clanLevel,
+          memberCount: pubgClanInfo.attributes.clanMemberCount,
+          id: clanId
+        } : (clanInfo?.clanName ? { name: clanInfo.clanName } : null),
         clanTier: clanTier,
         lastUpdated: new Date().toISOString(),
       },

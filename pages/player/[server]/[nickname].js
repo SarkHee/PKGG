@@ -31,276 +31,6 @@ function MatchList({ recentMatches }) {
   );
 }
 
-// 서버사이드 데이터 패칭
-export async function getServerSideProps(context) {
-  const { server, nickname } = context.query;
-  
-  const { PrismaClient } = require('@prisma/client');
-  const prisma = new PrismaClient();
-  
-  try {
-    // 먼저 DB에서 해당 유저가 존재하는지 확인
-    const members = await prisma.clanMember.findMany({
-      where: { nickname },
-      include: { clan: true }
-    });
-
-    if (members && members.length > 0) {
-      // DB에 유저가 존재하는 경우: DB 데이터 + API 추가 정보 조합
-      console.log(`DB에서 ${nickname} 유저 발견, API에서 추가 정보 조회 중...`);
-      
-      try {
-        // PUBG API에서 최신 정보 가져오기
-        const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/pubg/${encodeURIComponent(nickname)}?shard=${server}`;
-        const apiResponse = await fetch(apiUrl);
-        
-        if (apiResponse.ok) {
-          const apiData = await apiResponse.json();
-          
-          // 향상된 통계 조회 시도
-          let enhancedStats = null;
-          try {
-            console.log(`${nickname}의 향상된 통계 조회 시도...`);
-            
-            // 임시로 테스트 데이터 제공 (실제 API가 준비되지 않은 경우)
-            enhancedStats = {
-              season: {
-                gameModeStats: {
-                  'squad-fpp': {
-                    roundsPlayed: 50,
-                    wins: 8,
-                    top10s: 25,
-                    kills: 89,
-                    damageDealt: 12500,
-                    assists: 45,
-                    winRatio: 0.16,
-                    top10Ratio: 0.5,
-                    timeSurvived: 120000,
-                    rideDistance: 50000
-                  }
-                },
-                player: { id: 'test-player-id', name: nickname },
-                season: { id: 'test-season', isCurrentSeason: true },
-                matchCount: 15
-              },
-              ranked: null, // 랭크 데이터 없음
-              lifetime: {
-                gameModeStats: {
-                  'squad-fpp': {
-                    roundsPlayed: 500,
-                    wins: 80,
-                    top10s: 250,
-                    kills: 890,
-                    damageDealt: 125000,
-                    assists: 450,
-                    winRatio: 0.16,
-                    top10Ratio: 0.5,
-                    timeSurvived: 1200000,
-                    rideDistance: 500000
-                  }
-                },
-                startingSeason: 'division.bro.official.pc-2018-01'
-              },
-              weaponMastery: null,
-              survivalMastery: null
-            };
-            
-            console.log(`향상된 통계 조회 성공 (테스트 데이터)`);
-            
-            // 실제 API 호출 시도 (백그라운드)
-            /*
-            const comprehensiveStats = await getPlayerComprehensiveStats(nickname, server);
-            if (comprehensiveStats.success) {
-              enhancedStats = {
-                season: comprehensiveStats.seasonStats,
-                ranked: comprehensiveStats.rankedStats,
-                lifetime: comprehensiveStats.lifetimeStats,
-                weaponMastery: comprehensiveStats.weaponMastery,
-                survivalMastery: comprehensiveStats.survivalMastery
-              };
-              console.log(`향상된 통계 조회 성공. 오류: ${comprehensiveStats.errors.length}개`);
-            } else {
-              console.log(`향상된 통계 조회 실패: ${comprehensiveStats.error}`);
-            }
-            */
-          } catch (enhancedError) {
-            console.log(`향상된 통계 조회 중 오류: ${enhancedError.message}`);
-          }
-          
-          // DB 데이터와 API 데이터 병합
-          const member = members[0];
-          const enhancedData = {
-            ...apiData,
-            profile: {
-              ...apiData.profile,
-              clan: member.clan ? { name: member.clan.name } : apiData.profile.clan
-            },
-            summary: {
-              ...apiData.summary,
-              // DB에 저장된 기본 통계 정보도 포함
-              dbAvgDamage: member.avgDamage ?? 0,
-              dbScore: member.score ?? 0,
-              dbStyle: member.style ?? '-',
-              // 플레이어 성향 정보 추가 (realPlayStyle 우선, 없으면 playstyle, 최종적으로 DB style)
-              style: apiData.summary?.realPlayStyle || apiData.summary?.playstyle || member.style || '📦 일반 밸런스형'
-            },
-            // 향상된 통계 추가
-            enhancedStats: enhancedStats
-          };
-
-          // 백그라운드에서 DB 업데이트 (비동기, 응답에 영향 없음)
-          updatePlayerDataInBackground(member.id, apiData).catch(err => {
-            console.error('백그라운드 업데이트 실패:', err);
-          });
-
-          return {
-            props: {
-              playerData: enhancedData,
-              error: null,
-              dataSource: 'db_with_api_enhancement'
-            }
-          };
-        } else {
-          // API 호출 실패 시 DB 데이터만 사용
-          console.log(`API 호출 실패, DB 데이터만 사용: ${apiResponse.status}`);
-          return await getDbOnlyPlayerData(members, prisma, 'database');
-        }
-      } catch (apiError) {
-        console.log('API 호출 중 오류, DB 데이터만 사용:', apiError.message);
-        return await getDbOnlyPlayerData(members, prisma, 'database');
-      }
-    } else {
-      // DB에 유저가 없는 경우: API에서만 데이터 조회
-      console.log(`DB에 ${nickname} 유저 없음, API에서만 데이터 조회...`);
-      
-      try {
-        const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/pubg/${encodeURIComponent(nickname)}?shard=${server}`;
-        const apiResponse = await fetch(apiUrl);
-        
-        if (apiResponse.ok) {
-          const apiData = await apiResponse.json();
-          
-          // 새로운 유저인 경우, 기존 클랜에 속해있으면 DB에 저장
-          if (apiData.profile?.clan?.name) {
-            console.log(`새 유저 ${nickname}이 클랜 ${apiData.profile.clan.name} 소속 확인 중...`);
-            try {
-              // 해당 클랜이 이미 DB에 존재하는지 확인
-              const existingClan = await prisma.clan.findUnique({
-                where: { name: apiData.profile.clan.name }
-              });
-              
-              if (existingClan) {
-                console.log(`클랜 ${apiData.profile.clan.name}이 DB에 존재하므로 새 유저 ${nickname} 추가...`);
-                await addNewUserToExistingClan(nickname, apiData, existingClan, prisma);
-              } else {
-                console.log(`클랜 ${apiData.profile.clan.name}이 DB에 없으므로 저장하지 않음`);
-              }
-            } catch (dbError) {
-              console.error('새 유저 DB 추가 확인 실패:', dbError);
-            }
-          }
-          
-          // 향상된 통계 조회 시도 (API 전용)
-          let enhancedStats = null;
-          try {
-            console.log(`${nickname}의 향상된 통계 조회 시도 (API 전용)...`);
-            
-            // 임시로 테스트 데이터 제공 (실제 API가 준비되지 않은 경우)
-            enhancedStats = {
-              season: {
-                gameModeStats: {
-                  'squad-fpp': {
-                    roundsPlayed: 50,
-                    wins: 8,
-                    top10s: 25,
-                    kills: 89,
-                    damageDealt: 12500,
-                    assists: 45,
-                    winRatio: 0.16,
-                    top10Ratio: 0.5,
-                    timeSurvived: 120000,
-                    rideDistance: 50000
-                  }
-                },
-                player: { id: 'test-player-id', name: nickname },
-                season: { id: 'test-season', isCurrentSeason: true },
-                matchCount: 15
-              },
-              ranked: null, // 랭크 데이터 없음
-              lifetime: {
-                gameModeStats: {
-                  'squad-fpp': {
-                    roundsPlayed: 500,
-                    wins: 80,
-                    top10s: 250,
-                    kills: 890,
-                    damageDealt: 125000,
-                    assists: 450,
-                    winRatio: 0.16,
-                    top10Ratio: 0.5,
-                    timeSurvived: 1200000,
-                    rideDistance: 500000
-                  }
-                },
-                startingSeason: 'division.bro.official.pc-2018-01'
-              },
-              weaponMastery: null,
-              survivalMastery: null
-            };
-            
-            console.log(`향상된 통계 조회 성공 (API 전용, 테스트 데이터)`);
-          } catch (enhancedError) {
-            console.log(`향상된 통계 조회 중 오류 (API 전용): ${enhancedError.message}`);
-          }
-          
-          return {
-            props: {
-              playerData: {
-                ...apiData,
-                summary: {
-                  ...apiData.summary,
-                  // API에서 온 플레이스타일 데이터를 style로 정리 (realPlayStyle 우선)
-                  style: apiData.summary?.realPlayStyle || apiData.summary?.playstyle || '📦 일반 밸런스형'
-                },
-                enhancedStats: enhancedStats
-              },
-              error: null,
-              dataSource: 'pubg_api_only'
-            }
-          };
-        } else {
-          return {
-            props: {
-              error: `'${nickname}' 유저를 찾을 수 없습니다. PUBG API에서 데이터를 가져올 수 없습니다.`,
-              playerData: null,
-              dataSource: 'none'
-            }
-          };
-        }
-      } catch (apiError) {
-        return {
-          props: {
-            error: `'${nickname}' 유저를 찾을 수 없습니다. API 호출 중 오류가 발생했습니다.`,
-            playerData: null,
-            dataSource: 'error'
-          }
-        };
-      }
-    }
-  } catch (err) {
-    console.error('전체 데이터 조회 오류:', err);
-    return { 
-      props: { 
-        error: '서버 오류가 발생했습니다.', 
-        playerData: null,
-        dataSource: 'error'
-      } 
-    };
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
 // DB 전용 플레이어 데이터 조회 함수
 async function getDbOnlyPlayerData(members, prisma, dataSource) {
   const member = members[0];
@@ -335,7 +65,13 @@ async function getDbOnlyPlayerData(members, prisma, dataSource) {
     profile: {
       nickname: member.nickname,
       lastUpdated: new Date().toISOString(), // 현재 시간으로 설정
-      clan: member.clan ? { name: member.clan.name } : null
+      clan: member.clan ? { 
+        name: member.clan.name,
+        tag: member.clan.pubgClanTag || member.clan.tag,
+        level: member.clan.pubgClanLevel,
+        memberCount: member.clan.pubgMemberCount || member.clan.memberCount,
+        description: member.clan.description
+      } : null
     },
     summary: {
       avgDamage: member.avgDamage ?? 0,
@@ -360,7 +96,29 @@ async function getDbOnlyPlayerData(members, prisma, dataSource) {
     })),
     modeStats: modeStatsArr || [],
     modeDistribution,
-    clanMembers: members || [],
+    clanMembers: (members || []).map(m => ({
+      id: m.id,
+      nickname: m.nickname,
+      score: m.score,
+      style: m.style,
+      avgDamage: m.avgDamage,
+      avgKills: m.avgKills,
+      avgAssists: m.avgAssists,
+      avgSurviveTime: m.avgSurviveTime,
+      winRate: m.winRate,
+      top10Rate: m.top10Rate,
+      pubgClanId: m.pubgClanId,
+      pubgPlayerId: m.pubgPlayerId,
+      pubgShardId: m.pubgShardId,
+      lastUpdated: m.lastUpdated ? m.lastUpdated.toISOString() : null,
+      clan: m.clan ? {
+        id: m.clan.id,
+        name: m.clan.name,
+        leader: m.clan.leader,
+        description: m.clan.description,
+        memberCount: m.clan.memberCount
+      } : null
+    })),
     // DB에서 랭크 정보가 없으므로 기본값을 설정하되, API 호출이 가능하면 실시간으로 가져오도록 함
     rankedStats: [
       { mode: "squad-fpp", tier: "Unranked", rp: 0, kd: 0, avgDamage: 0, winRate: 0, survivalTime: 0, rounds: 0 },
@@ -386,13 +144,7 @@ async function getDbOnlyPlayerData(members, prisma, dataSource) {
     }
   };
   
-  return { 
-    props: { 
-      playerData, 
-      error: null,
-      dataSource 
-    } 
-  };
+  return playerData;
 }
 
 // 기존 클랜에 새로운 유저를 추가하는 함수
@@ -825,7 +577,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           profile={profile}
           summary={summary}
           rankedSummary={rankedSummary}
-          clanName={clanName}
+          clanInfo={profile?.clan}
           recentMatches={recentMatches}
           onRefresh={handleRefresh}
           refreshing={refreshing}
@@ -1003,4 +755,122 @@ export default function PlayerPage({ playerData, error, dataSource }) {
       </div>
     </>
   );
+}
+
+export async function getServerSideProps({ params }) {
+  const { server, nickname } = params;
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+
+  try {
+    // DB에서 클랜 멤버 조회
+    const members = await prisma.clanMember.findMany({
+      where: { nickname },
+      include: {
+        clan: true,
+        matches: {
+          orderBy: { createdAt: 'desc' },
+          take: 20
+        },
+        modeStats: true
+      }
+    });
+
+    let playerData;
+    let dataSource = 'database';
+
+    if (members.length > 0) {
+      console.log(`DB에서 ${nickname} 발견, API와 결합하여 데이터 제공`);
+      
+      try {
+        // 내부 API 엔드포인트 직접 호출
+        const baseUrl = process.env.VERCEL_URL 
+          ? `https://${process.env.VERCEL_URL}` 
+          : 'http://localhost:3000';
+        
+        console.log(`API 호출 시도: ${baseUrl}/api/pubg/${nickname}`);
+        const apiResponse = await fetch(`${baseUrl}/api/pubg/${nickname}`);
+        
+        if (apiResponse.ok) {
+          const apiData = await apiResponse.json();
+          console.log('API 호출 성공, 데이터 통합 중...');
+          
+          // API 데이터와 DB 데이터 통합
+          const member = members[0];
+          
+          playerData = {
+            ...apiData,
+            profile: {
+              ...apiData.profile,
+              clan: apiData.profile?.clan || (member?.clan ? { 
+                name: member.clan.name,
+                tag: member.clan.tag || member.clan.name,
+                level: member.clan.level || 1 
+              } : null)
+            }
+          };
+          
+          dataSource = 'db_with_api_enhancement';
+          
+          // 백그라운드에서 DB 업데이트
+          if (member?.id) {
+            updatePlayerDataInBackground(member.id, apiData).catch(err => 
+              console.error('백그라운드 업데이트 실패:', err)
+            );
+          }
+        } else {
+          const errorData = await apiResponse.json().catch(() => ({}));
+          console.log(`API 호출 실패 (${apiResponse.status}): ${errorData.error || 'Unknown error'}, DB 데이터만 사용`);
+          playerData = await getDbOnlyPlayerData(members, prisma, 'database');
+          dataSource = 'database';
+        }
+      } catch (apiError) {
+        console.log('API 오류, DB 데이터만 사용:', apiError.message);
+        playerData = await getDbOnlyPlayerData(members, prisma, 'database');
+        dataSource = 'database';
+      }
+    } else {
+      console.log(`DB에 ${nickname} 없음, API 단독 호출`);
+      
+      try {
+        // 내부 API 엔드포인트 직접 호출
+        const baseUrl = process.env.VERCEL_URL 
+          ? `https://${process.env.VERCEL_URL}` 
+          : 'http://localhost:3000';
+        
+        const apiResponse = await fetch(`${baseUrl}/api/pubg/${nickname}`);
+        
+        if (!apiResponse.ok) {
+          throw new Error(`API call failed: ${apiResponse.status}`);
+        }
+        
+        const apiData = await apiResponse.json();
+        playerData = apiData;
+        dataSource = 'pubg_api';
+      } catch (apiError) {
+        throw new Error(`플레이어를 찾을 수 없습니다: ${apiError.message}`);
+      }
+    }
+
+    await prisma.$disconnect();
+    
+    return {
+      props: {
+        playerData,
+        error: null,
+        dataSource
+      }
+    };
+  } catch (error) {
+    console.error('getServerSideProps error:', error);
+    await prisma.$disconnect();
+    
+    return {
+      props: {
+        playerData: null,
+        error: error.message,
+        dataSource: null
+      }
+    };
+  }
 }
