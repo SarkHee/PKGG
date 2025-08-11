@@ -462,13 +462,16 @@ input:focus, select:focus, textarea:focus {
   color: #fff;
 }
 
-/* 헤더/푸터 스타일 (피그마 컬러 반영) */
+/* 헤더/푸터 스타일 (반투명 효과) */
 .main-header {
   width: 100%;
-  background: #2563eb;
+  background: rgba(17, 24, 39, 0.8); /* gray-900 with 80% opacity */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #fff;
   padding: 18px 32px;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border-bottom: 1px solid rgba(75, 85, 99, 0.5); /* gray-600 with 50% opacity */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -479,17 +482,20 @@ input:focus, select:focus, textarea:focus {
 .main-header .logo {
   font-size: 2.1em;
   font-weight: 800;
-  color: #fff;
+  color: #3b82f6; /* blue-500 */
   letter-spacing: -1px;
 }
 .main-footer {
   width: 100%;
   padding: 24px 0 18px 0;
-  background: #2563eb;
-  color: #fff;
+  background: rgba(17, 24, 39, 0.6); /* gray-900 with 60% opacity */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(75, 85, 99, 0.3); /* gray-600 with 30% opacity */
+  color: #d1d5db; /* gray-300 */
   text-align: center;
   margin-top: auto;
-  box-shadow: 0 -2px 8px rgba(37,99,235,0.08);
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
   font-size: 1.05em;
 }
 

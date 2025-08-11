@@ -30,7 +30,7 @@ export default function Header() {
 
   return (
     <>
-    <header className="main-header bg-white shadow-md border-b sticky top-0 z-50" style={{ width: '100%', minWidth: '100%' }}>
+    <header className="main-header bg-gray-900/80 backdrop-blur-md shadow-lg border-b border-gray-700/50 sticky top-0 z-50" style={{ width: '100%', minWidth: '100%' }}>
       <div className="w-full px-4 py-3" style={{ width: '100%' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -45,7 +45,7 @@ export default function Header() {
             <select 
               value={server} 
               onChange={e => setServer(e.target.value)} 
-              className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-600 rounded px-3 py-2 text-sm text-white bg-gray-800/80 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="steam">Steam</option>
               <option value="kakao">Kakao</option>
@@ -55,11 +55,11 @@ export default function Header() {
               placeholder="닉네임 검색"
               value={nickname}
               onChange={e => setNickname(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+              className="border border-gray-600 rounded px-3 py-2 text-sm text-white bg-gray-800/80 backdrop-blur-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
             />
             <button 
               type="submit" 
-              className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="bg-blue-600/90 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition-colors backdrop-blur-sm"
             >
               검색
             </button>

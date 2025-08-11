@@ -1,293 +1,333 @@
 // pages/index.js
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from '../components/Header.jsx'; // .jsx 확장자 명시 (컴포넌트 파일이 .jsx인 경우)
-import Footer from '../components/Footer.jsx'; // .jsx 확장자 명시 (컴포넌트 파일이 .jsx인 경우)
+import Header from '../components/Header.jsx';
+import Footer from '../components/Footer.jsx';
 
 export default function Home() {
-  const [selectedServer, setSelectedServer] = useState('steam');
-  const [nickname, setNickname] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [server, setServer] = useState('steam');
   const router = useRouter();
+  const canvasRef = useRef(null);
+  const particlesRef = useRef([]);
+  const animationRef = useRef(null);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (nickname.trim()) {
-      router.push(`/player/${selectedServer}/${encodeURIComponent(nickname)}`);
-    } else {
-      alert('검색할 닉네임을 입력해주세요!');
+  // Canvas 기반 파티클 시스템
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    
+    // 파티클 생성 (모바일 최적화)
+    const createParticles = () => {
+      const particles = [];
+      const particleCount = window.innerWidth < 768 ? 100 : 200;
+      
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          z: Math.random() * 1000,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          vz: Math.random() * 0.3 + 0.05,
+          size: Math.random() * 3 + 1,
+          opacity: Math.random() * 0.8 + 0.2
+        });
+      }
+      return particles;
+    };
+
+    // 캔버스 크기 설정
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      if (window.innerWidth < 768) {
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        canvas.width = window.innerWidth * Math.min(dpr, 2);
+        canvas.height = window.innerHeight * Math.min(dpr, 2);
+        ctx.scale(Math.min(dpr, 2), Math.min(dpr, 2));
+      }
+      
+      particlesRef.current = createParticles();
+    };
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    particlesRef.current = createParticles();
+
+    // 애니메이션 루프
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // 배경 그라디언트
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width / 2
+      );
+      gradient.addColorStop(0, 'rgba(20, 30, 48, 0.9)');
+      gradient.addColorStop(1, 'rgba(15, 23, 42, 1)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 파티클 그리기
+      particlesRef.current.forEach(particle => {
+        const scale = 1000 / (1000 + particle.z);
+        const x2d = (particle.x - canvas.width / 2) * scale + canvas.width / 2;
+        const y2d = (particle.y - canvas.height / 2) * scale + canvas.height / 2;
+        
+        if (x2d > -50 && x2d < canvas.width + 50 && y2d > -50 && y2d < canvas.height + 50) {
+          ctx.save();
+          ctx.globalAlpha = particle.opacity * scale;
+          
+          const blue = Math.floor(100 + scale * 155);
+          const white = Math.floor(scale * 100);
+          ctx.fillStyle = `rgb(${white}, ${white + 50}, ${blue})`;
+          
+          ctx.beginPath();
+          ctx.arc(x2d, y2d, particle.size * scale, 0, Math.PI * 2);
+          ctx.fill();
+          
+          if (window.innerWidth >= 768) {
+            particlesRef.current.forEach(otherParticle => {
+              const distance = Math.sqrt(
+                Math.pow(particle.x - otherParticle.x, 2) + 
+                Math.pow(particle.y - otherParticle.y, 2) +
+                Math.pow(particle.z - otherParticle.z, 2)
+              );
+              
+              if (distance < 120) {
+                const otherScale = 1000 / (1000 + otherParticle.z);
+                const otherX2d = (otherParticle.x - canvas.width / 2) * otherScale + canvas.width / 2;
+                const otherY2d = (otherParticle.y - canvas.height / 2) * otherScale + canvas.height / 2;
+                
+                ctx.globalAlpha = (1 - distance / 120) * 0.2 * scale * otherScale;
+                ctx.strokeStyle = `rgb(100, 150, 255)`;
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x2d, y2d);
+                ctx.lineTo(otherX2d, otherY2d);
+                ctx.stroke();
+              }
+            });
+          }
+          
+          ctx.restore();
+        }
+
+        // 파티클 이동
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.z -= particle.vz;
+        
+        if (particle.life !== undefined) {
+          particle.life--;
+          if (particle.life <= 0) {
+            const index = particlesRef.current.indexOf(particle);
+            particlesRef.current.splice(index, 1);
+            return;
+          }
+          particle.opacity = particle.life / 60;
+        }
+        
+        if (particle.z <= 0) {
+          particle.z = 1000;
+          particle.x = Math.random() * canvas.width;
+          particle.y = Math.random() * canvas.height;
+        }
+      });
+
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    // 터치 이벤트
+    const handleTouch = (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      
+      for (let i = 0; i < 5; i++) {
+        particlesRef.current.push({
+          x: x + (Math.random() - 0.5) * 50,
+          y: y + (Math.random() - 0.5) * 50,
+          z: Math.random() * 200,
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 0.5) * 2,
+          vz: Math.random() * 0.5 + 0.1,
+          size: Math.random() * 3 + 2,
+          opacity: 1.0,
+          life: 60
+        });
+      }
+    };
+
+    canvas.addEventListener('touchstart', handleTouch, { passive: false });
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      canvas.removeEventListener('touchstart', handleTouch);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      router.push(`/player/${server}/${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
   };
 
   return (
-    <div className="container">
+    <>
       <Head>
-        <title>PK.GG - PUBG 전적 검색</title>
-        <meta name="description" content="PUBG 전적을 검색하고 클랜 정보를 확인하세요." />
+        <title>PK.GG - PUBG 플레이어 검색 및 통계</title>
+        <meta name="description" content="PUBG 플레이어 통계를 확인하고 클랜 정보를 검색해보세요." />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
-      <Header />
+      <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
+        {/* Canvas 배경 */}
+        <canvas 
+          ref={canvasRef}
+          className="absolute inset-0 z-0"
+          style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}
+        />
 
-      <main className="main-content">
-        <h1 className="title">PK.GG</h1>
+        {/* 헤더 */}
+        <Header 
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          server={server}
+          setServer={setServer}
+          handleSearch={handleSearch}
+          handleKeyPress={handleKeyPress}
+        />
 
-        <p className="description">
-          PK.GG에 오신 것을 환영합니다.
-        </p>
+        {/* 메인 콘텐츠 */}
+        <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20">
+          <div className="text-center max-w-4xl mx-auto mb-16">
+            {/* 로고 */}
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold mb-6 md:mb-8 tracking-wider">
+              PK.GG
+            </h1>
+            
+            {/* 서브타이틀 */}
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
+              PUBG 플레이어 통계와 클랜 정보를 확인해보세요
+            </p>
 
-        <div className="server-selection">
-          <button
-            className={`server-button ${selectedServer === 'steam' ? 'active' : ''}`}
-            onClick={() => setSelectedServer('steam')}
-          >
-            Steam
-          </button>
-          <button
-            className={`server-button ${selectedServer === 'kakao' ? 'active' : ''}`}
-            onClick={() => setSelectedServer('kakao')}
-          >
-            Kakao
-          </button>
-        </div>
+            {/* 검색 섹션 */}
+            <div className="flex flex-col gap-4 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
+              <select
+                value={server}
+                onChange={(e) => setServer(e.target.value)}
+                className="w-full sm:w-auto px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center sm:text-left"
+              >
+                <option value="steam">Steam</option>
+                <option value="kakao">Kakao</option>
+                <option value="console">Console</option>
+              </select>
 
-        <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            placeholder="닉네임을 입력하세요"
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            className="search-input"
-          />
-          <button type="submit" className="search-button">
-            검색
-          </button>
-        </form>
+              <div className="flex w-full">
+                <input
+                  type="text"
+                  placeholder="플레이어 이름을 입력하세요..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="flex-1 px-4 py-3 bg-gray-800 border border-gray-600 rounded-l-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                />
+                <button
+                  onClick={handleSearch}
+                  className="px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-r-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 text-sm sm:text-base"
+                >
+                  검색
+                </button>
+              </div>
+            </div>
 
-      </main>
+            <div className="text-gray-400 text-xs sm:text-sm px-4">
+              <p>정확한 게임 내 닉네임을 입력해주세요</p>
+            </div>
+          </div>
 
-      <Footer />
+          {/* 특징 카드 섹션 */}
+          <div className="w-full max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
+              <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-6 hover:bg-gray-800/80 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="text-blue-400 text-3xl mb-4">📊</div>
+                <h3 className="text-xl font-bold text-white mb-3">실시간 통계</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  PUBG API와 연동하여 실시간으로 업데이트되는 정확한 플레이어 통계를 제공합니다.
+                </p>
+              </div>
 
-      <style jsx global>{`
-        * {
-          box-sizing: border-box;
-        }
-        
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .container {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          width: 100%;
-          margin: 0;
-          padding: 0;
-        }
+              <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-6 hover:bg-gray-800/80 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="text-green-400 text-3xl mb-4">👥</div>
+                <h3 className="text-xl font-bold text-white mb-3">클랜 분석</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  클랜 멤버들의 상세한 통계와 팀 시너지를 분석하여 클랜 성과를 한눈에 파악할 수 있습니다.
+                </p>
+              </div>
 
-        .main-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          padding: 4rem 2rem;
-          width: 100%;
-          background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-          position: relative;
-          z-index: 1;
-        }
+              <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-6 hover:bg-gray-800/80 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="text-purple-400 text-3xl mb-4">🏆</div>
+                <h3 className="text-xl font-bold text-white mb-3">PK.GG 점수</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  독자적인 알고리즘으로 계산된 PK.GG 점수로 플레이어의 실력을 객관적으로 평가합니다.
+                </p>
+              </div>
 
-        .title {
-          margin: 0 0 1rem 0;
-          line-height: 1.15;
-          font-size: clamp(3rem, 12vw, 6rem);
-          font-weight: 900;
-          text-align: center;
-          color: #333;
-          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .description {
-          text-align: center;
-        }
+              <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-6 hover:bg-gray-800/80 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="text-yellow-400 text-3xl mb-4">🎯</div>
+                <h3 className="text-xl font-bold text-white mb-3">상세 매치 분석</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  각 경기별 상세 통계와 헤드샷률, 생존 시간 등 깊이 있는 분석 데이터를 제공합니다.
+                </p>
+              </div>
 
-        .description {
-          line-height: 1.5;
-          font-size: clamp(1rem, 3vw, 1.5rem);
-          margin-bottom: 2rem;
-          color: rgba(51, 51, 51, 0.8);
-          text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-          z-index: 2;
-          position: relative;
-        }
+              <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-6 hover:bg-gray-800/80 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="text-red-400 text-3xl mb-4">📈</div>
+                <h3 className="text-xl font-bold text-white mb-3">랭크 트래킹</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  경쟁전 랭크 변화를 추적하고 시즌별 성장 곡선을 시각적으로 확인할 수 있습니다.
+                </p>
+              </div>
 
-        .server-selection {
-          margin-top: 20px;
-          display: flex;
-          gap: 10px;
-          width: 100%;
-          justify-content: center;
-        }
+              <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-6 hover:bg-gray-800/80 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <div className="text-cyan-400 text-3xl mb-4">⚡</div>
+                <h3 className="text-xl font-bold text-white mb-3">빠른 검색</h3>
+                <p className="text-gray-300 text-sm leading-relaxed">
+                  Steam, Kakao, Console 모든 플랫폼을 지원하며 빠르고 정확한 플레이어 검색을 제공합니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        </main>
 
-        .server-button {
-          background-color: rgba(255, 255, 255, 0.7);
-          border: 2px solid rgba(51, 51, 51, 0.2);
-          padding: 12px 24px;
-          border-radius: 8px;
-          cursor: pointer;
-          font-size: 1rem;
-          font-weight: 500;
-          transition: all 0.3s ease;
-          min-width: 80px;
-          color: #333;
-          backdrop-filter: blur(10px);
-        }
-
-        .server-button:hover {
-          background-color: rgba(255, 255, 255, 0.9);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-
-        .server-button.active {
-          background-color: rgba(102, 126, 234, 0.8);
-          color: white;
-          border-color: rgba(102, 126, 234, 0.8);
-          box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-
-        .search-form {
-          display: flex;
-          margin-top: 30px;
-          width: 100%;
-          max-width: 400px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-          border-radius: 12px;
-          overflow: hidden;
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(51, 51, 51, 0.1);
-        }
-
-        .search-input {
-          padding: 15px 20px;
-          border: none;
-          font-size: 1rem;
-          outline: none;
-          flex-grow: 1;
-          background: rgba(255, 255, 255, 0.9);
-          color: #333;
-        }
-
-        .search-input::placeholder {
-          color: #666;
-        }
-
-        .search-button {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          padding: 15px 25px;
-          cursor: pointer;
-          font-size: 1rem;
-          font-weight: 600;
-          transition: all 0.3s ease;
-          white-space: nowrap;
-        }
-
-        .search-button:hover {
-          transform: translateX(-2px);
-          box-shadow: -5px 0 15px rgba(102, 126, 234, 0.3);
-        }
-
-        /* 모바일 최적화 */
-        @media (max-width: 768px) {
-          .container {
-            padding: 0 0.5rem;
-          }
-          
-          .main-content {
-            padding: 2rem 0;
-          }
-
-          .title {
-            font-size: clamp(2rem, 10vw, 3.5rem);
-          }
-
-          .letter, .dot {
-            text-shadow: 
-              0 1px 0 rgba(204, 204, 204, 0.2),
-              0 2px 0 rgba(187, 187, 187, 0.15),
-              0 3px 0 rgba(170, 170, 170, 0.1),
-              0 4px 5px rgba(0,0,0,.05),
-              0 0 5px rgba(0,0,0,.05),
-              0 1px 3px rgba(0,0,0,.08),
-              0 3px 5px rgba(0,0,0,.06);
-          }
-
-          .server-selection {
-            flex-direction: row;
-            width: 100%;
-            max-width: 300px;
-          }
-
-          .server-button {
-            flex: 1;
-            padding: 10px 16px;
-            font-size: 0.9rem;
-          }
-
-          .search-form {
-            flex-direction: column;
-            max-width: 100%;
-            border-radius: 8px;
-          }
-
-          .search-input {
-            border-radius: 8px 8px 0 0;
-            padding: 12px 16px;
-          }
-
-          .search-button {
-            border-radius: 0 0 8px 8px;
-            padding: 12px 16px;
-          }
-
-          .pixel-logo {
-            max-width: 90vw;
-          }
-        }
-
-        /* 태블릿 최적화 */
-        @media (max-width: 1024px) and (min-width: 769px) {
-          .main-content {
-            padding: 4rem 0;
-          }
-        }
-
-        /* 작은 모바일 화면 */
-        @media (max-width: 480px) {
-          .title {
-            font-size: 2.5rem;
-          }
-          
-          .description {
-            font-size: 1rem;
-            margin-bottom: 1.5rem;
-          }
-          
-          .server-button {
-            padding: 8px 12px;
-            font-size: 0.85rem;
-          }
-        }
-      `}</style>
-    </div>
+        <Footer />
+      </div>
+    </>
   );
 }
