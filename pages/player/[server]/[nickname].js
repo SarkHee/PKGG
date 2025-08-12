@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 
 import PlayerDashboard from '../../../components/PlayerDashboard';
@@ -145,6 +146,61 @@ async function getDbOnlyPlayerData(members, prisma, dataSource) {
   };
   
   return playerData;
+}
+
+// 백그라운드에서 플레이어 데이터를 업데이트하는 함수
+async function updatePlayerDataInBackground(memberId, apiData) {
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+  
+  try {
+    console.log(`🔄 백그라운드 업데이트 시작 - 멤버 ID: ${memberId}`);
+    
+    // API 데이터에서 추출할 수 있는 정보들로 업데이트
+    const updateData = {
+      score: apiData.summary?.averageScore || 0,
+      style: apiData.summary?.realPlayStyle || apiData.summary?.playstyle || '📦 일반 밸런스형',
+      avgDamage: apiData.summary?.avgDamage || 0,
+      avgSurviveTime: apiData.summary?.averageSurvivalTime || 0,
+      lastUpdated: new Date()
+    };
+    
+    // 최근 경기에서 킬, 어시스트, 승률 등 계산
+    if (apiData.recentMatches && apiData.recentMatches.length > 0) {
+      const matches = apiData.recentMatches;
+      const totalMatches = matches.length;
+      
+      let totalKills = 0;
+      let totalAssists = 0;
+      let totalWins = 0;
+      let totalTop10 = 0;
+      
+      matches.forEach(match => {
+        totalKills += match.kills || 0;
+        totalAssists += match.assists || 0;
+        if (match.winPlace === 1) totalWins++;
+        if (match.winPlace <= 10) totalTop10++;
+      });
+      
+      updateData.avgKills = totalMatches > 0 ? (totalKills / totalMatches) : 0;
+      updateData.avgAssists = totalMatches > 0 ? (totalAssists / totalMatches) : 0;
+      updateData.winRate = totalMatches > 0 ? ((totalWins / totalMatches) * 100) : 0;
+      updateData.top10Rate = totalMatches > 0 ? ((totalTop10 / totalMatches) * 100) : 0;
+    }
+    
+    // DB 업데이트 실행
+    await prisma.clanMember.update({
+      where: { id: memberId },
+      data: updateData
+    });
+    
+    console.log(`✅ 백그라운드 업데이트 완료 - 멤버 ID: ${memberId}`);
+    
+  } catch (error) {
+    console.error(`❌ 백그라운드 업데이트 실패 - 멤버 ID: ${memberId}`, error.message);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 // 기존 클랜에 새로운 유저를 추가하는 함수
@@ -360,7 +416,7 @@ function ModeStatsTabs({ modeStats }) {
 }
 
 export default function PlayerPage({ playerData, error, dataSource }) {
-
+  const router = useRouter();
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const detailRef = useRef(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -449,11 +505,57 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
   if (error) {
     return (
-      <div className="container mx-auto p-4 text-center bg-red-100 border border-red-400 text-red-700 rounded-lg shadow-md mt-10">
-        <h1 className="text-2xl font-bold mb-4">오류 발생</h1>
-        <p className="text-lg">{error}</p>
-        <p className="text-sm text-gray-600 mt-2">닉네임 또는 서버를 다시 확인해주세요.</p>
-      </div>
+      <>
+        <Header />
+        <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+          <div className="max-w-2xl mx-auto mt-20">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">🔍</span>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                  플레이어를 찾을 수 없습니다
+                </h1>
+                <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+                  PK.GG에 등록되어있지않은 플레이어입니다.
+                </p>
+                <p className="text-base text-gray-500 dark:text-gray-500">
+                  닉네임확인 후 다시 검색해주세요.
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">💡 검색 팁</h3>
+                  <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 text-left">
+                    <li>• 정확한 닉네임을 입력했는지 확인해주세요</li>
+                    <li>• 대소문자, 특수문자를 정확히 입력해주세요</li>
+                    <li>• 올바른 플랫폼(Steam/Kakao/Console)을 선택했는지 확인해주세요</li>
+                  </ul>
+                </div>
+                
+                <button 
+                  onClick={() => router.push('/?searchFailed=true')} 
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                >
+                  다시 검색하기
+                </button>
+              </div>
+              
+              {/* 기술적 오류 정보 (개발자용) */}
+              <details className="mt-6 text-left">
+                <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
+                  기술적 오류 정보 보기
+                </summary>
+                <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400 font-mono">
+                  {error}
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 

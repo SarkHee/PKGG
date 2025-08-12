@@ -1,12 +1,13 @@
 {
-  "type": "module",
   "name": "pk-gg",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "auto-discovery": "node scripts/auto-discovery-monitor.js",
+    "auto-discovery-periodic": "node scripts/periodic-auto-discovery.js"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",

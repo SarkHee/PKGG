@@ -9,10 +9,19 @@ import Footer from '../components/Footer.jsx';
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [server, setServer] = useState('steam');
+  const [searchMessage, setSearchMessage] = useState('');
   const router = useRouter();
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
   const animationRef = useRef(null);
+
+  // URL 파라미터에서 검색 실패 메시지 확인
+  useEffect(() => {
+    if (router.query.searchFailed) {
+      setSearchMessage('플레이어를 찾을 수 없습니다. 닉네임을 다시 확인해주세요.');
+      setTimeout(() => setSearchMessage(''), 5000);
+    }
+  }, [router.query]);
 
   // Canvas 기반 파티클 시스템
   useEffect(() => {
@@ -236,6 +245,18 @@ export default function Home() {
             <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
               PUBG 플레이어 통계와 클랜 정보를 확인해보세요
             </p>
+
+            {/* 검색 메시지 알림 */}
+            {searchMessage && (
+              <div className="mb-4 max-w-2xl mx-auto px-4">
+                <div className="bg-orange-500/90 border border-orange-400 text-white px-4 py-3 rounded-lg shadow-lg animate-pulse">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">⚠️</span>
+                    <p className="text-sm font-medium">{searchMessage}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 검색 섹션 */}
             <div className="flex flex-col gap-4 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
