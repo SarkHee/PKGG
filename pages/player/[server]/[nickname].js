@@ -148,58 +148,109 @@ async function getDbOnlyPlayerData(members, prisma, dataSource) {
   return playerData;
 }
 
-// 백그라운드에서 플레이어 데이터를 업데이트하는 함수
-async function updatePlayerDataInBackground(memberId, apiData) {
-  const { PrismaClient } = require('@prisma/client');
-  const prisma = new PrismaClient();
-  
+// PUBG API 데이터로 새 클랜 생성하는 함수
+async function createNewClanFromApi(clanData, prisma) {
   try {
-    console.log(`🔄 백그라운드 업데이트 시작 - 멤버 ID: ${memberId}`);
+    console.log(`새 클랜 생성 시작: ${clanData.name} (ID: ${clanData.id})`);
     
-    // API 데이터에서 추출할 수 있는 정보들로 업데이트
-    const updateData = {
-      score: apiData.summary?.averageScore || 0,
-      style: apiData.summary?.realPlayStyle || apiData.summary?.playstyle || '📦 일반 밸런스형',
-      avgDamage: apiData.summary?.avgDamage || 0,
-      avgSurviveTime: apiData.summary?.averageSurvivalTime || 0,
-      lastUpdated: new Date()
-    };
+    // 이미 해당 PUBG 클랜 ID가 있는지 확인
+    const existingClan = await prisma.clan.findUnique({
+      where: { pubgClanId: clanData.id }
+    });
+
+    if (existingClan) {
+      console.log(`클랜 ${clanData.name}은 이미 존재함 (DB ID: ${existingClan.id})`);
+      return existingClan;
+    }
+
+    // 새 클랜 생성
+    const newClan = await prisma.clan.create({
+      data: {
+        name: clanData.name,
+        leader: clanData.leader || '알 수 없음',
+        description: clanData.description || '',
+        announcement: clanData.announcement || '',
+        memberCount: clanData.memberCount || 0,
+        pubgClanId: clanData.id,
+        pubgClanTag: clanData.tag || clanData.name,
+        pubgClanLevel: clanData.level || 1,
+        pubgMemberCount: clanData.memberCount || 0,
+        lastSynced: new Date(),
+        region: 'UNKNOWN', // 나중에 멤버 분석으로 결정
+        isKorean: false    // 나중에 멤버 분석으로 결정
+      }
+    });
+
+    console.log(`새 클랜 생성 완료: ${newClan.name} (DB ID: ${newClan.id})`);
+    return newClan;
+  } catch (error) {
+    console.error(`새 클랜 생성 실패:`, error);
+    throw error;
+  }
+}
+
+// 새 유저를 DB에 저장하는 통합 함수
+async function saveNewUserToDB(nickname, apiData, prisma) {
+  try {
+    console.log(`새 유저 ${nickname} DB 저장 시작...`);
     
-    // 최근 경기에서 킬, 어시스트, 승률 등 계산
-    if (apiData.recentMatches && apiData.recentMatches.length > 0) {
-      const matches = apiData.recentMatches;
-      const totalMatches = matches.length;
+    let targetClan = null;
+    
+    // 1. 클랜이 있는 경우
+    if (apiData.profile?.clan) {
+      const clanData = apiData.profile.clan;
       
-      let totalKills = 0;
-      let totalAssists = 0;
-      let totalWins = 0;
-      let totalTop10 = 0;
-      
-      matches.forEach(match => {
-        totalKills += match.kills || 0;
-        totalAssists += match.assists || 0;
-        if (match.winPlace === 1) totalWins++;
-        if (match.winPlace <= 10) totalTop10++;
+      // 기존 클랜 확인
+      const existingClan = await prisma.clan.findFirst({
+        where: {
+          OR: [
+            { pubgClanId: clanData.id },
+            { name: clanData.name }
+          ]
+        }
+      });
+
+      if (existingClan) {
+        targetClan = existingClan;
+        console.log(`기존 클랜 사용: ${existingClan.name}`);
+      } else {
+        // 새 클랜 생성
+        targetClan = await createNewClanFromApi(clanData, prisma);
+      }
+    }
+
+    // 2. 유저를 클랜 멤버로 추가 (클랜이 있는 경우) 또는 독립 저장
+    if (targetClan) {
+      // 클랜 멤버로 추가
+      await addNewUserToExistingClan(nickname, apiData, targetClan, prisma);
+    } else {
+      // 클랜 없는 유저 - 임시로 "무소속" 클랜에 추가
+      const nolanClan = await prisma.clan.upsert({
+        where: { name: '무소속' },
+        update: {},
+        create: {
+          name: '무소속',
+          leader: 'SYSTEM',
+          description: '클랜에 소속되지 않은 플레이어들',
+          announcement: '',
+          memberCount: 0,
+          pubgClanId: 'no-clan',
+          pubgClanTag: 'NONE',
+          pubgClanLevel: 0,
+          pubgMemberCount: 0,
+          lastSynced: new Date(),
+          region: 'GLOBAL',
+          isKorean: false
+        }
       });
       
-      updateData.avgKills = totalMatches > 0 ? (totalKills / totalMatches) : 0;
-      updateData.avgAssists = totalMatches > 0 ? (totalAssists / totalMatches) : 0;
-      updateData.winRate = totalMatches > 0 ? ((totalWins / totalMatches) * 100) : 0;
-      updateData.top10Rate = totalMatches > 0 ? ((totalTop10 / totalMatches) * 100) : 0;
+      await addNewUserToExistingClan(nickname, apiData, nolanClan, prisma);
     }
-    
-    // DB 업데이트 실행
-    await prisma.clanMember.update({
-      where: { id: memberId },
-      data: updateData
-    });
-    
-    console.log(`✅ 백그라운드 업데이트 완료 - 멤버 ID: ${memberId}`);
-    
+
+    console.log(`새 유저 ${nickname} DB 저장 완료`);
   } catch (error) {
-    console.error(`❌ 백그라운드 업데이트 실패 - 멤버 ID: ${memberId}`, error.message);
-  } finally {
-    await prisma.$disconnect();
+    console.error(`새 유저 ${nickname} DB 저장 실패:`, error);
+    throw error;
   }
 }
 
@@ -233,7 +284,11 @@ async function addNewUserToExistingClan(nickname, apiData, existingClan, prisma)
         avgSurviveTime: apiData.summary?.averageSurvivalTime || 0,
         winRate: 0, // API에서 제공하지 않으므로 백그라운드에서 계산
         top10Rate: 0, // API에서 제공하지 않으므로 백그라운드에서 계산
-        clanId: existingClan.id
+        clanId: existingClan.id,
+        // PUBG API 정보 추가
+        pubgClanId: apiData.profile?.clan?.id || null,
+        pubgPlayerId: apiData.profile?.playerId || null,
+        pubgShardId: apiData.profile?.shardId || 'steam'
       }
     });
 
@@ -949,6 +1004,16 @@ export async function getServerSideProps({ params }) {
         const apiData = await apiResponse.json();
         playerData = apiData;
         dataSource = 'pubg_api';
+        
+        // 🚀 새 유저 자동 DB 저장
+        try {
+          await saveNewUserToDB(nickname, apiData, prisma);
+          console.log(`✅ 새 유저 ${nickname} 자동 DB 저장 완료`);
+        } catch (saveError) {
+          console.error(`❌ 새 유저 ${nickname} DB 저장 실패:`, saveError);
+          // DB 저장 실패해도 API 데이터는 정상 반환
+        }
+        
       } catch (apiError) {
         throw new Error(`플레이어를 찾을 수 없습니다: ${apiError.message}`);
       }
