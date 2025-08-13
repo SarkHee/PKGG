@@ -2,6 +2,7 @@
 // 클랜 종합 분석 대시보드 페이지
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Layout from '../components/Layout';
 
 // 플레이스타일 아이콘 및 설명 매핑
@@ -172,9 +173,14 @@ export default function ClanAnalytics() {
   // 지역 필터 상태
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const [isKoreanOnly, setIsKoreanOnly] = useState(false);
+  
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchAnalytics();
+    setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
   }, [selectedRegion, isKoreanOnly]);
 
   const fetchAnalytics = async () => {
@@ -260,6 +266,121 @@ export default function ClanAnalytics() {
   }
 
   const { overview, rankings, distributions, allClans } = analyticsData;
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(allClans.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentClans = allClans.slice(startIndex, endIndex);
+
+  // 페이지 변경 함수
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // 페이지 변경 시 스크롤을 전체 클랜 목록 섹션으로 이동
+    const clanListElement = document.getElementById('clan-list-section');
+    if (clanListElement) {
+      clanListElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // 페이지네이션 버튼 생성
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxVisiblePages = 10;
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // 끝 페이지가 총 페이지보다 작으면 시작 페이지 조정
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // 이전 페이지 버튼
+    if (currentPage > 1) {
+      buttons.push(
+        <button
+          key="prev"
+          onClick={() => handlePageChange(currentPage - 1)}
+          className="px-3 py-2 mx-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+        >
+          ←
+        </button>
+      );
+    }
+
+    // 첫 페이지 (시작 페이지가 1이 아닐 때)
+    if (startPage > 1) {
+      buttons.push(
+        <button
+          key={1}
+          onClick={() => handlePageChange(1)}
+          className="px-3 py-2 mx-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        buttons.push(
+          <span key="dots1" className="px-2 py-2 mx-1 text-gray-400">
+            ...
+          </span>
+        );
+      }
+    }
+
+    // 페이지 번호 버튼들
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(
+        <button
+          key={i}
+          onClick={() => handlePageChange(i)}
+          className={`px-3 py-2 mx-1 rounded-lg transition-colors ${
+            currentPage === i
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-700 hover:bg-gray-600 text-white'
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // 마지막 페이지 (끝 페이지가 총 페이지가 아닐 때)
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        buttons.push(
+          <span key="dots2" className="px-2 py-2 mx-1 text-gray-400">
+            ...
+          </span>
+        );
+      }
+      buttons.push(
+        <button
+          key={totalPages}
+          onClick={() => handlePageChange(totalPages)}
+          className="px-3 py-2 mx-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    // 다음 페이지 버튼
+    if (currentPage < totalPages) {
+      buttons.push(
+        <button
+          key="next"
+          onClick={() => handlePageChange(currentPage + 1)}
+          className="px-3 py-2 mx-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+        >
+          →
+        </button>
+      );
+    }
+
+    return buttons;
+  };
 
   return (
     <Layout>
@@ -503,7 +624,9 @@ export default function ClanAnalytics() {
                       </td>
                       <td className="px-4 py-3">
                         <div>
-                          <div className="font-semibold">{clan.name}</div>
+                          <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-semibold hover:text-blue-400 transition-colors cursor-pointer">
+                            {clan.name}
+                          </Link>
                           <div className="text-sm text-gray-400">{clan.tag}</div>
                         </div>
                       </td>
@@ -641,12 +764,19 @@ export default function ClanAnalytics() {
           </div>
 
           {/* 전체 클랜 목록 */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-4">📋 전체 클랜 목록</h2>
+          <div id="clan-list-section" className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">📋 전체 클랜 목록</h2>
+              <div className="text-sm text-gray-400">
+                총 {allClans.length}개 클랜 중 {startIndex + 1}-{Math.min(endIndex, allClans.length)}번째 표시
+              </div>
+            </div>
+            
             <div className="bg-gray-800 rounded-lg overflow-visible">
               <table className="w-full">
                 <thead className="bg-gray-700">
                   <tr>
+                    <th className="px-4 py-3 text-left">순번</th>
                     <th className="px-4 py-3 text-left">클랜명</th>
                     <th className="px-4 py-3 text-left">태그</th>
                     <th className="px-4 py-3 text-left">레벨</th>
@@ -670,9 +800,16 @@ export default function ClanAnalytics() {
                   </tr>
                 </thead>
                 <tbody>
-                  {allClans.map((clan, index) => (
+                  {currentClans.map((clan, index) => (
                     <tr key={clan.id} className="border-t border-gray-700">
-                      <td className="px-4 py-3 font-semibold">{clan.name}</td>
+                      <td className="px-4 py-3 text-gray-400 font-mono">
+                        {startIndex + index + 1}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-semibold hover:text-blue-400 transition-colors cursor-pointer">
+                          {clan.name}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3">
                         <span className="bg-gray-700 px-2 py-1 rounded text-sm">{clan.tag}</span>
                       </td>
@@ -716,6 +853,22 @@ export default function ClanAnalytics() {
                 </tbody>
               </table>
             </div>
+
+            {/* 페이지네이션 */}
+            {totalPages > 1 && (
+              <div className="mt-6 flex justify-center items-center">
+                <div className="flex items-center bg-gray-800 rounded-lg p-2">
+                  {renderPaginationButtons()}
+                </div>
+              </div>
+            )}
+
+            {/* 페이지네이션 정보 */}
+            {totalPages > 1 && (
+              <div className="mt-4 text-center text-sm text-gray-400">
+                페이지 {currentPage} / {totalPages} (전체 {allClans.length}개 클랜)
+              </div>
+            )}
           </div>
 
           {/* 새로고침 버튼 */}

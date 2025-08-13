@@ -1,158 +1,128 @@
 // pages/api/clan/[clanName].js
+// 클랜 상세 정보 API
 
 import { PrismaClient } from '@prisma/client';
 
-// PUBG API 키를 환경 변수에서 가져옵니다.
-// NOTE: `Bearer` 접두사는 Authorization 헤더를 보낼 때만 추가해야 합니다.
-// 환경 변수 자체에는 순수한 API 키만 있어야 합니다.
-const PUBG_API_KEY_RAW = process.env.PUBG_API_KEY; // <--- 이 부분 중요!
-const PUBG_BASE_URL = 'https://api.pubg.com/shards';
-const PUBG_SHARD = 'steam'; // 또는 'kakao' 등 사용하시는 샤드
+const prisma = new PrismaClient();
 
-// 플레이어 닉네임으로 PUBG ID를 조회하는 헬퍼 함수
-async function getPubgIdByNickname(nickname) {
-  if (!PUBG_API_KEY_RAW) {
-    console.error('PUBG_API_KEY 환경 변수가 설정되지 않았습니다.');
-    return null;
-  }
-  try {
-    const response = await fetch(`${PUBG_BASE_URL}/${PUBG_SHARD}/players?filter[playerNames]=${encodeURIComponent(nickname)}`, {
-      headers: {
-        Authorization: `Bearer ${PUBG_API_KEY_RAW}`, // <--- 여기에서 Bearer 추가!
-        Accept: 'application/vnd.api+json'
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.warn(`PUBG API: 플레이어 '${nickname}'를 찾을 수 없습니다 (404).`);
-        return null;
-      }
-      const errorText = await response.text(); // 오류 메시지 로깅
-      throw new Error(`PUBG API 에러: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    return data.data?.[0]?.id || null;
-  } catch (error) {
-    console.error(`[getPubgIdByNickname] PUBG ID 조회 중 오류 발생 (${nickname}):`, error);
-    return null;
-  }
-}
-
-// Next.js API Route의 기본 핸들러 함수
 export default async function handler(req, res) {
   const { clanName } = req.query;
-
-  if (!clanName) {
-    return res.status(400).json({ error: '클랜 이름이 필요합니다.' });
+  
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-  const prisma = new PrismaClient();
-  let targetClan;
+
   try {
-    targetClan = await prisma.clan.findUnique({
-      where: { name: clanName },
-      include: { members: true }
-    });
-  } catch (error) {
-    console.error('[API Handler] DB 읽기 실패:', error);
-    return res.status(500).json({ error: 'DB에서 클랜 정보를 불러올 수 없습니다.' });
-  }
-  if (!targetClan) {
-    return res.status(404).json({ error: `클랜 '${clanName}'을(를) 찾을 수 없습니다. 클랜 이름을 확인해주세요.` });
-  }
-
-  if (req.method === 'GET') {
-    // DB에서 멤버 정보 반환
-    return res.status(200).json({
-      clan: {
-        name: targetClan.name,
-        leader: targetClan.leader,
-        description: targetClan.description,
-        announcement: targetClan.announcement,
-        memberCount: targetClan.memberCount,
-        avgScore: targetClan.avgScore,
-        mainStyle: targetClan.mainStyle,
-        members: targetClan.members.map(m => ({
-          nickname: m.nickname,
-          score: m.score,
-          style: m.style,
-          avgDamage: m.avgDamage,
-          avgKills: m.avgKills,
-          avgAssists: m.avgAssists,
-          avgSurviveTime: m.avgSurviveTime,
-          winRate: m.winRate,
-          top10Rate: m.top10Rate
-        }))
+    // 클랜 기본 정보 조회 (이름으로 검색)
+    const decodedClanName = decodeURIComponent(clanName);
+    const clan = await prisma.clan.findFirst({
+      where: { 
+        name: decodedClanName
+      },
+      include: {
+        members: true
       }
     });
-  } else if (req.method === 'POST') {
-    const {
-      nickname,
-      score = 0,
-      style = '-',
-      avgDamage = 0,
-      avgKills = 0,
-      avgAssists = 0,
-      avgSurviveTime = 0,
-      winRate = 0,
-      top10Rate = 0
-    } = req.body;
-    if (!nickname) {
-      return res.status(400).json({ error: '추가할 클랜원 닉네임이 필요합니다.' });
+
+    if (!clan) {
+      return res.status(404).json({ error: '클랜을 찾을 수 없습니다' });
     }
-    // 이미 존재하는지 확인
-    const exists = targetClan.members.some(m => m.nickname === nickname);
-    if (exists) {
-      return res.status(409).json({ error: `'${nickname}'은(는) 이미 클랜에 등록되어 있습니다. 다른 닉네임을 시도해주세요.` });
+
+    // 클랜 순위 계산 (모든 클랜 중에서)
+    const allClans = await prisma.clan.findMany({
+      include: {
+        members: true
+      }
+    });
+
+    // 각 클랜의 평균 점수 계산 및 순위 매기기
+    const clansWithStats = allClans.map(c => {
+      const activeMembers = c.members.filter(m => m.score > 0);
+      
+      if (activeMembers.length === 0) {
+        return { ...c, avgScore: 0 };
+      }
+
+      const totalScore = activeMembers.reduce((sum, member) => {
+        return sum + (member.score || 0);
+      }, 0);
+
+      return {
+        ...c,
+        avgScore: Math.round(totalScore / activeMembers.length)
+      };
+    }).sort((a, b) => b.avgScore - a.avgScore);
+
+    const clanRanking = clansWithStats.findIndex(c => c.id === clan.id) + 1;
+
+    // 클랜 통계 계산
+    const activeMembers = clan.members.filter(m => m.score > 0);
+
+    let stats = null;
+    if (activeMembers.length > 0) {
+      stats = {
+        avgScore: Math.round(activeMembers.reduce((sum, m) => sum + (m.score || 0), 0) / activeMembers.length),
+        avgDamage: Math.round(activeMembers.reduce((sum, m) => sum + (m.avgDamage || 0), 0) / activeMembers.length),
+        avgKills: (activeMembers.reduce((sum, m) => sum + (m.avgKills || 0), 0) / activeMembers.length).toFixed(1),
+        winRate: Math.round(activeMembers.reduce((sum, m) => sum + (m.winRate || 0), 0) / activeMembers.length),
+        kdRatio: (activeMembers.reduce((sum, m) => sum + (m.avgKills || 0), 0) / activeMembers.length).toFixed(2)
+      };
     }
-    try {
-      await prisma.clanMember.create({
-        data: {
-          nickname,
-          score,
-          style,
-          avgDamage,
-          avgKills,
-          avgAssists,
-          avgSurviveTime,
-          winRate,
-          top10Rate,
-          clanId: targetClan.id
-        }
-      });
-      // 멤버 카운트 갱신
-      await prisma.clan.update({
-        where: { id: targetClan.id },
-        data: { memberCount: targetClan.memberCount + 1 }
-      });
-      return res.status(201).json({ message: `'${nickname}' 클랜에 성공적으로 추가되었습니다.` });
-    } catch (error) {
-      console.error('[API Handler] DB 쓰기 실패 (POST):', error);
-      return res.status(500).json({ error: 'DB 업데이트에 실패했습니다.' });
+
+    // 멤버 정보 정리
+    const members = clan.members.map(member => ({
+      id: member.id,
+      playerName: member.nickname,
+      joinedAt: member.lastUpdated,
+      lastActiveAt: member.lastUpdated,
+      stats: member.score > 0 ? {
+        score: member.score,
+        damage: member.avgDamage,
+        kills: member.avgKills,
+        winRate: member.winRate,
+        kdRatio: member.avgKills
+      } : null
+    }));
+
+    // 플레이 스타일 분석 (간단한 버전)
+    let playStyle = null;
+    if (stats && clan.mainStyle) {
+      playStyle = {
+        primary: clan.mainStyle || '혼합',
+        secondary: '균형잡힌',
+        dominance: Math.min(100, Math.round(stats.avgScore / 20)),
+        variety: '보통',
+        special: stats.avgScore > 1500 ? '고수 클랜' : null
+      };
     }
-  } else if (req.method === 'DELETE') {
-    const { nickname } = req.body;
-    if (!nickname) {
-      return res.status(400).json({ error: '삭제할 클랜원 닉네임이 필요합니다.' });
-    }
-    const member = targetClan.members.find(m => m.nickname === nickname);
-    if (!member) {
-      return res.status(404).json({ error: 'Member not found' });
-    }
-    try {
-      await prisma.clanMember.delete({ where: { id: member.id } });
-      await prisma.clan.update({
-        where: { id: targetClan.id },
-        data: { memberCount: targetClan.memberCount - 1 }
-      });
-      return res.status(200).json({ message: `'${nickname}' 클랜에서 성공적으로 삭제되었습니다.` });
-    } catch (error) {
-      console.error('[API Handler] DB 쓰기 실패 (DELETE):', error);
-      return res.status(500).json({ error: 'DB 업데이트에 실패했습니다.' });
-    }
-  } else {
-    res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+
+    const response = {
+      clan: {
+        id: clan.id,
+        name: clan.name,
+        tag: clan.pubgClanTag || 'N/A',
+        level: clan.pubgClanLevel || 1,
+        apiMemberCount: clan.pubgMemberCount || clan.memberCount,
+        region: clan.region,
+        createdAt: null,
+        updatedAt: clan.lastSynced,
+        playStyle
+      },
+      ranking: {
+        overall: clanRanking,
+        regional: null, // 향후 구현
+        byLevel: null   // 향후 구현
+      },
+      members,
+      stats
+    };
+
+    res.status(200).json(response);
+
+  } catch (error) {
+    console.error('Clan detail API error:', error);
+    res.status(500).json({ error: '서버 오류가 발생했습니다', details: error.message });
+  } finally {
+    await prisma.$disconnect();
   }
 }
