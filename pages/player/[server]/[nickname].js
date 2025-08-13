@@ -764,15 +764,24 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             seasonStats={seasonStats}
           />
           
-          {/* 클랜원 시너지 히트맵 */}
-          <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-600">
-            <SynergyHeatmap 
-              matches={recentMatches} 
-              myNickname={profile?.nickname}
-              clanMembers={clanMembers}
-              playerClan={clanName}
-            />
-          </div>
+          {/* 클랜원 시너지 히트맵 - 클랜 소속인 경우에만 표시 */}
+          {(() => {
+            const clanInfo = profile?.clan;
+            const clanName = typeof clanInfo === 'string' ? clanInfo : clanInfo?.name;
+            const hasValidClan = clanName && clanName !== '-' && clanName !== '무소속' && clanName !== 'N/A';
+            const hasClanData = hasValidClan && (clanMembers && clanMembers.length > 0);
+            
+            return hasClanData ? (
+              <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-600">
+                <SynergyHeatmap 
+                  matches={recentMatches} 
+                  myNickname={profile?.nickname}
+                  clanMembers={clanMembers}
+                  playerClan={clanName}
+                />
+              </div>
+            ) : null;
+          })()}
         </div>
       </div>
 

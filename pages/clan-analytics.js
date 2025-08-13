@@ -8,79 +8,117 @@ import Layout from '../components/Layout';
 const playStyleConfig = {
   '극단적 공격형': {
     icon: '💀',
-    description: '최고 딜량과 킬을 추구하는 초공격적 플레이스타일'
+    description: '최고 딜량과 킬을 추구하는 초공격적 플레이스타일',
+    color: 'bg-black text-white'
+  },
+  '핫드롭 마스터': {
+    icon: '🌋',
+    description: '극초반 높은 킬수와 딜량으로 핫드롭을 제압하는 스타일',
+    color: 'bg-orange-500 text-white'
+  },
+  '스피드 파이터': {
+    icon: '⚡',
+    description: '짧은 시간 내에 높은 킬수를 달성하는 빠른 전투 스타일',
+    color: 'bg-yellow-500 text-black'
+  },
+  '초반 어그로꾼': {
+    icon: '🔥',
+    description: '매우 짧은 생존시간에도 높은 딜량을 뽑아내는 공격적 스타일',
+    color: 'bg-orange-600 text-white'
+  },
+  '빠른 청소부': {
+    icon: '🧹',
+    description: '초반에 적당한 교전으로 빠르게 정리하는 효율적 스타일',
+    color: 'bg-green-500 text-white'
   },
   '초반 돌격형': {
     icon: '🚀',
-    description: '게임 시작부터 적극적인 교전을 벌이는 플레이스타일'
+    description: '게임 시작부터 적극적인 교전을 벌이는 기본 돌격 스타일',
+    color: 'bg-red-600 text-white'
   },
   '극단적 수비형': {
     icon: '🛡️',
-    description: '교전을 최대한 피하고 안전한 플레이를 선호하는 스타일'
+    description: '교전을 최대한 피하고 안전한 플레이를 선호하는 스타일',
+    color: 'bg-gray-600 text-white'
   },
   '후반 존버형': {
     icon: '🏕️',
-    description: '초반 교전을 피하고 후반 랭킹에 집중하는 스타일'
+    description: '초반 교전을 피하고 후반 랭킹에 집중하는 스타일',
+    color: 'bg-brown-500 text-white'
   },
   '장거리 정찰러': {
     icon: '🏃',
-    description: '넓은 맵 이동과 정찰을 중시하는 플레이스타일'
+    description: '넓은 맵 이동과 정찰을 중시하는 플레이스타일',
+    color: 'bg-teal-500 text-white'
   },
   '저격 위주': {
     icon: '🎯',
-    description: '원거리 저격과 정밀한 교전을 선호하는 스타일'
+    description: '원거리 저격과 정밀한 교전을 선호하는 스타일',
+    color: 'bg-purple-600 text-white'
   },
   '중거리 안정형': {
     icon: '⚖️',
-    description: '중거리 교전에서 안정적인 성과를 내는 플레이스타일'
+    description: '중거리 교전에서 안정적인 성과를 내는 플레이스타일',
+    color: 'bg-indigo-500 text-white'
   },
   '지속 전투형': {
     icon: '🔥',
-    description: '긴 교전을 통해 높은 딜량과 킬을 확보하는 스타일'
+    description: '긴 교전을 통해 높은 딜량과 킬을 확보하는 스타일',
+    color: 'bg-pink-600 text-white'
   },
   '유령 생존자': {
     icon: '👻',
-    description: '교전 없이도 높은 순위를 달성하는 신비로운 스타일'
+    description: '교전 없이도 높은 순위를 달성하는 신비로운 스타일',
+    color: 'bg-slate-700 text-white'
   },
   '도박형 파밍러': {
     icon: '🪂',
-    description: '위험한 지역에서 빠른 파밍을 시도하는 모험적 스타일'
+    description: '위험한 지역에서 빠른 파밍을 시도하는 모험적 스타일',
+    color: 'bg-amber-500 text-black'
   },
   '순간광폭형': {
     icon: '⚡',
-    description: '짧은 시간에 폭발적인 화력을 집중하는 스타일'
+    description: '짧은 시간에 폭발적인 화력을 집중하는 스타일',
+    color: 'bg-violet-600 text-white'
   },
   '치명적 저격수': {
     icon: '🦅',
-    description: '높은 킬과 딜량으로 적을 제압하는 정밀 스타일'
+    description: '높은 킬과 딜량으로 적을 제압하는 정밀 스타일',
+    color: 'bg-rose-600 text-white'
   },
   '전략적 어시스트러': {
     icon: '🧠',
-    description: '팀워크와 어시스트를 중시하는 협력형 스타일'
+    description: '팀워크와 어시스트를 중시하는 협력형 스타일',
+    color: 'bg-emerald-600 text-white'
   },
   '고효율 승부사': {
     icon: '📊',
-    description: '적은 딜량으로도 많은 킬을 달성하는 효율형 스타일'
+    description: '적은 딜량으로도 많은 킬을 달성하는 효율형 스타일',
+    color: 'bg-cyan-600 text-white'
   },
   '공격형': {
     icon: '⚔️',
-    description: '전반적으로 공격적인 성향을 보이는 플레이스타일'
+    description: '전반적으로 공격적인 성향을 보이는 플레이스타일',
+    color: 'bg-red-400 text-white'
   },
   '생존형': {
     icon: '🛡️',
-    description: '생존과 안정성을 중시하는 플레이스타일'
+    description: '생존과 안정성을 중시하는 플레이스타일',
+    color: 'bg-gray-500 text-white'
   },
   '이동형': {
     icon: '🏃‍♂️',
-    description: '이동과 포지셔닝을 중시하는 플레이스타일'
+    description: '이동과 포지셔닝을 중시하는 플레이스타일',
+    color: 'bg-lime-500 text-black'
   },
   '혼합': {
     icon: '🌀',
-    description: '다양한 스타일이 혼재하는 복합적 플레이스타일'
+    description: '다양한 스타일이 혼재하는 복합적 플레이스타일',
+    color: 'bg-neutral-600 text-white'
   }
 };
 
-// 툴팁 컴포넌트
+// 간단한 툴팁 컴포넌트 (표 밖으로 나가도 잘리지 않음)
 const Tooltip = ({ children, content }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -92,9 +130,9 @@ const Tooltip = ({ children, content }) => {
     >
       {children}
       {isVisible && (
-        <div className="absolute z-50 px-3 py-2 text-sm text-white bg-black bg-opacity-90 rounded-lg shadow-lg -top-12 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+        <div className="absolute z-[9999] px-4 py-3 text-sm text-white bg-black bg-opacity-95 rounded-lg shadow-xl min-w-[300px] max-w-[500px] break-words whitespace-normal bottom-full mb-2 left-1/2 transform -translate-x-1/2">
           {content}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-transparent border-t-4 border-t-black"></div>
         </div>
       )}
     </div>
@@ -106,7 +144,7 @@ const PlayStyleBadge = ({ style, className = "", showDescription = true }) => {
   const config = playStyleConfig[style] || playStyleConfig['혼합'];
   
   const badge = (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${className}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${config.color} ${className}`}>
       <span className="text-sm">{config.icon}</span>
       {style}
     </span>
@@ -190,11 +228,13 @@ export default function ClanAnalytics() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-900 text-white p-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-              <p className="mt-4 text-xl">클랜 분석 데이터 로딩 중...</p>
+        <div className="min-h-screen bg-gray-900 text-white overflow-visible" style={{ paddingTop: '0', marginTop: '-5rem' }}>
+          <div className="pt-24 pb-8 px-8">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="mt-4 text-xl">클랜 분석 데이터 로딩 중...</p>
+              </div>
             </div>
           </div>
         </div>
@@ -205,11 +245,13 @@ export default function ClanAnalytics() {
   if (error) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-900 text-white p-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center text-red-400">
-              <h2 className="text-2xl font-bold mb-4">오류 발생</h2>
-              <p>{error}</p>
+        <div className="min-h-screen bg-gray-900 text-white overflow-visible" style={{ paddingTop: '0', marginTop: '-5rem' }}>
+          <div className="pt-24 pb-8 px-8">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center text-red-400">
+                <h2 className="text-2xl font-bold mb-4">오류 발생</h2>
+                <p>{error}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -221,8 +263,9 @@ export default function ClanAnalytics() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-900 text-white p-8">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-gray-900 text-white overflow-visible" style={{ paddingTop: '0', marginTop: '-5rem' }}>
+        <div className="pt-24 pb-8 px-8">
+          <div className="max-w-6xl mx-auto overflow-visible">
           
           {/* 헤더 */}
           <div className="mb-8">
@@ -407,13 +450,27 @@ export default function ClanAnalytics() {
             <div className="mb-4">
               <h2 className="text-2xl font-bold">🥇 클랜 랭킹 TOP 10 (평균 점수 기준)</h2>
             </div>
-            <div className="bg-gray-800 rounded-lg overflow-hidden">
+            <div className="bg-gray-800 rounded-lg overflow-visible">
               <table className="w-full">
                 <thead className="bg-gray-700">
                   <tr>
                     <th className="px-4 py-3 text-left">순위</th>
                     <th className="px-4 py-3 text-left">클랜</th>
-                    <th className="px-4 py-3 text-left">지역</th>
+                    <th className="px-4 py-3 text-left">
+                      <Tooltip content={
+                        <div className="text-left">
+                          <div className="font-semibold text-yellow-400 mb-1">⚠️ 지역 분류 정보</div>
+                          <div className="text-sm mb-2">자동 분석 기반 추정 지역</div>
+                          <div className="text-xs space-y-1">
+                            <div>• 클랜명, 멤버 닉네임 등을 분석하여 추정</div>
+                            <div>• 아직 완전히 통합되지 않은 데이터입니다</div>
+                            <div>• 일부 클랜은 정확하지 않을 수 있습니다</div>
+                          </div>
+                        </div>
+                      }>
+                        <span className="cursor-help border-b border-dotted border-gray-400">지역</span>
+                      </Tooltip>
+                    </th>
                     <th className="px-4 py-3 text-left">레벨</th>
                     <th className="px-4 py-3 text-left">멤버 수</th>
                     <th className="px-4 py-3 text-left">
@@ -490,13 +547,6 @@ export default function ClanAnalytics() {
                             <div className="flex items-center gap-1">
                               <PlayStyleBadge 
                                 style={clan.playStyle.primary}
-                                className={
-                                  clan.playStyle.primary.includes('공격') || clan.playStyle.primary.includes('돌격') || clan.playStyle.primary.includes('광폭') ? 'bg-red-600 text-white' :
-                                  clan.playStyle.primary.includes('밸런스') || clan.playStyle.primary.includes('안정') ? 'bg-yellow-600 text-white' : 
-                                  clan.playStyle.primary.includes('생존') || clan.playStyle.primary.includes('수비') ? 'bg-green-600 text-white' :
-                                  clan.playStyle.primary.includes('저격') || clan.playStyle.primary.includes('정찰') ? 'bg-blue-600 text-white' :
-                                  'bg-gray-600 text-white'
-                                }
                               />
                               {clan.playStyle.special && (
                                 <Tooltip content={`특수 특성: ${clan.playStyle.special}`}>
@@ -593,7 +643,7 @@ export default function ClanAnalytics() {
           {/* 전체 클랜 목록 */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4">📋 전체 클랜 목록</h2>
-            <div className="bg-gray-800 rounded-lg overflow-hidden">
+            <div className="bg-gray-800 rounded-lg overflow-visible">
               <table className="w-full">
                 <thead className="bg-gray-700">
                   <tr>
@@ -643,13 +693,6 @@ export default function ClanAnalytics() {
                             <div className="flex items-center gap-2">
                               <PlayStyleBadge 
                                 style={clan.playStyle.primary}
-                                className={
-                                  clan.playStyle.primary.includes('공격') || clan.playStyle.primary.includes('돌격') || clan.playStyle.primary.includes('광폭') ? 'bg-red-600 text-white' :
-                                  clan.playStyle.primary.includes('밸런스') || clan.playStyle.primary.includes('안정') ? 'bg-yellow-600 text-white' : 
-                                  clan.playStyle.primary.includes('생존') || clan.playStyle.primary.includes('수비') ? 'bg-green-600 text-white' :
-                                  clan.playStyle.primary.includes('저격') || clan.playStyle.primary.includes('정찰') ? 'bg-blue-600 text-white' :
-                                  'bg-gray-600 text-white'
-                                }
                               />
                               <span className="text-gray-400 text-xs">{clan.playStyle.secondary}</span>
                               {clan.playStyle.special && (
@@ -685,6 +728,7 @@ export default function ClanAnalytics() {
             </button>
           </div>
 
+          </div>
         </div>
       </div>
     </Layout>

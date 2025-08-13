@@ -2,6 +2,7 @@
 // 클랜 종합 통계 및 분석 API
 
 import { PrismaClient } from '@prisma/client';
+import { analyzeClanRegion } from '../../utils/clanRegionAnalyzer.js';
 
 const prisma = new PrismaClient();
 
@@ -16,8 +17,20 @@ function analyzeIndividualPlayStyle(memberStats) {
   // 극단적 공격형: 높은 딜량, 짧은 생존시간, 높은 킬
   if (avgDamage >= 400 && avgSurviveTime <= 600 && avgKills >= 3) return "☠️ 극단적 공격형";
   
-  // 초반 돌격형: 매우 짧은 생존시간에도 킬/딜 확보
-  if (avgSurviveTime <= 120 && (avgKills >= 1 || avgDamage >= 150)) return "🚀 초반 돌격형";
+  // 핫드롭 마스터: 극초반 높은 킬수와 딜량
+  if (avgSurviveTime <= 90 && avgKills >= 2 && avgDamage >= 200) return "🌋 핫드롭 마스터";
+  
+  // 스피드 파이터: 짧은 시간 내 높은 킬수
+  if (avgSurviveTime <= 120 && avgKills >= 2.5) return "⚡ 스피드 파이터";
+  
+  // 초반 어그로꾼: 매우 짧은 생존시간에도 높은 딜량
+  if (avgSurviveTime <= 100 && avgDamage >= 180) return "🔥 초반 어그로꾼";
+  
+  // 빠른 청소부: 초반 낮은 킬이지만 적당한 딜량
+  if (avgSurviveTime <= 120 && avgKills >= 1 && avgKills < 2 && avgDamage >= 120) return "🧹 빠른 청소부";
+  
+  // 초반 돌격형: 매우 짧은 생존시간에도 킬/딜 확보 (기본형)
+  if (avgSurviveTime <= 120 && (avgKills >= 1 || avgDamage >= 100)) return "🚀 초반 돌격형";
   
   // 극단적 수비형: 낮은 딜량, 긴 생존시간
   if (avgDamage <= 100 && avgSurviveTime >= 1200) return "🛡️ 극단적 수비형";
@@ -168,10 +181,22 @@ function generateStyleDescription(primary, secondary, special, stats) {
   // 주요 스타일별 상세 설명
   let detail = '';
   
-  // 14가지 개별 스타일 설명
+  // 확장된 플레이 스타일 설명
   switch(primary) {
     case '극단적 공격형':
       detail = ' - 최고 딜량과 킬을 추구하는 초공격적 클랜';
+      break;
+    case '핫드롭 마스터':
+      detail = ' - 극초반 핫드롭 지역을 제압하는 전문 클랜';
+      break;
+    case '스피드 파이터':
+      detail = ' - 짧은 시간 내 높은 킬수를 달성하는 빠른 전투 클랜';
+      break;
+    case '초반 어그로꾼':
+      detail = ' - 매우 짧은 시간에 높은 딜량을 뽑아내는 어그로 클랜';
+      break;
+    case '빠른 청소부':
+      detail = ' - 초반 효율적인 교전으로 빠르게 정리하는 클랜';
       break;
     case '초반 돌격형':
       detail = ' - 게임 시작부터 적극적인 교전을 벌이는 클랜';
@@ -288,7 +313,43 @@ export default async function handler(req, res) {
       }
     });
 
-    // 3. 클랜별 평균 및 플레이 스타일 계산
+    // 3. 클랜별 지역 정보 업데이트 (자동 분류)
+    // map 대신 for...of 루프 사용하여 비동기 작업 처리
+    for (const clan of clanStats) {
+      const members = clan.members;
+      
+      // 지역이 없거나 'UNKNOWN'인 경우 지역 자동 분류 실행
+      if ((!clan.region || clan.region === 'UNKNOWN') && members.length > 0) {
+        try {
+          // 멤버 정보를 기반으로 지역 분석
+          const regionAnalysis = analyzeClanRegion({
+            name: clan.name,
+            pubgClanTag: clan.pubgClanTag
+          }, members);
+          
+          if (regionAnalysis && regionAnalysis.region && regionAnalysis.region !== 'UNKNOWN') {
+            // 데이터베이스에 지역 정보 업데이트
+            await prisma.clan.update({
+              where: { id: clan.id },
+              data: {
+                region: regionAnalysis.region,
+                isKorean: regionAnalysis.region === 'KR'
+              }
+            });
+            
+            // 현재 메모리 내 객체도 업데이트
+            clan.region = regionAnalysis.region;
+            clan.isKorean = regionAnalysis.region === 'KR';
+            
+            console.log(`클랜 '${clan.name}' 지역 자동 분류: ${regionAnalysis.region}`);
+          }
+        } catch (error) {
+          console.error(`클랜 '${clan.name}' 지역 분류 중 오류 발생:`, error);
+        }
+      }
+    }
+    
+    // 3-1. 클랜별 평균 및 플레이 스타일 계산
     const clanAnalytics = clanStats.map(clan => {
       const members = clan.members;
       const memberCount = members.length;
@@ -336,12 +397,14 @@ export default async function handler(req, res) {
     // 4. 상위 클랜 랭킹 (평균 점수 기준)
     const topClans = clanAnalytics
       .filter(clan => clan.avgStats) // avgStats가 있는 클랜만 (멤버가 1명 이상)
+      .filter(clan => clan.name !== '무소속') // '무소속' 클랜 제외
       .sort((a, b) => b.avgStats.score - a.avgStats.score)
       .slice(0, 10);
 
-    // 4-1. 전체 클랜 랭킹 (검색용)
+    // 4-1. 전체 클랜 랭킹 (검색용) - '무소속' 클랜 제외
     const allRankedClans = clanAnalytics
       .filter(clan => clan.avgStats) // avgStats가 있는 클랜만
+      .filter(clan => clan.name !== '무소속') // '무소속' 클랜 제외
       .sort((a, b) => b.avgStats.score - a.avgStats.score)
       .map((clan, index) => ({
         ...clan,
@@ -376,7 +439,9 @@ export default async function handler(req, res) {
         byLevel: levelDistribution,
         byMemberCount: memberDistribution
       },
-      allClans: clanAnalytics.sort((a, b) => b.apiMemberCount - a.apiMemberCount)
+      allClans: clanAnalytics
+        .filter(clan => clan.name !== '무소속') // '무소속' 클랜 제외
+        .sort((a, b) => b.apiMemberCount - a.apiMemberCount)
     });
 
   } catch (error) {

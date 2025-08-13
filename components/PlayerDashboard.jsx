@@ -61,58 +61,72 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
   // aboveAvgWithClan이 객체인 경우 안전하게 처리
   const aboveAvgValue = typeof aboveAvgWithClan === 'number' ? aboveAvgWithClan : (typeof aboveAvgWithClan === 'object' && aboveAvgWithClan !== null ? Object.values(aboveAvgWithClan)[0] : "-");
 
+  // 클랜 소속 여부 확인
+  const hasValidClan = clanName && clanName !== '-' && clanName !== '무소속' && clanName !== 'N/A';
+  const hasClanData = hasValidClan && (clanMembers && clanMembers.length > 0 || synergyTop && synergyTop.length > 0);
+
   return (
     <div className="space-y-4">
       {/* 클랜 및 팀플레이 요약 카드 그리드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard 
-          title="클랜명" 
-          value={clanName} 
-          icon="🏰"
-          colorClass="blue"
-        />
-        <StatCard 
-          title="클랜 시너지 딜량" 
-          value={clanAverageValue} 
-          icon="💪"
-          colorClass="green"
-        />
-        <StatCard 
-          title="클랜 내 티어" 
-          value={profile.clanTier ?? "-"} 
-          icon="🏆"
-          colorClass="purple"
-        />
-        <StatCard 
-          title="함께한 클랜원 TOP3" 
-          value={
-            <div className="space-y-1">
-              {synergyTop?.map(p => 
-                <div key={p.name} className="text-sm">
-                  <Link href={`/player/steam/${encodeURIComponent(p.name)}`}>
-                    <span className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium">
-                      {p.name}
-                    </span>
-                  </Link>
-                </div>
-              )}
-            </div>
-          } 
-          icon="👥"
-          colorClass="orange"
-        />
-        <StatCard 
-          title="클랜 시너지" 
-          value={
-            <div className="flex items-center gap-2">
-              <span className="text-xl">{getSynergyDisplay(synergyStatus).emoji}</span>
-              <span className="font-bold">{getSynergyDisplay(synergyStatus).text}</span>
-            </div>
-          } 
-          icon="🤝"
-          colorClass="pink"
-        />
-      </div>
+      {hasClanData ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <StatCard 
+            title="클랜명" 
+            value={clanName} 
+            icon="🏰"
+            colorClass="blue"
+          />
+          <StatCard 
+            title="클랜 시너지 딜량" 
+            value={clanAverageValue} 
+            icon="💪"
+            colorClass="green"
+          />
+          <StatCard 
+            title="클랜 내 티어" 
+            value={profile.clanTier ?? "-"} 
+            icon="🏆"
+            colorClass="purple"
+          />
+          <StatCard 
+            title="함께한 클랜원 TOP3" 
+            value={
+              <div className="space-y-1">
+                {synergyTop?.map(p => 
+                  <div key={p.name} className="text-sm">
+                    <Link href={`/player/steam/${encodeURIComponent(p.name)}`}>
+                      <span className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium">
+                        {p.name}
+                      </span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            } 
+            icon="👥"
+            colorClass="orange"
+          />
+          <StatCard 
+            title="클랜 시너지" 
+            value={
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{getSynergyDisplay(synergyStatus).emoji}</span>
+                <span className="font-bold">{getSynergyDisplay(synergyStatus).text}</span>
+              </div>
+            } 
+            icon="🤝"
+            colorClass="pink"
+          />
+        </div>
+      ) : (
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-8 text-center">
+          <div className="text-4xl mb-4">🏰</div>
+          <div className="text-lg font-medium text-gray-600 mb-2">클랜 및 팀플레이 분석</div>
+          <div className="text-sm text-gray-500">
+            클랜에 소속되어있지 않거나 클랜원 정보가 없습니다.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
