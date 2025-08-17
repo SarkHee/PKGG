@@ -90,3 +90,79 @@ model PlayerModeStats {
   winRate      Float
   top10Rate    Float
 }
+
+// 포럼 관련 모델들
+model ForumCategory {
+  id          String     @id
+  name        String
+  description String
+  icon        String
+  color       String
+  order       Int        @default(0)
+  posts       ForumPost[]
+  createdAt   DateTime   @default(now())
+}
+
+model ForumPost {
+  id          Int         @id @default(autoincrement())
+  title       String
+  content     String      // 게시글 내용 (Markdown 지원)
+  preview     String?     // 미리보기 텍스트
+  author      String      // 작성자 닉네임
+  categoryId  String
+  category    ForumCategory @relation(fields: [categoryId], references: [id])
+  
+  // 통계 정보
+  views       Int         @default(0)
+  likes       Int         @default(0)
+  isPinned    Boolean     @default(false)  // 공지/고정글 여부
+  isLocked    Boolean     @default(false)  // 댓글 잠금 여부
+  
+  replies     ForumReply[]
+  likedBy     ForumLike[]
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model ForumReply {
+  id        Int       @id @default(autoincrement())
+  content   String
+  author    String    // 댓글 작성자 닉네임
+  postId    Int
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId  Int?      // 대댓글을 위한 부모 댓글 ID
+  parent    ForumReply? @relation("ReplyToReply", fields: [parentId], references: [id])
+  children  ForumReply[] @relation("ReplyToReply")
+  
+  likes     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model ForumLike {
+  id        Int       @id @default(autoincrement())
+  postId    Int
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    String    // 좋아요를 누른 사용자 닉네임
+  createdAt DateTime  @default(now())
+  
+  @@unique([postId, author]) // 중복 좋아요 방지
+}
+
+model ForumUser {
+  id               Int       @id @default(autoincrement())
+  username         String    @unique
+  email            String    @unique
+  violationCount   Int       @default(0)
+  lastViolation    DateTime?
+  violationType    String?   // PROFANITY, SPAM, MANUAL_BAN 등
+  violationContent String?   // 위반 내용 일부
+  isBanned         Boolean   @default(false)
+  banReason        String?
+  banUntil         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("forum_users")
+}

@@ -675,56 +675,37 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         )}
         
         {dataSource === 'db_with_api_enhancement' && (
-          <div className="mb-6 p-5 bg-gradient-to-r from-blue-50 via-blue-100 to-blue-50 border-2 border-blue-200 text-blue-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="inline-block px-4 py-2 bg-blue-500 text-white text-sm font-bold rounded-full mb-3 shadow-sm">
-                🚀 데이터 소스 안내
-              </div>
-              <div className="text-base font-semibold mb-2">
-                <strong>향상된 데이터:</strong> DB + PUBG API 실시간 데이터 조합
-              </div>
-              <div className="text-sm text-blue-700">
-                백그라운드에서 자동 업데이트됩니다
-              </div>
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 text-blue-800 rounded-lg shadow-sm">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">향상된 데이터 업데이트 완료</span>
+            </div>
+          </div>
+        )}
+
+        {dataSource === 'enhanced' && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 text-blue-800 rounded-lg shadow-sm">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">향상된 데이터 업데이트 완료</span>
             </div>
           </div>
         )}
 
         {dataSource === 'pubg_api_only' && (
-          <div className="mb-6 p-5 bg-gradient-to-r from-green-50 via-green-100 to-green-50 border-2 border-green-200 text-green-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="inline-block px-4 py-2 bg-green-500 text-white text-sm font-bold rounded-full mb-3 shadow-sm">
-                ⚡ 데이터 소스 안내
-              </div>
-              <div className="text-base font-semibold mb-2">
-                <strong>실시간 데이터:</strong> PUBG API 최신 정보
-              </div>
-              <div className="text-sm text-green-700">
-                {(() => {
-                  const clanInfo = playerData?.profile?.clan;
-                  if (clanInfo) {
-                    const clanNameStr = typeof clanInfo === 'string' ? clanInfo : clanInfo.name;
-                    return clanNameStr ? `${clanNameStr} 클랜 소속` : '클랜 미소속';
-                  }
-                  return '클랜 미소속';
-                })()}
-              </div>
+          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 text-green-800 rounded-lg shadow-sm">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">실시간 데이터 업데이트 완료</span>
             </div>
           </div>
         )}
 
         {dataSource === 'pubg_api' && (
-          <div className="mb-6 p-5 bg-gradient-to-r from-green-50 via-green-100 to-green-50 border-2 border-green-200 text-green-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="inline-block px-4 py-2 bg-green-500 text-white text-sm font-bold rounded-full mb-3 shadow-sm">
-                🔄 데이터 소스 안내
-              </div>
-              <div className="text-base font-semibold mb-2">
-                <strong>실시간 데이터:</strong> PUBG API 최신 정보 조회됨
-              </div>
-              <div className="text-sm text-green-700">
-                실시간으로 업데이트된 데이터입니다
-              </div>
+          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 text-green-800 rounded-lg shadow-sm">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">실시간 데이터 업데이트 완료</span>
             </div>
           </div>
         )}
