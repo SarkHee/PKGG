@@ -220,6 +220,53 @@ export default async function handler(req, res) {
       }
 
       // 3. 비속어가 없으면 게시글 생성
+      console.log('Creating post with data:', {
+        title,
+        content: content.substring(0, 100) + '...',
+        author,
+        categoryId
+      });
+
+      // 카테고리 존재 확인 및 자동 생성
+      const categoryExists = await prisma.forumCategory.findUnique({
+        where: { id: categoryId }
+      });
+      
+      if (!categoryExists) {
+        console.error('Category not found:', categoryId);
+        
+        // 기본 카테고리라면 자동 생성 시도
+        const defaultCategories = {
+          'strategy': { id: 'strategy', name: '전략 & 팁', description: '게임 전략, 팁, 가이드를 공유하세요', icon: '🧠', color: 'blue', order: 1 },
+          'general': { id: 'general', name: '자유 게시판', description: '자유롭게 이야기를 나누세요', icon: '💬', color: 'green', order: 2 },
+          'questions': { id: 'questions', name: '질문 & 답변', description: '궁금한 점을 물어보고 답변해주세요', icon: '❓', color: 'orange', order: 3 },
+          'clan': { id: 'clan', name: '클랜 모집', description: '클랜원을 모집하거나 클랜을 찾아보세요', icon: '👥', color: 'purple', order: 4 },
+          'showcase': { id: 'showcase', name: '플레이 영상', description: '멋진 플레이 영상을 공유하세요', icon: '🎬', color: 'red', order: 5 }
+        };
+        
+        if (defaultCategories[categoryId]) {
+          try {
+            console.log('자동으로 기본 카테고리를 생성합니다:', categoryId);
+            await prisma.forumCategory.create({
+              data: defaultCategories[categoryId]
+            });
+            console.log('✅ 기본 카테고리 생성 완료:', categoryId);
+          } catch (createError) {
+            console.error('카테고리 자동 생성 실패:', createError);
+            return res.status(400).json({ 
+              error: '선택한 카테고리가 존재하지 않습니다.',
+              details: `카테고리 ID: ${categoryId}`,
+              suggestion: '포럼 카테고리를 먼저 초기화해주세요.'
+            });
+          }
+        } else {
+          return res.status(400).json({ 
+            error: '선택한 카테고리가 존재하지 않습니다.',
+            details: `카테고리 ID: ${categoryId}`
+          });
+        }
+      }
+
       const post = await prisma.forumPost.create({
         data: {
           title,
@@ -236,6 +283,8 @@ export default async function handler(req, res) {
         }
       });
       
+      console.log('Post created successfully:', post.id);
+      
       res.status(201).json({
         ...post,
         replyCount: post._count.replies,
@@ -249,7 +298,20 @@ export default async function handler(req, res) {
     
   } catch (error) {
     console.error('Forum posts API error:', error);
-    res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+    
+    // 더 자세한 에러 정보 반환
+    const errorMessage = error.message || '서버 오류가 발생했습니다.';
+    const errorDetails = process.env.NODE_ENV === 'development' ? {
+      stack: error.stack,
+      code: error.code,
+      meta: error.meta
+    } : null;
+    
+    res.status(500).json({ 
+      error: errorMessage,
+      details: errorDetails,
+      timestamp: new Date().toISOString()
+    });
   } finally {
     await prisma.$disconnect();
   }

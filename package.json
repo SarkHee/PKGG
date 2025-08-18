@@ -2,13 +2,14 @@
   "name": "pk-gg",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "auto-discovery": "node scripts/auto-discovery-monitor.js",
-    "auto-discovery-periodic": "node scripts/periodic-auto-discovery.js"
+    "auto-discovery-periodic": "node scripts/periodic-auto-discovery.js",
+    "create-sample-news": "node scripts/create-sample-news.js",
+    "update-pubg-news": "node scripts/update-pubg-news.js"
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",

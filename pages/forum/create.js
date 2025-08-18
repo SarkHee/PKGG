@@ -76,6 +76,13 @@ export default function CreatePost() {
     setIsSubmitting(true);
     
     try {
+      console.log('Submitting post:', {
+        title: formData.title,
+        contentLength: formData.content.length,
+        author: formData.author,
+        categoryId: formData.categoryId
+      });
+
       const response = await fetch('/api/forum/posts', {
         method: 'POST',
         headers: {
@@ -88,11 +95,14 @@ export default function CreatePost() {
       });
       
       const result = await response.json();
+      console.log('API Response:', { status: response.status, result });
       
       if (response.ok) {
         // 성공 시 해당 카테고리로 이동
+        console.log('Post created successfully, redirecting...');
         router.push(`/forum/category/${formData.categoryId}?success=created`);
       } else {
+        console.error('API Error:', result);
         if (result.error === 'PROFANITY_DETECTED') {
           setErrors({
             general: `부적절한 언어가 감지되었습니다: ${result.details?.words?.join(', ') || ''}`,
@@ -104,7 +114,7 @@ export default function CreatePost() {
       }
     } catch (error) {
       console.error('Error creating post:', error);
-      setErrors({ general: '네트워크 오류가 발생했습니다' });
+      setErrors({ general: '네트워크 오류가 발생했습니다. 서버가 실행 중인지 확인해주세요.' });
     } finally {
       setIsSubmitting(false);
     }

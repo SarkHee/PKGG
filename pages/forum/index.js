@@ -112,48 +112,70 @@ function RecentPostCard({ post }) {
 }
 
 export default function ForumIndex() {
+  const [categories, setCategories] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // 임시 데이터로 빠르게 로딩
-    setTimeout(() => {
-      setRecentPosts([
-        {
-          id: 1,
-          title: "초보자를 위한 PUBG 생존 가이드",
-          preview: "PUBG를 처음 시작하는 분들을 위한 기본적인 생존 팁들을 정리해봤습니다",
-          category: { name: "전략 & 팁" },
-          author: "PUBG마스터",
-          replyCount: 15,
-          likeCount: 42,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 2,
-          title: "솔로 랭크 올리는 법",
-          preview: "솔로 플레이어들을 위한 효과적인 랭크 상승 전략을 공유합니다",
-          category: { name: "전략 & 팁" },
-          author: "솔로킹",
-          replyCount: 8,
-          likeCount: 28,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 3,
-          title: "클랜원 모집합니다! (Lv.10+ 환영)",
-          preview: "활발한 클랜에서 함께 플레이할 멤버를 모집합니다",
-          category: { name: "클랜 모집" },
-          author: "클랜리더123",
-          replyCount: 5,
-          likeCount: 12,
-          createdAt: new Date().toISOString()
-        }
-      ]);
-      setLoading(false);
-    }, 500);
+    loadCategories();
+    loadRecentPosts();
   }, []);
+
+  const loadCategories = async () => {
+    try {
+      const response = await fetch('/api/forum/categories');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.length === 0) {
+          // 카테고리가 없으면 초기화 시도
+          console.log('카테고리가 없습니다. 자동 초기화를 시도합니다...');
+          const initResponse = await fetch('/api/forum/init', { method: 'POST' });
+          if (initResponse.ok) {
+            // 초기화 후 다시 조회
+            const retryResponse = await fetch('/api/forum/categories');
+            if (retryResponse.ok) {
+              const retryData = await retryResponse.json();
+              setCategories(retryData);
+            }
+          } else {
+            // 초기화 실패 시 기본 카테고리 사용
+            setCategories(FORUM_CATEGORIES.map(cat => ({ ...cat, postCount: 0 })));
+          }
+        } else {
+          setCategories(data);
+        }
+      } else {
+        // 응답이 실패한 경우 기본 카테고리 사용
+        setCategories(FORUM_CATEGORIES.map(cat => ({ ...cat, postCount: 0 })));
+      }
+    } catch (error) {
+      console.error('카테고리 로딩 오류:', error);
+      // 오류 시 기본 카테고리 사용
+      setCategories(FORUM_CATEGORIES.map(cat => ({ ...cat, postCount: 0 })));
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const loadRecentPosts = async () => {
+    try {
+      const response = await fetch('/api/forum/posts?limit=6');
+      if (response.ok) {
+        const data = await response.json();
+        setRecentPosts(data.posts || []);
+      } else {
+        // 실패 시 빈 배열
+        setRecentPosts([]);
+      }
+    } catch (error) {
+      console.error('최근 게시글 로딩 오류:', error);
+      setRecentPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -193,26 +215,45 @@ export default function ForumIndex() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
             📂 카테고리
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {FORUM_CATEGORIES.map(category => (
-              <ForumCategoryCard 
-                key={category.id} 
-                category={category} 
-                postCount={Math.floor(Math.random() * 50) + 10}
-              />
-            ))}
-          </div>
+          {categoriesLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1,2,3,4,5].map(i => (
+                <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded"></div>
+                    </div>
+                    <div className="text-right">
+                      <div className="h-3 bg-gray-200 rounded w-16"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categories.map(category => (
+                <ForumCategoryCard 
+                  key={category.id} 
+                  category={category} 
+                  postCount={category.postCount || 0}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 최근 게시글 섹션 */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
-            🔥 최근 인기 게시글
+            🔥 최근 게시글
           </h2>
           
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1,2,3].map(i => (
+              {[1,2,3,4,5,6].map(i => (
                 <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-4 animate-pulse">
                   <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
                   <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
@@ -223,11 +264,27 @@ export default function ForumIndex() {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : recentPosts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentPosts.map(post => (
                 <RecentPostCard key={post.id} post={post} />
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+              <div className="text-6xl mb-4">📝</div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                아직 게시글이 없습니다
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                첫 번째 게시글을 작성해보세요!
+              </p>
+              <button 
+                onClick={() => router.push('/forum/create')}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
+              >
+                글 작성하기
+              </button>
             </div>
           )}
         </div>

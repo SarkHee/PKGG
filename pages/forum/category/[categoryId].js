@@ -159,22 +159,12 @@ export default function ForumCategory() {
                 {categoryInfo.icon}
               </div>
               <div>
-                          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {currentCategory?.icon} {currentCategory?.name}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                {currentCategory?.description}
-              </p>
-            </div>
-            <Link 
-              href={`/forum/create?category=${categoryId}`}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-            >
-              ✏️ 새 글 작성
-            </Link>
-          </div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                  {categoryInfo.name}
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  PUBG 관련 {categoryInfo.name} 게시판입니다
+                </p>
               </div>
             </div>
             

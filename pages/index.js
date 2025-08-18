@@ -10,6 +10,8 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [server, setServer] = useState('steam');
   const [searchMessage, setSearchMessage] = useState('');
+  const [recentNews, setRecentNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(false);
   const router = useRouter();
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
@@ -22,6 +24,27 @@ export default function Home() {
       setTimeout(() => setSearchMessage(''), 5000);
     }
   }, [router.query]);
+
+  // PUBG 뉴스 가져오기
+  const loadRecentNews = async () => {
+    try {
+      setNewsLoading(true);
+      const response = await fetch('/api/pubg/news?limit=3');
+      if (response.ok) {
+        const data = await response.json();
+        setRecentNews(data.news);
+      }
+    } catch (error) {
+      console.error('뉴스 로드 실패:', error);
+    } finally {
+      setNewsLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 뉴스 로드
+  useEffect(() => {
+    loadRecentNews();
+  }, []);
 
   // Canvas 기반 파티클 시스템
   useEffect(() => {
@@ -292,6 +315,75 @@ export default function Home() {
               <p>정확한 게임 내 닉네임을 입력해주세요</p>
             </div>
           </div>
+
+          {/* PUBG 뉴스 섹션 */}
+          {recentNews.length > 0 && (
+            <div className="w-full max-w-7xl mx-auto mb-16">
+              <div className="px-4">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    📢 배그공지사항
+                  </h2>
+                  <Link href="/pubg-news" passHref>
+                    <span className="text-blue-400 hover:text-blue-300 text-sm font-medium cursor-pointer flex items-center gap-1">
+                      전체보기 →
+                    </span>
+                  </Link>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {recentNews.map((news, index) => (
+                    <div 
+                      key={news.id}
+                      className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/80 transition-all duration-300 hover:scale-105"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        {news.category && (
+                          <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs font-medium">
+                            {news.category}
+                          </span>
+                        )}
+                        {news.priority > 5 && (
+                          <span className="bg-red-600/20 text-red-300 px-2 py-1 rounded text-xs font-medium">
+                            🔥
+                          </span>
+                        )}
+                      </div>
+                      
+                      <h3 className="text-white font-semibold text-sm mb-2 line-clamp-2">
+                        <a 
+                          href={news.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="hover:text-blue-300 transition-colors"
+                        >
+                          {news.title}
+                        </a>
+                      </h3>
+                      
+                      {news.publishDate && (
+                        <p className="text-gray-400 text-xs mb-3">
+                          {new Date(news.publishDate).toLocaleDateString('ko-KR')}
+                        </p>
+                      )}
+                      
+                      <a
+                        href={news.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs font-medium"
+                      >
+                        원문보기
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 특징 카드 섹션 */}
           <div className="w-full max-w-7xl mx-auto">

@@ -45,6 +45,11 @@ export default function Header() {
                 💬 포럼
               </span>
             </Link>
+            <Link href="/pubg-news" passHref>
+              <span className="text-base font-semibold text-white hover:text-gray-200 cursor-pointer flex items-center gap-1">
+                📢 배그공지사항
+              </span>
+            </Link>
           </div>
           <form onSubmit={handleSearch} className="flex items-center gap-2">
             <select 
