@@ -63,12 +63,17 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
 
   // 클랜 소속 여부 확인
   const hasValidClan = clanName && clanName !== '-' && clanName !== '무소속' && clanName !== 'N/A';
-  const hasClanData = hasValidClan && (clanMembers && clanMembers.length > 0 || synergyTop && synergyTop.length > 0);
+  const hasClanMembers = clanMembers && clanMembers.length > 0;
+  const hasSynergyData = synergyTop && synergyTop.length > 0;
+  
+  // 클랜이 있지만 클랜원 정보가 없는 경우 구분
+  const showClanDataNotAvailable = hasValidClan && !hasClanMembers && !hasSynergyData;
+  const showClanAnalysis = hasValidClan && (hasClanMembers || hasSynergyData);
 
   return (
     <div className="space-y-4">
       {/* 클랜 및 팀플레이 요약 카드 그리드 */}
-      {hasClanData ? (
+      {showClanAnalysis ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatCard 
             title="클랜명" 
@@ -78,7 +83,16 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
           />
           <StatCard 
             title="클랜 시너지 딜량" 
-            value={clanAverageValue} 
+            value={
+              clanAverageValue > 0 ? (
+                <div>
+                  <div className="text-lg font-bold">{clanAverageValue}</div>
+                  <div className="text-xs text-gray-600">클랜원과 함께할 때</div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">데이터 없음</div>
+              )
+            }
             icon="💪"
             colorClass="green"
           />
@@ -91,17 +105,23 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
           <StatCard 
             title="함께한 클랜원 TOP3" 
             value={
-              <div className="space-y-1">
-                {synergyTop?.map(p => 
-                  <div key={p.name} className="text-sm">
-                    <Link href={`/player/steam/${encodeURIComponent(p.name)}`}>
-                      <span className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium">
-                        {p.name}
-                      </span>
-                    </Link>
-                  </div>
-                )}
-              </div>
+              synergyTop && synergyTop.length > 0 ? (
+                <div className="space-y-1">
+                  {synergyTop.map((p, index) => 
+                    <div key={p.name} className="text-sm">
+                      <Link href={`/player/steam/${encodeURIComponent(p.name)}`}>
+                        <span className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium">
+                          {index + 1}. {p.name}
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  최근 경기에서<br/>함께한 클랜원 없음
+                </div>
+              )
             } 
             icon="👥"
             colorClass="orange"
@@ -118,12 +138,25 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
             colorClass="pink"
           />
         </div>
+      ) : showClanDataNotAvailable ? (
+        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200 rounded-xl p-8 text-center">
+          <div className="text-4xl mb-4">🏰</div>
+          <div className="text-lg font-medium text-yellow-800 mb-2">
+            클랜: {clanName}
+          </div>
+          <div className="text-sm text-yellow-600 mb-4">
+            클랜원 정보가 없습니다
+          </div>
+          <div className="text-xs text-yellow-500">
+            클랜은 소속되어 있지만, 아직 우리 데이터베이스에 클랜원들의 정보가 입력되지 않았습니다.
+          </div>
+        </div>
       ) : (
         <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-8 text-center">
           <div className="text-4xl mb-4">🏰</div>
           <div className="text-lg font-medium text-gray-600 mb-2">클랜 및 팀플레이 분석</div>
           <div className="text-sm text-gray-500">
-            클랜에 소속되어있지 않거나 클랜원 정보가 없습니다.
+            클랜에 소속되어있지 않습니다.
           </div>
         </div>
       )}

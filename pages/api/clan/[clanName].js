@@ -73,6 +73,7 @@ export default async function handler(req, res) {
     const members = clan.members.map(member => ({
       id: member.id,
       playerName: member.nickname,
+      server: member.pubgShardId || 'steam', // 서버 정보 추가, 기본값은 steam
       joinedAt: member.lastUpdated,
       lastActiveAt: member.lastUpdated,
       stats: member.score > 0 ? {

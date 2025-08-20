@@ -132,7 +132,7 @@ const Tooltip = ({ children, content }) => {
     >
       {children}
       {isVisible && (
-        <div className="absolute z-[9999] px-4 py-3 text-sm text-white bg-black bg-opacity-95 rounded-lg shadow-xl min-w-[300px] max-w-[500px] break-words whitespace-normal bottom-full mb-2 left-1/2 transform -translate-x-1/2">
+        <div className="absolute z-[99999] px-4 py-3 text-sm text-white bg-black bg-opacity-95 rounded-lg shadow-xl min-w-[300px] max-w-[500px] break-words whitespace-normal bottom-full mb-2 left-1/2 transform -translate-x-1/2">
           {content}
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-transparent border-t-4 border-t-black"></div>
         </div>
@@ -483,7 +483,21 @@ export default function ClanDetail() {
                         <tr>
                           <th className="px-4 py-3 text-left">순위</th>
                           <th className="px-4 py-3 text-left">플레이어명</th>
-                          <th className="px-4 py-3 text-left">MMR</th>
+                          <th className="px-4 py-3 text-left">
+                            <Tooltip content={
+                              <div className="text-left">
+                                <div className="font-semibold text-yellow-400 mb-1">PK.GG MMR 시스템</div>
+                                <div className="text-sm mb-2">PUBG 공식 MMR과는 다른 PK.GG 독자적인 계산법</div>
+                                <div className="text-xs space-y-1">
+                                  <div>• 킬/데미지/생존시간 종합 평가</div>
+                                  <div>• 높을수록 실력이 우수함을 의미</div>
+                                  <div>• PUBG 공식 MMR과는 산출 기준이 다름</div>
+                                </div>
+                              </div>
+                            }>
+                              <span className="cursor-help border-b border-dotted border-gray-400">MMR</span>
+                            </Tooltip>
+                          </th>
                           <th className="px-4 py-3 text-left">K/D</th>
                           <th className="px-4 py-3 text-left">승률</th>
                           <th className="px-4 py-3 text-left">최근 활동</th>
@@ -505,7 +519,7 @@ export default function ClanDetail() {
                             </td>
                             <td className="px-4 py-3">
                               <Link 
-                                href={`/player/${encodeURIComponent(member.playerName)}`}
+                                href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}
                                 className="font-semibold hover:text-blue-400 transition-colors"
                               >
                                 {member.playerName}
