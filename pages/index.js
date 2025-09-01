@@ -32,10 +32,17 @@ export default function Home() {
       const response = await fetch('/api/pubg/news?limit=3');
       if (response.ok) {
         const data = await response.json();
-        setRecentNews(data.news);
+        if (data.success && Array.isArray(data.data)) {
+          setRecentNews(data.data.slice(0, 3)); // 최대 3개만 가져오기
+        } else {
+          setRecentNews([]); // 실패 시 빈 배열
+        }
+      } else {
+        setRecentNews([]); // 응답 실패 시 빈 배열
       }
     } catch (error) {
       console.error('뉴스 로드 실패:', error);
+      setRecentNews([]); // 오류 시 빈 배열
     } finally {
       setNewsLoading(false);
     }
@@ -317,7 +324,7 @@ export default function Home() {
           </div>
 
           {/* PUBG 뉴스 섹션 */}
-          {recentNews.length > 0 && (
+          {Array.isArray(recentNews) && recentNews.length > 0 && (
             <div className="w-full max-w-7xl mx-auto mb-16">
               <div className="px-4">
                 <div className="flex items-center justify-between mb-6">
@@ -332,18 +339,18 @@ export default function Home() {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {recentNews.map((news, index) => (
+                  {Array.isArray(recentNews) && recentNews.map((news, index) => (
                     <div 
-                      key={news.id}
+                      key={news?.id || index}
                       className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 rounded-xl p-4 hover:bg-gray-800/80 transition-all duration-300 hover:scale-105"
                     >
                       <div className="flex items-start justify-between mb-2">
-                        {news.category && (
+                        {news?.category && (
                           <span className="bg-blue-600/20 text-blue-300 px-2 py-1 rounded text-xs font-medium">
                             {news.category}
                           </span>
                         )}
-                        {news.priority > 5 && (
+                        {(news?.priority || 0) > 5 && (
                           <span className="bg-red-600/20 text-red-300 px-2 py-1 rounded text-xs font-medium">
                             🔥
                           </span>
@@ -352,23 +359,29 @@ export default function Home() {
                       
                       <h3 className="text-white font-semibold text-sm mb-2 line-clamp-2">
                         <a 
-                          href={news.url} 
+                          href={news?.url || '#'} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="hover:text-blue-300 transition-colors"
                         >
-                          {news.title}
+                          {news?.title || '제목 없음'}
                         </a>
                       </h3>
                       
-                      {news.publishDate && (
+                      {news?.publishDate && (
                         <p className="text-gray-400 text-xs mb-3">
-                          {new Date(news.publishDate).toLocaleDateString('ko-KR')}
+                          {(() => {
+                            try {
+                              return new Date(news.publishDate).toLocaleDateString('ko-KR');
+                            } catch (e) {
+                              return '날짜 정보 없음';
+                            }
+                          })()}
                         </p>
                       )}
                       
                       <a
-                        href={news.url}
+                        href={news?.url || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs font-medium"

@@ -13,6 +13,7 @@ import Header from '../../../components/Header.jsx';
 import EnhancedPlayerStats from '../../../components/EnhancedPlayerStats.jsx';
 import PlayerHeader from '../../../components/PlayerHeader.jsx';
 import MatchDetailExpandable from '../../../components/MatchDetailExpandable.jsx';
+import PersonalCoachingSystem from '../../../components/PersonalCoachingSystem.jsx';
 
 // 반드시 export default 함수 바깥에 위치!
 function MatchList({ recentMatches }) {
@@ -987,6 +988,30 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           cooldown={cooldown}
           refreshMsg={refreshMsg}
         />
+
+      {/* 개인 맞춤형 AI 코칭 시스템 */}
+      <div className="mb-10">
+        <div className="bg-gradient-to-r from-violet-50 via-violet-100 to-purple-50 dark:from-violet-900/20 dark:to-purple-800/20 rounded-2xl p-6 mb-6 border-l-4 border-violet-500 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🤖</span>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">개인 맞춤형 AI 코칭</h2>
+            <span className="text-sm bg-violet-200 dark:bg-violet-700 text-violet-800 dark:text-violet-200 px-3 py-1 rounded-full font-medium">훈련/피드백</span>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+          <PersonalCoachingSystem 
+            playerStats={{
+              avgDamage: summary?.seasonAvgDamage || summary?.damagePerGame || profile?.avgDamage || 0,
+              avgKills: summary?.seasonAvgKills || summary?.killsPerGame || profile?.avgKills || 0,
+              avgDeaths: summary?.seasonAvgDeaths || summary?.deathsPerGame || profile?.avgDeaths || 1,
+              avgAssists: summary?.seasonAvgAssists || summary?.assistsPerGame || profile?.avgAssists || 0,
+              winRatio: summary?.seasonWinRatio || summary?.winRate || profile?.winRate || 0,
+              avgSurvivalTime: summary?.avgSurvivalTime || profile?.avgSurviveTime || 0
+            }}
+            matches={recentMatches}
+          />
+        </div>
+      </div>
 
       {/* 클랜 및 팀플레이 분석 섹션 */}
       <div className="mb-10">

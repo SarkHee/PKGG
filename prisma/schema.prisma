@@ -183,3 +183,18 @@ model PubgNews {
   
   @@map("pubg_news")
 }
+
+// 랭킹 업데이트 로그 모델
+model RankingUpdateLog {
+  id             Int       @id @default(autoincrement())
+  updateType     String    // 업데이트 타입 (clan_ranking, player_ranking 등)
+  updateTime     DateTime  // 업데이트 시간
+  status         String    // 상태 (success, error)
+  updatedCount   Int       @default(0) // 업데이트된 항목 수
+  errorMessage   String?   // 오류 메시지 (있는 경우)
+  details        String?   // 추가 상세 정보 (JSON 형태)
+  
+  createdAt      DateTime  @default(now())
+  
+  @@map("ranking_update_logs")
+}

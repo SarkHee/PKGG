@@ -5,6 +5,94 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '../components/Layout';
 
+// 랭킹 업데이트 상태 컴포넌트
+function RankingUpdateStatus() {
+  const [updateStatus, setUpdateStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUpdateStatus();
+    // 1분마다 상태 업데이트
+    const interval = setInterval(fetchUpdateStatus, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchUpdateStatus = async () => {
+    try {
+      const response = await fetch('/api/clan/ranking-status');
+      const data = await response.json();
+      if (data.success) {
+        setUpdateStatus(data.data);
+      }
+    } catch (error) {
+      console.error('상태 조회 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || !updateStatus) {
+    return (
+      <div className="text-sm text-gray-400 mt-1">
+        📊 업데이트 상태 조회 중...
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-sm text-gray-400 mt-1 space-y-1">
+      <div>
+        📅 마지막 업데이트: {updateStatus.lastUpdate.timeKorean}
+      </div>
+      <div>
+        ⏰ 다음 업데이트: 매일 {updateStatus.nextUpdate.schedules.join(', ')}
+      </div>
+    </div>
+  );
+}
+
+// 수동 업데이트 버튼 컴포넌트
+function ManualUpdateButton() {
+  const [updating, setUpdating] = useState(false);
+
+  const handleManualUpdate = async () => {
+    if (updating) return;
+    
+    setUpdating(true);
+    try {
+      const response = await fetch('/api/clan/update-rankings', {
+        method: 'POST'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`✅ 랭킹 업데이트 완료!\n${data.data.updatedCount}개 클랜이 업데이트되었습니다.`);
+        window.location.reload();
+      } else {
+        alert(`❌ 업데이트 실패: ${data.message}`);
+      }
+    } catch (error) {
+      alert(`❌ 업데이트 중 오류가 발생했습니다: ${error.message}`);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleManualUpdate}
+      disabled={updating}
+      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+        updating
+          ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+          : 'bg-blue-600 hover:bg-blue-700 text-white'
+      }`}
+    >
+      {updating ? '🔄 업데이트 중...' : '🔄 지금 업데이트'}
+    </button>
+  );
+}
+
 // 플레이스타일 아이콘 및 설명 매핑
 const playStyleConfig = {
   '극단적 공격형': {
@@ -234,7 +322,7 @@ export default function ClanAnalytics() {
   if (loading) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-900 text-white overflow-visible" style={{ paddingTop: '0', marginTop: '-5rem' }}>
+        <div className="min-h-screen bg-gray-900 text-white overflow-visible" style={{ paddingTop: '0', marginTop: '-6rem' }}>
           <div className="pt-24 pb-8 px-8">
             <div className="max-w-6xl mx-auto">
               <div className="text-center">
@@ -251,7 +339,7 @@ export default function ClanAnalytics() {
   if (error) {
     return (
       <Layout>
-        <div className="min-h-screen bg-gray-900 text-white overflow-visible" style={{ paddingTop: '0', marginTop: '-5rem' }}>
+        <div className="min-h-screen bg-gray-900 text-white overflow-visible" style={{ paddingTop: '0', marginTop: '-6rem' }}>
           <div className="pt-24 pb-8 px-8">
             <div className="max-w-6xl mx-auto">
               <div className="text-center text-red-400">
@@ -384,7 +472,7 @@ export default function ClanAnalytics() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-900 text-white overflow-visible" style={{ paddingTop: '0', marginTop: '-5rem' }}>
+      <div className="min-h-screen bg-gray-900 text-white overflow-visible" style={{ paddingTop: '0', marginTop: '-6rem' }}>
         <div className="pt-24 pb-8 px-8">
           <div className="max-w-6xl mx-auto overflow-visible">
           
@@ -568,8 +656,12 @@ export default function ClanAnalytics() {
 
           {/* 상위 클랜 랭킹 */}
           <div className="mb-8">
-            <div className="mb-4">
-              <h2 className="text-2xl font-bold">🥇 클랜 랭킹 TOP 10 (평균 점수 기준)</h2>
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold">🥇 클랜 랭킹 TOP 10 (평균 점수 기준)</h2>
+                <RankingUpdateStatus />
+              </div>
+              <ManualUpdateButton />
             </div>
             <div className="bg-gray-800 rounded-lg overflow-visible">
               <table className="w-full">

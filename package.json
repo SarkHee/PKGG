@@ -9,13 +9,17 @@
     "auto-discovery": "node scripts/auto-discovery-monitor.js",
     "auto-discovery-periodic": "node scripts/periodic-auto-discovery.js",
     "create-sample-news": "node scripts/create-sample-news.js",
-    "update-pubg-news": "node scripts/update-pubg-news.js"
+    "update-pubg-news": "node scripts/update-pubg-news.js",
+    "update-clan-rankings": "node scripts/auto-clan-ranking-update.js",
+    "start-clan-ranking-scheduler": "node -e \"require('./scripts/auto-clan-ranking-update.js').startClanRankingScheduler(); setInterval(() => {}, 1000);\""
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
     "axios": "^1.9.0",
     "chart.js": "^4.5.0",
+    "cheerio": "^1.1.2",
     "next": "^15.4.4",
+    "node-cron": "^4.2.1",
     "node-fetch": "^2.7.0",
     "react": "18.2.0",
     "react-chartjs-2": "^5.3.0",
