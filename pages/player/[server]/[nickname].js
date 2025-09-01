@@ -16,7 +16,7 @@ import MatchDetailExpandable from '../../../components/MatchDetailExpandable.jsx
 import PersonalCoachingSystem from '../../../components/PersonalCoachingSystem.jsx';
 
 // 반드시 export default 함수 바깥에 위치!
-function MatchList({ recentMatches }) {
+function MatchList({ recentMatches, playerData }) {
   const [openIdx, setOpenIdx] = useState(null);
   return (
     <div className="space-y-4">
@@ -27,6 +27,7 @@ function MatchList({ recentMatches }) {
           isOpen={openIdx === i}
           onToggle={() => setOpenIdx(openIdx === i ? null : i)}
           prevMatch={i > 0 ? recentMatches[i - 1] : null}
+          playerData={playerData}
         />
       ))}
     </div>
@@ -1138,7 +1139,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           </div>
           
           {filteredMatches && filteredMatches.length > 0 ? (
-            <MatchList recentMatches={filteredMatches} />
+            <MatchList recentMatches={filteredMatches} playerData={playerData} />
           ) : (
             <div className="text-center py-12">
               <div className="text-6xl mb-6">📋</div>

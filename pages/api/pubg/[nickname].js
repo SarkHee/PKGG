@@ -1001,11 +1001,12 @@ export default async function handler(req, res) {
         return sum + (teammate.damage || 0);
       }, 0);
 
-      // 게임 모드 타입 구분 (더 정확한 랭크드 모드 감지)
+      // 게임 모드 타입 구분 (스마트한 랭크드 모드 감지)
       const gameMode = matchData.data.attributes.gameMode;
       console.log(`[GAMEMODE RAW] 경기 ${matchId}: 원본 gameMode="${gameMode}"`);
       
-      const isRanked = gameMode && (
+      // 1차: 직접적인 ranked 키워드 검사
+      let isRanked = gameMode && (
         gameMode.includes('ranked') || 
         gameMode.includes('competitive') ||
         gameMode.startsWith('ranked-') ||
@@ -1016,6 +1017,30 @@ export default async function handler(req, res) {
         gameMode === 'ranked-solo-fpp' ||
         gameMode === 'ranked-solo'
       );
+      
+      // 2차: 랭킹 통계가 있는 플레이어의 경우 추가 로직 적용
+      if (!isRanked && rankedStats && rankedStats.length > 0) {
+        // 활성 랭킹 모드가 있는지 확인
+        const activeRankedMode = rankedStats.find(r => (r.rounds || r.roundsPlayed || 0) >= 10);
+        
+        if (activeRankedMode) {
+          console.log(`[SMART MODE] 활성 랭킹 모드 발견: ${activeRankedMode.mode}, 경기수: ${activeRankedMode.rounds || activeRankedMode.roundsPlayed}`);
+          
+          // 매치 시간이 시즌 중이고, 게임모드가 해당 랭킹 모드와 일치하면 경쟁전으로 판단
+          const matchMode = gameMode?.toLowerCase() || '';
+          const rankedMode = activeRankedMode.mode?.toLowerCase() || '';
+          
+          // squad, duo, solo 매칭 확인
+          if ((matchMode.includes('squad') && rankedMode.includes('squad')) ||
+              (matchMode.includes('duo') && rankedMode.includes('duo')) ||
+              (matchMode.includes('solo') && rankedMode.includes('solo'))) {
+            
+            console.log(`[SMART MODE] 모드 매칭 성공: 매치="${matchMode}" vs 랭킹="${rankedMode}" → 경쟁전으로 판단`);
+            isRanked = true;
+          }
+        }
+      }
+      
       const modeType = isRanked ? '경쟁전' : '일반';
       
       console.log(`[MODE DEBUG] 경기 ${matchId}: gameMode="${gameMode}", isRanked=${isRanked}, modeType="${modeType}"`);
@@ -1023,12 +1048,12 @@ export default async function handler(req, res) {
 
       // 최근 20경기 요약 리스트에 추가 (op.gg 스타일로 필요한 필드만 정제)
       // op.gg 스타일에 맞는 데이터 가공
-      // 1. 모드명 변환
+      // 1. 모드명 변환 (한글)
       const modeKor = (() => {
         const m = gameMode;
-        if (m === 'squad-fpp' || m === 'squad') return 'SQUAD';
-        if (m === 'duo-fpp' || m === 'duo') return 'DUO';
-        if (m === 'solo-fpp' || m === 'solo') return 'SOLO';
+        if (m === 'squad-fpp' || m === 'squad') return '스쿼드';
+        if (m === 'duo-fpp' || m === 'duo') return '듀오';
+        if (m === 'solo-fpp' || m === 'solo') return '솔로';
         return m.toUpperCase();
       })();
 

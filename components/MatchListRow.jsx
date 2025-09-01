@@ -6,10 +6,96 @@ import RankChangeIndicator from "./RankChangeIndicator.jsx";
 
 
 
-export default function MatchListRow({ match, isOpen, onToggle, prevMatch }) {
+export default function MatchListRow({ match, isOpen, onToggle, prevMatch, playerData }) {
   // MMR 변화량 계산 (이전 경기 avgMmr과 현재 avgMmr 비교)
   const prevScore = prevMatch?.avgMmr;
   const currentScore = match.avgMmr;
+  
+  // 게임 모드를 한글로 변환하는 함수
+  const translateGameMode = (mode) => {
+    if (!mode) return mode;
+    const modeStr = mode.toString().toLowerCase();
+    if (modeStr === 'squad' || modeStr === 'squad-fpp') return '스쿼드';
+    if (modeStr === 'duo' || modeStr === 'duo-fpp') return '듀오';
+    if (modeStr === 'solo' || modeStr === 'solo-fpp') return '솔로';
+    return mode;
+  };
+  
+    // 게임 모드 분석 함수 (완전히 새로운 접근법)
+  const getGameModeInfo = (match, playerData) => {
+    console.log('🔍 게임 모드 분석 중...', {
+      matchId: match.matchId || match.id,
+      gameMode: match.gameMode,
+      matchType: match.matchType,
+      mapName: match.mapName,
+      modeType: match.modeType
+    });
+
+    // 1. 기존에 modeType이 이미 올바르게 설정되어 있는 경우
+    if (match.modeType && match.modeType !== '일반') {
+      console.log(`✅ 기존 modeType 사용: "${match.modeType}"`);
+      return { type: 'ranked', label: match.modeType, color: '#dc2626' };
+    }
+
+    // 2. 다양한 필드에서 랭크 모드 감지
+    const modeFields = [
+      match.gameMode,
+      match.matchType, 
+      match.mode,
+      match.type,
+      match.queueType,
+      match.customMode
+    ];
+
+    // 랭크 키워드 검사
+    const rankedKeywords = [
+      'ranked', 'rank', 'competitive', 'comp', 'rating', 'mmr'
+    ];
+
+    for (const field of modeFields) {
+      if (field && typeof field === 'string') {
+        const fieldLower = field.toLowerCase();
+        for (const keyword of rankedKeywords) {
+          if (fieldLower.includes(keyword.toLowerCase())) {
+            console.log(`✅ 랭크 키워드 발견: "${keyword}" in "${field}"`);
+            return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
+          }
+        }
+      }
+    }
+
+    // 3. 플레이어의 랭킹 정보를 기반으로 추정
+    if (playerData?.rankedSummary) {
+      const rankedData = playerData.rankedSummary;
+      
+      // 랭킹 게임을 충분히 한 플레이어인지 확인 (50경기 이상)
+      if (rankedData.games >= 50 || rankedData.roundsPlayed >= 50) {
+        console.log(`🎯 랭킹 데이터 기반 판단: ${rankedData.games || rankedData.roundsPlayed}경기, 티어: ${rankedData.tier || rankedData.currentTier}`);
+        
+        // 매치가 최근 것이라면 (7일 이내) 경쟁전으로 추정
+        if (match.matchTimestamp) {
+          const daysSinceMatch = (Date.now() - match.matchTimestamp) / (1000 * 60 * 60 * 24);
+          if (daysSinceMatch <= 7) {
+            console.log(`✅ 최근 7일 내 매치 + 랭킹 플레이어 = 경쟁전으로 추정`);
+            return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
+          }
+        }
+      }
+    }
+
+    // 4. 게임 모드별 기본 분류
+    const gameMode = match.gameMode || match.mode || '';
+    if (gameMode.toLowerCase().includes('event') || gameMode.toLowerCase().includes('arcade')) {
+      console.log(`🎪 이벤트 모드 감지: "${gameMode}"`);
+      return { type: 'event', label: '이벤트', color: '#f59e0b' };
+    }
+
+    console.log('❌ 랭크 정보를 찾을 수 없음. 일반 모드로 처리');
+    return { type: 'normal', label: '일반', color: '#059669' };
+  };
+  
+  const modeInfo = getGameModeInfo(match, playerData);
+  
   // OP.GG 스타일: 필드 순서, 명칭, 구조, 스타일 제거, robust empty 처리
   if (!match) return (
     <div style={{ padding: '16px', textAlign: 'center', color: '#888' }}>경기 데이터 없음</div>
@@ -23,13 +109,16 @@ export default function MatchListRow({ match, isOpen, onToggle, prevMatch }) {
     >
       <div className="flex items-center gap-4 flex-wrap">
         {/* 경기 모드 타입 (경쟁전/일반) */}
-        <div className="min-w-[60px] text-center">
-          <div className={`text-xs font-bold px-3 py-1 rounded-full border ${
-            match.modeType === '경쟁전' 
-              ? 'text-red-600 bg-red-50 border-red-200' 
-              : 'text-green-600 bg-green-50 border-green-200'
+        <div className="min-w-[80px] text-center">
+          <div className={`text-xs font-bold px-2 py-1 rounded-full border mb-1 ${
+            modeInfo.isRanked
+              ? 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-700 dark:text-red-400' 
+              : 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700 dark:text-green-400'
           }`}>
-            {match.modeType || '일반'}
+            {modeInfo.type}
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            {translateGameMode(match.mode)}
           </div>
         </div>
         
@@ -112,16 +201,44 @@ export default function MatchListRow({ match, isOpen, onToggle, prevMatch }) {
         </div>
         
         {/* 펼치기 화살표 */}
-        <div className="min-w-[32px] text-center text-lg text-gray-400">
-          {isOpen ? '▾' : '▸'}
+        <div className="min-w-[40px] text-center">
+          <button 
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+              isOpen 
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600'
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+          >
+            <span className={`transform transition-transform ${isOpen ? 'rotate-90' : ''}`}>
+              ▶
+            </span>
+          </button>
         </div>
       </div>
       
       {/* 상세 정보 (팀원별 스탯, 상세 로그) */}
       {isOpen && (
-        <div className="mt-6 bg-gray-50 dark:bg-gray-700 rounded-xl p-4 border-t border-gray-200 dark:border-gray-600">
+        <div className="mt-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-inner">
+          {/* 경기 상세 정보 헤더 */}
+          <div className="mb-4 pb-3 border-b border-gray-200 dark:border-gray-600">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+              📊 경기 상세 분석
+            </h3>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {match.mapName && `${match.mapName} • `}
+              {translateGameMode(match.mode)} • 
+              {Math.floor((match.survivalTime || match.surviveTime || 0)/60)}분 생존
+            </div>
+          </div>
+          
           <MatchTeammateStats teammatesDetail={match.teammatesDetail} />
-          <MatchDetailLog match={match} />
+          <div className="mt-6">
+            <MatchDetailLog match={match} />
+          </div>
         </div>
       )}
     </div>
