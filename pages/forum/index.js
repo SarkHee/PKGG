@@ -45,21 +45,44 @@ function ForumCategoryCard({ category, postCount = 0, latestPost = null }) {
   const router = useRouter();
   
   const colorClasses = {
-    blue: 'from-blue-50 to-blue-100 border-blue-200 text-blue-800 bg-blue-500',
-    green: 'from-green-50 to-green-100 border-green-200 text-green-800 bg-green-500',
-    orange: 'from-orange-50 to-orange-100 border-orange-200 text-orange-800 bg-orange-500',
-    purple: 'from-purple-50 to-purple-100 border-purple-200 text-purple-800 bg-purple-500',
-    red: 'from-red-50 to-red-100 border-red-200 text-red-800 bg-red-500'
+    '#3B82F6': 'from-blue-50 to-blue-100 border-blue-200 text-blue-800 bg-blue-500',
+    '#10B981': 'from-green-50 to-green-100 border-green-200 text-green-800 bg-green-500',
+    '#F59E0B': 'from-orange-50 to-orange-100 border-orange-200 text-orange-800 bg-orange-500',
+    '#8B5CF6': 'from-purple-50 to-purple-100 border-purple-200 text-purple-800 bg-purple-500',
+    '#EF4444': 'from-red-50 to-red-100 border-red-200 text-red-800 bg-red-500',
+    '#06B6D4': 'from-cyan-50 to-cyan-100 border-cyan-200 text-cyan-800 bg-cyan-500',
+    // 기본 색상들 (하위 호환)
+    'blue': 'from-blue-50 to-blue-100 border-blue-200 text-blue-800 bg-blue-500',
+    'green': 'from-green-50 to-green-100 border-green-200 text-green-800 bg-green-500',
+    'orange': 'from-orange-50 to-orange-100 border-orange-200 text-orange-800 bg-orange-500',
+    'purple': 'from-purple-50 to-purple-100 border-purple-200 text-purple-800 bg-purple-500',
+    'red': 'from-red-50 to-red-100 border-red-200 text-red-800 bg-red-500',
+    'cyan': 'from-cyan-50 to-cyan-100 border-cyan-200 text-cyan-800 bg-cyan-500',
+    'amber': 'from-amber-50 to-amber-100 border-amber-200 text-amber-800 bg-amber-500'
   };
+
+  // 안전한 색상 클래스 가져오기
+  const getColorClasses = (color) => {
+    return colorClasses[color] || colorClasses['blue']; // 기본값은 파란색
+  };
+
+  const categoryColorClasses = getColorClasses(category?.color);
 
   return (
     <div 
-      className={`bg-gradient-to-r ${colorClasses[category.color]} border rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group`}
-      onClick={() => router.push(`/forum/category/${category.id}`)}
+      className={`bg-gradient-to-r ${categoryColorClasses} border rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group`}
+      onClick={() => {
+        // 문의하기 카테고리는 최상위 문의하기 페이지로 이동
+        if (category.id === 'inquiry') {
+          router.push('/inquiry');
+        } else {
+          router.push(`/forum/category/${category.id}`);
+        }
+      }}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 ${colorClasses[category.color].split(' ')[4]} text-white rounded-lg flex items-center justify-center text-xl group-hover:scale-105 transition-transform`}>
+          <div className={`w-12 h-12 ${categoryColorClasses.split(' ')[4]} text-white rounded-lg flex items-center justify-center text-xl group-hover:scale-105 transition-transform`}>
             {category.icon}
           </div>
           <div>

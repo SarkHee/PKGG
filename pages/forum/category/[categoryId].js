@@ -8,8 +8,13 @@ const CATEGORY_INFO = {
   strategy: { name: '전략 & 팁', icon: '🧠', color: 'blue' },
   general: { name: '자유 게시판', icon: '💬', color: 'green' },
   questions: { name: '질문 & 답변', icon: '❓', color: 'orange' },
-  clan: { name: '클랜 모집', icon: '👥', color: 'purple' },
-  showcase: { name: '플레이 영상', icon: '🎬', color: 'red' }
+  recruitment: { name: '클랜 모집', icon: '👥', color: 'purple' },
+  showcase: { name: '플레이 영상', icon: '🎬', color: 'red' },
+  updates: { name: '업데이트 & 뉴스', icon: '📢', color: 'orange' },
+  'clan-analysis': { name: '클랜 분석', icon: '📊', color: 'cyan' },
+  inquiry: { name: '문의하기', icon: '📧', color: 'amber' },
+  // 하위 호환성을 위한 별칭
+  clan: { name: '클랜 모집', icon: '👥', color: 'purple' }
 };
 
 function PostCard({ post }) {
@@ -61,8 +66,43 @@ export default function ForumCategory() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryInfo, setCategoryInfo] = useState(null);
   
-  const categoryInfo = CATEGORY_INFO[categoryId];
+  // 카테고리 정보 로드
+  useEffect(() => {
+    if (!categoryId) return;
+    
+    const loadCategoryInfo = async () => {
+      try {
+        const response = await fetch('/api/forum/categories');
+        const data = await response.json();
+        
+        if (response.ok) {
+          const category = data.find(cat => cat.id === categoryId);
+          if (category) {
+            setCategoryInfo({
+              name: category.name,
+              icon: category.icon,
+              color: category.color,
+              description: category.description
+            });
+          } else {
+            // 폴백: 하드코딩된 정보 사용
+            setCategoryInfo(CATEGORY_INFO[categoryId] || null);
+          }
+        } else {
+          // API 실패 시 폴백
+          setCategoryInfo(CATEGORY_INFO[categoryId] || null);
+        }
+      } catch (error) {
+        console.error('Error loading category info:', error);
+        // 오류 시 폴백
+        setCategoryInfo(CATEGORY_INFO[categoryId] || null);
+      }
+    };
+
+    loadCategoryInfo();
+  }, [categoryId]);
   
   useEffect(() => {
     if (!categoryId) return;

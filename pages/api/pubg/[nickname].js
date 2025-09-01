@@ -10,6 +10,116 @@ const PUBG_BASE_URL = "https://api.pubg.com/shards";
 const PUBG_SHARD = "steam"; // 사용하는 PUBG 서버 샤드 (예: 'steam', 'kakao', 'pc-krjp', etc.)
 
 /**
+ * 텔레메트리 데이터를 분석하여 상세 킬로그, 무기별 딜량, 이동경로를 추출합니다.
+ * @param {Array} telemetryData - PUBG 텔레메트리 데이터 배열
+ * @param {string} playerName - 분석할 플레이어 이름 (소문자)
+ * @param {string} matchId - 매치 ID (로깅용)
+ * @returns {Object} { killLog: [], weaponStats: {}, movePath: '' }
+ */
+function analyzeTelemetryData(telemetryData, playerName, matchId) {
+  const killLog = [];
+  const weaponStats = {};
+  const positions = [];
+  
+  if (!Array.isArray(telemetryData)) {
+    console.warn(`[TELEMETRY] 매치 ${matchId}: 잘못된 텔레메트리 데이터 형식`);
+    return { killLog, weaponStats, movePath: '' };
+  }
+  
+  console.log(`[TELEMETRY] 매치 ${matchId}: 텔레메트리 이벤트 ${telemetryData.length}개 분석 시작`);
+  
+  telemetryData.forEach((event, index) => {
+    try {
+      // 킬 이벤트 분석
+      if (event._T === 'LogPlayerKill') {
+        const killer = event.killer?.name?.toLowerCase();
+        const victim = event.victim?.name?.toLowerCase();
+        
+        if (killer === playerName) {
+          const weapon = event.damageCaused?.damageCauserName || event.damageTypeCategory || '알 수 없음';
+          const distance = event.distance ? Math.round(event.distance) : 0;
+          const isHeadshot = event.damageReason === 'Head' || event.damageTypeCategory?.includes('Head');
+          
+          const logEntry = `${event.victim?.name || 'Unknown'}을(를) ${weapon}${isHeadshot ? ' (헤드샷)' : ''}으로 ${distance}m에서 제거`;
+          killLog.push(logEntry);
+          
+          console.log(`[TELEMETRY] 킬 발견: ${logEntry}`);
+        }
+      }
+      
+      // 데미지 이벤트 분석 (무기별 딜량)
+      else if (event._T === 'LogPlayerTakeDamage') {
+        const attacker = event.attacker?.name?.toLowerCase();
+        
+        if (attacker === playerName) {
+          const weapon = event.damageCaused?.damageCauserName || event.damageTypeCategory || '알 수 없음';
+          const damage = event.damage || 0;
+          
+          if (damage > 0 && weapon !== '알 수 없음') {
+            weaponStats[weapon] = (weaponStats[weapon] || 0) + damage;
+          }
+        }
+      }
+      
+      // 위치 이벤트 분석 (이동경로용)
+      else if (event._T === 'LogPlayerPosition') {
+        const character = event.character;
+        if (character?.name?.toLowerCase() === playerName) {
+          const location = character.location;
+          if (location && location.x && location.y) {
+            positions.push({
+              x: location.x,
+              y: location.y,
+              timestamp: event._D || new Date().toISOString()
+            });
+          }
+        }
+      }
+    } catch (eventError) {
+      console.warn(`[TELEMETRY] 매치 ${matchId}: 이벤트 ${index} 처리 실패 - ${eventError.message}`);
+    }
+  });
+  
+  // 이동경로 생성 (주요 위치들 추출)
+  let movePath = '';
+  if (positions.length > 10) {
+    const keyPositions = [
+      positions[0], // 시작
+      positions[Math.floor(positions.length / 4)], // 25%
+      positions[Math.floor(positions.length / 2)], // 50%
+      positions[Math.floor(positions.length * 3 / 4)], // 75%
+      positions[positions.length - 1] // 끝
+    ];
+    
+    const locationNames = keyPositions.map(pos => getLocationName(pos.x, pos.y));
+    movePath = locationNames.filter(name => name).join(' → ');
+  }
+  
+  console.log(`[TELEMETRY] 매치 ${matchId}: 분석 완료 - 킬 ${killLog.length}개, 무기 ${Object.keys(weaponStats).length}개, 위치 ${positions.length}개`);
+  
+  return {
+    killLog,
+    weaponStats,
+    movePath: movePath || ''
+  };
+}
+
+/**
+ * 좌표를 기반으로 대략적인 위치명을 반환합니다.
+ * @param {number} x - X 좌표
+ * @param {number} y - Y 좌표  
+ * @returns {string} 위치명
+ */
+function getLocationName(x, y) {
+  // 간단한 위치 매핑 (실제로는 맵별로 더 정교한 매핑이 필요)
+  if (x > 400000 && y > 400000) return 'Northeast';
+  if (x > 400000 && y < 200000) return 'Southeast';
+  if (x < 200000 && y > 400000) return 'Northwest';
+  if (x < 200000 && y < 200000) return 'Southwest';
+  return 'Center';
+}
+
+/**
  * 플레이어의 최근 매치 데이터를 기반으로 플레이스타일을 분석합니다.
  * @param {Array<Object>} matches - 플레이어의 최근 매치 데이터 배열. 각 매치 객체는 damage, distance, survivalTime, kills, headshots, assists, rank 등의 속성을 포함해야 함.
  * @returns {string} 분석된 플레이스타일
@@ -1117,6 +1227,36 @@ export default async function handler(req, res) {
       // 5. 순위/전체
       const rankStr = (typeof myRank === 'number' || (typeof myRank === 'string' && !isNaN(Number(myRank)))) ? `#${myRank}/${totalSquads}` : myRank;
       
+      // 텔레메트리 URL 수집
+      let telemetryUrl = null;
+      const telemetryAsset = matchData.included?.find(item => item.type === 'asset' && item.attributes?.name === 'telemetry');
+      if (telemetryAsset) {
+        telemetryUrl = telemetryAsset.attributes.URL;
+        console.log(`[TELEMETRY] 매치 ${matchId}: 텔레메트리 URL 발견 - ${telemetryUrl}`);
+      }
+      
+      // 텔레메트리 데이터에서 상세 정보 추출
+      let detailedKillLog = [];
+      let weaponStats = {};
+      let movePath = '';
+      
+      if (telemetryUrl) {
+        try {
+          console.log(`[TELEMETRY] 매치 ${matchId}: 텔레메트리 데이터 가져오기 시작`);
+          const telemetryResponse = await fetch(telemetryUrl);
+          if (telemetryResponse.ok) {
+            const telemetryData = await telemetryResponse.json();
+            const analysisResult = analyzeTelemetryData(telemetryData, lowerNickname, matchId);
+            detailedKillLog = analysisResult.killLog;
+            weaponStats = analysisResult.weaponStats;
+            movePath = analysisResult.movePath;
+            console.log(`[TELEMETRY] 매치 ${matchId}: 분석 완료 - 킬로그 ${detailedKillLog.length}개, 무기 ${Object.keys(weaponStats).length}개`);
+          }
+        } catch (telemetryError) {
+          console.warn(`[TELEMETRY] 매치 ${matchId}: 텔레메트리 처리 실패 - ${telemetryError.message}`);
+        }
+      }
+      
       matches.push({
         matchId,
         mode: modeKor,
@@ -1143,6 +1283,11 @@ export default async function handler(req, res) {
         top10: isTop10, // Top10 여부 추가
         totalTeamDamage: totalTeamDamage, // 팀 전체 딜량 추가
         teammatesDetail: teammatesDetail, // 팀원 상세 정보 추가 (시너지 히트맵용)
+        // 텔레메트리 기반 상세 데이터
+        telemetryUrl: telemetryUrl,
+        killLog: detailedKillLog,
+        weaponStats: weaponStats,
+        movePath: movePath
       });
 
       totalRecentDamageSum += myStats.damageDealt || 0;

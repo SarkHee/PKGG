@@ -23,10 +23,30 @@ export default function PostDetail() {
 
   const fetchPost = async () => {
     try {
-      // 임시 데이터 (실제로는 API 호출)
-      setTimeout(() => {
-        const mockPost = {
-          id: postId,
+      setLoading(true);
+      
+      // 실제 API 호출로 해당 게시물 데이터 가져오기
+      const response = await fetch(`/api/forum/posts?postId=${postId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.post) {
+          setPost(data.post);
+          setReplies(data.replies || []);
+        } else {
+          // 해당 ID의 게시물이 없는 경우
+          setPost(null);
+        }
+      } else {
+        console.error('Failed to fetch post:', response.status);
+        setPost(null);
+      }
+    } catch (error) {
+      console.error('Error fetching post:', error);
+      
+      // API 실패 시 임시 데이터로 폴백 (postId에 따라 다른 내용)
+      const fallbackPosts = {
+        '1': {
+          id: '1',
           title: "초보자를 위한 PUBG 생존 가이드",
           content: `PUBG를 처음 시작하는 분들을 위한 생존 가이드를 작성했습니다.
 
@@ -35,22 +55,10 @@ export default function PostDetail() {
 - 건물이 있는 곳을 목표로 하세요
 - 차량이 있는 지역을 기억해두세요
 
-**2. 초반 아이템 파밍**
+**2. 초반 아이템 파밍**  
 - 무기와 방어구를 우선적으로 챙기세요
 - 치료 아이템과 에너지 드링크를 확보하세요
-- 가방을 빠르게 업그레이드하세요
-
-**3. 이동과 포지셔닝**
-- 자기장을 항상 체크하세요
-- 높은 곳에서 주변을 관찰하세요
-- 열린 공간에서의 이동을 최소화하세요
-
-**4. 교전 팁**
-- 확실하지 않으면 먼저 쏘지 마세요
-- 엄폐물을 최대한 활용하세요
-- 상황이 불리하면 도망치는 것도 전략입니다
-
-이런 기본기를 익히시면 생존률이 크게 향상될 것입니다!`,
+- 가방을 빠르게 업그레이드하세요`,
           author: "PUBG마스터",
           categoryId: "strategy",
           category: { name: "전략 & 팁", icon: "🧠" },
@@ -58,38 +66,76 @@ export default function PostDetail() {
           createdAt: new Date().toISOString(),
           likes: 45,
           isLiked: false
-        };
+        },
+        '2': {
+          id: '2',
+          title: "랭크 시스템 분석 및 티어 올리는 법",
+          content: `PUBG 랭크 시스템에 대해 자세히 분석해보겠습니다.
 
-        const mockReplies = [
-          {
-            id: 1,
-            content: "정말 유용한 정보네요! 초보자에게 딱 필요한 내용들입니다.",
-            author: "초보탈출중",
-            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            likes: 5
-          },
-          {
-            id: 2,
-            content: "착지 지역 선택이 정말 중요한 것 같아요. 처음에는 핫플레이스만 가다가 계속 죽었는데 주변부로 가니까 훨씬 안정적이네요.",
-            author: "생존왕",
-            createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-            likes: 8
-          },
-          {
-            id: 3,
-            content: "4번 교전 팁이 정말 공감됩니다. 무작정 쏘지 말고 상황을 보는게 중요해요.",
-            author: "전략가",
-            createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-            likes: 3
-          }
-        ];
+**티어 시스템**
+- Bronze → Silver → Gold → Platinum → Diamond → Master
 
-        setPost(mockPost);
-        setReplies(mockReplies);
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error('Error fetching post:', error);
+**랭크 포인트 획득 방식**
+- 킬 점수: 킬 당 20-30 RP
+- 순위 보너스: TOP 10 진입 시 추가 RP
+- 생존 시간 보너스: 오래 생존할수록 더 많은 RP
+
+**티어 올리기 팁**
+- 무작정 킬을 노리지 말고 안정적인 플레이
+- 팀플레이 중요 (듀오/스쿼드)
+- 핫드랍보다는 안정적인 착지`,
+          author: "랭크킹",
+          categoryId: "strategy", 
+          category: { name: "전략 & 팁", icon: "🧠" },
+          views: 890,
+          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          likes: 23,
+          isLiked: false
+        },
+        '3': {
+          id: '3',
+          title: "UBD 클랜 모집합니다!",
+          content: `안녕하세요! UBD 클랜에서 새로운 멤버를 모집합니다.
+
+**클랜 소개**
+- 클랜명: UBD (Ultimate Battle Division)
+- 현재 인원: 45명
+- 주요 활동: 경쟁전, 클랜전, 스크림
+
+**모집 조건**
+- 티어: 골드 이상
+- 평균 딜량: 150+ 
+- 적극적인 참여 의지
+- 디스코드 사용 가능
+
+**지원 방법**
+- 게임 내 클랜 검색: UBD
+- 디스코드: UBD#1234
+- 클랜장: parksrk
+
+많은 지원 부탁드립니다!`,
+          author: "parksrk",
+          categoryId: "recruitment",
+          category: { name: "클랜 모집", icon: "👥" },
+          views: 456,
+          createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+          likes: 12,
+          isLiked: false
+        }
+      };
+      
+      const fallbackPost = fallbackPosts[postId] || fallbackPosts['1'];
+      setPost(fallbackPost);
+      setReplies([
+        {
+          id: 1,
+          content: `${fallbackPost.title}에 대한 댓글입니다. 유용한 정보 감사합니다!`,
+          author: "독자1",
+          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          likes: 3
+        }
+      ]);
+    } finally {
       setLoading(false);
     }
   };

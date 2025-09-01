@@ -198,3 +198,23 @@ model RankingUpdateLog {
   
   @@map("ranking_update_logs")
 }
+
+// 사이트 공지사항 모델
+model Notice {
+  id           Int       @id @default(autoincrement())
+  title        String    // 공지사항 제목
+  content      String    // 공지사항 내용 (Markdown 지원)
+  summary      String?   // 요약/미리보기 텍스트
+  type         String    // 공지 타입 (UPDATE, MAINTENANCE, EVENT, GENERAL)
+  priority     String    @default("NORMAL") // 우선순위 (HIGH, NORMAL, LOW)
+  isActive     Boolean   @default(true) // 활성화 여부
+  isPinned     Boolean   @default(false) // 상단 고정 여부
+  showUntil    DateTime? // 표시 종료 시간 (선택적)
+  author       String    @default("관리자") // 작성자
+  views        Int       @default(0) // 조회수
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  @@map("notices")
+}

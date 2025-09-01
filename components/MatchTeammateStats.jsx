@@ -25,7 +25,7 @@ export default function MatchTeammateStats({ teammatesDetail }) {
               <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">킬</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">어시</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">딜량</th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">DBNO</th>
+              <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">기절</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">생존</th>
               <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">등수</th>
             </tr>

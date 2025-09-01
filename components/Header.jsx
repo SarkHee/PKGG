@@ -38,16 +38,28 @@ export default function Header() {
               <span className="logo text-2xl font-bold cursor-pointer text-blue-600">PK.GG</span>
             </Link>
             <Link href="/clan-analytics" passHref>
-              <span className="text-base font-semibold text-white hover:text-gray-200 cursor-pointer">클랜 분석</span>
+              <span className="text-base font-semibold text-white hover:text-gray-200 cursor-pointer flex items-center gap-1">
+                📊 클랜 분석
+              </span>
             </Link>
             <Link href="/forum" passHref>
               <span className="text-base font-semibold text-white hover:text-gray-200 cursor-pointer flex items-center gap-1">
                 💬 포럼
               </span>
             </Link>
+            <Link href="/notices" passHref>
+              <span className="text-base font-semibold text-white hover:text-gray-200 cursor-pointer flex items-center gap-1">
+                📋 공지사항
+              </span>
+            </Link>
             <Link href="/pubg-news" passHref>
               <span className="text-base font-semibold text-white hover:text-gray-200 cursor-pointer flex items-center gap-1">
                 📢 배그공지사항
+              </span>
+            </Link>
+            <Link href="/inquiry" passHref>
+              <span className="text-base font-semibold text-white hover:text-gray-200 cursor-pointer flex items-center gap-1">
+                📧 문의하기
               </span>
             </Link>
           </div>

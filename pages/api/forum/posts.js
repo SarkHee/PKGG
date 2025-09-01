@@ -125,8 +125,83 @@ async function checkUserBan(author) {
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
-      const { category, page = 1, limit = 10, search } = req.query;
+      const { category, page = 1, limit = 10, search, postId } = req.query;
       
+      // 개별 게시물 조회
+      if (postId) {
+        console.log('🔍 포스트 조회 시도, postId:', postId, 'type:', typeof postId);
+        
+        const post = await prisma.forumPost.findUnique({
+          where: {
+            id: parseInt(postId)
+          },
+          include: {
+            category: true,
+            replies: {
+              orderBy: {
+                createdAt: 'asc'
+              }
+            },
+            _count: {
+              select: {
+                replies: true,
+                likedBy: true
+              }
+            }
+          }
+        });
+
+        console.log('📄 조회된 포스트:', post ? `ID: ${post.id}, 제목: ${post.title}` : 'null');
+
+        if (!post) {
+          console.log('❌ 포스트를 찾을 수 없음, postId:', postId);
+          return res.status(404).json({ error: 'Post not found' });
+        }
+
+        // 조회수 증가
+        await prisma.forumPost.update({
+          where: { id: parseInt(postId) },
+          data: {
+            views: {
+              increment: 1
+            }
+          }
+        });
+
+        // 응답 데이터 형식화
+        const formattedPost = {
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          author: post.author,
+          categoryId: post.categoryId,
+          category: {
+            name: post.category?.name || 'General',
+            icon: post.category?.icon || '📝'
+          },
+          views: post.views + 1,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+          likes: post._count.likedBy,
+          replyCount: post._count.replies,
+          isLiked: false
+        };
+
+        const formattedReplies = post.replies.map(reply => ({
+          id: reply.id,
+          content: reply.content,
+          author: reply.author,
+          createdAt: reply.createdAt,
+          likes: 0
+        }));
+
+        return res.status(200).json({
+          post: formattedPost,
+          replies: formattedReplies
+        });
+      }
+      
+      // 기존 게시물 목록 조회 로직
       const skip = (parseInt(page) - 1) * parseInt(limit);
       
       // 검색 조건 구성

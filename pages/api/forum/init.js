@@ -9,7 +9,7 @@ const DEFAULT_CATEGORIES = [
     name: '전략 & 팁',
     description: '게임 전략, 팁, 가이드를 공유하세요',
     icon: '🧠',
-    color: 'blue',
+    color: '#3B82F6',
     order: 1
   },
   {
@@ -17,7 +17,7 @@ const DEFAULT_CATEGORIES = [
     name: '자유 게시판',
     description: '자유롭게 이야기를 나누세요',
     icon: '💬',
-    color: 'green',
+    color: '#10B981',
     order: 2
   },
   {
@@ -25,15 +25,15 @@ const DEFAULT_CATEGORIES = [
     name: '질문 & 답변',
     description: '궁금한 점을 물어보고 답변해주세요',
     icon: '❓',
-    color: 'orange',
+    color: '#F59E0B',
     order: 3
   },
   {
-    id: 'clan',
+    id: 'recruitment',
     name: '클랜 모집',
     description: '클랜원을 모집하거나 클랜을 찾아보세요',
     icon: '👥',
-    color: 'purple',
+    color: '#8B5CF6',
     order: 4
   },
   {
@@ -41,8 +41,32 @@ const DEFAULT_CATEGORIES = [
     name: '플레이 영상',
     description: '멋진 플레이 영상을 공유하세요',
     icon: '🎬',
-    color: 'red',
+    color: '#EF4444',
     order: 5
+  },
+  {
+    id: 'updates',
+    name: '업데이트 & 뉴스',
+    description: 'PUBG 업데이트 및 게임 뉴스',
+    icon: '📢',
+    color: '#F59E0B',
+    order: 6
+  },
+  {
+    id: 'clan-analysis',
+    name: '클랜 분석',
+    description: '클랜 통계, 분석, 순위 등에 관한 정보',
+    icon: '📊',
+    color: '#06B6D4',
+    order: 7
+  },
+  {
+    id: 'inquiry',
+    name: '문의하기',
+    description: '사이트 관련 문의 및 건의사항 (sssyck123@naver.com)',
+    icon: '📧',
+    color: '#F59E0B',
+    order: 8
   }
 ];
 

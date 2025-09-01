@@ -2,13 +2,30 @@
 export default function MatchDetailLog({ match }) {
   if (!match) return null;
   
-  // 안전한 데이터 처리
-  const killLog = Array.isArray(match.killLog) ? match.killLog : [];
-  const movePath = typeof match.movePath === 'string' ? match.movePath : '';
-  const weaponStats = (match.weaponStats && typeof match.weaponStats === 'object' && !Array.isArray(match.weaponStats)) ? match.weaponStats : {};
+  // 실제 텔레메트리 데이터 우선 사용
+  const killLog = Array.isArray(match.killLog) && match.killLog.length > 0 
+    ? match.killLog 
+    : (Array.isArray(match.killLog) ? match.killLog : []);
+  
+  const movePath = match.movePath || '';
+  
+  const weaponStats = (match.weaponStats && typeof match.weaponStats === 'object' && !Array.isArray(match.weaponStats) && Object.keys(match.weaponStats).length > 0) 
+    ? match.weaponStats 
+    : {};
 
-  // 더미 데이터 생성 (실제 데이터가 없을 때)
-  const hasMockData = killLog.length === 0 && !movePath && Object.keys(weaponStats).length === 0;
+  // 텔레메트리 데이터가 없는 경우에만 더미 데이터 생성
+  const hasTelemetryData = killLog.length > 0 || movePath || Object.keys(weaponStats).length > 0;
+  const shouldUseMockData = !hasTelemetryData;
+
+  console.log('MatchDetailLog 데이터:', {
+    matchId: match.matchId,
+    killLogCount: killLog.length,
+    movePath: movePath,
+    weaponStatsCount: Object.keys(weaponStats).length,
+    hasTelemetryData,
+    shouldUseMockData,
+    telemetryUrl: match.telemetryUrl
+  });
   
   // 생존 시간 기반 더미 이동경로 생성
   const generateMockMovePath = () => {
@@ -67,18 +84,22 @@ export default function MatchDetailLog({ match }) {
     return result;
   };
 
-  const displayMovePath = movePath || (hasMockData ? generateMockMovePath() : '');
-  const displayWeaponStats = Object.keys(weaponStats).length > 0 ? weaponStats : (hasMockData ? generateMockWeaponStats() : {});
+  const displayMovePath = movePath || (shouldUseMockData ? generateMockMovePath() : '');
+  const displayWeaponStats = Object.keys(weaponStats).length > 0 ? weaponStats : (shouldUseMockData ? generateMockWeaponStats() : {});
 
   // 무기별 아이콘 매핑
   const getWeaponIcon = (weaponName) => {
     const weapon = weaponName.toLowerCase();
-    if (weapon.includes('kar98') || weapon.includes('m24') || weapon.includes('awm') || weapon.includes('slr') || weapon.includes('mini14')) return '🎯';
-    if (weapon.includes('m416') || weapon.includes('akm') || weapon.includes('scar') || weapon.includes('m16') || weapon.includes('beryl')) return '🔫';
-    if (weapon.includes('ump') || weapon.includes('vector') || weapon.includes('tommy') || weapon.includes('mp5')) return '🔫';
-    if (weapon.includes('m249') || weapon.includes('dp-27') || weapon.includes('mg3')) return '💥';
-    if (weapon.includes('s686') || weapon.includes('s1897') || weapon.includes('s12k') || weapon.includes('dbs')) return '💣';
-    if (weapon.includes('p18c') || weapon.includes('p92') || weapon.includes('p1911') || weapon.includes('deagle')) return '🔫';
+    if (weapon.includes('kar98') || weapon.includes('m24') || weapon.includes('awm') || weapon.includes('slr') || weapon.includes('mini14') || weapon.includes('mk14')) return '🎯';
+    if (weapon.includes('m416') || weapon.includes('akm') || weapon.includes('scar') || weapon.includes('m16') || weapon.includes('beryl') || weapon.includes('g36c')) return '🔫';
+    if (weapon.includes('ump') || weapon.includes('vector') || weapon.includes('tommy') || weapon.includes('mp5') || weapon.includes('bizon')) return '🔫';
+    if (weapon.includes('m249') || weapon.includes('dp-27') || weapon.includes('dp-28') || weapon.includes('mg3')) return '💥';
+    if (weapon.includes('s686') || weapon.includes('s1897') || weapon.includes('s12k') || weapon.includes('dbs') || weapon.includes('shotgun')) return '💣';
+    if (weapon.includes('p18c') || weapon.includes('p92') || weapon.includes('p1911') || weapon.includes('deagle') || weapon.includes('pistol')) return '🔫';
+    if (weapon.includes('frag') || weapon.includes('grenade') || weapon.includes('molotov') || weapon.includes('explosion')) return '💥';
+    if (weapon.includes('punch') || weapon.includes('hit') || weapon.includes('melee')) return '👊';
+    if (weapon.includes('vehicle') || weapon.includes('car') || weapon.includes('motorcycle')) return '🚗';
+    if (weapon.includes('redzone') || weapon.includes('bluezone') || weapon.includes('zone')) return '💀';
     return '🔫';
   };
 
@@ -97,22 +118,34 @@ export default function MatchDetailLog({ match }) {
           <div className="text-sm text-gray-700 dark:text-gray-300">
             {killLog.length > 0 ? (
               <div className="space-y-2">
+                {!hasTelemetryData && (
+                  <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded mb-2">
+                    ⚠️ 상세 텔레메트리 데이터 없음 - 기본 통계만 표시
+                  </div>
+                )}
                 {killLog.map((log, i) => (
                   <div key={i} className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
                     <span className="w-5 h-5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs flex items-center justify-center font-bold">
                       {i + 1}
                     </span>
-                    {log}
+                    <span className="text-sm">{log}</span>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-4">
                 <div className="text-2xl mb-2">🎯</div>
-                <div className="text-gray-500 dark:text-gray-400 text-sm">킬 로그 없음</div>
-                <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-                  {(match.kills || 0) > 0 ? '킬 상세 정보를 불러올 수 없습니다' : '이 경기에서는 킬을 기록하지 못했습니다'}
+                <div className="text-gray-500 dark:text-gray-400 text-sm">
+                  {(match.kills || 0) > 0 ? '킬 상세 정보 없음' : '킬 기록 없음'}
                 </div>
+                <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+                  {(match.kills || 0) > 0 ? '텔레메트리 데이터가 없어 상세 킬로그를 표시할 수 없습니다' : '이 경기에서는 킬을 기록하지 못했습니다'}
+                </div>
+                {match.telemetryUrl && (
+                  <div className="text-xs text-blue-500 dark:text-blue-400 mt-2">
+                    📊 텔레메트리 데이터 처리 중...
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -128,19 +161,24 @@ export default function MatchDetailLog({ match }) {
               <div className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
                 <div className="flex items-center gap-2">
                   <span className="text-blue-600 dark:text-blue-400">📍</span>
-                  <span className="font-mono">{displayMovePath}</span>
+                  <span className="font-mono text-sm">{displayMovePath}</span>
                 </div>
-                {hasMockData && displayMovePath && (
-                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                    * 생존 시간 기반 추정 경로
+                {shouldUseMockData && displayMovePath && (
+                  <div className="text-xs text-amber-500 dark:text-amber-400 mt-2">
+                    ⚠️ 생존 시간 기반 추정 경로 - 정확한 이동 데이터 없음
+                  </div>
+                )}
+                {hasTelemetryData && (
+                  <div className="text-xs text-green-600 dark:text-green-400 mt-2">
+                    ✅ 텔레메트리 기반 실제 이동 경로
                   </div>
                 )}
               </div>
             ) : (
               <div className="text-center py-4">
                 <div className="text-2xl mb-2">🗺️</div>
-                <div className="text-gray-500 dark:text-gray-400 text-sm">이동 경로 없음</div>
-                <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">이동 경로 데이터를 불러올 수 없습니다</div>
+                <div className="text-gray-500 dark:text-gray-400 text-sm">이동 경로 데이터 없음</div>
+                <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">텔레메트리 데이터가 없어 이동 경로를 표시할 수 없습니다</div>
               </div>
             )}
           </div>
@@ -154,31 +192,38 @@ export default function MatchDetailLog({ match }) {
           <div className="text-sm text-gray-700 dark:text-gray-300">
             {Object.keys(displayWeaponStats).length > 0 ? (
               <div className="space-y-2">
+                {!hasTelemetryData && Object.keys(displayWeaponStats).length > 0 && (
+                  <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded mb-2">
+                    ⚠️ 추정 데이터 - 총 딜량 기반 분배
+                  </div>
+                )}
+                {hasTelemetryData && (
+                  <div className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded mb-2">
+                    ✅ 텔레메트리 기반 실제 무기별 딜량
+                  </div>
+                )}
                 {Object.entries(displayWeaponStats)
-                  .sort(([,a], [,b]) => b - a) // 딜량 높은 순으로 정렬
+                  .sort(([,a], [,b]) => (Number(b) || 0) - (Number(a) || 0)) // 딜량 높은 순으로 정렬
                   .map(([weapon, dmg]) => (
                     <div key={weapon} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
                       <div className="flex items-center gap-2">
                         <span className="text-orange-600 dark:text-orange-400">{getWeaponIcon(weapon)}</span>
-                        <span className="font-medium">{weapon}</span>
+                        <span className="font-medium text-sm">{weapon}</span>
                       </div>
                       <span className="font-bold text-orange-600 dark:text-orange-400">
                         {typeof dmg === 'number' ? Math.round(dmg).toLocaleString() : Math.round(Number(dmg) || 0).toLocaleString()}
                       </span>
                     </div>
                   ))}
-                {hasMockData && Object.keys(displayWeaponStats).length > 0 && (
-                  <div className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                    * 총 딜량 기반 추정 분배
-                  </div>
-                )}
               </div>
             ) : (
               <div className="text-center py-4">
                 <div className="text-2xl mb-2">🔫</div>
-                <div className="text-gray-500 dark:text-gray-400 text-sm">무기 데이터 없음</div>
+                <div className="text-gray-500 dark:text-gray-400 text-sm">
+                  {(match.damage || 0) > 0 ? '무기별 데이터 없음' : '딜량 기록 없음'}
+                </div>
                 <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-                  {(match.damage || 0) > 0 ? '무기별 상세 정보를 불러올 수 없습니다' : '이 경기에서는 딜량을 기록하지 못했습니다'}
+                  {(match.damage || 0) > 0 ? '텔레메트리 데이터가 없어 무기별 상세 정보를 표시할 수 없습니다' : '이 경기에서는 딜량을 기록하지 못했습니다'}
                 </div>
               </div>
             )}
