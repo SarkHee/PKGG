@@ -13,7 +13,7 @@ import Header from '../../../components/Header.jsx';
 import EnhancedPlayerStats from '../../../components/EnhancedPlayerStats.jsx';
 import PlayerHeader from '../../../components/PlayerHeader.jsx';
 import MatchDetailExpandable from '../../../components/MatchDetailExpandable.jsx';
-import PersonalCoachingSystem from '../../../components/PersonalCoachingSystem.jsx';
+import AICoachingCard from '../../../components/AICoachingCard.jsx';
 
 // 반드시 export default 함수 바깥에 위치!
 function MatchList({ recentMatches, playerData }) {
@@ -999,17 +999,52 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             <span className="text-sm bg-violet-200 dark:bg-violet-700 text-violet-800 dark:text-violet-200 px-3 py-1 rounded-full font-medium">훈련/피드백</span>
           </div>
         </div>
+        {/* AI 개인 맞춤 코칭 카드 */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
-          <PersonalCoachingSystem 
-            playerStats={{
-              avgDamage: summary?.seasonAvgDamage || summary?.damagePerGame || profile?.avgDamage || 0,
-              avgKills: summary?.seasonAvgKills || summary?.killsPerGame || profile?.avgKills || 0,
-              avgDeaths: summary?.seasonAvgDeaths || summary?.deathsPerGame || profile?.avgDeaths || 1,
-              avgAssists: summary?.seasonAvgAssists || summary?.assistsPerGame || profile?.avgAssists || 0,
-              winRatio: summary?.seasonWinRatio || summary?.winRate || profile?.winRate || 0,
-              avgSurvivalTime: summary?.avgSurvivalTime || profile?.avgSurviveTime || 0
+          {/* 디버깅을 위한 데이터 출력 */}
+          {typeof window !== 'undefined' && 
+            console.log('🚀 PlayerPage - summary 전체:', summary) && 
+            console.log('🚀 PlayerPage - profile 전체:', profile) && 
+            console.log('🚀 PlayerPage - 특정 필드들:', {
+              avgKills: summary?.avgKills,
+              winRate: summary?.winRate, 
+              top10Rate: summary?.top10Rate,
+              avgDamage: summary?.avgDamage
+            }) && false}
+          <AICoachingCard 
+            playerStats={(() => {
+              // 시즌 통계에서 최신 데이터 추출 (전체 시즌 기준 분석)
+              const latestSeasonStats = seasonStats && Object.keys(seasonStats).length > 0 ? 
+                Object.values(seasonStats)[0] : null;
+              
+              // 스쿼드 모드 우선, 없으면 다른 모드
+              const bestModeStats = latestSeasonStats?.squad || 
+                                   latestSeasonStats?.duo || 
+                                   latestSeasonStats?.solo ||
+                                   Object.values(latestSeasonStats || {})[0];
+
+              console.log('🎯 AI 코칭용 데이터 선택 (전체 시즌 기준):', {
+                latestSeasonStats: latestSeasonStats,
+                bestModeStats: bestModeStats,
+                summary: summary
+              });
+
+              return {
+                avgDamage: bestModeStats?.avgDamage || summary?.avgDamage || profile?.avgDamage || 0,
+                avgKills: bestModeStats?.avgKills || summary?.avgKills || profile?.avgKills || 0,
+                avgAssists: bestModeStats?.avgAssists || summary?.avgAssists || profile?.avgAssists || 0,
+                avgSurvivalTime: bestModeStats?.avgSurvivalTime || summary?.avgSurviveTime || profile?.avgSurviveTime || 0,
+                winRate: bestModeStats?.winRate || summary?.winRate || profile?.winRate || 0,
+                top10Rate: bestModeStats?.top10Rate || summary?.top10Rate || profile?.top10Rate || 0,
+                headshotRate: bestModeStats?.headshotRate || summary?.headshotKillRatio || profile?.headshotKillRatio || 0,
+                totalMatches: bestModeStats?.rounds || summary?.roundsPlayed || profile?.roundsPlayed || 0,
+                kd: bestModeStats?.kd || summary?.kd || profile?.kd || 0
+              };
+            })()}
+            playerInfo={{
+              nickname: profile?.nickname || router.query.nickname,
+              server: router.query.server || 'steam'
             }}
-            matches={recentMatches}
           />
         </div>
       </div>

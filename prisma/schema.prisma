@@ -218,3 +218,72 @@ model Notice {
   
   @@map("notices")
 }
+
+// AI 코칭 시스템 모델들
+model PlayerAnalysis {
+  id                Int       @id @default(autoincrement())
+  playerNickname    String
+  playerServer      String
+  
+  // 플레이 스타일 분석
+  playStyle         String    // AGGRESSIVE, PASSIVE, BALANCED, SNIPER, SUPPORT
+  playstyleScore    Float     // 0-100 스타일 확신도
+  
+  // 강점과 약점
+  strengths         String    // JSON 배열 형태로 저장
+  weaknesses        String    // JSON 배열 형태로 저장
+  
+  // 통계 기반 분석
+  killDeathRatio    Float
+  damagePerGame     Float
+  survivalRate      Float
+  aggressionIndex   Float     // 공격성 지수
+  consistencyIndex  Float     // 일관성 지수
+  
+  // AI 추천사항
+  recommendations   String    // JSON 형태로 저장
+  trainingPlan      String    // 맞춤형 훈련 계획
+  
+  lastAnalyzed      DateTime  @default(now())
+  
+  @@unique([playerNickname, playerServer])
+  @@map("player_analyses")
+}
+
+model CoachingTip {
+  id            Int       @id @default(autoincrement())
+  category      String    // AIM, POSITIONING, STRATEGY, TEAMWORK, SURVIVAL
+  playStyle     String    // 해당하는 플레이 스타일
+  title         String    // 팁 제목
+  description   String    // 상세 설명
+  difficulty    String    // BEGINNER, INTERMEDIATE, ADVANCED
+  priority      Int       @default(1) // 1-5 우선순위
+  
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  
+  @@map("coaching_tips")
+}
+
+model TrainingSession {
+  id                Int       @id @default(autoincrement())
+  playerNickname    String
+  playerServer      String
+  
+  // 훈련 세션 정보
+  sessionType       String    // AIM_TRAINING, POSITIONING, STRATEGY, etc.
+  targetSkill       String    // 개선 목표 스킬
+  duration          Int       // 권장 훈련 시간 (분)
+  
+  // 훈련 내용
+  exercises         String    // JSON 형태 훈련 내용
+  goals             String    // JSON 형태 목표 설정
+  
+  // 진행 상황
+  status           String     @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  completedAt      DateTime?
+  
+  createdAt        DateTime   @default(now())
+  
+  @@map("training_sessions")
+}
