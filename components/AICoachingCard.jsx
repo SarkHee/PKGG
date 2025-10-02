@@ -587,7 +587,8 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
             </div>
             <div className="text-right text-white">
               <div className="text-sm opacity-90">분석된 경기 수</div>
-              <div className="text-xl font-semibold">{recentMatches.length}경기</div>
+              <div className="text-xl font-semibold">{safePlayerStats.totalMatches}경기</div>
+              <div className="text-xs opacity-75 mt-1">경쟁전 포함 시즌 전체</div>
             </div>
           </div>
           

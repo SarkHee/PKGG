@@ -49,6 +49,8 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
   const getSynergyDisplay = (status) => {
     if (status === "좋음") return { emoji: "😊", text: "좋음" };
     if (status === "나쁨") return { emoji: "😞", text: "나쁨" };
+    if (status === "분석 필요") return { emoji: "⏳", text: "분석 필요" };
+    if (status === "혼자") return { emoji: "🧑‍💼", text: "솔로 클랜" };
     return { emoji: "😐", text: "보통" };
   };
 
@@ -68,7 +70,7 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
   
   // 클랜이 있지만 클랜원 정보가 없는 경우 구분
   const showClanDataNotAvailable = hasValidClan && !hasClanMembers && !hasSynergyData;
-  const showClanAnalysis = hasValidClan && (hasClanMembers || hasSynergyData);
+  const showClanAnalysis = hasValidClan; // 클랜이 있으면 무조건 표시
 
   return (
     <div className="space-y-4">
@@ -112,6 +114,7 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
                       <Link href={`/player/steam/${encodeURIComponent(p.name)}`}>
                         <span className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer font-medium">
                           {index + 1}. {p.name}
+                          {p.togetherCount === 0 && <span className="text-gray-400 text-xs ml-1">(미경기)</span>}
                         </span>
                       </Link>
                     </div>
@@ -119,7 +122,7 @@ export default function PlayerDashboard({ profile, summary, clanAverage, clanMem
                 </div>
               ) : (
                 <div className="text-sm text-gray-500">
-                  최근 경기에서<br/>함께한 클랜원 없음
+                  {hasValidClan ? "클랜원 데이터 로딩 중..." : "최근 경기에서 함께한 클랜원 없음"}
                 </div>
               )
             } 

@@ -10,6 +10,15 @@ export default function Header() {
   const router = useRouter();
 
 
+  const handleInquiryClick = (e) => {
+    e.preventDefault();
+    const emailSubject = 'PKGG 사이트 문의';
+    const emailBody = '안녕하세요! PKGG 사이트 관련 문의드립니다.\n\n문의내용:\n';
+    
+    const mailtoLink = `mailto:sssyck123@naver.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    window.location.href = mailtoLink;
+  };
+
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!nickname.trim()) return;
@@ -57,11 +66,12 @@ export default function Header() {
                 📢 배그공지사항
               </span>
             </Link>
-            <Link href="/inquiry" passHref>
-              <span className="text-base font-semibold text-white hover:text-gray-200 cursor-pointer flex items-center gap-1">
-                📧 문의하기
-              </span>
-            </Link>
+            <button
+              onClick={handleInquiryClick}
+              className="text-base font-semibold text-white hover:text-gray-200 cursor-pointer flex items-center gap-1 bg-transparent border-none"
+            >
+              📧 문의하기
+            </button>
           </div>
           <form onSubmit={handleSearch} className="flex items-center gap-2">
             <select 

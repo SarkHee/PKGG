@@ -170,11 +170,19 @@ model ForumUser {
 model PubgNews {
   id            Int       @id @default(autoincrement())
   title         String    // 공지사항 제목
-  url           String    @unique // 원본 URL
+  link          String    @unique // 원본 URL (url -> link로 통일)
+  url           String?   // 기존 호환성을 위한 필드
   category      String?   // 카테고리 (이벤트, 업데이트, 공지사항 등)
-  publishDate   DateTime? // 발행일
-  imageUrl      String?   // 썸네일 이미지 URL (저작권 고려하여 선택적 사용)
+  publishedAt   DateTime? // 발행일 (publishDate -> publishedAt로 통일)
+  publishDate   DateTime? // 기존 호환성을 위한 필드
+  imageUrl      String?   // 썸네일 이미지 URL
   summary       String?   // 요약 내용
+  
+  // 크롤링 정보
+  source        String    @default("PUBG_OFFICIAL") // PUBG_OFFICIAL, STEAM_PUBG
+  views         Int       @default(0) // 조회수
+  
+  // 관리 정보
   isActive      Boolean   @default(true)
   priority      Int       @default(0) // 우선순위 (높은 숫자가 더 중요)
   

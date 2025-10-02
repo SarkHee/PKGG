@@ -413,6 +413,15 @@ function determinePlayerLevel(playerStats) {
     totalMatches = 0
   } = playerStats || {};
 
+  // 경험 점수 계산 (경쟁전 포함 시즌 전체 경기 기준)
+  let experienceScore = 0;
+  if (totalMatches >= 500) experienceScore = 25;      // 매우 풍부한 경험
+  else if (totalMatches >= 200) experienceScore = 20; // 풍부한 경험
+  else if (totalMatches >= 100) experienceScore = 15; // 충분한 경험
+  else if (totalMatches >= 50) experienceScore = 10;  // 보통 경험
+  else if (totalMatches >= 20) experienceScore = 5;   // 적은 경험
+  else experienceScore = 2;                           // 매우 적은 경험
+
   // 전체적인 실력 점수 계산 (0-100)
   const skillScore = Math.min(100,
     (avgKills * 10) +           // 킬 능력 (최대 40점)
@@ -420,10 +429,19 @@ function determinePlayerLevel(playerStats) {
     (winRate * 2) +             // 승률 (최대 20점)
     (top10Rate / 2) +           // 상위권 진입 (최대 50점)
     (kd * 5) +                  // K/D 비율 (최대 15점)
-    Math.min(20, totalMatches / 5) // 경험 점수 (최대 20점)
+    experienceScore             // 경험 점수 (최대 25점)
   );
 
-  // 레벨 구간 판정
+  console.log('🎯 플레이어 레벨 판정:', {
+    totalMatches,
+    experienceScore,
+    skillScore,
+    avgKills,
+    avgDamage,
+    top10Rate
+  });
+
+  // 레벨 구간 판정 (경쟁전 포함 시즌 전체 기준)
   if (skillScore >= 80) return 'EXPERT';        // 전문가 (상위 5%)
   if (skillScore >= 65) return 'ADVANCED';      // 고급자 (상위 15%)
   if (skillScore >= 45) return 'INTERMEDIATE';  // 중급자 (상위 40%)

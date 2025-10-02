@@ -229,6 +229,46 @@ function gradeOP(rank, totalSquads) {
 }
 
 /**
+ * 데이터베이스에서 클랜 정보를 가져옵니다.
+ * @param {string} nickname - 플레이어 닉네임
+ * @returns {Promise<{clanName: string, members: string[]}|null>} 클랜 정보 또는 null
+ */
+async function getClanInfoFromDB(nickname) {
+  try {
+    const clanMember = await prisma.clanMember.findFirst({
+      where: {
+        nickname: {
+          equals: nickname,
+          mode: 'insensitive'
+        }
+      },
+      include: {
+        clan: {
+          include: {
+            members: true
+          }
+        }
+      }
+    });
+
+    if (clanMember && clanMember.clan) {
+      const members = clanMember.clan.members.map(m => m.nickname.toLowerCase());
+      console.log(`[DB CLAN INFO] 플레이어 '${nickname}'이(가) 클랜 '${clanMember.clan.name}'에서 발견되었습니다.`);
+      return {
+        clanName: clanMember.clan.name,
+        members: members
+      };
+    }
+    
+    console.log(`[DB CLAN INFO] 플레이어 '${nickname}'이(가) 데이터베이스에서 클랜을 찾을 수 없습니다.`);
+    return null;
+  } catch (error) {
+    console.error("[DB CLAN INFO ERROR] 데이터베이스에서 클랜 정보 조회 실패:", error);
+    return null;
+  }
+}
+
+/**
  * 'data/clans.json' 파일에서 플레이어가 속한 클랜 정보를 찾습니다.
  * @param {string} nickname - 플레이어 닉네임 (대소문자 구분 없음)
  * @returns {Promise<{clanName: string, members: string[]}|null>} 클랜 정보 (members는 소문자로 변환됨) 또는 null
@@ -282,6 +322,10 @@ async function getClanInfo(nickname) {
     console.log(
       `[CLAN INFO] 플레이어 '${nickname}'이(가) 어떤 클랜에서도 발견되지 않았습니다.`
     );
+    
+    // JSON 파일에서 찾지 못했을 때 데이터베이스에서 시도
+    console.log(`[CLAN INFO] clans.json에서 찾지 못해 데이터베이스에서 검색 시도...`);
+    return await getClanInfoFromDB(nickname);
   } catch (e) {
     console.error("[CLAN INFO ERROR] 클랜 정보 불러오기 또는 파싱 실패:", e);
     console.error("[CLAN INFO ERROR] 클랜 정보 에러 상세:", e.message);
@@ -1747,8 +1791,15 @@ export default async function handler(req, res) {
 
       // 8. 시너지 분석 (같이 자주한 팀원)
       synergyAnalysis: synergyAnalysis, // [{name, togetherCount, togetherWinRate, togetherAvgRank, togetherAvgDamage}]
-      synergyTop: clanTop3WithMe.slice(0, 3).map(member => ({ name: member })),
-      clanSynergyStatusList: [],
+      synergyTop: clanTop3WithMe.length > 0 
+        ? clanTop3WithMe.slice(0, 3).map(member => ({ name: member }))
+        : (clanInfo && clanInfo.members.length > 1 
+          ? clanInfo.members.filter(m => m !== lowerNickname).slice(0, 3).map(member => ({ name: member, togetherCount: 0 }))
+          : []
+        ),
+      clanSynergyStatusList: clanTop3WithMe.length > 0 
+        ? []
+        : (clanInfo && clanInfo.members.length > 1 ? ["분석 필요"] : ["혼자"]),
 
       // 9. 추천 스쿼드
       recommendedSquad, // {members, score, isNew}

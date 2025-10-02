@@ -1023,9 +1023,22 @@ export default function PlayerPage({ playerData, error, dataSource }) {
                                    latestSeasonStats?.solo ||
                                    Object.values(latestSeasonStats || {})[0];
 
-              console.log('🎯 AI 코칭용 데이터 선택 (전체 시즌 기준):', {
+              // 경쟁전 포함 시즌 전체 경기 수 계산
+              const totalSeasonMatches = latestSeasonStats ? 
+                Object.values(latestSeasonStats).reduce((total, modeStats) => {
+                  return total + (modeStats?.rounds || 0);
+                }, 0) : 0;
+
+              // 랭킹 경기 수도 포함 (있는 경우)
+              const rankedMatches = rankedSummary?.games || 0;
+              const totalAllMatches = Math.max(totalSeasonMatches, rankedMatches, summary?.roundsPlayed || 0);
+
+              console.log('🎯 AI 코칭용 데이터 선택 (경쟁전 포함 시즌 전체 기준):', {
                 latestSeasonStats: latestSeasonStats,
                 bestModeStats: bestModeStats,
+                totalSeasonMatches: totalSeasonMatches,
+                rankedMatches: rankedMatches,
+                totalAllMatches: totalAllMatches,
                 summary: summary
               });
 
@@ -1037,7 +1050,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
                 winRate: bestModeStats?.winRate || summary?.winRate || profile?.winRate || 0,
                 top10Rate: bestModeStats?.top10Rate || summary?.top10Rate || profile?.top10Rate || 0,
                 headshotRate: bestModeStats?.headshotRate || summary?.headshotKillRatio || profile?.headshotKillRatio || 0,
-                totalMatches: bestModeStats?.rounds || summary?.roundsPlayed || profile?.roundsPlayed || 0,
+                totalMatches: totalAllMatches, // 경쟁전 포함 시즌 전체 경기 수
                 kd: bestModeStats?.kd || summary?.kd || profile?.kd || 0
               };
             })()}
