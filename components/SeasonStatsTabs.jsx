@@ -218,9 +218,30 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
             </div>
             <div>
               <div className="flex justify-between text-sm">
-                <span>헤드샷</span>
+                <span>헤드샷 킬</span>
                 <span className="font-medium text-red-600 dark:text-red-400">
-                  {stats?.headshotRate ? `${stats.headshotRate}%` : stats?.headshotKillRatio ? `${(stats.headshotKillRatio * 100).toFixed(1)}%` : '0.0%'}
+                  {stats?.headshotKills ?? stats?.headshots ?? '0'}개
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <div className="flex justify-between text-sm">
+                <span>헤드샷 비율</span>
+                <span className="font-medium text-red-600 dark:text-red-400">
+                  {stats?.headshotRate ? `${stats.headshotRate}%` : 
+                   stats?.headshotKillRatio ? `${(stats.headshotKillRatio * 100).toFixed(1)}%` : 
+                   stats?.headshotKills && stats?.kills ? `${((stats.headshotKills / stats.kills) * 100).toFixed(1)}%` : '0.0%'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm">
+                <span>총 킬수</span>
+                <span className="font-medium text-orange-600 dark:text-orange-400">
+                  {stats?.kills ?? stats?.totalKills ?? '0'}개
                 </span>
               </div>
             </div>

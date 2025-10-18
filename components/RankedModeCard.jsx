@@ -53,9 +53,17 @@ export default function RankedModeCard({ mode }) {
           </span>
         </div>
         <div className="flex justify-between">
+          <span className="text-gray-600 dark:text-gray-400">헤드샷 킬수</span>
+          <span className="font-medium text-red-600 dark:text-red-400">
+            {typeof mode.headshotKills === 'number' ? mode.headshotKills.toLocaleString() : '0'}개
+          </span>
+        </div>
+        <div className="flex justify-between">
           <span className="text-gray-600 dark:text-gray-400">헤드샷 비율</span>
           <span className="font-medium text-red-600 dark:text-red-400">
-            {typeof mode.headshotRate === 'number' ? mode.headshotRate.toFixed(1) : '0.0'}%
+            {typeof mode.headshotRate === 'number' ? mode.headshotRate.toFixed(1) : 
+             (typeof mode.headshotKills === 'number' && typeof mode.kills === 'number' && mode.kills > 0) ? 
+             ((mode.headshotKills / mode.kills) * 100).toFixed(1) : '0.0'}%
           </span>
         </div>
         <div className="flex justify-between">
@@ -96,12 +104,6 @@ export default function RankedModeCard({ mode }) {
           <span className="text-gray-600 dark:text-gray-400">승리 수</span>
           <span className="font-medium text-green-600 dark:text-green-400">
             {typeof mode.wins === 'number' ? mode.wins.toLocaleString() : '0'}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600 dark:text-gray-400">헤드샷 킬</span>
-          <span className="font-medium text-red-600 dark:text-red-400">
-            {typeof mode.headshotKills === 'number' ? mode.headshotKills.toLocaleString() : '0'}
           </span>
         </div>
         <div className="flex justify-between">
