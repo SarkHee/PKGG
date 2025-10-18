@@ -6,7 +6,9 @@ module.exports = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      // 사용자 정의 유틸리티 클래스 추가
+    },
   },
   plugins: [],
 }

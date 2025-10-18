@@ -20,7 +20,11 @@ function MyApp({ Component, pageProps }) {
 
   // Component는 현재 페이지 컴포넌트 (예: Home, ClanDetailsPage 등)
   // pageProps는 getServerSideProps 또는 getStaticProps를 통해 페이지에 전달되는 props
-  return <Component {...pageProps} />;
+  return (
+    <div className="min-h-screen bg-white">
+      <Component {...pageProps} />
+    </div>
+  );
 }
 
 export default MyApp;

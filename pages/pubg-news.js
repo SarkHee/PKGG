@@ -44,7 +44,7 @@ export default function PubgNewsPage() {
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     PUBG 공지사항
                   </h1>
-                  <p className="text-gray-600">
+                  <p className="text-gray-700">
                     최신 PUBG 소식과 업데이트 정보를 확인하세요
                   </p>
                 </div>
@@ -69,7 +69,7 @@ export default function PubgNewsPage() {
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
                       selectedCategory === category.value
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
                     }`}
                   >
                     {category.icon}
@@ -84,42 +84,43 @@ export default function PubgNewsPage() {
                 key={`main-${refreshKey}`}
                 category={selectedCategory} 
                 maxItems={10}
+                theme="light"
               />
             </div>
 
             <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-blue-50 p-6 rounded-lg">
+              <div className="bg-blue-100 p-6 rounded-lg border border-blue-200">
                 <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
                   🌍
                   공식 PUBG 사이트
                 </h3>
-                <p className="text-blue-700 text-sm mb-3">
+                <p className="text-blue-800 text-sm mb-3">
                   공식 사이트에서 최신 소식을 확인하세요
                 </p>
                 <a
                   href="https://pubg.com/ko/news"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+                  className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-900 font-medium"
                 >
                   공식 사이트 방문
                   <span className="text-xs">↗</span>
                 </a>
               </div>
 
-              <div className="bg-gray-50 p-6 rounded-lg">
+              <div className="bg-gray-100 p-6 rounded-lg border border-gray-200">
                 <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
                   🎮
                   Steam 뉴스
                 </h3>
-                <p className="text-gray-700 text-sm mb-3">
+                <p className="text-gray-800 text-sm mb-3">
                   Steam에서 PUBG 관련 소식을 확인하세요
                 </p>
                 <a
                   href="https://store.steampowered.com/news/app/578080"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 font-medium"
+                  className="inline-flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium"
                 >
                   Steam 뉴스 보기
                   <span className="text-xs">↗</span>

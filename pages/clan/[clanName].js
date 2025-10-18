@@ -403,7 +403,7 @@ export default function ClanDetail() {
                     <StatCard
                       icon="👑"
                       title="승률"
-                      value={stats?.winRate ? `${stats.winRate}%` : 'N/A'}
+                      value={stats?.winRate ? `${Math.round(stats.winRate)}%` : 'N/A'}
                       subtitle="전체 게임 기준"
                       color="text-green-400"
                     />
@@ -531,10 +531,10 @@ export default function ClanDetail() {
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              {member.stats?.kdRatio || 'N/A'}
+                              {member.stats?.kdRatio ? Number(member.stats.kdRatio).toFixed(1) : 'N/A'}
                             </td>
                             <td className="px-4 py-3">
-                              {member.stats?.winRate ? `${member.stats.winRate}%` : 'N/A'}
+                              {member.stats?.winRate ? `${Math.round(member.stats.winRate)}%` : 'N/A'}
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-400">
                               {member.lastActiveAt ? 

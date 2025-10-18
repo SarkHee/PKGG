@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 글로벌 배경색 설정 */
+html, body {
+  background-color: #ffffff;
+  color: #111827;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+#__next {
+  background-color: #ffffff;
+  min-height: 100vh;
+}
+
 /* 경기 확장 카드 (깔끔한 카드 스타일) */
 .match-expandable-card {
   background: #ffffff;

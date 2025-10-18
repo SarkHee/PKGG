@@ -564,20 +564,20 @@ export default function PlayerPage({ playerData, error, dataSource }) {
     return (
       <>
         <Header />
-        <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+        <div className="container mx-auto p-6 bg-gradient-to-br from-white via-gray-50 to-blue-50 min-h-screen">
           <div className="max-w-2xl mx-auto mt-20">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg text-center">
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg text-center">
               <div className="mb-6">
-                <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-4xl">🔍</span>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
                   플레이어를 찾을 수 없습니다
                 </h1>
-                <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-lg text-gray-600 mb-4">
                   PK.GG에 등록되어있지않은 플레이어입니다.
                 </p>
-                <p className="text-base text-gray-500 dark:text-gray-500">
+                <p className="text-base text-gray-500">
                   닉네임확인 후 다시 검색해주세요.
                 </p>
               </div>
@@ -918,7 +918,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
   return (
     <>
       <Header />
-      <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen text-gray-900 dark:text-gray-100 font-sans">
+      <div className="container mx-auto p-6 bg-gradient-to-br from-white via-gray-50 to-blue-50 min-h-screen text-gray-900 font-sans">
         <Head>
           <title>{`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`}</title>
           <meta name="description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 및 클랜 시너지 분석 정보.`} />
@@ -992,15 +992,15 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
       {/* 개인 맞춤형 AI 코칭 시스템 */}
       <div className="mb-10">
-        <div className="bg-gradient-to-r from-violet-50 via-violet-100 to-purple-50 dark:from-violet-900/20 dark:to-purple-800/20 rounded-2xl p-6 mb-6 border-l-4 border-violet-500 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-gradient-to-r from-violet-50 via-violet-100 to-purple-50 rounded-2xl p-6 mb-6 border-l-4 border-violet-500 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🤖</span>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">개인 맞춤형 AI 코칭</h2>
-            <span className="text-sm bg-violet-200 dark:bg-violet-700 text-violet-800 dark:text-violet-200 px-3 py-1 rounded-full font-medium">훈련/피드백</span>
+            <h2 className="text-xl font-bold text-gray-800">개인 맞춤형 AI 코칭</h2>
+            <span className="text-sm bg-violet-200 text-violet-800 px-3 py-1 rounded-full font-medium">훈련/피드백</span>
           </div>
         </div>
         {/* AI 개인 맞춤 코칭 카드 */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all">
           {/* 디버깅을 위한 데이터 출력 */}
           {typeof window !== 'undefined' && 
             console.log('🚀 PlayerPage - summary 전체:', summary) && 
@@ -1064,14 +1064,14 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
       {/* 클랜 및 팀플레이 분석 섹션 */}
       <div className="mb-10">
-        <div className="bg-gradient-to-r from-blue-50 via-blue-100 to-purple-50 dark:from-blue-900/20 dark:to-purple-800/20 rounded-2xl p-6 mb-6 border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-gradient-to-r from-blue-50 via-blue-100 to-purple-50 rounded-2xl p-6 mb-6 border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🤝</span>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">클랜 및 팀플레이 분석</h2>
-            <span className="text-sm bg-blue-200 dark:bg-blue-700 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full font-medium">클랜 시너지</span>
+            <h2 className="text-xl font-bold text-gray-800">클랜 및 팀플레이 분석</h2>
+            <span className="text-sm bg-blue-200 text-blue-800 px-3 py-1 rounded-full font-medium">클랜 시너지</span>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+        <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
           <PlayerDashboard
             profile={profile}
             summary={summary}
@@ -1092,7 +1092,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             const hasClanData = hasValidClan && (clanMembers && clanMembers.length > 0);
             
             return hasClanData ? (
-              <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-600">
+              <div className="mt-10 pt-8 border-t border-gray-200">
                 <SynergyHeatmap 
                   matches={recentMatches} 
                   myNickname={profile?.nickname}
@@ -1108,14 +1108,14 @@ export default function PlayerPage({ playerData, error, dataSource }) {
       {/* 시즌 플레이 현황 */}
       {displayData?.modeDistribution && (
         <div className="mb-10">
-          <div className="bg-gradient-to-r from-purple-50 via-purple-100 to-pink-50 dark:from-purple-900/20 dark:to-pink-800/20 rounded-2xl p-6 mb-6 border-l-4 border-purple-500 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-gradient-to-r from-purple-50 via-purple-100 to-pink-50 rounded-2xl p-6 mb-6 border-l-4 border-purple-500 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-3">
               <span className="text-2xl">📊</span>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">시즌 플레이 현황</h2>
-              <span className="text-sm bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full font-medium">모드별 분석</span>
+              <h2 className="text-xl font-bold text-gray-800">시즌 플레이 현황</h2>
+              <span className="text-sm bg-purple-200 text-purple-800 px-3 py-1 rounded-full font-medium">모드별 분석</span>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
             <ModeDistributionChart modeDistribution={displayData.modeDistribution} />
           </div>
         </div>
@@ -1133,10 +1133,10 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         
         <div className="grid grid-cols-1 gap-8">
           {/* 딜량 추이 그래프 */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3 mb-6">
               <span className="text-xl">💪</span>
-              <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100">딜량 추이</h4>
+              <h4 className="text-xl font-bold text-gray-900">딜량 추이</h4>
             </div>
             <RecentDamageTrendChart matches={recentMatches} />
           </div>
@@ -1145,31 +1145,31 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
       {/* 게임 모드별 통계 섹션 */}
       <div className="mb-10">
-        <div className="bg-gradient-to-r from-indigo-50 via-indigo-100 to-blue-50 dark:from-indigo-900/20 dark:to-blue-800/20 rounded-2xl p-6 mb-6 border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-gradient-to-r from-indigo-50 via-indigo-100 to-blue-50 rounded-2xl p-6 mb-6 border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🎮</span>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">게임 모드별 통계</h2>
-            <span className="text-sm bg-indigo-200 dark:bg-indigo-700 text-indigo-800 dark:text-indigo-200 px-3 py-1 rounded-full font-medium">상세 분석</span>
+            <h2 className="text-xl font-bold text-gray-800">게임 모드별 통계</h2>
+            <span className="text-sm bg-indigo-200 text-indigo-800 px-3 py-1 rounded-full font-medium">상세 분석</span>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+        <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
           <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
         </div>
       </div>
 
       {/* 최근 경기 내역 섹션 */}
       <section className="recent-matches-section mb-10">
-        <div className="bg-gradient-to-r from-orange-50 via-orange-100 to-red-50 dark:from-orange-900/20 dark:to-red-800/20 rounded-2xl p-6 mb-6 border-l-4 border-orange-500 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-gradient-to-r from-orange-50 via-orange-100 to-red-50 rounded-2xl p-6 mb-6 border-l-4 border-orange-500 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
             <span className="text-2xl">�</span>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">최근 경기 내역</h2>
-            <span className="text-sm bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-200 px-3 py-1 rounded-full font-medium">최근 20경기</span>
+            <h2 className="text-xl font-bold text-gray-800">최근 경기 내역</h2>
+            <span className="text-sm bg-orange-200 text-orange-800 px-3 py-1 rounded-full font-medium">최근 20경기</span>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+        <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
           {/* 경기 모드 필터 탭 */}
           <div className="mb-8 flex justify-center">
-            <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 p-2 rounded-xl shadow-inner">
+            <div className="flex gap-2 bg-gray-100 p-2 rounded-xl shadow-inner">
               {['전체', '경쟁전', '경쟁전 솔로', '솔로', '듀오', '스쿼드', '경쟁전 FPP', '경쟁전 솔로 FPP', '솔로 FPP', '듀오 FPP', '스쿼드 FPP'].map((tab) => (
                 <button
                   key={tab}
@@ -1177,7 +1177,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     selectedMatchFilter === tab
                       ? 'bg-blue-500 text-white shadow-sm' 
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      : 'text-gray-600 hover:bg-gray-200'
                   }`}
                 >
                   {tab}
@@ -1191,13 +1191,13 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           ) : (
             <div className="text-center py-12">
               <div className="text-6xl mb-6">📋</div>
-              <div className="text-lg text-gray-500 dark:text-gray-400 font-medium">
+              <div className="text-lg text-gray-600 font-medium">
                 {selectedMatchFilter === '전체' 
                   ? '최근 경기 데이터가 없습니다.' 
                   : `${selectedMatchFilter} 모드의 기록된 전적이 없습니다.`
                 }
               </div>
-              <div className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+              <div className="text-sm text-gray-500 mt-2">
                 게임을 플레이하면 데이터가 업데이트됩니다.
               </div>
             </div>
@@ -1208,14 +1208,14 @@ export default function PlayerPage({ playerData, error, dataSource }) {
       {/* 경기 상세 정보 표시 */}
       {selectedMatchId && (
         <div ref={detailRef} className="mt-8 mb-10">
-          <div className="bg-gradient-to-r from-purple-50 via-purple-100 to-pink-50 dark:from-purple-900/20 dark:to-pink-800/20 rounded-2xl p-6 mb-6 border-l-4 border-purple-500 shadow-sm">
+          <div className="bg-gradient-to-r from-purple-50 via-purple-100 to-pink-50 rounded-2xl p-6 mb-6 border-l-4 border-purple-500 shadow-sm">
             <div className="flex items-center gap-3">
               <span className="text-2xl">🔍</span>
-              <h4 className="text-xl font-bold text-gray-800 dark:text-gray-200">경기 상세 정보</h4>
-              <span className="text-sm bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200 px-3 py-1 rounded-full font-medium">상세 분석</span>
+              <h4 className="text-xl font-bold text-gray-800">경기 상세 정보</h4>
+              <span className="text-sm bg-purple-200 text-purple-800 px-3 py-1 rounded-full font-medium">상세 분석</span>
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
             <MatchDetailExpandable matchId={selectedMatchId} />
           </div>
         </div>
@@ -1223,13 +1223,13 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
       {/* 데이터 정보 섹션 */}
       <div className="mt-10 mb-6">
-        <div className="bg-gradient-to-r from-gray-50 via-gray-100 to-slate-50 dark:from-gray-800/50 dark:to-slate-700/50 rounded-2xl p-6 border border-gray-300 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-gradient-to-r from-gray-50 via-gray-100 to-slate-50 rounded-2xl p-6 border border-gray-300 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-2xl">ℹ️</span>
-              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">데이터 정보</h2>
+              <h2 className="text-lg font-bold text-gray-800">데이터 정보</h2>
             </div>
-            <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-3 text-sm text-gray-500">
               <span className="text-xl">⏰</span>
               <span className="font-medium">
                 데이터 최종 업데이트: {profile?.lastUpdated ? new Date(profile.lastUpdated).toLocaleString('ko-KR') : '알 수 없음'}

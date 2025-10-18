@@ -3,15 +3,21 @@ import * as cheerio from 'cheerio';
 
 const prisma = new PrismaClient();
 
-// PUBG 공식 뉴스 크롤링 함수
-async function crawlPubgNews() {
+// PUBG 이벤트 페이지 크롤링 함수
+async function crawlPubgEvents() {
   try {
-    console.log('🔄 PUBG 공식 뉴스 크롤링 시작...');
+    console.log('🔄 PUBG 이벤트 페이지 크롤링 시작...');
     
-    // PUBG 공식 뉴스 페이지 (한국어)
-    const response = await fetch('https://pubg.com/ko/news', {
+    // PUBG 이벤트 페이지
+    const response = await fetch('https://www.pubg.com/ko/events/g-dragonxpubg', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
       }
     });
 
@@ -24,38 +30,105 @@ async function crawlPubgNews() {
     
     const newsItems = [];
     
-    // PUBG 뉴스 페이지의 구조에 맞게 셀렉터 조정
-    $('.news-item, .article-item, .post-item').each((index, element) => {
+    // 페이지 메인 타이틀과 설명 추출
+    const mainTitle = $('h1').first().text().trim() || 
+                     $('.main-title, .page-title, .event-title').first().text().trim() ||
+                     $('title').text().trim();
+    
+    const mainDescription = $('meta[name="description"]').attr('content') || 
+                           $('.main-content p').first().text().trim() ||
+                           $('.description, .summary').first().text().trim();
+    
+    const mainImage = $('meta[property="og:image"]').attr('content') ||
+                     $('.main-image img, .hero-image img').first().attr('src') ||
+                     $('img').first().attr('src');
+    
+    // 메인 이벤트 정보를 첫 번째 아이템으로 추가
+    if (mainTitle && mainTitle.length > 5) {
+      newsItems.push({
+        title: mainTitle,
+        summary: mainDescription || 'PUBG x DRAGON 특별 콜라보레이션 이벤트에 참여하세요!',
+        link: 'https://www.pubg.com/ko/events/g-dragonxpubg',
+        imageUrl: mainImage ? (mainImage.startsWith('http') ? mainImage : `https://www.pubg.com${mainImage}`) : null,
+        publishedAt: new Date(),
+        source: 'PUBG_EVENTS',
+        category: '이벤트'
+      });
+    }
+    
+    // 추가적인 컨텐츠/섹션들 크롤링
+    $('.content-section, .event-section, .info-section, section, .card, article').each((index, element) => {
       const $item = $(element);
       
-      const title = $item.find('h2, h3, .title, .headline').text().trim();
-      const summary = $item.find('.summary, .excerpt, .description, p').first().text().trim();
-      const link = $item.find('a').attr('href');
-      const imageUrl = $item.find('img').attr('src');
-      const dateText = $item.find('.date, time, .timestamp').text().trim();
+      // 제목 추출 (더 구체적인 셀렉터)
+      const title = $item.find('h1, h2, h3, h4, .title, .headline, .section-title, .card-title, .event-name').first().text().trim();
       
-      if (title && link) {
-        // 상대 URL을 절대 URL로 변환
-        const fullLink = link.startsWith('http') ? link : `https://pubg.com${link}`;
-        const fullImageUrl = imageUrl && !imageUrl.startsWith('http') ? `https://pubg.com${imageUrl}` : imageUrl;
+      // 내용 추출
+      const summary = $item.find('.description, .content, .summary, .text, p').first().text().trim();
+      
+      // 이미지 추출
+      let imageUrl = $item.find('img').first().attr('src');
+      if (!imageUrl) {
+        const bgImage = $item.find('.image, .thumbnail, .banner').css('background-image');
+        if (bgImage && bgImage.includes('url(')) {
+          const urlMatch = bgImage.match(/url\(['"]?(.*?)['"]?\)/);
+          if (urlMatch) imageUrl = urlMatch[1];
+        }
+      }
+      
+      // 링크 추출
+      let link = $item.find('a').first().attr('href');
+      if (!link && $item.closest('a').length) {
+        link = $item.closest('a').attr('href');
+      }
+      
+      if (title && title.length > 5 && title !== mainTitle) {
+        const fullLink = link ? (link.startsWith('http') ? link : `https://www.pubg.com${link}`) : 'https://www.pubg.com/ko/events/g-dragonxpubg';
+        const fullImageUrl = imageUrl ? (imageUrl.startsWith('http') ? imageUrl : `https://www.pubg.com${imageUrl}`) : null;
         
         newsItems.push({
           title,
           summary: summary || '',
           link: fullLink,
           imageUrl: fullImageUrl,
-          publishedAt: parseDate(dateText),
-          source: 'PUBG_OFFICIAL'
+          publishedAt: new Date(),
+          source: 'PUBG_EVENTS',
+          category: '이벤트'
         });
       }
     });
 
-    console.log(`✅ PUBG 뉴스 ${newsItems.length}개 크롤링 완료`);
+    // 만약 특별한 컨텐츠가 없다면 기본 샘플 데이터 추가
+    if (newsItems.length === 0) {
+      newsItems.push({
+        title: 'PUBG x DRAGON 콜라보레이션 이벤트',
+        summary: '특별한 PUBG와 DRAGON의 콜라보레이션 이벤트가 진행 중입니다. 독특한 보상과 새로운 콘텐츠를 경험해보세요!',
+        link: 'https://www.pubg.com/ko/events/g-dragonxpubg',
+        imageUrl: null,
+        publishedAt: new Date(),
+        source: 'PUBG_EVENTS',
+        category: '이벤트'
+      });
+    }
+
+    console.log(`✅ PUBG 이벤트 ${newsItems.length}개 크롤링 완료`);
+    console.log('크롤링된 항목들:', newsItems.map(item => ({ title: item.title, hasImage: !!item.imageUrl })));
+    
     return newsItems;
     
   } catch (error) {
-    console.error('❌ PUBG 뉴스 크롤링 실패:', error);
-    return [];
+    console.error('❌ PUBG 이벤트 크롤링 실패:', error);
+    
+    // 크롤링 실패 시 기본 이벤트 정보 반환
+    return [{
+      title: 'PUBG x DRAGON 특별 이벤트',
+      summary: '현재 진행 중인 PUBG와 DRAGON의 특별한 콜라보레이션 이벤트입니다.',
+      link: 'https://www.pubg.com/ko/events/g-dragonxpubg',
+      imageUrl: null,
+      publishedAt: new Date(),
+      source: 'PUBG_EVENTS',
+      category: '이벤트'
+    }];
   }
 }
 
@@ -152,12 +225,12 @@ export default async function handler(req, res) {
       }
       
       // 새로운 뉴스 크롤링
-      const [officialNews, steamNews] = await Promise.all([
-        crawlPubgNews(),
+      const [eventNews, steamNews] = await Promise.all([
+        crawlPubgEvents(),
         fetchSteamPubgNews()
       ]);
       
-      const allNews = [...officialNews, ...steamNews];
+      const allNews = [...eventNews, ...steamNews];
       
       if (allNews.length === 0) {
         return res.status(200).json({
