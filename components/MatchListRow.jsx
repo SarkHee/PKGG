@@ -147,7 +147,7 @@ export default function MatchListRow({ match, isOpen, onToggle, prevMatch, playe
         
         {/* 이동거리 */}
         <div className="min-w-[70px] text-center">
-          <div className="font-bold text-gray-900 dark:text-gray-100">{match.distance ? (match.distance/1000).toFixed(2) : '0.00'}km</div>
+          <div className="font-bold text-gray-900 dark:text-gray-100">{match.distance ? (match.distance/1000).toFixed(1) : '0.0'}km</div>
           <div className="text-xs text-gray-500">이동</div>
         </div>
         
@@ -231,7 +231,7 @@ export default function MatchListRow({ match, isOpen, onToggle, prevMatch, playe
             <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {match.mapName && `${match.mapName} • `}
               {translateGameMode(match.mode)} • 
-              {Math.floor((match.survivalTime || match.surviveTime || 0)/60)}분 생존
+              {Math.floor(match.survivalTime || match.surviveTime || 0)}초 생존
             </div>
           </div>
           

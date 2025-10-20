@@ -359,7 +359,7 @@ async function updatePlayerDataInBackground(memberId, apiData) {
           where: { id: memberId },
           data: updateData
         });
-        console.log(`멤버 ID ${memberId} 기본 통계 업데이트 완료 (kills: ${updateData.avgKills?.toFixed(2) || 'N/A'}, winRate: ${updateData.winRate?.toFixed(1) || 'N/A'}%)`);
+        console.log(`멤버 ID ${memberId} 기본 통계 업데이트 완료 (kills: ${updateData.avgKills?.toFixed(1) || 'N/A'}, winRate: ${updateData.winRate?.toFixed(1) || 'N/A'}%)`);
       }
     }
 
@@ -456,7 +456,8 @@ function ModeStatsTabs({ modeStats }) {
             <li>Top 10 비율: <span className="font-medium">{stats.top10Rate}%</span></li>
             <li>헤드샷 비율: <span className="font-medium text-red-600 dark:text-red-400">{stats.headshotRate}%</span></li>
             <li>최장 킬 거리: <span className="font-medium">{stats.longestKill}m</span></li>
-            <li>헤드샷 킬: <span className="font-medium">{stats.headshots}</span></li>
+            <li>헤드샷 킬: <span className="font-medium text-red-500">{stats.headshots}</span></li>
+            <li>총 킬수: <span className="font-medium text-blue-600">{stats.totalKills}</span></li>
             <li>최대 킬: <span className="font-medium">{stats.maxKills}</span></li>
             <li>최대 거리 킬: <span className="font-medium">{stats.maxDistanceKill}m</span></li>
             <li>평균 등수: <span className="font-medium">{stats.avgRank}</span></li>
@@ -1049,7 +1050,21 @@ export default function PlayerPage({ playerData, error, dataSource }) {
                 avgSurvivalTime: bestModeStats?.avgSurvivalTime || summary?.avgSurviveTime || profile?.avgSurviveTime || 0,
                 winRate: bestModeStats?.winRate || summary?.winRate || profile?.winRate || 0,
                 top10Rate: bestModeStats?.top10Rate || summary?.top10Rate || profile?.top10Rate || 0,
-                headshotRate: bestModeStats?.headshotRate || summary?.headshotKillRatio || profile?.headshotKillRatio || 0,
+                headshotRate: (() => {
+                  // 경쟁전 전체 통계에서 헤드샷 비율 계산
+                  if (summary?.headshotKillRatio !== undefined && summary?.headshotKillRatio !== null) {
+                    const ratio = parseFloat(summary.headshotKillRatio);
+                    return parseFloat((ratio > 1 ? ratio : ratio * 100).toFixed(1));
+                  }
+                  // 직접 계산: 경쟁전 전체 헤드샷킬수 / 경쟁전 전체 킬수 * 100
+                  if (summary?.kills > 0 && summary?.headshots !== undefined) {
+                    return parseFloat((summary.headshots / summary.kills * 100).toFixed(1));
+                  }
+                  // 기본값들 (하위 호환성)
+                  return bestModeStats?.headshotRate || profile?.headshotKillRatio || 0;
+                })(),
+                headshots: summary?.headshots || bestModeStats?.headshots || 0, // 헤드샷 킬 수 추가
+                totalKills: summary?.kills || bestModeStats?.kills || 0, // 전체 킬 수 추가
                 totalMatches: totalAllMatches, // 경쟁전 포함 시즌 전체 경기 수
                 kd: bestModeStats?.kd || summary?.kd || profile?.kd || 0
               };

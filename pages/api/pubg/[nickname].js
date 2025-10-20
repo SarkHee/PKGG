@@ -407,7 +407,7 @@ function getClanTier(
   console.log(
     `[getClanTier] 현재 플레이어 순위: ${index + 1}/${
       sortedDamages.length
-    }, 백분위: ${percentile.toFixed(2)}`
+    }, 백분위: ${percentile.toFixed(1)}`
   );
 
   if (percentile <= 0.05) return "챌린저";
@@ -570,7 +570,7 @@ export default async function handler(req, res) {
               if (s && s.roundsPlayed > 0) {
                 // K/D 계산 수정: deaths = rounds - wins (PUBG에서는 죽지 않고 우승하면 death가 없음)
                 const deaths = s.roundsPlayed - s.wins;
-                const kd = deaths > 0 ? parseFloat((s.kills / deaths).toFixed(2)) : s.kills;
+                const kd = deaths > 0 ? parseFloat((s.kills / deaths).toFixed(1)) : s.kills;
                 
                 // 기존 PK.GG 계산식 유지, 누락 항목 추가
                 modeStats[mode] = {
@@ -578,18 +578,18 @@ export default async function handler(req, res) {
                   wins: s.wins,
                   top10s: s.top10s,
                   kd: kd,
-                  avgDamage: parseFloat((s.damageDealt / s.roundsPlayed).toFixed(2)),
-                  winRate: parseFloat(((s.wins / s.roundsPlayed) * 100).toFixed(2)),
-                  top10Rate: parseFloat(((s.top10s / s.roundsPlayed) * 100).toFixed(2)),
-                  longestKill: parseFloat(s.longestKill.toFixed(2)),
+                  avgDamage: parseFloat((s.damageDealt / s.roundsPlayed).toFixed(1)),
+                  winRate: parseFloat(((s.wins / s.roundsPlayed) * 100).toFixed(1)),
+                  top10Rate: parseFloat(((s.top10s / s.roundsPlayed) * 100).toFixed(1)),
+                  longestKill: parseFloat(s.longestKill.toFixed(1)),
                   headshots: s.headshotKills,
                   // 추가 항목
                   maxKills: s.mostKills ?? 0,
                   maxDistanceKill: s.longestKill ?? 0,
                   headshotRate: s.kills > 0 ? parseFloat(((s.headshotKills / s.kills) * 100).toFixed(1)) : 0,
-                  avgRank: s.roundsPlayed > 0 && s.winPlace ? parseFloat((s.winPlace / s.roundsPlayed).toFixed(2)) : 0,
-                  avgSurvivalTime: s.roundsPlayed > 0 && s.timeSurvived ? parseFloat((s.timeSurvived / s.roundsPlayed).toFixed(2)) : 0,
-                  avgAssists: s.roundsPlayed > 0 && s.assists !== undefined ? parseFloat((s.assists / s.roundsPlayed).toFixed(2)) : 0,
+                  avgRank: s.roundsPlayed > 0 && s.winPlace ? parseFloat((s.winPlace / s.roundsPlayed).toFixed(1)) : 0,
+                  avgSurvivalTime: s.roundsPlayed > 0 && s.timeSurvived ? parseFloat((s.timeSurvived / s.roundsPlayed).toFixed(1)) : 0,
+                  avgAssists: s.roundsPlayed > 0 && s.assists !== undefined ? parseFloat((s.assists / s.roundsPlayed).toFixed(1)) : 0,
                   assists: s.assists ?? 0,
                   mostAssists: s.mostAssists ?? 0,
                 };
@@ -637,7 +637,7 @@ export default async function handler(req, res) {
           );
           console.log(
             `[PK.GG SCORE] 점수 계산 상세:`,
-            `킬: ${relevantSquadStats?.kills || 0}/${relevantSquadStats?.roundsPlayed || 1} = ${((relevantSquadStats?.kills || 0) / (relevantSquadStats?.roundsPlayed || 1)).toFixed(2)}`,
+            `킬: ${relevantSquadStats?.kills || 0}/${relevantSquadStats?.roundsPlayed || 1} = ${((relevantSquadStats?.kills || 0) / (relevantSquadStats?.roundsPlayed || 1)).toFixed(1)}`,
             `딜량: ${((relevantSquadStats?.damageDealt || 0) / (relevantSquadStats?.roundsPlayed || 1)).toFixed(0)}`,
             `승률: ${((relevantSquadStats?.wins || 0) / (relevantSquadStats?.roundsPlayed || 1) * 100).toFixed(1)}%`
           );
@@ -702,20 +702,25 @@ export default async function handler(req, res) {
               console.log(`[HEADSHOT DEBUG] headshotKillRatio:`, r.headshotKillRatio);
               console.log(`[HEADSHOT DEBUG] headshotRate:`, r.headshotRate);
               console.log(`[HEADSHOT DEBUG] kills:`, r.kills);
+              console.log(`[HEADSHOT DEBUG] 계산된 비율:`, r.headshotKillRatio ? (parseFloat(r.headshotKillRatio) > 1 ? parseFloat(r.headshotKillRatio) : parseFloat(r.headshotKillRatio) * 100) : 'N/A');
               
               // K/D 계산 수정: deaths = rounds - wins (PUBG에서는 죽지 않고 우승하면 death가 없음)
               const deaths = r.roundsPlayed - r.wins;
-              const kd = deaths > 0 ? parseFloat((r.kills / deaths).toFixed(2)) : r.kills;
+              const kd = deaths > 0 ? parseFloat((r.kills / deaths).toFixed(1)) : r.kills;
               
               rankedStats.push({
                 mode,
                 tier: r.tier || "Unranked",
                 rp: r.currentRankPoint || 0,
                 kd: kd,
-                avgDamage: r.roundsPlayed > 0 ? parseFloat((r.damageDealt / r.roundsPlayed).toFixed(2)) : 0,
-                winRate: r.roundsPlayed > 0 ? parseFloat(((r.wins / r.roundsPlayed) * 100).toFixed(2)) : 0,
-                survivalTime: r.roundsPlayed > 0 ? parseFloat((r.timeSurvived / r.roundsPlayed).toFixed(2)) : 0,
+                avgDamage: r.roundsPlayed > 0 ? parseFloat((r.damageDealt / r.roundsPlayed).toFixed(1)) : 0,
+                winRate: r.roundsPlayed > 0 ? parseFloat(((r.wins / r.roundsPlayed) * 100).toFixed(1)) : 0,
+                survivalTime: r.roundsPlayed > 0 ? parseFloat((r.timeSurvived / r.roundsPlayed).toFixed(1)) : 0,
                 rounds: r.roundsPlayed,
+                // 헤드샷 관련 필드들 추가
+                kills: r.kills || 0,
+                headshots: r.headshotKills || r.headshots || 0,
+                headshotKillRatio: r.headshotKillRatio || 0,
                 // 기본 필드들
                 currentTier: r.currentTier?.tier || "Unranked", // 현재 티어
                 subTier: r.currentTier?.subTier || 0, // 세부 티어 (1, 2, 3, 4)
@@ -734,9 +739,25 @@ export default async function handler(req, res) {
                 headshotKillRatio: r.headshotKillRatio || r.headshotRate || 0, // 헤드샷 비율 (API에서 직접)
                 // 추가 통계들
                 headshots: r.headshotKills || r.headshots || 0, // 헤드샷 킬 수 (중복이지만 호환성)
-                headshotRate: r.headshotKillRatio ? parseFloat((r.headshotKillRatio * 100).toFixed(1)) : 
-                  r.headshotRate ? parseFloat((r.headshotRate * 100).toFixed(1)) :
-                  (r.kills > 0 ? parseFloat(((r.headshotKills || r.headshots || 0) / r.kills * 100).toFixed(1)) : 0), // 헤드샷 비율 계산
+                headshotRate: (() => {
+                  // headshotKillRatio가 있으면 사용 (이미 0-1 비율이므로 100곱함)
+                  if (r.headshotKillRatio !== undefined && r.headshotKillRatio !== null) {
+                    const ratio = parseFloat(r.headshotKillRatio);
+                    // 만약 이미 백분율(>1)이면 그대로 사용, 아니면 100을 곱함
+                    return parseFloat((ratio > 1 ? ratio : ratio * 100).toFixed(1));
+                  }
+                  // headshotRate가 있으면 사용
+                  if (r.headshotRate !== undefined && r.headshotRate !== null) {
+                    const rate = parseFloat(r.headshotRate);
+                    return parseFloat((rate > 1 ? rate : rate * 100).toFixed(1));
+                  }
+                  // 직접 계산: 헤드샷킬수 / 총킬수 * 100
+                  if (r.kills > 0) {
+                    const headshots = r.headshotKills || r.headshots || 0;
+                    return parseFloat((headshots / r.kills * 100).toFixed(1));
+                  }
+                  return 0;
+                })(), // 헤드샷 비율 계산 개선
                 // 성취 관련
                 bestTier: r.bestTier ? (r.bestTier.tier + (r.bestTier.subTier ? ` ${r.bestTier.subTier}` : "")) : "Unranked", // 최고 달성 티어
                 bestRankPoint: r.bestRankPoint || 0, // 최고 랭크 포인트
@@ -931,9 +952,9 @@ export default async function handler(req, res) {
       const kills = typeof top.kills === 'number' ? top.kills : null;
       const rounds = typeof top.rounds === 'number' && top.rounds > 0 ? top.rounds : 0;
       const deaths = rounds > 0 ? rounds - wins : 0;
-      const kda = deaths > 0 ? parseFloat(((kills + (assists || 0)) / deaths).toFixed(2)) : null;
-      const avgAssist = assists !== null && rounds > 0 ? parseFloat((assists / rounds).toFixed(2)) : null;
-      const avgKill = kills !== null && rounds > 0 ? parseFloat((kills / rounds).toFixed(2)) : null;
+      const kda = deaths > 0 ? parseFloat(((kills + (assists || 0)) / deaths).toFixed(1)) : null;
+      const avgAssist = assists !== null && rounds > 0 ? parseFloat((assists / rounds).toFixed(1)) : null;
+      const avgKill = kills !== null && rounds > 0 ? parseFloat((kills / rounds).toFixed(1)) : null;
       const avgRank = typeof top.avgRank === 'number' ? top.avgRank : null;
       rankedSummary = {
         mode: top.mode,
@@ -945,9 +966,16 @@ export default async function handler(req, res) {
         avgDamage: top.avgDamage,
         winRate: top.winRate,
         top10Rate: top10Rate,
-        headshotRate: top.headshotKillRatio ? parseFloat((top.headshotKillRatio * 100).toFixed(1)) : 
-          top.headshotRate ? parseFloat((top.headshotRate * 100).toFixed(1)) :
-          (top.kills > 0 ? parseFloat(((top.headshotKills || top.headshots || 0) / top.kills * 100).toFixed(1)) : 0), // 헤드샷 비율 계산
+        headshotRate: (() => {
+          // 직접 계산: 헤드샷킬수 / 총킬수 * 100 (정확한 공식 사용)
+          if (top.kills > 0) {
+            const headshots = top.headshotKills || top.headshots || 0;
+            const calculatedRate = parseFloat((headshots / top.kills * 100).toFixed(1));
+            console.log(`[HEADSHOT CALC] ${nickname} - 헤드샷킬: ${headshots}, 총킬: ${top.kills}, 계산된 비율: ${calculatedRate}%`);
+            return calculatedRate;
+          }
+          return 0;
+        })(), // 헤드샷 비율 계산: (헤드샷 킬 ÷ 전체 킬) × 100
         kda: kda,
         avgAssist: avgAssist,
         avgKill: avgKill,
@@ -961,6 +989,8 @@ export default async function handler(req, res) {
         assists: top.assists || 0,
         kills: top.kills || 0,
         deaths: top.deaths || 0,
+        headshots: top.headshots || 0, // 헤드샷 킬 수 추가
+        headshotKillRatio: top.headshotKillRatio || 0, // 원본 헤드샷 비율 추가
         damageDealt: top.damageDealt || 0,
         headshotKills: top.headshotKills || top.headshots || 0, // 일단 기본값 사용
         // 추가 데이터들
@@ -1408,7 +1438,7 @@ export default async function handler(req, res) {
         const avgSurvivalTime = Math.round(data.survivalTime / data.rounds);
         const winRate = parseFloat(((data.wins / data.rounds) * 100).toFixed(1));
         const top10Rate = parseFloat(((data.top10s / data.rounds) * 100).toFixed(1));
-        const kd = data.rounds > data.wins ? parseFloat((data.kills / (data.rounds - data.wins)).toFixed(2)) : data.kills;
+        const kd = data.rounds > data.wins ? parseFloat((data.kills / (data.rounds - data.wins)).toFixed(1)) : data.kills;
         const avgRank = data.validRanks > 0 ? parseFloat((data.rankSum / data.validRanks).toFixed(1)) : null;
 
         // 매치에서 헤드샷 데이터 수집
@@ -1442,25 +1472,42 @@ export default async function handler(req, res) {
     });
     
     // 모드별 통계 디버깅 로그
-    console.log(`[API DEBUG] ${nickname} - 생성된 모드별 통계:`, Object.keys(seasonModeStats));
-    Object.entries(seasonModeStats).forEach(([mode, stats]) => {
+    console.log(`[API DEBUG] ${nickname} - 생성된 모드별 통계:`, Object.keys(modeStats));
+    Object.entries(modeStats).forEach(([mode, stats]) => {
       console.log(`[API DEBUG] ${mode}: ${stats.rounds}게임, 평균 딜량 ${stats.avgDamage}, K/D ${stats.kd}`);
     });
 
-    // rankedSummary의 헤드샷 데이터를 매치 기반 데이터로 업데이트
+    // rankedSummary의 헤드샷 데이터를 경쟁전 API 우선으로 처리
     if (rankedSummary && Object.keys(seasonModeStats).length > 0) {
       const primaryMode = seasonModeStats['squad-fpp'] || seasonModeStats['squad'] || 
                          Object.values(seasonModeStats)[0] || {};
-      const matchBasedHeadshotKills = primaryMode.headshots || 0;
-      const matchBasedHeadshotRate = primaryMode.headshotRate || 0;
-      const matchBasedLongestKill = primaryMode.longestKill || 0;
       
-      // rankedSummary 헤드샷 데이터 업데이트
-      rankedSummary.headshotKills = matchBasedHeadshotKills;
-      rankedSummary.headshotRate = matchBasedHeadshotRate;
-      rankedSummary.longestKill = matchBasedLongestKill;
+      console.log(`[HEADSHOT DEBUG] parksrk 디버깅 - API headshotKills: ${rankedSummary.headshotKills}, 매치 headshots: ${primaryMode.headshots}, 경쟁전 총킬수: ${rankedSummary.kills}`);
       
-      console.log(`[HEADSHOT UPDATE] Updated rankedSummary with match data - headshotKills: ${matchBasedHeadshotKills}, headshotRate: ${matchBasedHeadshotRate}%`);
+      // 경쟁전 API 데이터가 없거나 0인 경우에만 매치 데이터로 보완
+      if (!rankedSummary.headshotKills || rankedSummary.headshotKills === 0) {
+        const matchBasedHeadshotKills = primaryMode.headshots || 0;
+        
+        console.log(`[HEADSHOT FIX] ${nickname} - API에서 헤드샷 킬수가 0이므로 매치 데이터 확인 - 매치 헤드샷: ${matchBasedHeadshotKills}, 경쟁전 총킬: ${rankedSummary.kills}`);
+        
+        // 매치 기반 헤드샷이 있으면 올바른 비율로 계산해서 사용
+        if (matchBasedHeadshotKills > 0 && rankedSummary.kills > 0) {
+          const correctHeadshotRate = parseFloat((matchBasedHeadshotKills / rankedSummary.kills * 100).toFixed(1));
+          rankedSummary.headshotKills = matchBasedHeadshotKills;
+          rankedSummary.headshotRate = correctHeadshotRate;
+          console.log(`[HEADSHOT UPDATE] ${nickname} - 매치 데이터로 헤드샷 정보 업데이트 완료 - headshotKills: ${matchBasedHeadshotKills}, headshotRate: ${correctHeadshotRate}% (${matchBasedHeadshotKills}÷${rankedSummary.kills}×100)`);
+        } else {
+          console.log(`[HEADSHOT INFO] ${nickname} - 매치에서도 헤드샷 킬이 없거나 총킬수가 0 - 헤드샷 데이터 없음`);
+        }
+      } else {
+        console.log(`[HEADSHOT INFO] 경쟁전 API 헤드샷 데이터가 있어서 매치 데이터로 덮어쓰지 않음 - API headshotKills: ${rankedSummary.headshotKills}`);
+      }
+      
+      // longestKill은 API 데이터가 없으면 매치 데이터 사용
+      if (!rankedSummary.longestKill || rankedSummary.longestKill === 0) {
+        rankedSummary.longestKill = primaryMode.longestKill || 0;
+        console.log(`[LONGEST KILL] parksrk - API에서 최장 킬 거리가 0이므로 매치 데이터로 보완: ${primaryMode.longestKill || 0}m`);
+      }
     }
 
     // 게임 모드별 분포 계산 (시즌 통계 기반)
@@ -1681,7 +1728,7 @@ export default async function handler(req, res) {
         name,
         togetherCount: stat.count,
         togetherWinRate: stat.count > 0 ? parseFloat(((stat.win / stat.count) * 100).toFixed(1)) : 0,
-        togetherAvgRank: stat.count > 0 ? parseFloat((stat.rankSum / stat.count).toFixed(2)) : 0,
+        togetherAvgRank: stat.count > 0 ? parseFloat((stat.rankSum / stat.count).toFixed(1)) : 0,
         togetherAvgDamage: stat.count > 0 ? parseFloat((stat.damageSum / stat.count).toFixed(1)) : 0,
       }))
       .sort((a, b) => b.togetherCount - a.togetherCount);
@@ -1768,7 +1815,7 @@ export default async function handler(req, res) {
 
       // 4. 모드별 시즌 통계 (SeasonStatsTabs 컴포넌트 호환 형태로 변경)
       seasonStats: {
-        'division.bro.official.pc-2024-01': seasonModeStats // 현재 시즌으로 감싸기
+        'division.bro.official.pc-2024-01': modeStats // 현재 시즌으로 감싸기 (전체 시즌 통계 사용)
       },
 
       // 5. 최근 20경기 요약 리스트 (op.gg 스타일 필드만 포함)

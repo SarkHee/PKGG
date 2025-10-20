@@ -97,8 +97,8 @@ async function getPubgStats(nickname) {
 
     // 5. 평균값 및 비율 계산
     const avgDamage = +(totalDamage / matchCount).toFixed(1);
-    const avgKills = +(totalKills / matchCount).toFixed(2);
-    const avgAssists = +(totalAssists / matchCount).toFixed(2);
+    const avgKills = +(totalKills / matchCount).toFixed(1);
+    const avgAssists = +(totalAssists / matchCount).toFixed(1);
     const avgSurviveTime = +(totalSurviveTime / matchCount).toFixed(1);
     const winRate = +(winCount / matchCount * 100).toFixed(1);
     const top10Rate = +(top10Count / matchCount * 100).toFixed(1);
@@ -117,8 +117,8 @@ async function getPubgStats(nickname) {
         wins: s.wins,
         top10s: s.top10s,
         avgDamage: +(s.totalDamage / s.matches).toFixed(1),
-        avgKills: +(s.totalKills / s.matches).toFixed(2),
-        avgAssists: +(s.totalAssists / s.matches).toFixed(2),
+        avgKills: +(s.totalKills / s.matches).toFixed(1),
+        avgAssists: +(s.totalAssists / s.matches).toFixed(1),
         winRate: +(s.wins / s.matches * 100).toFixed(1),
         top10Rate: +(s.top10s / s.matches * 100).toFixed(1)
       };

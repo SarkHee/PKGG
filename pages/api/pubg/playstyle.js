@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       avgDamage: avgDamage.toFixed(1),
       avgKills: avgKills.toFixed(1),
       avgSurvival: Math.round(avgSurvival),
-      top10Ratio: top10Ratio.toFixed(2),
+      top10Ratio: top10Ratio.toFixed(1),
       mmrScore: Math.round(mmrScore)  // ✅ 꼭 포함!
     });
 

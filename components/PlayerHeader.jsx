@@ -271,7 +271,7 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanInfo, recentMatches
             <div className="bg-white bg-opacity-60 rounded-lg p-3 border border-slate-200">
               <div className="text-xs font-medium text-blue-600 mb-1">평균 생존시간</div>
               <div className="text-xl font-bold text-gray-900">
-                {Math.floor((summary?.averageSurvivalTime || 0) / 60)}분 {Math.floor((summary?.averageSurvivalTime || 0) % 60)}초
+                {Math.floor(summary?.averageSurvivalTime || 0)}초
               </div>
             </div>
 
@@ -398,7 +398,7 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanInfo, recentMatches
                 <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
                   <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">게임수</div>
                   <div className="text-lg font-bold text-gray-900 dark:text-gray-100">{rankedSummary.games || 0}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">K/D {(rankedSummary.kd || 0).toFixed(2)}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">K/D {(rankedSummary.kd || 0).toFixed(1)}</div>
                 </div>
                 <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
                   <div className="text-xs text-amber-600 dark:text-amber-400 mb-1">평균 딜량</div>
@@ -453,7 +453,7 @@ const PlayerHeader = ({ profile, summary, rankedSummary, clanInfo, recentMatches
                     <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 text-center">
                       <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">KDA</div>
                       <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                        {typeof rankedSummary.kda === 'number' ? rankedSummary.kda.toFixed(2) : '0.00'}
+                        {typeof rankedSummary.kda === 'number' ? rankedSummary.kda.toFixed(1) : '0.0'}
                       </div>
                     </div>
                   </div>

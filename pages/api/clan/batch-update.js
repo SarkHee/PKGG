@@ -125,7 +125,7 @@ export default async function handler(req, res) {
             where: { id: member.id },
             data: {
               avgDamage: Math.round(avgDamage),
-              avgKills: parseFloat(avgKills.toFixed(2)),
+              avgKills: parseFloat(avgKills.toFixed(1)),
               winRate: parseFloat(winRate.toFixed(1)),
               top10Rate: parseFloat(top10Rate.toFixed(1))
             }

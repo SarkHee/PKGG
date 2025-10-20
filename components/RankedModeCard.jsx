@@ -29,7 +29,7 @@ export default function RankedModeCard({ mode }) {
         </h4>
         <div className="text-sm text-gray-500 dark:text-gray-400 space-x-3">
           <span>{mode.rounds} 게임</span>
-          <span>K/D {typeof mode.kd === 'number' ? mode.kd.toFixed(2) : '0.00'}</span>
+          <span>K/D {typeof mode.kd === 'number' ? mode.kd.toFixed(1) : '0.0'}</span>
           <span>평균 딜량 {typeof mode.avgDamage === 'number' ? mode.avgDamage.toFixed(0) : '0'}</span>
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -69,7 +69,7 @@ export default function RankedModeCard({ mode }) {
         <div className="flex justify-between">
           <span className="text-gray-600 dark:text-gray-400">KDA</span>
           <span className="font-medium text-blue-600 dark:text-blue-400">
-            {typeof mode.kda === 'number' ? mode.kda.toFixed(2) : '0.00'}
+            {typeof mode.kda === 'number' ? mode.kda.toFixed(1) : '0.0'}
           </span>
         </div>
         <div className="flex justify-between">

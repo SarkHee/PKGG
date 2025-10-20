@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         avgDamage: Math.round(activeMembers.reduce((sum, m) => sum + (m.avgDamage || 0), 0) / activeMembers.length),
         avgKills: (activeMembers.reduce((sum, m) => sum + (m.avgKills || 0), 0) / activeMembers.length).toFixed(1),
         winRate: Math.round(activeMembers.reduce((sum, m) => sum + (m.winRate || 0), 0) / activeMembers.length),
-        kdRatio: (activeMembers.reduce((sum, m) => sum + (m.avgKills || 0), 0) / activeMembers.length).toFixed(2)
+        kdRatio: (activeMembers.reduce((sum, m) => sum + (m.avgKills || 0), 0) / activeMembers.length).toFixed(1)
       };
     }
 

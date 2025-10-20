@@ -24,7 +24,16 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
       avgAssists: getValue(stats?.avgAssists ?? stats?.averageAssists ?? stats?.assistsPerGame),
       winRate: getValue(stats?.winRate ?? stats?.winRatio ?? stats?.wins),
       top10Rate: getValue(stats?.top10Rate ?? stats?.top10Ratio ?? stats?.top10s),
-      headshotRate: getValue(stats?.headshotRate ?? stats?.headshotKillRatio),
+      headshotRate: (() => {
+        if (stats?.headshotRate !== undefined && stats?.headshotRate !== null) {
+          return getValue(stats.headshotRate);
+        }
+        if (stats?.headshotKillRatio !== undefined && stats?.headshotKillRatio !== null) {
+          const ratio = parseFloat(stats.headshotKillRatio);
+          return getValue(ratio > 1 ? ratio : ratio * 100);
+        }
+        return 0;
+      })(),
       totalMatches: getValue(stats?.totalMatches ?? stats?.roundsPlayed ?? stats?.games),
       kd: getValue(stats?.kd ?? stats?.kdRatio)
     };

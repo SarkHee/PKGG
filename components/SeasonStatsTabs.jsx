@@ -232,7 +232,10 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
                 <span>헤드샷 비율</span>
                 <span className="font-medium text-red-600 dark:text-red-400">
                   {stats?.headshotRate ? `${stats.headshotRate}%` : 
-                   stats?.headshotKillRatio ? `${(stats.headshotKillRatio * 100).toFixed(1)}%` : 
+                   stats?.headshotKillRatio ? (() => {
+                     const ratio = parseFloat(stats.headshotKillRatio);
+                     return `${(ratio > 1 ? ratio : ratio * 100).toFixed(1)}%`;
+                   })() : 
                    stats?.headshotKills && stats?.kills ? `${((stats.headshotKills / stats.kills) * 100).toFixed(1)}%` : '0.0%'}
                 </span>
               </div>
@@ -260,8 +263,8 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
               <div className="flex justify-between text-sm">
                 <span>평균 생존시간</span>
                 <span className="font-medium">
-                  {stats?.avgSurvivalTime ? `${Math.floor(stats.avgSurvivalTime / 60)}:${String(stats.avgSurvivalTime % 60).padStart(2, '0')}` : 
-                   stats?.timeSurvived ? `${Math.floor(stats.timeSurvived / 60000)}:${String(Math.floor((stats.timeSurvived % 60000) / 1000)).padStart(2, '0')}` : '00:00'}
+                  {stats?.avgSurvivalTime ? `${Math.floor(stats.avgSurvivalTime)}초` : 
+                   stats?.timeSurvived ? `${Math.floor(stats.timeSurvived / 1000)}초` : '0초'}
                 </span>
               </div>
             </div>
@@ -272,7 +275,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
               <div className="flex justify-between text-sm">
                 <span>KDA</span>
                 <span className="font-medium">
-                  {stats?.kda ?? ((stats?.kd || 0) + (stats?.avgAssists || 0)).toFixed(2)}
+                  {stats?.kda ?? ((stats?.kd || 0) + (stats?.avgAssists || 0)).toFixed(1)}
                 </span>
               </div>
             </div>

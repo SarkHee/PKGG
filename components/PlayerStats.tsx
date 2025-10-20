@@ -57,7 +57,7 @@ const StatCard = ({ mode, stat, matches }: { mode: string; stat?: ModeStats; mat
         {formatStat("경기 수", stat.rounds)}
         {formatStat("승리 수", stat.wins)}
         {formatStat("Top10 진입", stat.top10s)}
-        {formatStat("K/D", stat.kd.toFixed(2))}
+        {formatStat("K/D", stat.kd.toFixed(1))}
         {formatStat("평균 딜량", stat.avgDamage.toFixed(1))}
         {formatStat("승률", `${stat.winRate.toFixed(1)}%`)}
         {formatStat("Top10 비율", `${stat.top10Rate.toFixed(1)}%`)}

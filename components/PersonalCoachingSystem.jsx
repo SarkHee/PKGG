@@ -8,7 +8,9 @@ function analyzePlayerBehavior(playerStats, matches) {
   const analysis = {
     combatTiming: {},
     deathCauses: {},
-    weaponPerformance: {},
+    weaknesses.push('낮은 K/D 비율 (' + playerKdr.toFixed(1) + ')');
+  } else if (playerKdr > 1.3) {
+    strengths.push('우수한 교전 능력 (K/D: ' + playerKdr.toFixed(1) + ')'); weaponPerformance: {},
     mapPerformance: {},
     recommendations: [],
     strengths: [],
@@ -185,9 +187,9 @@ function analyzePlayerBehavior(playerStats, matches) {
     { 
       type: 'CQC (근접전)', 
       performance: playerKdr > 1.5 ? 'good' : playerKdr > 0.8 ? 'average' : 'poor',
-      recommendation: playerKdr < 0.8 ? '근접 교전 승률 향상 필요 (K/D: ' + playerKdr.toFixed(2) + ')' :
-                      playerKdr > 1.3 ? '근접 교전 능력 우수 (K/D: ' + playerKdr.toFixed(2) + ')' :
-                      '근접 교전 능력 보통 수준 (K/D: ' + playerKdr.toFixed(2) + ')',
+      recommendation: playerKdr < 0.8 ? '근접 교전 승률 향상 필요 (K/D: ' + playerKdr.toFixed(1) + ')' :
+                      playerKdr > 1.3 ? '근접 교전 능력 우수 (K/D: ' + playerKdr.toFixed(1) + ')' :
+                      '근접 교전 능력 보통 수준 (K/D: ' + playerKdr.toFixed(1) + ')',
       score: playerKdr
     }
   ];
@@ -209,7 +211,7 @@ function analyzePlayerBehavior(playerStats, matches) {
       message: `최근 ${analysis.combatTiming.totalMatches}경기 중 ${Math.round(analysis.combatTiming.earlyDeathRate)}%가 초반(5분 미만) 사망입니다. ${Math.round(analysis.combatTiming.recommendedEngagementTime / 60)}분 이후 교전을 추천합니다.`,
       priority: 'high',
       icon: '⏰',
-      data: `평균 생존시간: ${Math.floor(analysis.combatTiming.avgSurviveTime / 60)}분 ${analysis.combatTiming.avgSurviveTime % 60}초`
+      data: `평균 생존시간: ${Math.floor(analysis.combatTiming.avgSurviveTime)}초`
     });
     weaknesses.push('초반 교전 생존율 낮음 (' + Math.round(analysis.combatTiming.earlyDeathRate) + '%)');
   } else if (analysis.combatTiming.earlyDeathRate < 20) {
@@ -236,14 +238,14 @@ function analyzePlayerBehavior(playerStats, matches) {
     recommendations.push({
       type: 'kdr',
       title: '교전 효율성 개선',
-      message: `K/D 비율 ${playerKdr.toFixed(2)}로 교전 선택과 포지셔닝 개선이 필요합니다.`,
+      message: `K/D 비율 ${playerKdr.toFixed(1)}로 교전 선택과 포지셔닝 개선이 필요합니다.`,
       priority: 'medium',
       icon: '⚔️',
       data: `목표: 1.0+ K/D`
     });
-    weaknesses.push('낮은 K/D 비율 (' + playerKdr.toFixed(2) + ')');
+    weaknesses.push('낮은 K/D 비율 (' + playerKdr.toFixed(1) + ')');
   } else if (playerKdr > 1.5) {
-    strengths.push('우수한 교전 능력 (K/D: ' + playerKdr.toFixed(2) + ')');
+    strengths.push('우수한 교전 능력 (K/D: ' + playerKdr.toFixed(1) + ')');
   }
 
   // 승률 기반 추천
@@ -504,7 +506,7 @@ export default function PersonalCoachingSystem({ playerStats, matches }) {
                     <div className="text-sm text-indigo-600 dark:text-indigo-400">{weapon.recommendation}</div>
                     {weapon.score && (
                       <div className="text-xs text-indigo-500 dark:text-indigo-300 mt-1">
-                        점수: {typeof weapon.score === 'number' ? weapon.score.toFixed(2) : weapon.score}
+                        점수: {typeof weapon.score === 'number' ? weapon.score.toFixed(1) : weapon.score}
                       </div>
                     )}
                   </div>
@@ -614,7 +616,7 @@ export default function PersonalCoachingSystem({ playerStats, matches }) {
               <div className="bg-blue-100 dark:bg-blue-800/30 border border-blue-200 dark:border-blue-600/50 rounded-lg p-3">
                 <h4 className="text-blue-800 dark:text-blue-200 font-semibold mb-2">이번 주 목표</h4>
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  평균 생존시간 {Math.floor(analysis.combatTiming.avgSurviveTime / 60) + 2}분 달성하기
+                  평균 생존시간 {Math.floor(analysis.combatTiming.avgSurviveTime) + 120}초 달성하기
                 </p>
               </div>
               <div className="bg-green-100 dark:bg-green-800/30 border border-green-200 dark:border-green-600/50 rounded-lg p-3">

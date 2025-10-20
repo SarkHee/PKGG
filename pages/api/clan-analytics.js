@@ -372,9 +372,9 @@ export default async function handler(req, res) {
       const avgStats = {
         score: Math.round(members.reduce((sum, m) => sum + m.score, 0) / memberCount),
         damage: Math.round(members.reduce((sum, m) => sum + m.avgDamage, 0) / memberCount),
-        kills: (members.reduce((sum, m) => sum + m.avgKills, 0) / memberCount).toFixed(2),
-        winRate: (members.reduce((sum, m) => sum + m.winRate, 0) / memberCount).toFixed(2),
-        top10Rate: (members.reduce((sum, m) => sum + m.top10Rate, 0) / memberCount).toFixed(2)
+        kills: (members.reduce((sum, m) => sum + m.avgKills, 0) / memberCount).toFixed(1),
+        winRate: (members.reduce((sum, m) => sum + m.winRate, 0) / memberCount).toFixed(1),
+        top10Rate: (members.reduce((sum, m) => sum + m.top10Rate, 0) / memberCount).toFixed(1)
       };
 
       // 플레이 스타일 분석

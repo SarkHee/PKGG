@@ -51,13 +51,13 @@ export default function RankedSummaryCard({ summary }) {
         <div className="text-center">
           <div className="text-gray-600 dark:text-gray-400 text-xs">K/D</div>
           <div className="font-bold text-lg text-gray-900 dark:text-gray-100">
-            {typeof summary.kd === 'number' ? summary.kd.toFixed(2) : '0.00'}
+            {typeof summary.kd === 'number' ? summary.kd.toFixed(1) : '0.0'}
           </div>
         </div>
         <div className="text-center">
           <div className="text-gray-600 dark:text-gray-400 text-xs">KDA</div>
           <div className="font-bold text-lg text-blue-600 dark:text-blue-400">
-            {typeof summary.kda === 'number' ? summary.kda.toFixed(2) : '0.00'}
+            {typeof summary.kda === 'number' ? summary.kda.toFixed(1) : '0.0'}
           </div>
         </div>
         <div className="text-center">

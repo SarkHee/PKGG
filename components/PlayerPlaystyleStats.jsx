@@ -15,7 +15,7 @@ export default function PlayerPlaystyleStats({ summary }) {
         <StatBox label="평균 딜량" value={summary.avgDamage ?? '-'} />
         <StatBox label="시즌 평균 딜량" value={summary.seasonAvgDamage ?? '-'} />
         <StatBox label="평균 생존 시간" value={summary.avgSurvivalTime ? `${Math.round(summary.avgSurvivalTime)}초` : '-'} />
-        <StatBox label="평균 이동 거리" value={summary.avgDistance ? `${(summary.avgDistance/1000).toFixed(2)}km` : '-'} />
+        <StatBox label="평균 이동 거리" value={summary.avgDistance ? `${(summary.avgDistance/1000).toFixed(1)}km` : '-'} />
         <StatBox label="평균 교전 거리" value={summary.avgCombatDistance ? `${Math.round(summary.avgCombatDistance)}m` : '-'} />
         <StatBox label="평균 킬" value={summary.avgKills ?? '-'} />
         <StatBox label="평균 어시스트" value={summary.avgAssists ?? '-'} />
