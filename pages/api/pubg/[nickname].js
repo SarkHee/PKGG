@@ -1264,7 +1264,7 @@ export default async function handler(req, res) {
       modeData.assists += myStats.assists || 0;
       modeData.damage += myStats.damageDealt || 0;
       modeData.survivalTime += myStats.timeSurvived || 0;
-      modeData.headshots += myStats.headshotKills || 0; // 헤드샷 킬 누적
+      modeData.headshots += myStats.headshotKills || 0; // 헤드샷 킬 누적 (개별 매치에서 정확한 데이터)
       
       // 최장 킬 거리 수집
       if (myStats.longestKill && myStats.longestKill > 0) {
@@ -1482,26 +1482,44 @@ export default async function handler(req, res) {
       const primaryMode = seasonModeStats['squad-fpp'] || seasonModeStats['squad'] || 
                          Object.values(seasonModeStats)[0] || {};
       
-      console.log(`[HEADSHOT DEBUG] parksrk 디버깅 - API headshotKills: ${rankedSummary.headshotKills}, 매치 headshots: ${primaryMode.headshots}, 경쟁전 총킬수: ${rankedSummary.kills}`);
+      console.log(`[HEADSHOT DEBUG] ${nickname} - API 누적 headshotKills: ${rankedSummary.headshotKills}, 누적 총킬: ${rankedSummary.kills}, 매치 headshots: ${primaryMode.headshots}`);
       
-      // 경쟁전 API 데이터가 없거나 0인 경우에만 매치 데이터로 보완
-      if (!rankedSummary.headshotKills || rankedSummary.headshotKills === 0) {
-        const matchBasedHeadshotKills = primaryMode.headshots || 0;
-        
-        console.log(`[HEADSHOT FIX] ${nickname} - API에서 헤드샷 킬수가 0이므로 매치 데이터 확인 - 매치 헤드샷: ${matchBasedHeadshotKills}, 경쟁전 총킬: ${rankedSummary.kills}`);
-        
-        // 매치 기반 헤드샷이 있으면 올바른 비율로 계산해서 사용
-        if (matchBasedHeadshotKills > 0 && rankedSummary.kills > 0) {
-          const correctHeadshotRate = parseFloat((matchBasedHeadshotKills / rankedSummary.kills * 100).toFixed(1));
-          rankedSummary.headshotKills = matchBasedHeadshotKills;
-          rankedSummary.headshotRate = correctHeadshotRate;
-          console.log(`[HEADSHOT UPDATE] ${nickname} - 매치 데이터로 헤드샷 정보 업데이트 완료 - headshotKills: ${matchBasedHeadshotKills}, headshotRate: ${correctHeadshotRate}% (${matchBasedHeadshotKills}÷${rankedSummary.kills}×100)`);
-        } else {
-          console.log(`[HEADSHOT INFO] ${nickname} - 매치에서도 헤드샷 킬이 없거나 총킬수가 0 - 헤드샷 데이터 없음`);
-        }
-      } else {
-        console.log(`[HEADSHOT INFO] 경쟁전 API 헤드샷 데이터가 있어서 매치 데이터로 덮어쓰지 않음 - API headshotKills: ${rankedSummary.headshotKills}`);
+      // 누적 헤드샷 데이터 우선 사용: API의 전체 시즌 누적 데이터를 기준으로 함
+      let finalHeadshotKills = 0;
+      let finalHeadshotRate = 0;
+      
+      // PUBG API 현황: 대부분의 계정에서 headshotKills가 0으로 반환됨 (API 이슈)
+      // 따라서 매치 기반 데이터로 정확한 누적 헤드샷 계산
+      
+      // 1순위: API 헤드샷 데이터가 실제로 있으면 사용 (매우 드묾)
+      if (rankedSummary.headshotKills && rankedSummary.headshotKills > 0 && rankedSummary.kills > 0) {
+        finalHeadshotKills = rankedSummary.headshotKills;
+        finalHeadshotRate = parseFloat((finalHeadshotKills / rankedSummary.kills * 100).toFixed(1));
+        console.log(`[HEADSHOT API] ${nickname} - 공식 누적 데이터 사용 - ${finalHeadshotKills}킬, ${finalHeadshotRate}% (${finalHeadshotKills}÷${rankedSummary.kills}×100)`);
       }
+      // 2순위: API 헤드샷 데이터가 없으면 매치 기반으로 정확히 계산 (일반적인 경우)
+      else if (primaryMode.headshots > 0 && rankedSummary.kills > 0) {
+        // 최근 20경기 기반 헤드샷을 전체 비율로 추정 (임시 대안)
+        const matchBasedHeadshotKills = primaryMode.headshots;
+        const recentMatchesKills = primaryMode.kills || 1;
+        const estimatedHeadshotRate = matchBasedHeadshotKills / recentMatchesKills;
+        
+        // 전체 킬수에 추정 비율 적용
+        finalHeadshotKills = Math.round(rankedSummary.kills * estimatedHeadshotRate);
+        finalHeadshotRate = parseFloat((finalHeadshotKills / rankedSummary.kills * 100).toFixed(1));
+        
+        console.log(`[HEADSHOT ESTIMATE] ${nickname} - 매치 기반 추정 - 최근 ${matchBasedHeadshotKills}/${recentMatchesKills} 비율로 전체 추정: ${finalHeadshotKills}킬, ${finalHeadshotRate}%`);
+      }
+      // 3순위: 데이터가 없으면 0
+      else {
+        finalHeadshotKills = 0;
+        finalHeadshotRate = 0;
+        console.log(`[HEADSHOT NONE] ${nickname} - 헤드샷 데이터 없음`);
+      }
+      
+      // 최종 값 적용
+      rankedSummary.headshotKills = finalHeadshotKills;
+      rankedSummary.headshotRate = finalHeadshotRate;
       
       // longestKill은 API 데이터가 없으면 매치 데이터 사용
       if (!rankedSummary.longestKill || rankedSummary.longestKill === 0) {
