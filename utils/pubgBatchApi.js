@@ -2,7 +2,7 @@
 // /Users/mac/Desktop/PKGG/utils/pubgBatchApi.js
 
 const PUBG_API_KEY = process.env.PUBG_API_KEY;
-const PUBG_BASE_URL = "https://api.pubg.com/shards";
+const PUBG_BASE_URL = 'https://api.pubg.com/shards';
 
 /**
  * 여러 플레이어의 기본 정보를 배치로 조회
@@ -15,14 +15,16 @@ export async function fetchPlayersBatch(shard, playerNames) {
     throw new Error('플레이어 이름은 1-10개까지 지원됩니다.');
   }
 
-  const namesParam = playerNames.map(name => encodeURIComponent(name)).join(',');
+  const namesParam = playerNames
+    .map((name) => encodeURIComponent(name))
+    .join(',');
   const url = `${PUBG_BASE_URL}/${shard}/players?filter[playerNames]=${namesParam}`;
 
   const response = await fetch(url, {
     headers: {
-      "Authorization": `Bearer ${PUBG_API_KEY}`,
-      "Accept": "application/vnd.api+json"
-    }
+      Authorization: `Bearer ${PUBG_API_KEY}`,
+      Accept: 'application/vnd.api+json',
+    },
   });
 
   if (!response.ok) {
@@ -40,7 +42,12 @@ export async function fetchPlayersBatch(shard, playerNames) {
  * @param {string[]} playerIds - 플레이어 ID 배열 (최대 10개)
  * @returns {Promise<Object>} PUBG API 응답
  */
-export async function fetchSeasonStatsBatch(shard, seasonId, gameMode, playerIds) {
+export async function fetchSeasonStatsBatch(
+  shard,
+  seasonId,
+  gameMode,
+  playerIds
+) {
   if (!playerIds || playerIds.length === 0 || playerIds.length > 10) {
     throw new Error('플레이어 ID는 1-10개까지 지원됩니다.');
   }
@@ -50,9 +57,9 @@ export async function fetchSeasonStatsBatch(shard, seasonId, gameMode, playerIds
 
   const response = await fetch(url, {
     headers: {
-      "Authorization": `Bearer ${PUBG_API_KEY}`,
-      "Accept": "application/vnd.api+json"
-    }
+      Authorization: `Bearer ${PUBG_API_KEY}`,
+      Accept: 'application/vnd.api+json',
+    },
   });
 
   if (!response.ok) {
@@ -82,7 +89,7 @@ export async function fetchLifetimeStatsBatch(shard, gameMode, playerIds) {
  */
 export async function fetchClanMembersBatch(shard, memberNames, seasonId) {
   const results = {};
-  
+
   // 최대 10명씩 나누어서 처리
   const chunks = [];
   for (let i = 0; i < memberNames.length; i += 10) {
@@ -93,18 +100,17 @@ export async function fetchClanMembersBatch(shard, memberNames, seasonId) {
     try {
       // 1. 플레이어 기본 정보 배치 조회
       const playersData = await fetchPlayersBatch(shard, chunk);
-      
+
       // 2. 각 플레이어의 ID 수집
-      const playerIds = playersData.data.map(player => player.id);
-      
+      const playerIds = playersData.data.map((player) => player.id);
+
       // 3. 주요 게임모드별 시즌 통계 배치 조회
       const gameModes = ['squad-fpp', 'squad', 'duo-fpp', 'solo-fpp'];
-      const seasonStatsPromises = gameModes.map(mode => 
-        fetchSeasonStatsBatch(shard, seasonId, mode, playerIds)
-          .catch(err => {
-            console.warn(`${mode} 모드 통계 조회 실패:`, err.message);
-            return null;
-          })
+      const seasonStatsPromises = gameModes.map((mode) =>
+        fetchSeasonStatsBatch(shard, seasonId, mode, playerIds).catch((err) => {
+          console.warn(`${mode} 모드 통계 조회 실패:`, err.message);
+          return null;
+        })
       );
 
       const seasonStatsResults = await Promise.all(seasonStatsPromises);
@@ -113,22 +119,23 @@ export async function fetchClanMembersBatch(shard, memberNames, seasonId) {
       playersData.data.forEach((player, index) => {
         results[player.attributes.name] = {
           basicInfo: player,
-          seasonStats: {}
+          seasonStats: {},
         };
 
         // 각 게임모드별 통계 추가
         seasonStatsResults.forEach((statsData, modeIndex) => {
           if (statsData && statsData.data) {
-            const playerStats = statsData.data.find(stats => 
-              stats.relationships.player.data.id === player.id
+            const playerStats = statsData.data.find(
+              (stats) => stats.relationships.player.data.id === player.id
             );
             if (playerStats) {
-              results[player.attributes.name].seasonStats[gameModes[modeIndex]] = playerStats;
+              results[player.attributes.name].seasonStats[
+                gameModes[modeIndex]
+              ] = playerStats;
             }
           }
         });
       });
-
     } catch (error) {
       console.error(`청크 처리 실패:`, error);
       // 실패한 청크의 플레이어들을 개별적으로 처리
@@ -138,12 +145,12 @@ export async function fetchClanMembersBatch(shard, memberNames, seasonId) {
           results[name] = {
             basicInfo: singlePlayerData.data[0],
             seasonStats: {},
-            fallback: true
+            fallback: true,
           };
         } catch (singleError) {
           console.error(`개별 플레이어 ${name} 조회 실패:`, singleError);
           results[name] = {
-            error: singleError.message
+            error: singleError.message,
           };
         }
       }
@@ -158,7 +165,7 @@ export async function fetchClanMembersBatch(shard, memberNames, seasonId) {
  * @param {number} ms - 지연 시간 (밀리초)
  */
 export function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -173,10 +180,10 @@ export class RateLimitManager {
   async waitIfNeeded() {
     const now = Date.now();
     const oneMinuteAgo = now - 60000;
-    
+
     // 1분 이내의 요청만 유지
-    this.requests = this.requests.filter(time => time > oneMinuteAgo);
-    
+    this.requests = this.requests.filter((time) => time > oneMinuteAgo);
+
     if (this.requests.length >= this.requestsPerMinute) {
       const oldestRequest = Math.min(...this.requests);
       const waitTime = oldestRequest + 60000 - now;
@@ -185,7 +192,7 @@ export class RateLimitManager {
         await delay(waitTime);
       }
     }
-    
+
     this.requests.push(now);
   }
 }

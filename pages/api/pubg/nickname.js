@@ -1,7 +1,7 @@
 // pages/api/pubg/nickname.js
 export default async function handler(req, res) {
   const { nickname, shard = 'steam' } = req.query;
-  
+
   if (!nickname) {
     return res.status(400).json({ error: 'Nickname is required' });
   }
@@ -20,8 +20,8 @@ export default async function handler(req, res) {
           tag: 'UBD',
           level: 15,
           memberCount: 57,
-          description: '우리는 UBD입니다.'
-        }
+          description: '우리는 UBD입니다.',
+        },
       },
       summary: {
         avgDamage: 200,
@@ -31,17 +31,53 @@ export default async function handler(req, res) {
         winRate: 10,
         top10Rate: 40,
         score: 1200,
-        style: '🔥 지속 전투형'
+        style: '🔥 지속 전투형',
       },
       rankedStats: [
-        { mode: "squad-fpp", tier: "Gold IV", rp: 1850, kd: 1.2, avgDamage: 180, winRate: 12, survivalTime: 900, rounds: 45 },
-        { mode: "squad", tier: "Silver II", rp: 1420, kd: 0.9, avgDamage: 150, winRate: 8, survivalTime: 850, rounds: 32 }, 
-        { mode: "duo-fpp", tier: "Platinum V", rp: 2100, kd: 1.8, avgDamage: 220, winRate: 18, survivalTime: 1100, rounds: 28 },
-        { mode: "solo-fpp", tier: "Bronze I", rp: 1180, kd: 0.7, avgDamage: 120, winRate: 5, survivalTime: 700, rounds: 15 }
+        {
+          mode: 'squad-fpp',
+          tier: 'Gold IV',
+          rp: 1850,
+          kd: 1.2,
+          avgDamage: 180,
+          winRate: 12,
+          survivalTime: 900,
+          rounds: 45,
+        },
+        {
+          mode: 'squad',
+          tier: 'Silver II',
+          rp: 1420,
+          kd: 0.9,
+          avgDamage: 150,
+          winRate: 8,
+          survivalTime: 850,
+          rounds: 32,
+        },
+        {
+          mode: 'duo-fpp',
+          tier: 'Platinum V',
+          rp: 2100,
+          kd: 1.8,
+          avgDamage: 220,
+          winRate: 18,
+          survivalTime: 1100,
+          rounds: 28,
+        },
+        {
+          mode: 'solo-fpp',
+          tier: 'Bronze I',
+          rp: 1180,
+          kd: 0.7,
+          avgDamage: 120,
+          winRate: 5,
+          survivalTime: 700,
+          rounds: 15,
+        },
       ],
       rankedSummary: {
-        mode: "duo-fpp",
-        tier: "Platinum V", 
+        mode: 'duo-fpp',
+        tier: 'Platinum V',
         rp: 2100,
         games: 28,
         wins: 5,
@@ -53,7 +89,7 @@ export default async function handler(req, res) {
         avgAssist: 0.6,
         avgKill: 1.8,
         avgRank: 25,
-        survivalTime: 1100
+        survivalTime: 1100,
       },
       seasonStats: {},
       recentMatches: [
@@ -66,7 +102,7 @@ export default async function handler(req, res) {
           assists: 2,
           damage: 350,
           surviveTime: 1200,
-          matchTimestamp: new Date(Date.now() - 3600000).toISOString()
+          matchTimestamp: new Date(Date.now() - 3600000).toISOString(),
         },
         {
           matchId: 'sample-match-2',
@@ -77,8 +113,8 @@ export default async function handler(req, res) {
           assists: 0,
           damage: 120,
           surviveTime: 800,
-          matchTimestamp: new Date(Date.now() - 7200000).toISOString()
-        }
+          matchTimestamp: new Date(Date.now() - 7200000).toISOString(),
+        },
       ],
       modeDistribution: { ranked: 30, normal: 60, event: 10 },
       clanMembers: [],
@@ -92,7 +128,7 @@ export default async function handler(req, res) {
       recommendedSquad: null,
       bestSquad: null,
       killMapTelemetryUrl: null,
-      timeActivityGraph: null
+      timeActivityGraph: null,
     });
   } catch (error) {
     console.error('API Error:', error);

@@ -16,7 +16,7 @@ async function addForumSampleData() {
         description: 'PUBG 전략과 게임 팁을 공유하세요',
         icon: '🧠',
         color: '#3B82F6',
-        order: 1
+        order: 1,
       },
       {
         id: 'recruitment',
@@ -24,7 +24,7 @@ async function addForumSampleData() {
         description: '클랜 멤버 모집 및 지원',
         icon: '👥',
         color: '#10B981',
-        order: 2
+        order: 2,
       },
       {
         id: 'general',
@@ -32,7 +32,7 @@ async function addForumSampleData() {
         description: '자유로운 이야기를 나누세요',
         icon: '💬',
         color: '#8B5CF6',
-        order: 3
+        order: 3,
       },
       {
         id: 'updates',
@@ -40,15 +40,15 @@ async function addForumSampleData() {
         description: 'PUBG 업데이트 및 뉴스',
         icon: '📢',
         color: '#F59E0B',
-        order: 4
-      }
+        order: 4,
+      },
     ];
 
     for (const category of categories) {
       await prisma.forumCategory.upsert({
         where: { id: category.id },
         update: category,
-        create: category
+        create: category,
       });
     }
 
@@ -57,7 +57,7 @@ async function addForumSampleData() {
     // 2. 샘플 게시글 추가
     const samplePosts = [
       {
-        title: "초보자를 위한 PUBG 생존 가이드",
+        title: '초보자를 위한 PUBG 생존 가이드',
         content: `PUBG를 처음 시작하는 분들을 위한 생존 가이드를 작성했습니다.
 
 ## 1. 착지 지역 선택
@@ -81,13 +81,13 @@ async function addForumSampleData() {
 - 상황이 불리하면 도망치는 것도 전략입니다
 
 이런 기본기를 익히시면 생존률이 크게 향상될 것입니다!`,
-        author: "PUBG마스터",
-        categoryId: "strategy",
+        author: 'PUBG마스터',
+        categoryId: 'strategy',
         views: 1250,
-        isPinned: true
+        isPinned: true,
       },
       {
-        title: "랭크 시스템 분석 및 티어 올리는 법",
+        title: '랭크 시스템 분석 및 티어 올리는 법',
         content: `PUBG 랭크 시스템에 대해 자세히 분석해보겠습니다.
 
 ## 티어 시스템
@@ -105,12 +105,12 @@ Bronze → Silver → Gold → Platinum → Diamond → Master
 4. 자기장 타이밍 잘 맞추기
 
 랭크업 화이팅! 💪`,
-        author: "랭크킹",
-        categoryId: "strategy",
-        views: 890
+        author: '랭크킹',
+        categoryId: 'strategy',
+        views: 890,
       },
       {
-        title: "UBD 클랜 모집합니다! 🔥",
+        title: 'UBD 클랜 모집합니다! 🔥',
         content: `안녕하세요! **UBD 클랜**에서 새로운 멤버를 모집합니다.
 
 ## 클랜 소개
@@ -130,12 +130,12 @@ Bronze → Silver → Gold → Platinum → Diamond → Master
 - 클랜장: parksrk
 
 많은 지원 부탁드립니다! 함께 성장해요! 🎮`,
-        author: "parksrk",
-        categoryId: "recruitment",
-        views: 456
+        author: 'parksrk',
+        categoryId: 'recruitment',
+        views: 456,
       },
       {
-        title: "오늘 치킨 3개 먹었어요! 🐔",
+        title: '오늘 치킨 3개 먹었어요! 🐔',
         content: `오늘 정말 운이 좋았나봅니다 ㅋㅋ
 
 솔로 랭크에서 치킨 3개를 연속으로 먹었어요!
@@ -150,12 +150,12 @@ Bronze → Silver → Gold → Platinum → Diamond → Master
 중반부터 킬을 계속 쌓아서 12킬까지!
 
 여러분도 오늘 좋은 게임 되세요! ✨`,
-        author: "치킨헌터",
-        categoryId: "general",
-        views: 234
+        author: '치킨헌터',
+        categoryId: 'general',
+        views: 234,
       },
       {
-        title: "시즌 25 업데이트 정보 정리",
+        title: '시즌 25 업데이트 정보 정리',
         content: `시즌 25 주요 업데이트 내용을 정리해드립니다.
 
 ## 주요 변경사항
@@ -180,11 +180,11 @@ Bronze → Silver → Gold → Platinum → Diamond → Master
 - 성능 최적화
 
 기대되는 시즌이네요! 모두 열심히 플레이해봅시다! 🎮`,
-        author: "업데이트봇",
-        categoryId: "updates",
+        author: '업데이트봇',
+        categoryId: 'updates',
         views: 1580,
-        isPinned: true
-      }
+        isPinned: true,
+      },
     ];
 
     for (let i = 0; i < samplePosts.length; i++) {
@@ -192,30 +192,32 @@ Bronze → Silver → Gold → Platinum → Diamond → Master
       const createdPost = await prisma.forumPost.create({
         data: {
           ...post,
-          createdAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)) // 각각 하루씩 차이
-        }
+          createdAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000), // 각각 하루씩 차이
+        },
       });
 
       // 각 게시글에 샘플 댓글 추가
       const replies = [
         {
-          content: "정말 유용한 정보네요! 감사합니다 👍",
-          author: "독자" + (Math.floor(Math.random() * 100) + 1),
-          postId: createdPost.id
+          content: '정말 유용한 정보네요! 감사합니다 👍',
+          author: '독자' + (Math.floor(Math.random() * 100) + 1),
+          postId: createdPost.id,
         },
         {
-          content: "이런 글 더 많이 올려주세요!",
-          author: "팬" + (Math.floor(Math.random() * 100) + 1),
-          postId: createdPost.id
-        }
+          content: '이런 글 더 많이 올려주세요!',
+          author: '팬' + (Math.floor(Math.random() * 100) + 1),
+          postId: createdPost.id,
+        },
       ];
 
       for (const reply of replies) {
         await prisma.forumReply.create({
           data: {
             ...reply,
-            createdAt: new Date(Date.now() - Math.random() * 12 * 60 * 60 * 1000)
-          }
+            createdAt: new Date(
+              Date.now() - Math.random() * 12 * 60 * 60 * 1000
+            ),
+          },
         });
       }
     }
@@ -231,8 +233,8 @@ Bronze → Silver → Gold → Platinum → Diamond → Master
           await prisma.forumLike.create({
             data: {
               postId: post.id,
-              author: `유저${Math.floor(Math.random() * 1000) + 1}`
-            }
+              author: `유저${Math.floor(Math.random() * 1000) + 1}`,
+            },
           });
         } catch (error) {
           // 중복 좋아요는 무시
@@ -242,7 +244,6 @@ Bronze → Silver → Gold → Platinum → Diamond → Master
 
     console.log('✅ 좋아요 데이터 추가 완료');
     console.log('🎉 포럼 샘플 데이터 추가가 모두 완료되었습니다!');
-
   } catch (error) {
     console.error('❌ 오류 발생:', error);
   } finally {

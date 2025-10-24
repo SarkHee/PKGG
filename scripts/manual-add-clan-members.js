@@ -6,7 +6,8 @@ import axios from 'axios';
 
 const prisma = new PrismaClient();
 
-const API_KEY = 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o';
+const API_KEY =
+  'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o';
 
 // 안전한 API 호출
 async function safeApiCall(url, maxRetries = 3) {
@@ -17,20 +18,25 @@ async function safeApiCall(url, maxRetries = 3) {
           Authorization: API_KEY,
           Accept: 'application/vnd.api+json',
         },
-        timeout: 10000
+        timeout: 10000,
       });
       return { success: true, data: response.data };
     } catch (error) {
       if (attempt === maxRetries) {
         return { success: false, error: error.message };
       }
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
     }
   }
 }
 
 // 플레이어 정보 확인 및 클랜 소속 검증
-async function verifyAndAddPlayer(nickname, targetClanId, clanDbId, shard = 'steam') {
+async function verifyAndAddPlayer(
+  nickname,
+  targetClanId,
+  clanDbId,
+  shard = 'steam'
+) {
   console.log(`🔍 ${nickname} 검증 중...`);
 
   // 1. 플레이어 정보 조회
@@ -67,14 +73,14 @@ async function verifyAndAddPlayer(nickname, targetClanId, clanDbId, shard = 'ste
     where: {
       OR: [
         { nickname: actualNickname, clanId: clanDbId },
-        { pubgPlayerId: player.id }
-      ]
-    }
+        { pubgPlayerId: player.id },
+      ],
+    },
   });
 
   if (existing) {
     console.log(`  ↻ 이미 DB에 존재함 - 정보 업데이트`);
-    
+
     await prisma.clanMember.update({
       where: { id: existing.id },
       data: {
@@ -82,8 +88,8 @@ async function verifyAndAddPlayer(nickname, targetClanId, clanDbId, shard = 'ste
         pubgPlayerId: player.id,
         pubgClanId: targetClanId,
         pubgShardId: shard,
-        lastUpdated: new Date()
-      }
+        lastUpdated: new Date(),
+      },
     });
 
     return { success: true, action: '업데이트', nickname: actualNickname };
@@ -106,13 +112,12 @@ async function verifyAndAddPlayer(nickname, targetClanId, clanDbId, shard = 'ste
         pubgClanId: targetClanId,
         pubgPlayerId: player.id,
         pubgShardId: shard,
-        lastUpdated: new Date()
-      }
+        lastUpdated: new Date(),
+      },
     });
 
     console.log(`  ✨ 새 멤버로 추가 완료`);
     return { success: true, action: '추가', nickname: actualNickname };
-
   } catch (dbError) {
     console.log(`  ❌ DB 추가 실패: ${dbError.message}`);
     return { success: false, reason: 'DB 오류', error: dbError.message };
@@ -132,8 +137,8 @@ async function manualAddClanMembers(clanId, nicknames) {
         name: true,
         pubgClanId: true,
         pubgClanTag: true,
-        memberCount: true
-      }
+        memberCount: true,
+      },
     });
 
     if (!clan) {
@@ -152,7 +157,7 @@ async function manualAddClanMembers(clanId, nicknames) {
       added: [],
       updated: [],
       failed: [],
-      wrongClan: []
+      wrongClan: [],
     };
 
     for (let i = 0; i < nicknames.length; i++) {
@@ -182,20 +187,20 @@ async function manualAddClanMembers(clanId, nicknames) {
       }
 
       console.log('');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     // 3. 클랜 멤버 수 업데이트
     const updatedMemberCount = await prisma.clanMember.count({
-      where: { clanId: clan.id }
+      where: { clanId: clan.id },
     });
 
     await prisma.clan.update({
       where: { id: clan.id },
-      data: { 
+      data: {
         memberCount: updatedMemberCount,
-        lastSynced: new Date()
-      }
+        lastSynced: new Date(),
+      },
     });
 
     // 4. 결과 요약
@@ -217,7 +222,9 @@ async function manualAddClanMembers(clanId, nicknames) {
     if (results.wrongClan.length > 0) {
       console.log(`\n⚠️  다른 클랜 소속 멤버들:`);
       results.wrongClan.forEach((item, i) => {
-        console.log(`   ${i + 1}. ${item.nickname} (클랜: ${item.actualClan || '없음'})`);
+        console.log(
+          `   ${i + 1}. ${item.nickname} (클랜: ${item.actualClan || '없음'})`
+        );
       });
     }
 
@@ -227,7 +234,6 @@ async function manualAddClanMembers(clanId, nicknames) {
         console.log(`   ${i + 1}. ${item.nickname} - ${item.reason}`);
       });
     }
-
   } catch (error) {
     console.error('❌ 처리 중 오류:', error);
   } finally {
@@ -241,13 +247,21 @@ async function main() {
 
   if (args.length < 2) {
     console.log(`\n📖 사용법:`);
-    console.log(`   node scripts/manual-add-clan-members.js [클랜ID] "닉네임1,닉네임2,닉네임3"`);
+    console.log(
+      `   node scripts/manual-add-clan-members.js [클랜ID] "닉네임1,닉네임2,닉네임3"`
+    );
     console.log(`   또는`);
-    console.log(`   node scripts/manual-add-clan-members.js [클랜ID] 닉네임1 닉네임2 닉네임3`);
+    console.log(
+      `   node scripts/manual-add-clan-members.js [클랜ID] 닉네임1 닉네임2 닉네임3`
+    );
     console.log(`\n📝 예시:`);
-    console.log(`   node scripts/manual-add-clan-members.js 1 "새멤버1,새멤버2,새멤버3"`);
-    console.log(`   node scripts/manual-add-clan-members.js 1 새멤버1 새멤버2 새멤버3`);
-    
+    console.log(
+      `   node scripts/manual-add-clan-members.js 1 "새멤버1,새멤버2,새멤버3"`
+    );
+    console.log(
+      `   node scripts/manual-add-clan-members.js 1 새멤버1 새멤버2 새멤버3`
+    );
+
     // 현재 클랜 정보 표시
     const clans = await prisma.clan.findMany({
       select: {
@@ -255,16 +269,18 @@ async function main() {
         name: true,
         pubgClanTag: true,
         memberCount: true,
-        pubgMemberCount: true
+        pubgMemberCount: true,
       },
-      take: 5
+      take: 5,
     });
 
     if (clans.length > 0) {
       console.log(`\n📋 사용 가능한 클랜들:`);
-      clans.forEach(clan => {
+      clans.forEach((clan) => {
         const missing = (clan.pubgMemberCount || 0) - (clan.memberCount || 0);
-        console.log(`   ID ${clan.id}: ${clan.name} (${clan.pubgClanTag}) - DB: ${clan.memberCount}명, PUBG: ${clan.pubgMemberCount}명, 누락: ${missing}명`);
+        console.log(
+          `   ID ${clan.id}: ${clan.name} (${clan.pubgClanTag}) - DB: ${clan.memberCount}명, PUBG: ${clan.pubgMemberCount}명, 누락: ${missing}명`
+        );
       });
     }
 
@@ -282,7 +298,10 @@ async function main() {
   let nicknames = [];
   if (args[1].includes(',')) {
     // 쉼표로 구분된 경우
-    nicknames = args[1].split(',').map(n => n.trim()).filter(n => n);
+    nicknames = args[1]
+      .split(',')
+      .map((n) => n.trim())
+      .filter((n) => n);
   } else {
     // 공백으로 구분된 경우
     nicknames = args.slice(1);

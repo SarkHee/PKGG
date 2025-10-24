@@ -20,12 +20,14 @@ const interval = setInterval(runDiscoveryRound, intervalTime);
 async function runDiscoveryRound() {
   runCount++;
   const now = new Date().toLocaleString('ko-KR');
-  
+
   console.log(`\n🔄 [${runCount}회차] 자동 발견 시작 - ${now}`);
-  
+
   try {
     await runAutoDiscovery();
-    console.log(`✅ [${runCount}회차] 완료 - 다음 실행: ${new Date(Date.now() + intervalTime).toLocaleString('ko-KR')}\n`);
+    console.log(
+      `✅ [${runCount}회차] 완료 - 다음 실행: ${new Date(Date.now() + intervalTime).toLocaleString('ko-KR')}\n`
+    );
   } catch (error) {
     console.error(`🔥 [${runCount}회차] 오류:`, error.message);
   }

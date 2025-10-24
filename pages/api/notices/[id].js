@@ -17,11 +17,8 @@ export default async function handler(req, res) {
         where: {
           id: noticeId,
           isActive: true,
-          OR: [
-            { showUntil: null },
-            { showUntil: { gte: new Date() } }
-          ]
-        }
+          OR: [{ showUntil: null }, { showUntil: { gte: new Date() } }],
+        },
       });
 
       if (!notice) {
@@ -31,14 +28,13 @@ export default async function handler(req, res) {
       // 조회수 증가
       await prisma.notice.update({
         where: { id: noticeId },
-        data: { views: notice.views + 1 }
+        data: { views: notice.views + 1 },
       });
 
       res.status(200).json({
         ...notice,
-        views: notice.views + 1
+        views: notice.views + 1,
       });
-
     } else if (req.method === 'PUT') {
       // 공지사항 수정 (관리자 권한 필요)
       const {
@@ -49,7 +45,7 @@ export default async function handler(req, res) {
         priority,
         isPinned,
         isActive,
-        showUntil
+        showUntil,
       } = req.body;
 
       const updateData = {};
@@ -60,28 +56,26 @@ export default async function handler(req, res) {
       if (priority !== undefined) updateData.priority = priority;
       if (isPinned !== undefined) updateData.isPinned = isPinned;
       if (isActive !== undefined) updateData.isActive = isActive;
-      if (showUntil !== undefined) updateData.showUntil = showUntil ? new Date(showUntil) : null;
+      if (showUntil !== undefined)
+        updateData.showUntil = showUntil ? new Date(showUntil) : null;
 
       const notice = await prisma.notice.update({
         where: { id: noticeId },
-        data: updateData
+        data: updateData,
       });
 
       res.status(200).json(notice);
-
     } else if (req.method === 'DELETE') {
       // 공지사항 삭제 (관리자 권한 필요)
       await prisma.notice.update({
         where: { id: noticeId },
-        data: { isActive: false }
+        data: { isActive: false },
       });
 
       res.status(200).json({ message: '공지사항이 삭제되었습니다.' });
-
     } else {
       res.status(405).json({ error: 'Method not allowed' });
     }
-
   } catch (error) {
     console.error('공지사항 API 오류:', error);
     if (error.code === 'P2025') {
@@ -89,7 +83,7 @@ export default async function handler(req, res) {
     }
     res.status(500).json({
       error: '서버 오류가 발생했습니다.',
-      details: error.message
+      details: error.message,
     });
   } finally {
     await prisma.$disconnect();

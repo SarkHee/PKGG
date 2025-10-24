@@ -6,7 +6,7 @@ const API_KEY = process.env.PUBG_API_KEY;
 const CLANS_FILE = path.join(process.cwd(), 'data', 'clans.json');
 const OUTPUT_FILE = path.join(process.cwd(), 'data', 'clanStats.json');
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function safeFetchWithRetry(url, retries = 3) {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -33,8 +33,12 @@ async function getPlayerStats(nickname) {
 
     const accountId = playerData.data[0].id;
 
-    const seasonData = await safeFetchWithRetry('https://api.pubg.com/shards/steam/seasons');
-    const currentSeason = seasonData?.data?.find(s => s.attributes.isCurrentSeason);
+    const seasonData = await safeFetchWithRetry(
+      'https://api.pubg.com/shards/steam/seasons'
+    );
+    const currentSeason = seasonData?.data?.find(
+      (s) => s.attributes.isCurrentSeason
+    );
     if (!currentSeason) throw new Error('시즌 정보 없음');
 
     const statsData = await safeFetchWithRetry(
@@ -87,14 +91,15 @@ async function run() {
       clanData.members.push({ nickname: name, ...stat });
     }
 
-    const valid = clanData.members.filter(m => m.score > 0);
+    const valid = clanData.members.filter((m) => m.score > 0);
     clanData.avgScore = valid.length
       ? Math.round(valid.reduce((sum, m) => sum + m.score, 0) / valid.length)
       : 0;
 
     const styleCounts = {};
     for (const m of valid) {
-      if (m.style !== '-') styleCounts[m.style] = (styleCounts[m.style] || 0) + 1;
+      if (m.style !== '-')
+        styleCounts[m.style] = (styleCounts[m.style] || 0) + 1;
     }
 
     const topStyle = Object.entries(styleCounts).sort((a, b) => b[1] - a[1])[0];
@@ -104,7 +109,9 @@ async function run() {
   }
 
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2), 'utf-8');
-  console.log(`✅ clanStats.json 저장 완료 (${Object.keys(output).length}개 클랜)`);
+  console.log(
+    `✅ clanStats.json 저장 완료 (${Object.keys(output).length}개 클랜)`
+  );
 }
 
 run();

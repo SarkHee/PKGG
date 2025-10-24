@@ -6,6 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "auto-discovery": "node scripts/auto-discovery-monitor.js",
     "auto-discovery-periodic": "node scripts/periodic-auto-discovery.js",
     "create-sample-news": "node scripts/create-sample-news.js",
@@ -29,7 +33,12 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^16.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "postcss": "^8.5.6",
+    "prettier": "^3.6.2",
     "prisma": "^6.12.0",
     "tailwindcss": "^3.4.17"
   }

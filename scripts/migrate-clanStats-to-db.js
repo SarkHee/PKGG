@@ -34,28 +34,28 @@ async function main() {
         avgScore: clan.avgScore,
         mainStyle: clan.mainStyle,
         members: {
-          create: clan.members.map(m => ({
+          create: clan.members.map((m) => ({
             nickname: m.nickname,
             score: m.score,
             style: m.style,
             avgDamage: m.avgDamage,
-          }))
-        }
+          })),
+        },
       },
-      include: { members: true }
+      include: { members: true },
     });
 
     // 기존 멤버 삭제 후 재삽입 (동기화)
     if (dbClan.members.length > 0) {
       await prisma.clanMember.deleteMany({ where: { clanId: dbClan.id } });
       await prisma.clanMember.createMany({
-        data: clan.members.map(m => ({
+        data: clan.members.map((m) => ({
           nickname: m.nickname,
           score: m.score,
           style: m.style,
           avgDamage: m.avgDamage,
-          clanId: dbClan.id
-        }))
+          clanId: dbClan.id,
+        })),
       });
     }
     console.log(`클랜 ${clan.name} 이전 완료`);
@@ -63,5 +63,8 @@ async function main() {
 }
 
 main()
-  .catch(e => { console.error(e); process.exit(1); })
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
   .finally(() => prisma.$disconnect());

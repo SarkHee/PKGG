@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 
 async function analyzeClanRegions() {
   console.log('🌍 클랜 지역 분석 시작...\n');
-  
+
   try {
     // 모든 클랜과 해당 멤버들을 가져오기
     const clans = await prisma.clan.findMany({
@@ -16,10 +16,10 @@ async function analyzeClanRegions() {
         members: {
           select: {
             nickname: true,
-            pubgShardId: true
-          }
-        }
-      }
+            pubgShardId: true,
+          },
+        },
+      },
     });
 
     console.log(`📋 분석할 클랜: ${clans.length}개\n`);
@@ -27,31 +27,42 @@ async function analyzeClanRegions() {
     let updatedCount = 0;
 
     for (const [index, clan] of clans.entries()) {
-      console.log(`🎯 [${index + 1}/${clans.length}] ${clan.name} (${clan.pubgClanTag || 'N/A'}) 분석 중...`);
-      
+      console.log(
+        `🎯 [${index + 1}/${clans.length}] ${clan.name} (${clan.pubgClanTag || 'N/A'}) 분석 중...`
+      );
+
       // 지역 분석 수행
       const regionAnalysis = analyzeClanRegion(clan, clan.members);
-      
-      console.log(`    🌍 결과: ${regionAnalysis.region} (신뢰도: ${Math.round(regionAnalysis.confidence * 100)}%)`);
-      
+
+      console.log(
+        `    🌍 결과: ${regionAnalysis.region} (신뢰도: ${Math.round(regionAnalysis.confidence * 100)}%)`
+      );
+
       if (regionAnalysis.reasons.length > 0) {
         console.log(`    📝 근거: ${regionAnalysis.reasons[0]}`);
       }
 
       // 세부 분석 정보 출력
       if (regionAnalysis.details) {
-        const { textAnalysis, nicknameAnalysis, shardAnalysis } = regionAnalysis.details;
-        
+        const { textAnalysis, nicknameAnalysis, shardAnalysis } =
+          regionAnalysis.details;
+
         if (textAnalysis.region !== 'UNKNOWN') {
-          console.log(`       - 텍스트 분석: ${textAnalysis.region} (${textAnalysis.reason})`);
+          console.log(
+            `       - 텍스트 분석: ${textAnalysis.region} (${textAnalysis.reason})`
+          );
         }
-        
+
         if (nicknameAnalysis.region !== 'UNKNOWN') {
-          console.log(`       - 닉네임 분석: ${nicknameAnalysis.region} (${nicknameAnalysis.reason})`);
+          console.log(
+            `       - 닉네임 분석: ${nicknameAnalysis.region} (${nicknameAnalysis.reason})`
+          );
         }
-        
+
         if (shardAnalysis.primaryShard) {
-          console.log(`       - 주요 Shard: ${shardAnalysis.primaryShard} (${Math.round(shardAnalysis.confidence * 100)}%)`);
+          console.log(
+            `       - 주요 Shard: ${shardAnalysis.primaryShard} (${Math.round(shardAnalysis.confidence * 100)}%)`
+          );
         }
       }
 
@@ -62,8 +73,8 @@ async function analyzeClanRegions() {
           region: regionAnalysis.region,
           isKorean: regionAnalysis.isKorean,
           shardDistribution: JSON.stringify(regionAnalysis.shardDistribution),
-          lastSynced: new Date()
-        }
+          lastSynced: new Date(),
+        },
       });
 
       updatedCount++;
@@ -77,36 +88,36 @@ async function analyzeClanRegions() {
     const regionStats = await prisma.clan.groupBy({
       by: ['region'],
       _count: {
-        region: true
-      }
+        region: true,
+      },
     });
 
     console.log('\n📈 지역별 클랜 분포:');
-    regionStats.forEach(stat => {
-      const regionName = {
-        'KR': '🇰🇷 한국',
-        'CN': '🇨🇳 중국',
-        'JP': '🇯🇵 일본',
-        'RU': '🇷🇺 러시아',
-        'EU': '🇪🇺 유럽',
-        'NA': '🇺🇸 북미',
-        'SEA': '🌏 동남아시아',
-        'BR': '🇧🇷 브라질',
-        'ME': '🌍 중동',
-        'MIXED': '🌐 혼합/국제',
-        'UNKNOWN': '❓ 미분류'
-      }[stat.region] || stat.region;
-      
+    regionStats.forEach((stat) => {
+      const regionName =
+        {
+          KR: '🇰🇷 한국',
+          CN: '🇨🇳 중국',
+          JP: '🇯🇵 일본',
+          RU: '🇷🇺 러시아',
+          EU: '🇪🇺 유럽',
+          NA: '🇺🇸 북미',
+          SEA: '🌏 동남아시아',
+          BR: '🇧🇷 브라질',
+          ME: '🌍 중동',
+          MIXED: '🌐 혼합/국제',
+          UNKNOWN: '❓ 미분류',
+        }[stat.region] || stat.region;
+
       console.log(`   ${regionName}: ${stat._count.region}개`);
     });
 
     // 한국 클랜 통계
     const koreanClansCount = await prisma.clan.count({
-      where: { isKorean: true }
+      where: { isKorean: true },
     });
 
     console.log(`\n🇰🇷 한국 클랜 총 ${koreanClansCount}개`);
-
   } catch (error) {
     console.error('❌ 지역 분석 중 오류:', error);
   } finally {

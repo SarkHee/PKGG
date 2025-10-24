@@ -45,28 +45,21 @@
     "announcement": "이번 주 훈련은 금요일!"
   },
   "HOPE": {
-    "members": [
-      "ZomBie_C_777"
-    ],
+    "members": ["ZomBie_C_777"],
     "leader": "ZomBie_C_777",
     "description": "HOPE 클랜입니다.",
     "announcement": "함께 성장해요!"
   },
   "TCN": {
-    "members": [
-      "xeogksdlsdnx"
-    ],
-    "leader": "xeogksdlsdnx", 
+    "members": ["xeogksdlsdnx"],
+    "leader": "xeogksdlsdnx",
     "description": "TheCrown 클랜입니다.",
     "announcement": "최고를 향해!"
   },
   "DB": {
-    "members": [
-      "BON2DA2",
-      "KKING2DA"
-    ],
+    "members": ["BON2DA2", "KKING2DA"],
     "leader": "BON2DA2",
-    "description": "DAEBAK 클랜입니다.", 
+    "description": "DAEBAK 클랜입니다.",
     "announcement": "대박나자!"
   }
 }

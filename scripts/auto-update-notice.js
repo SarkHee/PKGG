@@ -16,7 +16,7 @@ async function createUpdateNoticeFromInput() {
     const readline = require('readline');
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     const question = (prompt) => {
@@ -29,7 +29,7 @@ async function createUpdateNoticeFromInput() {
     const title = await question('업데이트 제목: ');
     const description = await question('업데이트 설명: ');
     const version = await question('버전 (예: v2.1.0): ');
-    
+
     // 새 기능들 입력
     console.log('\n새로운 기능들을 입력하세요 (빈 줄 입력시 종료):');
     const features = [];
@@ -43,7 +43,9 @@ async function createUpdateNoticeFromInput() {
     console.log('\n개선사항들을 입력하세요 (빈 줄 입력시 종료):');
     const improvements = [];
     while (true) {
-      const improvement = await question(`개선사항 ${improvements.length + 1}: `);
+      const improvement = await question(
+        `개선사항 ${improvements.length + 1}: `
+      );
       if (!improvement.trim()) break;
       improvements.push(improvement);
     }
@@ -58,9 +60,11 @@ async function createUpdateNoticeFromInput() {
     }
 
     // 우선순위 및 고정 여부
-    const priorityInput = await question('우선순위 (HIGH/NORMAL/LOW) [NORMAL]: ');
+    const priorityInput = await question(
+      '우선순위 (HIGH/NORMAL/LOW) [NORMAL]: '
+    );
     const priority = priorityInput.toUpperCase() || 'NORMAL';
-    
+
     const pinnedInput = await question('상단 고정? (y/N) [N]: ');
     const isPinned = pinnedInput.toLowerCase() === 'y';
 
@@ -73,7 +77,7 @@ async function createUpdateNoticeFromInput() {
 
     // 공지사항 생성
     console.log('\n📝 공지사항을 생성중...');
-    
+
     const updateInfo = {
       title,
       description: description || undefined,
@@ -81,17 +85,18 @@ async function createUpdateNoticeFromInput() {
       features: features.length > 0 ? features : undefined,
       improvements: improvements.length > 0 ? improvements : undefined,
       fixes: fixes.length > 0 ? fixes : undefined,
-      priority: ['HIGH', 'NORMAL', 'LOW'].includes(priority) ? priority : 'NORMAL',
-      isPinned
+      priority: ['HIGH', 'NORMAL', 'LOW'].includes(priority)
+        ? priority
+        : 'NORMAL',
+      isPinned,
     };
 
     const notice = await createUpdateNotice(updateInfo);
-    
+
     console.log('\n🎉 업데이트 공지사항이 성공적으로 생성되었습니다!');
     console.log(`📋 공지사항 ID: ${notice.id}`);
     console.log(`📝 제목: ${notice.title}`);
     console.log(`🔗 링크: http://localhost:3000/notices/${notice.id}`);
-
   } catch (error) {
     console.error('❌ 공지사항 생성 중 오류 발생:', error);
     process.exit(1);
@@ -101,25 +106,25 @@ async function createUpdateNoticeFromInput() {
 // 미리 정의된 예시로 빠른 생성
 async function createQuickUpdateNotice() {
   const quickUpdate = {
-    title: "사용자 인터페이스 개선 업데이트",
-    description: "더 나은 사용자 경험을 위한 UI/UX 개선을 완료했습니다.",
+    title: '사용자 인터페이스 개선 업데이트',
+    description: '더 나은 사용자 경험을 위한 UI/UX 개선을 완료했습니다.',
     version: `v${new Date().getFullYear()}.${new Date().getMonth() + 1}.${new Date().getDate()}`,
     features: [
-      "새로운 다크 모드 테마 추가",
-      "반응형 디자인 최적화",
-      "검색 결과 필터링 기능 강화"
+      '새로운 다크 모드 테마 추가',
+      '반응형 디자인 최적화',
+      '검색 결과 필터링 기능 강화',
     ],
     improvements: [
-      "페이지 로딩 속도 30% 개선",
-      "모바일 화면 터치 영역 확대",
-      "접근성 개선 (키보드 네비게이션 지원)"
+      '페이지 로딩 속도 30% 개선',
+      '모바일 화면 터치 영역 확대',
+      '접근성 개선 (키보드 네비게이션 지원)',
     ],
     fixes: [
-      "일부 브라우저에서 발생하는 레이아웃 깨짐 현상 수정",
-      "검색어 입력 시 발생하는 지연 문제 해결"
+      '일부 브라우저에서 발생하는 레이아웃 깨짐 현상 수정',
+      '검색어 입력 시 발생하는 지연 문제 해결',
     ],
-    priority: "HIGH",
-    isPinned: true
+    priority: 'HIGH',
+    isPinned: true,
   };
 
   try {

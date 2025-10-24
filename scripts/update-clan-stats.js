@@ -18,7 +18,7 @@ async function getCurrentSeasonId() {
   });
   if (!res.ok) throw new Error('시즌 정보 조회 실패');
   const data = await res.json();
-  const current = data.data.find(s => s.attributes.isCurrentSeason);
+  const current = data.data.find((s) => s.attributes.isCurrentSeason);
   return current?.id;
 }
 
@@ -47,14 +47,25 @@ async function getPlayerStats(nickname, seasonId) {
   });
   if (!statsRes.ok) return null;
   const statsData = await statsRes.json();
-  const s = statsData.data.attributes.gameModeStats['squad'] || statsData.data.attributes.gameModeStats['squad-fpp'];
+  const s =
+    statsData.data.attributes.gameModeStats['squad'] ||
+    statsData.data.attributes.gameModeStats['squad-fpp'];
   if (!s) return null;
   return {
-    avgDamage: s.roundsPlayed > 0 ? parseFloat((s.damageDealt / s.roundsPlayed).toFixed(1)) : 0,
-    avgKills: s.roundsPlayed > 0 ? parseFloat((s.kills / s.roundsPlayed).toFixed(2)) : 0,
+    avgDamage:
+      s.roundsPlayed > 0
+        ? parseFloat((s.damageDealt / s.roundsPlayed).toFixed(1))
+        : 0,
+    avgKills:
+      s.roundsPlayed > 0
+        ? parseFloat((s.kills / s.roundsPlayed).toFixed(2))
+        : 0,
     rounds: s.roundsPlayed,
     wins: s.wins,
-    kd: s.roundsPlayed > 0 ? parseFloat((s.kills / (s.losses > 0 ? s.losses : 1)).toFixed(2)) : 0,
+    kd:
+      s.roundsPlayed > 0
+        ? parseFloat((s.kills / (s.losses > 0 ? s.losses : 1)).toFixed(2))
+        : 0,
   };
 }
 
@@ -78,7 +89,7 @@ async function main() {
         console.warn(`[FAIL] ${nickname}:`, e.message);
       }
       // API rate limit 대응: 1초 대기
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
     }
   }
   await fs.writeFile(statsPath, JSON.stringify(result, null, 2));

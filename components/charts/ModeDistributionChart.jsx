@@ -10,21 +10,25 @@ const MODE_ICONS = ['⚔️', '🏆', '🎉'];
 
 export default function ModeDistributionChart({ modeDistribution }) {
   if (!modeDistribution) return null;
-  const dataArr = [modeDistribution.normal, modeDistribution.ranked, modeDistribution.event];
+  const dataArr = [
+    modeDistribution.normal,
+    modeDistribution.ranked,
+    modeDistribution.event,
+  ];
   const total = dataArr.reduce((a, b) => a + b, 0);
 
   // 성향 요약 텍스트 (PUBG OP.GG 스타일)
   let mainType = 0;
   if (dataArr[1] >= dataArr[0] && dataArr[1] >= dataArr[2]) mainType = 1;
   else if (dataArr[2] >= dataArr[0] && dataArr[2] >= dataArr[1]) mainType = 2;
-  
+
   // 실제 플레이 경기 수 기반 요약
   const actualCounts = {
     normal: Math.round((modeDistribution.normal / 100) * 20),
-    ranked: Math.round((modeDistribution.ranked / 100) * 20), 
-    event: Math.round((modeDistribution.event / 100) * 20)
+    ranked: Math.round((modeDistribution.ranked / 100) * 20),
+    event: Math.round((modeDistribution.event / 100) * 20),
   };
-  
+
   let summary = '';
   if (mainType === 0) {
     summary = `최근 20경기 중 ${dataArr[0]}%를 일반게임으로 플레이했습니다. 일반게임에 특화된 유저입니다.`;
@@ -48,32 +52,32 @@ export default function ModeDistributionChart({ modeDistribution }) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
       <div style={{ maxWidth: 300, margin: '0 auto' }}>
-        <Doughnut 
-          data={chartData} 
-          options={{ 
-            plugins: { 
-              legend: { 
-                display: true, 
+        <Doughnut
+          data={chartData}
+          options={{
+            plugins: {
+              legend: {
+                display: true,
                 position: 'bottom',
                 labels: {
                   padding: 15,
                   usePointStyle: true,
                   font: {
-                    size: 12
-                  }
-                }
+                    size: 12,
+                  },
+                },
               },
               tooltip: {
                 callbacks: {
-                  label: function(context) {
+                  label: function (context) {
                     return `${context.label}: ${context.parsed}%`;
-                  }
-                }
-              }
+                  },
+                },
+              },
             },
             responsive: true,
-            maintainAspectRatio: true
-          }} 
+            maintainAspectRatio: true,
+          }}
         />
       </div>
       <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center px-2">

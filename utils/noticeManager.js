@@ -24,7 +24,7 @@ export async function createUpdateNotice(updateInfo) {
       improvements = [],
       fixes = [],
       priority = 'NORMAL',
-      isPinned = false
+      isPinned = false,
     } = updateInfo;
 
     // 공지사항 내용 자동 생성
@@ -36,7 +36,7 @@ export async function createUpdateNotice(updateInfo) {
 
     if (features.length > 0) {
       content += `## ✨ 새로운 기능\n`;
-      features.forEach(feature => {
+      features.forEach((feature) => {
         content += `- ${feature}\n`;
       });
       content += '\n';
@@ -44,7 +44,7 @@ export async function createUpdateNotice(updateInfo) {
 
     if (improvements.length > 0) {
       content += `## 🔧 개선사항\n`;
-      improvements.forEach(improvement => {
+      improvements.forEach((improvement) => {
         content += `- ${improvement}\n`;
       });
       content += '\n';
@@ -52,7 +52,7 @@ export async function createUpdateNotice(updateInfo) {
 
     if (fixes.length > 0) {
       content += `## 🐛 버그 수정\n`;
-      fixes.forEach(fix => {
+      fixes.forEach((fix) => {
         content += `- ${fix}\n`;
       });
       content += '\n';
@@ -61,7 +61,8 @@ export async function createUpdateNotice(updateInfo) {
     content += `---\n\n업데이트가 적용되었습니다. 더 나은 서비스를 위해 지속적으로 개선해나가겠습니다.\n\n문의사항이 있으시면 **문의하기** 메뉴를 이용해주세요.`;
 
     // 요약 생성
-    const summary = `${description || ''} ${features.length > 0 ? `새 기능 ${features.length}개` : ''} ${improvements.length > 0 ? `개선사항 ${improvements.length}개` : ''} ${fixes.length > 0 ? `버그수정 ${fixes.length}개` : ''}`.trim();
+    const summary =
+      `${description || ''} ${features.length > 0 ? `새 기능 ${features.length}개` : ''} ${improvements.length > 0 ? `개선사항 ${improvements.length}개` : ''} ${fixes.length > 0 ? `버그수정 ${fixes.length}개` : ''}`.trim();
 
     // 데이터베이스에 저장
     const notice = await prisma.notice.create({
@@ -72,13 +73,12 @@ export async function createUpdateNotice(updateInfo) {
         type: 'UPDATE',
         priority,
         isPinned,
-        author: '시스템'
-      }
+        author: '시스템',
+      },
     });
 
     console.log(`✅ 업데이트 공지사항이 생성되었습니다 (ID: ${notice.id})`);
     return notice;
-
   } catch (error) {
     console.error('❌ 업데이트 공지사항 생성 실패:', error);
     throw error;
@@ -103,23 +103,25 @@ export async function createMaintenanceNotice(maintenanceInfo) {
       startTime,
       endTime,
       reason,
-      affectedServices = []
+      affectedServices = [],
     } = maintenanceInfo;
 
     const startStr = new Date(startTime).toLocaleString('ko-KR');
     const endStr = new Date(endTime).toLocaleString('ko-KR');
-    const duration = Math.ceil((new Date(endTime) - new Date(startTime)) / (1000 * 60)); // 분 단위
+    const duration = Math.ceil(
+      (new Date(endTime) - new Date(startTime)) / (1000 * 60)
+    ); // 분 단위
 
     let content = `## 🔧 점검 안내\n\n`;
     content += `**점검 시간:** ${startStr} ~ ${endStr} (약 ${duration}분)\n\n`;
-    
+
     if (reason) {
       content += `**점검 사유:** ${reason}\n\n`;
     }
 
     if (affectedServices.length > 0) {
       content += `**영향받는 서비스:**\n`;
-      affectedServices.forEach(service => {
+      affectedServices.forEach((service) => {
         content += `- ${service}\n`;
       });
       content += '\n';
@@ -137,13 +139,12 @@ export async function createMaintenanceNotice(maintenanceInfo) {
         priority: 'HIGH',
         isPinned: true,
         showUntil: endTime,
-        author: '시스템'
-      }
+        author: '시스템',
+      },
     });
 
     console.log(`✅ 점검 공지사항이 생성되었습니다 (ID: ${notice.id})`);
     return notice;
-
   } catch (error) {
     console.error('❌ 점검 공지사항 생성 실패:', error);
     throw error;
@@ -170,7 +171,7 @@ export async function createEventNotice(eventInfo) {
       startDate,
       endDate,
       rewards = [],
-      howToParticipate
+      howToParticipate,
     } = eventInfo;
 
     const startStr = new Date(startDate).toLocaleDateString('ko-KR');
@@ -178,7 +179,7 @@ export async function createEventNotice(eventInfo) {
 
     let content = `## 🎉 이벤트 안내\n\n`;
     content += `**이벤트 기간:** ${startStr} ~ ${endStr}\n\n`;
-    
+
     if (description) {
       content += `${description}\n\n`;
     }
@@ -189,7 +190,7 @@ export async function createEventNotice(eventInfo) {
 
     if (rewards.length > 0) {
       content += `## 🎁 보상\n`;
-      rewards.forEach(reward => {
+      rewards.forEach((reward) => {
         content += `- ${reward}\n`;
       });
       content += '\n';
@@ -206,13 +207,12 @@ export async function createEventNotice(eventInfo) {
         priority: 'NORMAL',
         isPinned: false,
         showUntil: endDate,
-        author: '시스템'
-      }
+        author: '시스템',
+      },
     });
 
     console.log(`✅ 이벤트 공지사항이 생성되었습니다 (ID: ${notice.id})`);
     return notice;
-
   } catch (error) {
     console.error('❌ 이벤트 공지사항 생성 실패:', error);
     throw error;
@@ -224,49 +224,46 @@ export async function createEventNotice(eventInfo) {
 // 사용 예시들을 export
 export const examples = {
   updateNotice: {
-    title: "클랜 분석 기능 대폭 업데이트",
-    description: "클랜 분석 페이지가 더욱 강력해졌습니다!",
-    version: "v2.1.0",
+    title: '클랜 분석 기능 대폭 업데이트',
+    description: '클랜 분석 페이지가 더욱 강력해졌습니다!',
+    version: 'v2.1.0',
     features: [
-      "새로운 클랜 랭킹 시스템 추가",
-      "클랜 멤버 상세 통계 확인 가능",
-      "클랜 활동 트렌드 차트 추가"
+      '새로운 클랜 랭킹 시스템 추가',
+      '클랜 멤버 상세 통계 확인 가능',
+      '클랜 활동 트렌드 차트 추가',
     ],
     improvements: [
-      "페이지 로딩 속도 50% 개선",
-      "모바일 화면 최적화",
-      "데이터 정확도 향상"
+      '페이지 로딩 속도 50% 개선',
+      '모바일 화면 최적화',
+      '데이터 정확도 향상',
     ],
     fixes: [
-      "일부 클랜 데이터가 표시되지 않는 문제 수정",
-      "검색 기능 오류 수정"
+      '일부 클랜 데이터가 표시되지 않는 문제 수정',
+      '검색 기능 오류 수정',
     ],
-    priority: "HIGH",
-    isPinned: true
+    priority: 'HIGH',
+    isPinned: true,
   },
 
   maintenanceNotice: {
-    title: "정기 서버 점검",
+    title: '정기 서버 점검',
     startTime: new Date('2024-09-02 02:00:00'),
     endTime: new Date('2024-09-02 04:00:00'),
-    reason: "서버 성능 최적화 및 보안 업데이트",
-    affectedServices: [
-      "클랜 분석 서비스",
-      "플레이어 검색 기능",
-      "포럼 서비스"
-    ]
+    reason: '서버 성능 최적화 및 보안 업데이트',
+    affectedServices: ['클랜 분석 서비스', '플레이어 검색 기능', '포럼 서비스'],
   },
 
   eventNotice: {
-    title: "클랜 등록 이벤트",
-    description: "새로운 클랜을 등록하고 특별 혜택을 받아보세요!",
+    title: '클랜 등록 이벤트',
+    description: '새로운 클랜을 등록하고 특별 혜택을 받아보세요!',
     startDate: new Date('2024-09-01'),
     endDate: new Date('2024-09-30'),
     rewards: [
-      "클랜 프리미엄 배지 지급",
-      "클랜 상세 통계 무료 제공",
-      "우선 업데이트 알림 서비스"
+      '클랜 프리미엄 배지 지급',
+      '클랜 상세 통계 무료 제공',
+      '우선 업데이트 알림 서비스',
     ],
-    howToParticipate: "1. 클랜 분석 페이지에서 새 클랜 등록\n2. 클랜 멤버 5명 이상 확인\n3. 자동으로 이벤트 참여 완료"
-  }
+    howToParticipate:
+      '1. 클랜 분석 페이지에서 새 클랜 등록\n2. 클랜 멤버 5명 이상 확인\n3. 자동으로 이벤트 참여 완료',
+  },
 };

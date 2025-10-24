@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import Header from '../../components/Header';
+import Header from '../../components/layout/Header';
 
 export default function ModerationPanel() {
   const [bannedUsers, setBannedUsers] = useState([]);
@@ -9,7 +9,7 @@ export default function ModerationPanel() {
   const [manualBanForm, setManualBanForm] = useState({
     username: '',
     banDuration: 24,
-    reason: ''
+    reason: '',
   });
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function ModerationPanel() {
     try {
       const response = await fetch('/api/forum/moderation?action=banned-users');
       const data = await response.json();
-      
+
       if (response.ok) {
         setBannedUsers(data.users || []);
       } else {
@@ -42,12 +42,12 @@ export default function ModerationPanel() {
       const response = await fetch('/api/forum/moderation', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           action: 'unban',
-          username: username
-        })
+          username: username,
+        }),
       });
 
       const data = await response.json();
@@ -76,14 +76,14 @@ export default function ModerationPanel() {
       const response = await fetch('/api/forum/moderation', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           action: 'manual-ban',
           username: manualBanForm.username,
           banDuration: manualBanForm.banDuration,
-          reason: manualBanForm.reason
-        })
+          reason: manualBanForm.reason,
+        }),
       });
 
       const data = await response.json();
@@ -106,12 +106,16 @@ export default function ModerationPanel() {
     if (!username) return;
 
     try {
-      const response = await fetch(`/api/forum/moderation?action=check-ban&username=${encodeURIComponent(username)}`);
+      const response = await fetch(
+        `/api/forum/moderation?action=check-ban&username=${encodeURIComponent(username)}`
+      );
       const data = await response.json();
 
       if (response.ok) {
         if (data.banned) {
-          alert(`${username}은(는) 제재된 사용자입니다.\n사유: ${data.banInfo.reason}\n제재 해제: ${new Date(data.banInfo.banUntil).toLocaleString('ko-KR')}\n위반 횟수: ${data.banInfo.violationCount}`);
+          alert(
+            `${username}은(는) 제재된 사용자입니다.\n사유: ${data.banInfo.reason}\n제재 해제: ${new Date(data.banInfo.banUntil).toLocaleString('ko-KR')}\n위반 횟수: ${data.banInfo.violationCount}`
+          );
         } else {
           alert(`${username}은(는) 제재되지 않은 사용자입니다.`);
         }
@@ -130,19 +134,23 @@ export default function ModerationPanel() {
 
   const getViolationTypeText = (type) => {
     switch (type) {
-      case 'PROFANITY': return '부적절한 언어';
-      case 'SPAM': return '스팸';
-      case 'MANUAL_BAN': return '관리자 제재';
-      default: return type || '기타';
+      case 'PROFANITY':
+        return '부적절한 언어';
+      case 'SPAM':
+        return '스팸';
+      case 'MANUAL_BAN':
+        return '관리자 제재';
+      default:
+        return type || '기타';
     }
   };
 
   const getBanStatusColor = (banUntil) => {
     const now = new Date();
     const banEnd = new Date(banUntil);
-    
+
     if (banEnd <= now) return 'text-green-600'; // 제재 만료
-    
+
     const hoursLeft = (banEnd - now) / (1000 * 60 * 60);
     if (hoursLeft < 1) return 'text-red-600'; // 1시간 미만
     if (hoursLeft < 24) return 'text-orange-600'; // 24시간 미만
@@ -157,19 +165,21 @@ export default function ModerationPanel() {
       </Head>
 
       <Header />
-      
+
       <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
         <div className="max-w-6xl mx-auto">
           {/* 헤더 */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-2xl">🛡️</span>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">포럼 관리자 패널</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                포럼 관리자 패널
+              </h1>
               <span className="text-sm bg-red-200 dark:bg-red-700 text-red-800 dark:text-red-200 px-3 py-1 rounded-full font-medium">
                 관리자 전용
               </span>
             </div>
-            
+
             <div className="flex gap-4">
               <button
                 onClick={checkUserBan}
@@ -211,16 +221,20 @@ export default function ModerationPanel() {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
                   현재 제재된 사용자 목록
                 </h3>
-                
+
                 {loading ? (
                   <div className="text-center py-8">
                     <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600 dark:text-gray-400">목록을 불러오는 중...</p>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      목록을 불러오는 중...
+                    </p>
                   </div>
                 ) : bannedUsers.length === 0 ? (
                   <div className="text-center py-8">
                     <span className="text-4xl mb-3 block">✅</span>
-                    <p className="text-gray-600 dark:text-gray-400">현재 제재된 사용자가 없습니다.</p>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      현재 제재된 사용자가 없습니다.
+                    </p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -237,8 +251,11 @@ export default function ModerationPanel() {
                         </tr>
                       </thead>
                       <tbody>
-                        {bannedUsers.map(user => (
-                          <tr key={user.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+                        {bannedUsers.map((user) => (
+                          <tr
+                            key={user.id}
+                            className="bg-white dark:bg-gray-800 border-b dark:border-gray-700"
+                          >
                             <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
                               {user.username}
                             </td>
@@ -257,8 +274,12 @@ export default function ModerationPanel() {
                               {formatDateTime(user.banUntil)}
                             </td>
                             <td className="px-6 py-4">
-                              <span className={`font-medium ${getBanStatusColor(user.banUntil)}`}>
-                                {new Date(user.banUntil) > new Date() ? '제재 중' : '만료'}
+                              <span
+                                className={`font-medium ${getBanStatusColor(user.banUntil)}`}
+                              >
+                                {new Date(user.banUntil) > new Date()
+                                  ? '제재 중'
+                                  : '만료'}
                               </span>
                             </td>
                             <td className="px-6 py-4">
@@ -284,7 +305,7 @@ export default function ModerationPanel() {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
                   사용자 수동 제재
                 </h3>
-                
+
                 <form onSubmit={handleManualBan} className="space-y-4 max-w-lg">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -293,20 +314,30 @@ export default function ModerationPanel() {
                     <input
                       type="text"
                       value={manualBanForm.username}
-                      onChange={(e) => setManualBanForm(prev => ({ ...prev, username: e.target.value }))}
+                      onChange={(e) =>
+                        setManualBanForm((prev) => ({
+                          ...prev,
+                          username: e.target.value,
+                        }))
+                      }
                       placeholder="제재할 사용자명 입력"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       제재 기간 (시간) *
                     </label>
                     <select
                       value={manualBanForm.banDuration}
-                      onChange={(e) => setManualBanForm(prev => ({ ...prev, banDuration: parseInt(e.target.value) }))}
+                      onChange={(e) =>
+                        setManualBanForm((prev) => ({
+                          ...prev,
+                          banDuration: parseInt(e.target.value),
+                        }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
                       <option value={1}>1시간</option>
@@ -317,21 +348,26 @@ export default function ModerationPanel() {
                       <option value={720}>720시간 (30일)</option>
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       제재 사유 *
                     </label>
                     <textarea
                       value={manualBanForm.reason}
-                      onChange={(e) => setManualBanForm(prev => ({ ...prev, reason: e.target.value }))}
+                      onChange={(e) =>
+                        setManualBanForm((prev) => ({
+                          ...prev,
+                          reason: e.target.value,
+                        }))
+                      }
                       placeholder="제재 사유를 상세히 입력하세요"
                       rows={3}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-vertical"
                       required
                     />
                   </div>
-                  
+
                   <button
                     type="submit"
                     className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
@@ -339,9 +375,11 @@ export default function ModerationPanel() {
                     ⚡ 제재 실행
                   </button>
                 </form>
-                
+
                 <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                  <h4 className="font-semibold text-yellow-900 dark:text-yellow-200 mb-2">⚠️ 주의사항</h4>
+                  <h4 className="font-semibold text-yellow-900 dark:text-yellow-200 mb-2">
+                    ⚠️ 주의사항
+                  </h4>
                   <ul className="text-sm text-yellow-800 dark:text-yellow-300 space-y-1">
                     <li>• 수동 제재는 신중하게 사용하세요</li>
                     <li>• 제재 사유는 명확하고 구체적으로 작성하세요</li>

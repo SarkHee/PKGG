@@ -18,8 +18,8 @@ async function getClanMembers(clanId, pubgClanId) {
           name: true,
           pubgClanTag: true,
           memberCount: true,
-          pubgClanId: true
-        }
+          pubgClanId: true,
+        },
       });
 
       if (!clan) {
@@ -33,11 +33,10 @@ async function getClanMembers(clanId, pubgClanId) {
           nickname: true,
           score: true,
           pubgShardId: true,
-          lastUpdated: true
+          lastUpdated: true,
         },
-        orderBy: { score: 'desc' }
+        orderBy: { score: 'desc' },
       });
-
     } else if (pubgClanId) {
       // PUBG 클랜 ID로 검색
       clan = await prisma.clan.findFirst({
@@ -48,11 +47,11 @@ async function getClanMembers(clanId, pubgClanId) {
               nickname: true,
               score: true,
               pubgShardId: true,
-              lastUpdated: true
+              lastUpdated: true,
             },
-            orderBy: { score: 'desc' }
-          }
-        }
+            orderBy: { score: 'desc' },
+          },
+        },
       });
 
       if (!clan) {
@@ -73,19 +72,20 @@ async function getClanMembers(clanId, pubgClanId) {
 
     console.log(`👥 멤버 목록:`);
     members.forEach((member, index) => {
-      console.log(`   ${index + 1}. ${member.nickname} (점수: ${member.score}, 샤드: ${member.pubgShardId || 'N/A'})`);
+      console.log(
+        `   ${index + 1}. ${member.nickname} (점수: ${member.score}, 샤드: ${member.pubgShardId || 'N/A'})`
+      );
     });
 
     console.log(`\n📋 닉네임만 배열로:`);
-    const nicknames = members.map(m => m.nickname);
+    const nicknames = members.map((m) => m.nickname);
     console.log(JSON.stringify(nicknames, null, 2));
 
     return {
       clan,
       members,
-      nicknames
+      nicknames,
     };
-
   } catch (error) {
     console.error('❌ 오류 발생:', error.message);
   } finally {
@@ -96,15 +96,17 @@ async function getClanMembers(clanId, pubgClanId) {
 // 사용법 및 실행
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length === 0) {
     console.log(`\n📖 사용법:`);
     console.log(`   node scripts/get-clan-members.js [클랜ID]`);
     console.log(`   node scripts/get-clan-members.js pubg:[PUBG클랜ID]`);
     console.log(`\n📝 예시:`);
     console.log(`   node scripts/get-clan-members.js 1`);
-    console.log(`   node scripts/get-clan-members.js pubg:clan.eb5c32a3cc484b59981f9c61e9ea2747`);
-    
+    console.log(
+      `   node scripts/get-clan-members.js pubg:clan.eb5c32a3cc484b59981f9c61e9ea2747`
+    );
+
     // 사용 가능한 클랜 목록 보여주기
     const allClans = await prisma.clan.findMany({
       select: {
@@ -112,27 +114,29 @@ async function main() {
         name: true,
         pubgClanTag: true,
         memberCount: true,
-        pubgClanId: true
+        pubgClanId: true,
       },
-      take: 10
+      take: 10,
     });
-    
+
     if (allClans.length > 0) {
       console.log(`\n📋 사용 가능한 클랜들 (최근 10개):`);
-      allClans.forEach(clan => {
-        console.log(`   ID ${clan.id}: ${clan.name} (${clan.pubgClanTag || 'No Tag'}) - ${clan.memberCount}명`);
+      allClans.forEach((clan) => {
+        console.log(
+          `   ID ${clan.id}: ${clan.name} (${clan.pubgClanTag || 'No Tag'}) - ${clan.memberCount}명`
+        );
         if (clan.pubgClanId) {
           console.log(`     └ PUBG ID: ${clan.pubgClanId}`);
         }
       });
     }
-    
+
     await prisma.$disconnect();
     return;
   }
 
   const input = args[0];
-  
+
   if (input.startsWith('pubg:')) {
     // PUBG 클랜 ID로 검색
     const pubgClanId = input.replace('pubg:', '');

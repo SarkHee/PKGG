@@ -8,70 +8,110 @@ const prisma = new PrismaClient();
 
 // 개인 플레이어 분석 로직을 클랜에 적용한 향상된 플레이 스타일 분석 함수
 function analyzeIndividualPlayStyle(memberStats) {
-  if (!memberStats || Object.keys(memberStats).length === 0) return "분석 불가";
+  if (!memberStats || Object.keys(memberStats).length === 0) return '분석 불가';
 
-  const { avgDamage = 0, avgKills = 0, avgAssists = 0, avgSurviveTime = 0, winRate = 0, top10Rate = 0 } = memberStats;
-  
+  const {
+    avgDamage = 0,
+    avgKills = 0,
+    avgAssists = 0,
+    avgSurviveTime = 0,
+    winRate = 0,
+    top10Rate = 0,
+  } = memberStats;
+
   // 개인 플레이어와 동일한 14가지 유형 분석 (조건을 클랜 멤버 평균 스탯에 맞게 조정)
-  
+
   // 극단적 공격형: 높은 딜량, 짧은 생존시간, 높은 킬
-  if (avgDamage >= 400 && avgSurviveTime <= 600 && avgKills >= 3) return "☠️ 극단적 공격형";
-  
+  if (avgDamage >= 400 && avgSurviveTime <= 600 && avgKills >= 3)
+    return '☠️ 극단적 공격형';
+
   // 핫드롭 마스터: 극초반 높은 킬수와 딜량
-  if (avgSurviveTime <= 90 && avgKills >= 2 && avgDamage >= 200) return "🌋 핫드롭 마스터";
-  
+  if (avgSurviveTime <= 90 && avgKills >= 2 && avgDamage >= 200)
+    return '🌋 핫드롭 마스터';
+
   // 스피드 파이터: 짧은 시간 내 높은 킬수
-  if (avgSurviveTime <= 120 && avgKills >= 2.5) return "⚡ 스피드 파이터";
-  
+  if (avgSurviveTime <= 120 && avgKills >= 2.5) return '⚡ 스피드 파이터';
+
   // 초반 어그로꾼: 매우 짧은 생존시간에도 높은 딜량
-  if (avgSurviveTime <= 100 && avgDamage >= 180) return "🔥 초반 어그로꾼";
-  
+  if (avgSurviveTime <= 100 && avgDamage >= 180) return '🔥 초반 어그로꾼';
+
   // 빠른 청소부: 초반 낮은 킬이지만 적당한 딜량
-  if (avgSurviveTime <= 120 && avgKills >= 1 && avgKills < 2 && avgDamage >= 120) return "🧹 빠른 청소부";
-  
+  if (
+    avgSurviveTime <= 120 &&
+    avgKills >= 1 &&
+    avgKills < 2 &&
+    avgDamage >= 120
+  )
+    return '🧹 빠른 청소부';
+
   // 초반 돌격형: 매우 짧은 생존시간에도 킬/딜 확보 (기본형)
-  if (avgSurviveTime <= 120 && (avgKills >= 1 || avgDamage >= 100)) return "🚀 초반 돌격형";
-  
+  if (avgSurviveTime <= 120 && (avgKills >= 1 || avgDamage >= 100))
+    return '🚀 초반 돌격형';
+
   // 극단적 수비형: 낮은 딜량, 긴 생존시간
-  if (avgDamage <= 100 && avgSurviveTime >= 1200) return "🛡️ 극단적 수비형";
-  
+  if (avgDamage <= 100 && avgSurviveTime >= 1200) return '🛡️ 극단적 수비형';
+
   // 후반 존버형: 낮은 딜량과 킬, 긴 생존시간
-  if (avgDamage <= 150 && avgSurviveTime >= 1200 && avgKills <= 1) return "🏕️ 후반 존버형";
-  
+  if (avgDamage <= 150 && avgSurviveTime >= 1200 && avgKills <= 1)
+    return '🏕️ 후반 존버형';
+
   // 장거리 정찰러: 낮은 교전, 긴 생존
-  if (avgKills <= 1 && avgDamage <= 150 && avgSurviveTime >= 800) return "🏃 장거리 정찰러";
-  
+  if (avgKills <= 1 && avgDamage <= 150 && avgSurviveTime >= 800)
+    return '🏃 장거리 정찰러';
+
   // 저격 위주: 낮은 딜량이지만 긴 생존과 킬 확보
-  if (avgDamage <= 150 && avgSurviveTime >= 1000 && avgKills >= 1) return "🎯 저격 위주";
-  
+  if (avgDamage <= 150 && avgSurviveTime >= 1000 && avgKills >= 1)
+    return '🎯 저격 위주';
+
   // 중거리 안정형: 중간 딜량과 적당한 생존시간
-  if (avgDamage > 150 && avgDamage <= 250 && avgSurviveTime > 800 && avgSurviveTime <= 1200) return "⚖️ 중거리 안정형";
-  
+  if (
+    avgDamage > 150 &&
+    avgDamage <= 250 &&
+    avgSurviveTime > 800 &&
+    avgSurviveTime <= 1200
+  )
+    return '⚖️ 중거리 안정형';
+
   // 지속 전투형: 높은 딜량, 긴 생존, 높은 킬
-  if (avgDamage >= 250 && avgSurviveTime >= 800 && avgKills >= 2) return "🔥 지속 전투형";
-  
+  if (avgDamage >= 250 && avgSurviveTime >= 800 && avgKills >= 2)
+    return '🔥 지속 전투형';
+
   // 유령 생존자: 킬/어시스트 없이 높은 순위 달성
-  if (avgKills === 0 && avgAssists === 0 && avgSurviveTime >= 1000 && top10Rate >= 40) return "👻 유령 생존자";
-  
+  if (
+    avgKills === 0 &&
+    avgAssists === 0 &&
+    avgSurviveTime >= 1000 &&
+    top10Rate >= 40
+  )
+    return '👻 유령 생존자';
+
   // 도박형 파밍러: 매우 짧은 생존시간, 최소 활동
-  if (avgSurviveTime <= 120 && avgDamage <= 50 && avgKills === 0) return "🪂 도박형 파밍러";
-  
+  if (avgSurviveTime <= 120 && avgDamage <= 50 && avgKills === 0)
+    return '🪂 도박형 파밍러';
+
   // 순간광폭형: 높은 딜량, 짧은 생존, 높은 킬
-  if (avgDamage >= 300 && avgSurviveTime <= 400 && avgKills >= 2) return "📸 순간광폭형";
-  
+  if (avgDamage >= 300 && avgSurviveTime <= 400 && avgKills >= 2)
+    return '📸 순간광폭형';
+
   // 치명적 저격수: 높은 딜량과 킬
-  if (avgDamage >= 200 && avgKills >= 2) return "🦉 치명적 저격수";
-  
+  if (avgDamage >= 200 && avgKills >= 2) return '🦉 치명적 저격수';
+
   // 전략적 어시스트러: 높은 어시스트, 낮은 킬, 높은 딜량, 긴 생존
-  if (avgAssists >= 3 && avgKills <= 1 && avgDamage >= 200 && avgSurviveTime >= 800) return "🧠 전략적 어시스트러";
-  
+  if (
+    avgAssists >= 3 &&
+    avgKills <= 1 &&
+    avgDamage >= 200 &&
+    avgSurviveTime >= 800
+  )
+    return '🧠 전략적 어시스트러';
+
   // 고효율 승부사: 높은 킬, 상대적으로 낮은 딜량
-  if (avgKills >= 3 && avgDamage <= 200) return "📊 고효율 승부사";
-  
+  if (avgKills >= 3 && avgDamage <= 200) return '📊 고효율 승부사';
+
   // 최종 안전망 - 딜량 기준으로 분류
-  if (avgDamage >= 200) return "🔥 공격형";
-  if (avgSurviveTime >= 600) return "🛡️ 생존형";
-  return "🏃 이동형";
+  if (avgDamage >= 200) return '🔥 공격형';
+  if (avgSurviveTime >= 600) return '🛡️ 생존형';
+  return '🏃 이동형';
 }
 
 // 향상된 클랜 플레이 스타일 분석 함수
@@ -79,28 +119,27 @@ function analyzePlayStyle(members, avgStats) {
   if (!members || members.length === 0) return null;
 
   // 각 멤버의 개별 플레이스타일 분석
-  const memberPlayStyles = members.map(member => {
+  const memberPlayStyles = members.map((member) => {
     return analyzeIndividualPlayStyle({
       avgDamage: member.avgDamage || 0,
       avgKills: member.avgKills || 0,
       avgAssists: member.avgAssists || 0,
       avgSurviveTime: member.avgSurviveTime || 0,
       winRate: member.winRate || 0,
-      top10Rate: member.top10Rate || 0
+      top10Rate: member.top10Rate || 0,
     });
   });
 
   // 스타일 분포 계산
   const styleCount = {};
-  memberPlayStyles.forEach(style => {
+  memberPlayStyles.forEach((style) => {
     styleCount[style] = (styleCount[style] || 0) + 1;
   });
 
   // 가장 많은 스타일을 주 스타일로 결정
-  const sortedStyles = Object.entries(styleCount)
-    .sort(([,a], [,b]) => b - a);
-  
-  const primaryStyle = sortedStyles[0] ? sortedStyles[0][0] : "분석 불가";
+  const sortedStyles = Object.entries(styleCount).sort(([, a], [, b]) => b - a);
+
+  const primaryStyle = sortedStyles[0] ? sortedStyles[0][0] : '분석 불가';
   const primaryCount = sortedStyles[0] ? sortedStyles[0][1] : 0;
   const totalMembers = memberPlayStyles.length;
 
@@ -122,7 +161,7 @@ function analyzePlayStyle(members, avgStats) {
   const avgKills = parseFloat(avgStats.kills);
   const winRate = parseFloat(avgStats.winRate);
   const top10Rate = parseFloat(avgStats.top10Rate);
-  
+
   let secondary = '';
   if (avgDamage >= 300) {
     secondary = '고딜량';
@@ -155,18 +194,23 @@ function analyzePlayStyle(members, avgStats) {
     memberStyles: memberPlayStyles, // 개별 멤버 스타일 추가
     styleDistribution: styleCount, // 스타일 분포 추가
     dominance: Math.round((primaryCount / totalMembers) * 100), // 주요 스타일 비중 (%)
-    description: generateStyleDescription(primaryText, secondary, special, avgStats)
+    description: generateStyleDescription(
+      primaryText,
+      secondary,
+      special,
+      avgStats
+    ),
   };
 }
 
 // 스타일 다양성 계산
 function calculateStyleVariety(members) {
-  const styles = members.map(m => {
+  const styles = members.map((m) => {
     if (m.avgKills >= 2.0) return 'aggressive';
     if (m.avgKills >= 1.0) return 'balanced';
     return 'survival';
   });
-  
+
   const uniqueStyles = [...new Set(styles)];
   if (uniqueStyles.length === 1) return '통일';
   if (uniqueStyles.length === 2) return '혼합';
@@ -177,12 +221,12 @@ function calculateStyleVariety(members) {
 function generateStyleDescription(primary, secondary, special, stats) {
   let desc = `${primary} ${secondary}형`;
   if (special) desc += ` (${special})`;
-  
+
   // 주요 스타일별 상세 설명
   let detail = '';
-  
+
   // 확장된 플레이 스타일 설명
-  switch(primary) {
+  switch (primary) {
     case '극단적 공격형':
       detail = ' - 최고 딜량과 킬을 추구하는 초공격적 클랜';
       break;
@@ -249,7 +293,7 @@ function generateStyleDescription(primary, secondary, special, stats) {
     default:
       detail = ' - 다양한 스타일이 혼재하는 클랜';
   }
-  
+
   return desc + detail;
 }
 
@@ -260,27 +304,27 @@ export default async function handler(req, res) {
 
   try {
     const { region, isKorean, search } = req.query;
-    
+
     console.log('🔍 Query parameters:', { region, isKorean, search });
 
     // 기본 조건
     let whereCondition = {};
-    
+
     // 지역 필터링
     if (region && region !== 'ALL') {
       whereCondition.region = region;
     }
-    
+
     // 한국 클랜 필터링
     if (isKorean !== undefined) {
       whereCondition.isKorean = isKorean === 'true';
     }
-    
+
     // 검색 조건
     if (search && search.trim()) {
       whereCondition.OR = [
         { name: { contains: search.trim(), mode: 'insensitive' } },
-        { pubgClanTag: { contains: search.trim(), mode: 'insensitive' } }
+        { pubgClanTag: { contains: search.trim(), mode: 'insensitive' } },
       ];
     }
 
@@ -290,8 +334,8 @@ export default async function handler(req, res) {
     const totalClans = await prisma.clan.count({ where: whereCondition });
     const totalMembers = await prisma.clanMember.count({
       where: {
-        clan: whereCondition
-      }
+        clan: whereCondition,
+      },
     });
 
     // 2. 클랜별 통계 (필터 적용)
@@ -299,7 +343,7 @@ export default async function handler(req, res) {
       where: whereCondition,
       include: {
         _count: {
-          select: { members: true }
+          select: { members: true },
         },
         members: {
           select: {
@@ -307,53 +351,62 @@ export default async function handler(req, res) {
             avgDamage: true,
             avgKills: true,
             winRate: true,
-            top10Rate: true
-          }
-        }
-      }
+            top10Rate: true,
+          },
+        },
+      },
     });
 
     // 3. 클랜별 지역 정보 업데이트 (자동 분류)
     // map 대신 for...of 루프 사용하여 비동기 작업 처리
     for (const clan of clanStats) {
       const members = clan.members;
-      
+
       // 지역이 없거나 'UNKNOWN'인 경우 지역 자동 분류 실행
       if ((!clan.region || clan.region === 'UNKNOWN') && members.length > 0) {
         try {
           // 멤버 정보를 기반으로 지역 분석
-          const regionAnalysis = analyzeClanRegion({
-            name: clan.name,
-            pubgClanTag: clan.pubgClanTag
-          }, members);
-          
-          if (regionAnalysis && regionAnalysis.region && regionAnalysis.region !== 'UNKNOWN') {
+          const regionAnalysis = analyzeClanRegion(
+            {
+              name: clan.name,
+              pubgClanTag: clan.pubgClanTag,
+            },
+            members
+          );
+
+          if (
+            regionAnalysis &&
+            regionAnalysis.region &&
+            regionAnalysis.region !== 'UNKNOWN'
+          ) {
             // 데이터베이스에 지역 정보 업데이트
             await prisma.clan.update({
               where: { id: clan.id },
               data: {
                 region: regionAnalysis.region,
-                isKorean: regionAnalysis.region === 'KR'
-              }
+                isKorean: regionAnalysis.region === 'KR',
+              },
             });
-            
+
             // 현재 메모리 내 객체도 업데이트
             clan.region = regionAnalysis.region;
             clan.isKorean = regionAnalysis.region === 'KR';
-            
-            console.log(`클랜 '${clan.name}' 지역 자동 분류: ${regionAnalysis.region}`);
+
+            console.log(
+              `클랜 '${clan.name}' 지역 자동 분류: ${regionAnalysis.region}`
+            );
           }
         } catch (error) {
           console.error(`클랜 '${clan.name}' 지역 분류 중 오류 발생:`, error);
         }
       }
     }
-    
+
     // 3-1. 클랜별 평균 및 플레이 스타일 계산
-    const clanAnalytics = clanStats.map(clan => {
+    const clanAnalytics = clanStats.map((clan) => {
       const members = clan.members;
       const memberCount = members.length;
-      
+
       if (memberCount === 0) {
         return {
           id: clan.id,
@@ -365,16 +418,26 @@ export default async function handler(req, res) {
           apiMemberCount: clan.pubgMemberCount,
           dbMemberCount: memberCount,
           avgStats: null,
-          playStyle: null
+          playStyle: null,
         };
       }
 
       const avgStats = {
-        score: Math.round(members.reduce((sum, m) => sum + m.score, 0) / memberCount),
-        damage: Math.round(members.reduce((sum, m) => sum + m.avgDamage, 0) / memberCount),
-        kills: (members.reduce((sum, m) => sum + m.avgKills, 0) / memberCount).toFixed(1),
-        winRate: (members.reduce((sum, m) => sum + m.winRate, 0) / memberCount).toFixed(1),
-        top10Rate: (members.reduce((sum, m) => sum + m.top10Rate, 0) / memberCount).toFixed(1)
+        score: Math.round(
+          members.reduce((sum, m) => sum + m.score, 0) / memberCount
+        ),
+        damage: Math.round(
+          members.reduce((sum, m) => sum + m.avgDamage, 0) / memberCount
+        ),
+        kills: (
+          members.reduce((sum, m) => sum + m.avgKills, 0) / memberCount
+        ).toFixed(1),
+        winRate: (
+          members.reduce((sum, m) => sum + m.winRate, 0) / memberCount
+        ).toFixed(1),
+        top10Rate: (
+          members.reduce((sum, m) => sum + m.top10Rate, 0) / memberCount
+        ).toFixed(1),
       };
 
       // 플레이 스타일 분석
@@ -390,60 +453,61 @@ export default async function handler(req, res) {
         apiMemberCount: clan.pubgMemberCount,
         dbMemberCount: memberCount,
         avgStats,
-        playStyle
+        playStyle,
       };
     });
 
     // 4. 상위 클랜 랭킹 (평균 점수 기준)
     const topClans = clanAnalytics
-      .filter(clan => clan.avgStats) // avgStats가 있는 클랜만 (멤버가 1명 이상)
-      .filter(clan => clan.name !== '무소속') // '무소속' 클랜 제외
+      .filter((clan) => clan.avgStats) // avgStats가 있는 클랜만 (멤버가 1명 이상)
+      .filter((clan) => clan.name !== '무소속') // '무소속' 클랜 제외
       .sort((a, b) => b.avgStats.score - a.avgStats.score)
       .slice(0, 10);
 
     // 4-1. 전체 클랜 랭킹 (검색용) - '무소속' 클랜 제외
     const allRankedClans = clanAnalytics
-      .filter(clan => clan.avgStats) // avgStats가 있는 클랜만
-      .filter(clan => clan.name !== '무소속') // '무소속' 클랜 제외
+      .filter((clan) => clan.avgStats) // avgStats가 있는 클랜만
+      .filter((clan) => clan.name !== '무소속') // '무소속' 클랜 제외
       .sort((a, b) => b.avgStats.score - a.avgStats.score)
       .map((clan, index) => ({
         ...clan,
-        rank: index + 1
+        rank: index + 1,
       }));
 
     // 5. 클랜 레벨별 분포
     const levelDistribution = {};
-    clanAnalytics.forEach(clan => {
+    clanAnalytics.forEach((clan) => {
       const level = clan.level || 0;
       levelDistribution[level] = (levelDistribution[level] || 0) + 1;
     });
 
     // 6. 멤버 수별 분포
     const memberDistribution = {
-      small: clanAnalytics.filter(c => c.apiMemberCount <= 10).length,
-      medium: clanAnalytics.filter(c => c.apiMemberCount > 10 && c.apiMemberCount <= 30).length,
-      large: clanAnalytics.filter(c => c.apiMemberCount > 30).length
+      small: clanAnalytics.filter((c) => c.apiMemberCount <= 10).length,
+      medium: clanAnalytics.filter(
+        (c) => c.apiMemberCount > 10 && c.apiMemberCount <= 30
+      ).length,
+      large: clanAnalytics.filter((c) => c.apiMemberCount > 30).length,
     };
 
     return res.status(200).json({
       overview: {
         totalClans,
         totalMembers,
-        avgMembersPerClan: Math.round(totalMembers / totalClans)
+        avgMembersPerClan: Math.round(totalMembers / totalClans),
       },
       rankings: {
         topClansByScore: topClans,
-        allRankedClans: allRankedClans
+        allRankedClans: allRankedClans,
       },
       distributions: {
         byLevel: levelDistribution,
-        byMemberCount: memberDistribution
+        byMemberCount: memberDistribution,
       },
       allClans: clanAnalytics
-        .filter(clan => clan.name !== '무소속') // '무소속' 클랜 제외
-        .sort((a, b) => b.apiMemberCount - a.apiMemberCount)
+        .filter((clan) => clan.name !== '무소속') // '무소속' 클랜 제외
+        .sort((a, b) => b.apiMemberCount - a.apiMemberCount),
     });
-
   } catch (error) {
     console.error('클랜 분석 오류:', error);
     return res.status(500).json({ error: 'Internal server error' });

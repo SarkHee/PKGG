@@ -34,7 +34,7 @@ async function main() {
     // 멤버 동기화: 이미 있으면 skip, 없으면 추가
     for (const nickname of clan.members) {
       const exists = await prisma.clanMember.findFirst({
-        where: { nickname, clanId: dbClan.id }
+        where: { nickname, clanId: dbClan.id },
       });
       if (!exists) {
         await prisma.clanMember.create({
@@ -43,18 +43,26 @@ async function main() {
             score: 0,
             style: '-',
             avgDamage: 0,
-            clanId: dbClan.id
-          }
+            clanId: dbClan.id,
+          },
         });
       }
     }
     // 멤버 카운트 갱신
-    const memberCount = await prisma.clanMember.count({ where: { clanId: dbClan.id } });
-    await prisma.clan.update({ where: { id: dbClan.id }, data: { memberCount } });
+    const memberCount = await prisma.clanMember.count({
+      where: { clanId: dbClan.id },
+    });
+    await prisma.clan.update({
+      where: { id: dbClan.id },
+      data: { memberCount },
+    });
     console.log(`클랜 ${clanKey} 동기화 완료 (${memberCount}명)`);
   }
 }
 
 main()
-  .catch(e => { console.error(e); process.exit(1); })
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
   .finally(() => prisma.$disconnect());

@@ -29,21 +29,28 @@ const PUBG_SEASONS = [
   { id: 'division.bro.official.pc-2025-01', name: '2025 시즌 1' },
 ];
 
-const EnhancedPlayerStats = ({ enhancedStats, player, currentSeason, onSeasonChange }) => {
-  const [selectedSeason, setSelectedSeason] = useState(currentSeason || PUBG_SEASONS[PUBG_SEASONS.length - 1]?.id || '');
+const EnhancedPlayerStats = ({
+  enhancedStats,
+  player,
+  currentSeason,
+  onSeasonChange,
+}) => {
+  const [selectedSeason, setSelectedSeason] = useState(
+    currentSeason || PUBG_SEASONS[PUBG_SEASONS.length - 1]?.id || ''
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSeasonChange = async (seasonId) => {
     setSelectedSeason(seasonId);
     setIsLoading(true);
-    
+
     try {
       // 부모 컴포넌트의 onSeasonChange 호출
       if (onSeasonChange) {
         await onSeasonChange(seasonId);
       }
       // 시즌별 데이터 로딩 로직은 향후 구현 예정
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
       console.error('시즌 데이터 로딩 실패:', error);
     } finally {
@@ -74,9 +81,7 @@ const EnhancedPlayerStats = ({ enhancedStats, player, currentSeason, onSeasonCha
       </div>
 
       <div className="stats-content">
-        <p className="development-notice">
-          시즌별 상세 통계는 개발 중입니다.
-        </p>
+        <p className="development-notice">시즌별 상세 통계는 개발 중입니다.</p>
       </div>
 
       <style jsx>{`

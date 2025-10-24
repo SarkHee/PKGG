@@ -1,7 +1,10 @@
 // 클랜 멤버 일괄 업데이트 API
 // /Users/mac/Desktop/PKGG/pages/api/clan/batch-update.js
 
-import { fetchClanMembersBatch, RateLimitManager } from '../../../utils/pubgBatchApi.js';
+import {
+  fetchClanMembersBatch,
+  RateLimitManager,
+} from '../../../utils/pubgBatchApi.js';
 
 const rateLimitManager = new RateLimitManager(10); // 분당 10회 제한
 
@@ -13,8 +16,8 @@ export default async function handler(req, res) {
   const { clanName, memberNames, shard = 'steam' } = req.body;
 
   if (!clanName || !memberNames || !Array.isArray(memberNames)) {
-    return res.status(400).json({ 
-      error: '클랜명과 멤버 닉네임 배열이 필요합니다.' 
+    return res.status(400).json({
+      error: '클랜명과 멤버 닉네임 배열이 필요합니다.',
     });
   }
 
@@ -23,28 +26,39 @@ export default async function handler(req, res) {
     await rateLimitManager.waitIfNeeded();
 
     // 현재 시즌 ID 조회
-    const seasonResponse = await fetch(`https://api.pubg.com/shards/${shard}/seasons`, {
-      headers: {
-        "Authorization": `Bearer ${process.env.PUBG_API_KEY}`,
-        "Accept": "application/vnd.api+json"
+    const seasonResponse = await fetch(
+      `https://api.pubg.com/shards/${shard}/seasons`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PUBG_API_KEY}`,
+          Accept: 'application/vnd.api+json',
+        },
       }
-    });
+    );
 
     if (!seasonResponse.ok) {
       throw new Error('시즌 정보 조회 실패');
     }
 
     const seasonData = await seasonResponse.json();
-    const currentSeason = seasonData.data.find(season => season.attributes.isCurrentSeason);
+    const currentSeason = seasonData.data.find(
+      (season) => season.attributes.isCurrentSeason
+    );
 
     if (!currentSeason) {
       throw new Error('현재 시즌을 찾을 수 없습니다.');
     }
 
-    console.log(`배치 업데이트 시작: ${clanName} 클랜의 ${memberNames.length}명`);
+    console.log(
+      `배치 업데이트 시작: ${clanName} 클랜의 ${memberNames.length}명`
+    );
 
     // 배치로 클랜 멤버 데이터 조회
-    const memberData = await fetchClanMembersBatch(shard, memberNames, currentSeason.id);
+    const memberData = await fetchClanMembersBatch(
+      shard,
+      memberNames,
+      currentSeason.id
+    );
 
     // DB 업데이트
     const { PrismaClient } = require('@prisma/client');
@@ -56,7 +70,7 @@ export default async function handler(req, res) {
     try {
       // 클랜 정보 조회
       const clan = await prisma.clan.findUnique({
-        where: { name: clanName }
+        where: { name: clanName },
       });
 
       if (!clan) {
@@ -75,8 +89,8 @@ export default async function handler(req, res) {
           let member = await prisma.clanMember.findFirst({
             where: {
               nickname: nickname,
-              clanId: clan.id
-            }
+              clanId: clan.id,
+            },
           });
 
           if (!member) {
@@ -91,8 +105,8 @@ export default async function handler(req, res) {
                 avgAssists: 0,
                 avgSurviveTime: 0,
                 winRate: 0,
-                top10Rate: 0
-              }
+                top10Rate: 0,
+              },
             });
           }
 
@@ -105,7 +119,7 @@ export default async function handler(req, res) {
           if (data.seasonStats) {
             // squad-fpp를 우선으로 통계 계산
             const priorityModes = ['squad-fpp', 'squad', 'duo-fpp', 'solo-fpp'];
-            
+
             for (const mode of priorityModes) {
               if (data.seasonStats[mode]) {
                 const stats = data.seasonStats[mode].attributes.gameModeStats;
@@ -127,13 +141,14 @@ export default async function handler(req, res) {
               avgDamage: Math.round(avgDamage),
               avgKills: parseFloat(avgKills.toFixed(1)),
               winRate: parseFloat(winRate.toFixed(1)),
-              top10Rate: parseFloat(top10Rate.toFixed(1))
-            }
+              top10Rate: parseFloat(top10Rate.toFixed(1)),
+            },
           });
 
           updatedCount++;
-          console.log(`${nickname} 업데이트 완료 (딜량: ${Math.round(avgDamage)}, 승률: ${winRate.toFixed(1)}%)`);
-
+          console.log(
+            `${nickname} 업데이트 완료 (딜량: ${Math.round(avgDamage)}, 승률: ${winRate.toFixed(1)}%)`
+          );
         } catch (memberError) {
           console.error(`${nickname} 업데이트 실패:`, memberError);
           errorCount++;
@@ -146,19 +161,17 @@ export default async function handler(req, res) {
         results: {
           total: memberNames.length,
           updated: updatedCount,
-          errors: errorCount
-        }
+          errors: errorCount,
+        },
       });
-
     } finally {
       await prisma.$disconnect();
     }
-
   } catch (error) {
     console.error('배치 업데이트 실패:', error);
     res.status(500).json({
       error: '배치 업데이트 중 오류가 발생했습니다.',
-      details: error.message
+      details: error.message,
     });
   }
 }

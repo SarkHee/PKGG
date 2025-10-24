@@ -6,7 +6,8 @@ import axios from 'axios';
 
 const prisma = new PrismaClient();
 
-const API_KEY = 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o';
+const API_KEY =
+  'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o';
 
 // 안전한 API 호출
 async function safeApiCall(url, maxRetries = 3) {
@@ -17,15 +18,17 @@ async function safeApiCall(url, maxRetries = 3) {
           Authorization: API_KEY,
           Accept: 'application/vnd.api+json',
         },
-        timeout: 10000
+        timeout: 10000,
       });
       return { success: true, data: response.data };
     } catch (error) {
-      console.log(`    ⚠️  API 호출 실패 (시도 ${attempt}/${maxRetries}): ${error.message}`);
+      console.log(
+        `    ⚠️  API 호출 실패 (시도 ${attempt}/${maxRetries}): ${error.message}`
+      );
       if (attempt === maxRetries) {
         return { success: false, error: error.message };
       }
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
     }
   }
 }
@@ -35,10 +38,10 @@ async function getClanMembersFromPubg(pubgClanId, shard = 'steam') {
   console.log(`🔍 PUBG API에서 클랜 멤버 목록 조회 중...`);
   console.log(`   클랜 ID: ${pubgClanId}`);
   console.log(`   샤드: ${shard}`);
-  
+
   const url = `https://api.pubg.com/shards/${shard}/clans/${pubgClanId}/members`;
   const result = await safeApiCall(url);
-  
+
   if (result.success) {
     console.log(`✅ PUBG API 응답 성공: ${result.data.data.length}명 발견`);
     return result.data.data || [];
@@ -52,7 +55,7 @@ async function getClanMembersFromPubg(pubgClanId, shard = 'steam') {
 async function getPlayerDetails(playerId, shard = 'steam') {
   const url = `https://api.pubg.com/shards/${shard}/players/${playerId}`;
   const result = await safeApiCall(url);
-  
+
   if (result.success) {
     return result.data.data;
   }
@@ -72,10 +75,10 @@ async function syncMissingClanMembers(clanId, pubgClanId) {
           select: {
             id: true,
             nickname: true,
-            pubgPlayerId: true
-          }
-        }
-      }
+            pubgPlayerId: true,
+          },
+        },
+      },
     });
 
     if (!clan) {
@@ -87,11 +90,13 @@ async function syncMissingClanMembers(clanId, pubgClanId) {
     console.log(`   이름: ${clan.name}`);
     console.log(`   현재 DB 멤버 수: ${clan.members.length}명`);
     console.log(`   PUBG 멤버 수: ${clan.pubgMemberCount}명`);
-    console.log(`   누락 예상: ${clan.pubgMemberCount - clan.members.length}명\n`);
+    console.log(
+      `   누락 예상: ${clan.pubgMemberCount - clan.members.length}명\n`
+    );
 
     // 2. PUBG API에서 전체 멤버 목록 가져오기
     const pubgMembers = await getClanMembersFromPubg(pubgClanId);
-    
+
     if (pubgMembers.length === 0) {
       console.log(`❌ PUBG API에서 멤버를 가져올 수 없습니다.`);
       return;
@@ -103,16 +108,14 @@ async function syncMissingClanMembers(clanId, pubgClanId) {
 
     // 3. DB에 이미 있는 플레이어 ID들 수집
     const existingPlayerIds = new Set(
-      clan.members
-        .map(m => m.pubgPlayerId)
-        .filter(Boolean)
+      clan.members.map((m) => m.pubgPlayerId).filter(Boolean)
     );
 
     console.log(`   PUBG ID가 있는 DB 멤버: ${existingPlayerIds.size}명\n`);
 
     // 4. 누락된 멤버들 찾기
-    const missingMembers = pubgMembers.filter(member => 
-      !existingPlayerIds.has(member.id)
+    const missingMembers = pubgMembers.filter(
+      (member) => !existingPlayerIds.has(member.id)
     );
 
     console.log(`🔍 누락된 멤버 분석:`);
@@ -127,18 +130,20 @@ async function syncMissingClanMembers(clanId, pubgClanId) {
     const results = {
       added: [],
       failed: [],
-      skipped: []
+      skipped: [],
     };
 
     console.log(`🚀 누락된 멤버들을 DB에 추가 중...\n`);
 
     for (let i = 0; i < missingMembers.length; i++) {
       const member = missingMembers[i];
-      console.log(`[${i + 1}/${missingMembers.length}] 플레이어 ID: ${member.id} 처리 중...`);
+      console.log(
+        `[${i + 1}/${missingMembers.length}] 플레이어 ID: ${member.id} 처리 중...`
+      );
 
       // 플레이어 상세 정보 가져오기
       const playerDetails = await getPlayerDetails(member.id);
-      
+
       if (!playerDetails) {
         console.log(`  ❌ 플레이어 상세 정보 가져오기 실패`);
         results.failed.push({ playerId: member.id, reason: 'API 호출 실패' });
@@ -152,13 +157,13 @@ async function syncMissingClanMembers(clanId, pubgClanId) {
       const existingByNickname = await prisma.clanMember.findFirst({
         where: {
           nickname: nickname,
-          clanId: clanId
-        }
+          clanId: clanId,
+        },
       });
 
       if (existingByNickname) {
         console.log(`  ⚠️  같은 닉네임이 이미 존재함 - PUBG ID 업데이트`);
-        
+
         // PUBG ID만 업데이트
         await prisma.clanMember.update({
           where: { id: existingByNickname.id },
@@ -166,10 +171,10 @@ async function syncMissingClanMembers(clanId, pubgClanId) {
             pubgPlayerId: playerDetails.id,
             pubgClanId: pubgClanId,
             pubgShardId: 'steam',
-            lastUpdated: new Date()
-          }
+            lastUpdated: new Date(),
+          },
         });
-        
+
         results.skipped.push({ nickname, reason: '기존 멤버 업데이트' });
         continue;
       }
@@ -191,37 +196,36 @@ async function syncMissingClanMembers(clanId, pubgClanId) {
             pubgClanId: pubgClanId,
             pubgPlayerId: playerDetails.id,
             pubgShardId: 'steam',
-            lastUpdated: new Date()
-          }
+            lastUpdated: new Date(),
+          },
         });
 
         console.log(`  ✅ 새 멤버 추가 완료`);
         results.added.push({ nickname, playerId: playerDetails.id });
-
       } catch (dbError) {
         console.log(`  ❌ DB 추가 실패: ${dbError.message}`);
-        results.failed.push({ 
-          nickname, 
-          playerId: playerDetails.id, 
-          reason: dbError.message 
+        results.failed.push({
+          nickname,
+          playerId: playerDetails.id,
+          reason: dbError.message,
         });
       }
 
       // API 요청 제한 방지
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     // 6. 클랜 멤버 수 업데이트
     const updatedMemberCount = await prisma.clanMember.count({
-      where: { clanId: clanId }
+      where: { clanId: clanId },
     });
 
     await prisma.clan.update({
       where: { id: clanId },
-      data: { 
+      data: {
         memberCount: updatedMemberCount,
-        lastSynced: new Date()
-      }
+        lastSynced: new Date(),
+      },
     });
 
     // 7. 결과 요약
@@ -242,10 +246,11 @@ async function syncMissingClanMembers(clanId, pubgClanId) {
     if (results.failed.length > 0) {
       console.log(`\n⚠️  실패한 멤버들:`);
       results.failed.forEach((member, i) => {
-        console.log(`   ${i + 1}. ${member.nickname || member.playerId} - ${member.reason}`);
+        console.log(
+          `   ${i + 1}. ${member.nickname || member.playerId} - ${member.reason}`
+        );
       });
     }
-
   } catch (error) {
     console.error('❌ 동기화 중 오류:', error);
   } finally {
@@ -259,10 +264,14 @@ async function main() {
 
   if (args.length < 2) {
     console.log(`\n📖 사용법:`);
-    console.log(`   node scripts/sync-missing-clan-members.js [클랜DB_ID] [PUBG_클랜_ID]`);
+    console.log(
+      `   node scripts/sync-missing-clan-members.js [클랜DB_ID] [PUBG_클랜_ID]`
+    );
     console.log(`\n📝 예시:`);
-    console.log(`   node scripts/sync-missing-clan-members.js 1 clan.eb5c32a3cc484b59981f9c61e9ea2747`);
-    
+    console.log(
+      `   node scripts/sync-missing-clan-members.js 1 clan.eb5c32a3cc484b59981f9c61e9ea2747`
+    );
+
     // 사용 가능한 클랜 목록 보여주기
     const clans = await prisma.clan.findMany({
       select: {
@@ -270,18 +279,20 @@ async function main() {
         name: true,
         pubgClanId: true,
         pubgMemberCount: true,
-        memberCount: true
+        memberCount: true,
       },
-      take: 5
+      take: 5,
     });
 
     if (clans.length > 0) {
       console.log(`\n📋 사용 가능한 클랜들:`);
-      clans.forEach(clan => {
+      clans.forEach((clan) => {
         const missing = (clan.pubgMemberCount || 0) - (clan.memberCount || 0);
         console.log(`   ID ${clan.id}: ${clan.name}`);
         console.log(`     └ PUBG ID: ${clan.pubgClanId}`);
-        console.log(`     └ PUBG 멤버: ${clan.pubgMemberCount}명, DB 멤버: ${clan.memberCount}명 (누락: ${missing}명)`);
+        console.log(
+          `     └ PUBG 멤버: ${clan.pubgMemberCount}명, DB 멤버: ${clan.memberCount}명 (누락: ${missing}명)`
+        );
       });
     }
 

@@ -31,10 +31,10 @@ function formatMatchTime(timestamp) {
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
     });
   } catch (e) {
-    console.error("Error formatting match timestamp:", timestamp, e);
+    console.error('Error formatting match timestamp:', timestamp, e);
     return '유효하지 않은 시간';
   }
 }
@@ -47,7 +47,11 @@ function formatMatchTime(timestamp) {
  */
 const MatchDetailCard = ({ match }) => {
   if (!match) {
-    return <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">매치 데이터를 불러올 수 없습니다.</div>;
+    return (
+      <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+        매치 데이터를 불러올 수 없습니다.
+      </div>
+    );
   }
 
   // 데이터 안전하게 추출 (기본값 설정)
@@ -59,34 +63,70 @@ const MatchDetailCard = ({ match }) => {
   const win = match.win ?? false;
   const top10 = match.top10 ?? false;
   const totalTeamDamage = match.totalTeamDamage ?? 0;
-  const teammatesDetail = Array.isArray(match.teammatesDetail) ? match.teammatesDetail : [];
+  const teammatesDetail = Array.isArray(match.teammatesDetail)
+    ? match.teammatesDetail
+    : [];
   const mapName = match.mapName ?? '알 수 없음';
   const gameMode = match.gameMode ?? '알 수 없음';
-
 
   return (
     <div className="match-card">
       <div className="flex items-center justify-between mb-2">
-        <div className="font-extrabold text-lg text-[#2563eb] tracking-tight">{mapName}</div>
-        <div className="text-xs text-gray-400">{formatMatchTime(match.matchTimestamp)}</div>
+        <div className="font-extrabold text-lg text-[#2563eb] tracking-tight">
+          {mapName}
+        </div>
+        <div className="text-xs text-gray-400">
+          {formatMatchTime(match.matchTimestamp)}
+        </div>
       </div>
       <div className="flex flex-wrap gap-2 mb-2">
-        <span className="px-3 py-1 rounded-full bg-[#2563eb] text-white text-xs font-semibold">{gameMode}</span>
-        <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs">순위: {rank} / {totalSquads}</span>
-        <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">OP: {opGrade}</span>
-        {win && <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">WIN</span>}
-        {top10 && !win && <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">TOP10</span>}
+        <span className="px-3 py-1 rounded-full bg-[#2563eb] text-white text-xs font-semibold">
+          {gameMode}
+        </span>
+        <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 text-xs">
+          순위: {rank} / {totalSquads}
+        </span>
+        <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">
+          OP: {opGrade}
+        </span>
+        {win && (
+          <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+            WIN
+          </span>
+        )}
+        {top10 && !win && (
+          <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+            TOP10
+          </span>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm mb-2">
-        <div>딜량: <span className="font-bold text-[#2563eb]">{(match.damage || 0).toFixed(1)}</span></div>
-        <div>생존: <span className="font-bold">{formatSurvivalTime(survivalTime)}</span></div>
-        <div>이동거리: <span className="font-bold">{match.distance}m</span></div>
-        <div>평균 MMR: <span className="font-bold text-[#2563eb]">{avgMmr}</span></div>
-        <div>팀 총딜: <span className="font-bold">{(totalTeamDamage || 0).toFixed(1)}</span></div>
+        <div>
+          딜량:{' '}
+          <span className="font-bold text-[#2563eb]">
+            {(match.damage || 0).toFixed(1)}
+          </span>
+        </div>
+        <div>
+          생존:{' '}
+          <span className="font-bold">{formatSurvivalTime(survivalTime)}</span>
+        </div>
+        <div>
+          이동거리: <span className="font-bold">{match.distance}m</span>
+        </div>
+        <div>
+          평균 MMR: <span className="font-bold text-[#2563eb]">{avgMmr}</span>
+        </div>
+        <div>
+          팀 총딜:{' '}
+          <span className="font-bold">{(totalTeamDamage || 0).toFixed(1)}</span>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2 mt-2">
         {match.teammates && match.teammates.length > 0 && (
-          <span className="text-xs text-gray-500">팀원: {match.teammates.join(", ")}</span>
+          <span className="text-xs text-gray-500">
+            팀원: {match.teammates.join(', ')}
+          </span>
         )}
       </div>
     </div>

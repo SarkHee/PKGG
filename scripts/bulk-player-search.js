@@ -6,8 +6,8 @@ import axios from 'axios';
 const nicknames = [
   // 여기에 검색하고 싶은 닉네임들을 추가
   'player1',
-  'player2', 
-  'player3'
+  'player2',
+  'player3',
   // ... 더 많은 닉네임들
 ];
 
@@ -22,22 +22,25 @@ async function bulkSearch() {
   for (const [index, nickname] of nicknames.entries()) {
     try {
       console.log(`[${index + 1}/${nicknames.length}] ${nickname} 검색 중...`);
-      
+
       // API 호출 제한
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const response = await axios.get(`http://localhost:3000/api/pubg/player?nickname=${nickname}`);
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const response = await axios.get(
+        `http://localhost:3000/api/pubg/player?nickname=${nickname}`
+      );
+
       if (response.data.player) {
         const clan = response.data.clan;
         if (clan) {
-          console.log(`  ✅ 발견! 클랜: ${clan.attributes.clanName} (${clan.attributes.clanTag})`);
+          console.log(
+            `  ✅ 발견! 클랜: ${clan.attributes.clanName} (${clan.attributes.clanTag})`
+          );
         } else {
           console.log(`  ✅ 발견! (클랜 없음)`);
         }
         found++;
       }
-      
     } catch (error) {
       if (error.response?.status === 404) {
         console.log(`  ❌ 플레이어를 찾을 수 없음`);

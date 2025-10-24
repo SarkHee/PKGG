@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Head from 'next/head';
-import Header from '../components/Header';
+import Header from "../../components/layout/Header";
 
 export default function TestForum() {
   const [testResult, setTestResult] = useState(null);
@@ -15,30 +15,29 @@ export default function TestForum() {
       const response = await fetch('/api/forum/posts', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           title: '테스트 게시글 ' + Date.now(),
           content: '이것은 포럼 기능 테스트를 위한 게시글입니다.',
           author: '테스트사용자',
-          categoryId: 'general'
-        })
+          categoryId: 'general',
+        }),
       });
 
       const result = await response.json();
-      
+
       setTestResult({
         success: response.ok,
         status: response.status,
         data: result,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error) {
       setTestResult({
         success: false,
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -51,17 +50,18 @@ export default function TestForum() {
         <title>포럼 테스트 | PK.GG</title>
       </Head>
       <Header />
-      
+
       <div className="container mx-auto p-6">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">포럼 기능 테스트</h1>
-          
+
           <div className="bg-white rounded-lg shadow p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4">게시글 작성 테스트</h2>
             <p className="text-gray-600 mb-4">
-              아래 버튼을 클릭하여 포럼 게시글 작성 API가 정상적으로 작동하는지 확인할 수 있습니다.
+              아래 버튼을 클릭하여 포럼 게시글 작성 API가 정상적으로 작동하는지
+              확인할 수 있습니다.
             </p>
-            
+
             <button
               onClick={runTest}
               disabled={isLoading}
@@ -76,11 +76,17 @@ export default function TestForum() {
               <h3 className="text-lg font-semibold mb-4">
                 테스트 결과 {testResult.success ? '✅' : '❌'}
               </h3>
-              
+
               <div className="space-y-2">
-                <p><strong>상태:</strong> {testResult.success ? '성공' : '실패'}</p>
-                <p><strong>HTTP 코드:</strong> {testResult.status || 'N/A'}</p>
-                <p><strong>시간:</strong> {testResult.timestamp}</p>
+                <p>
+                  <strong>상태:</strong> {testResult.success ? '성공' : '실패'}
+                </p>
+                <p>
+                  <strong>HTTP 코드:</strong> {testResult.status || 'N/A'}
+                </p>
+                <p>
+                  <strong>시간:</strong> {testResult.timestamp}
+                </p>
               </div>
 
               {testResult.error && (
@@ -101,7 +107,9 @@ export default function TestForum() {
 
               {!testResult.success && (
                 <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <h4 className="font-semibold text-yellow-800">문제 해결 방법:</h4>
+                  <h4 className="font-semibold text-yellow-800">
+                    문제 해결 방법:
+                  </h4>
                   <ul className="mt-2 text-yellow-700 space-y-1">
                     <li>1. 서버가 실행 중인지 확인하세요 (npm run dev)</li>
                     <li>2. 데이터베이스가 초기화되었는지 확인하세요</li>
@@ -114,10 +122,14 @@ export default function TestForum() {
           )}
 
           <div className="mt-8 p-6 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">포럼 초기 설정 확인 사항</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              포럼 초기 설정 확인 사항
+            </h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-white p-4 rounded-lg">
-                <h4 className="font-semibold text-green-800">✅ 정상 작동 조건</h4>
+                <h4 className="font-semibold text-green-800">
+                  ✅ 정상 작동 조건
+                </h4>
                 <ul className="mt-2 text-sm text-gray-600 space-y-1">
                   <li>• 서버 실행됨 (localhost:3000)</li>
                   <li>• 데이터베이스 연결됨</li>
@@ -125,9 +137,11 @@ export default function TestForum() {
                   <li>• API 엔드포인트 응답함</li>
                 </ul>
               </div>
-              
+
               <div className="bg-white p-4 rounded-lg">
-                <h4 className="font-semibold text-red-800">❌ 문제 발생 가능 원인</h4>
+                <h4 className="font-semibold text-red-800">
+                  ❌ 문제 발생 가능 원인
+                </h4>
                 <ul className="mt-2 text-sm text-gray-600 space-y-1">
                   <li>• 서버가 중지됨</li>
                   <li>• 데이터베이스 오류</li>
@@ -138,8 +152,11 @@ export default function TestForum() {
             </div>
 
             <div className="mt-4 text-sm text-gray-500">
-              <strong>수동 초기화 명령어:</strong><br/>
-              <code className="bg-gray-200 px-2 py-1 rounded">node test-forum-fix.js</code>
+              <strong>수동 초기화 명령어:</strong>
+              <br />
+              <code className="bg-gray-200 px-2 py-1 rounded">
+                node test-forum-fix.js
+              </code>
             </div>
           </div>
         </div>

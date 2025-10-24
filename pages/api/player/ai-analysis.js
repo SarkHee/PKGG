@@ -16,8 +16,8 @@ export default async function handler(req, res) {
         where: {
           playerNickname_playerServer: {
             playerNickname,
-            playerServer
-          }
+            playerServer,
+          },
         },
         create: {
           playerNickname,
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
           aggressionIndex: analysis.aggressionIndex,
           consistencyIndex: analysis.consistencyIndex,
           recommendations: JSON.stringify([]),
-          trainingPlan: JSON.stringify(trainingPlan)
+          trainingPlan: JSON.stringify(trainingPlan),
         },
         update: {
           playStyle: analysis.playStyle,
@@ -42,15 +42,14 @@ export default async function handler(req, res) {
           aggressionIndex: analysis.aggressionIndex,
           consistencyIndex: analysis.consistencyIndex,
           trainingPlan: JSON.stringify(trainingPlan),
-          lastAnalyzed: new Date()
-        }
+          lastAnalyzed: new Date(),
+        },
       });
 
       res.status(200).json({
         message: 'AI 분석 결과가 저장되었습니다.',
-        analysis: savedAnalysis
+        analysis: savedAnalysis,
       });
-
     } else if (req.method === 'GET') {
       const { nickname, server } = req.query;
 
@@ -63,9 +62,9 @@ export default async function handler(req, res) {
         where: {
           playerNickname_playerServer: {
             playerNickname: nickname,
-            playerServer: server
-          }
-        }
+            playerServer: server,
+          },
+        },
       });
 
       if (existingAnalysis) {
@@ -74,22 +73,20 @@ export default async function handler(req, res) {
             ...existingAnalysis,
             strengths: JSON.parse(existingAnalysis.strengths),
             weaknesses: JSON.parse(existingAnalysis.weaknesses),
-            trainingPlan: JSON.parse(existingAnalysis.trainingPlan)
-          }
+            trainingPlan: JSON.parse(existingAnalysis.trainingPlan),
+          },
         });
       } else {
         res.status(404).json({ error: '분석 결과를 찾을 수 없습니다.' });
       }
-
     } else {
       res.status(405).json({ error: 'Method not allowed' });
     }
-
   } catch (error) {
     console.error('AI 분석 API 오류:', error);
     res.status(500).json({
       error: '서버 오류가 발생했습니다.',
-      details: error.message
+      details: error.message,
     });
   } finally {
     await prisma.$disconnect();

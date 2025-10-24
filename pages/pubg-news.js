@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Layout from '../components/Layout';
+import Layout from "../components/layout/Layout"';
 import PubgNewsCard from '../components/PubgNewsCard';
 import Head from 'next/head';
 
@@ -13,14 +13,14 @@ export default function PubgNewsPage() {
     { value: '공지사항', label: '공지사항', icon: '📢' },
     { value: '업데이트', label: '업데이트', icon: '🔄' },
     { value: '이벤트', label: '이벤트', icon: '🎉' },
-    { value: '점검', label: '점검', icon: '🔧' }
+    { value: '점검', label: '점검', icon: '🔧' },
   ];
 
   const handleRefresh = async () => {
     setLoading(true);
     try {
       await fetch(`/api/pubg-news?category=${selectedCategory}&refresh=true`);
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev) => prev + 1);
     } catch (error) {
       console.error('뉴스 새로고침 실패:', error);
     } finally {
@@ -32,9 +32,12 @@ export default function PubgNewsPage() {
     <>
       <Head>
         <title>PUBG 공지사항 - PKGG</title>
-        <meta name="description" content="최신 PUBG 공지사항과 업데이트 소식을 확인하세요" />
+        <meta
+          name="description"
+          content="최신 PUBG 공지사항과 업데이트 소식을 확인하세요"
+        />
       </Head>
-      
+
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
@@ -48,7 +51,7 @@ export default function PubgNewsPage() {
                     최신 PUBG 소식과 업데이트 정보를 확인하세요
                   </p>
                 </div>
-                
+
                 <button
                   onClick={handleRefresh}
                   disabled={loading}
@@ -80,9 +83,9 @@ export default function PubgNewsPage() {
             </div>
 
             <div className="mb-8">
-              <PubgNewsCard 
+              <PubgNewsCard
                 key={`main-${refreshKey}`}
-                category={selectedCategory} 
+                category={selectedCategory}
                 maxItems={10}
                 theme="light"
               />
@@ -91,8 +94,7 @@ export default function PubgNewsPage() {
             <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-blue-100 p-6 rounded-lg border border-blue-200">
                 <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                  🌍
-                  공식 PUBG 사이트
+                  🌍 공식 PUBG 사이트
                 </h3>
                 <p className="text-blue-800 text-sm mb-3">
                   공식 사이트에서 최신 소식을 확인하세요
@@ -110,8 +112,7 @@ export default function PubgNewsPage() {
 
               <div className="bg-gray-100 p-6 rounded-lg border border-gray-200">
                 <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  🎮
-                  Steam 뉴스
+                  🎮 Steam 뉴스
                 </h3>
                 <p className="text-gray-800 text-sm mb-3">
                   Steam에서 PUBG 관련 소식을 확인하세요

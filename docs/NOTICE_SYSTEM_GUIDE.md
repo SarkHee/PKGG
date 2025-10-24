@@ -7,6 +7,7 @@ PKGG 공지사항 시스템은 사이트의 기능 업데이트, 점검 공지, 
 ## 주요 기능
 
 ### ✨ 사용자 기능
+
 - **다양한 공지 유형**: 기능 업데이트, 점검 공지, 이벤트, 일반 공지
 - **우선순위별 표시**: HIGH, NORMAL, LOW 우선순위 지원
 - **고정 공지**: 중요한 공지사항을 상단에 고정
@@ -16,6 +17,7 @@ PKGG 공지사항 시스템은 사이트의 기능 업데이트, 점검 공지, 
 - **공유 기능**: 네이티브 공유 API 지원
 
 ### 🔧 관리자 기능
+
 - **공지사항 작성/수정/삭제**: 웹 인터페이스를 통한 관리
 - **마크다운 지원**: 서식 있는 텍스트 작성 가능
 - **자동 만료**: 특정 날짜에 자동으로 비활성화
@@ -42,6 +44,7 @@ PKGG 공지사항 시스템은 사이트의 기능 업데이트, 점검 공지, 
 ```
 
 필수 정보:
+
 - **제목**: 공지사항 제목
 - **내용**: 마크다운 형식 지원
 - **유형**: GENERAL, UPDATE, MAINTENANCE, EVENT
@@ -67,11 +70,13 @@ node scripts/auto-update-notice.js --help
 ## API 엔드포인트
 
 ### 공지사항 목록 조회
+
 ```http
 GET /api/notices?page=1&limit=10&type=UPDATE&priority=HIGH
 ```
 
 **응답 예시**:
+
 ```json
 {
   "notices": [
@@ -97,11 +102,13 @@ GET /api/notices?page=1&limit=10&type=UPDATE&priority=HIGH
 ```
 
 ### 개별 공지사항 조회
+
 ```http
 GET /api/notices/{id}
 ```
 
 ### 공지사항 생성 (관리자)
+
 ```http
 POST /api/notices
 Content-Type: application/json
@@ -118,22 +125,26 @@ Content-Type: application/json
 ## 공지 유형별 특징
 
 ### 📢 기능 업데이트 (UPDATE)
+
 - **아이콘**: 🚀
 - **특징**: 새 기능, 개선사항, 버그 수정 내용 포함
 - **자동 생성**: `createUpdateNotice()` 함수 사용 가능
 
-### 🔧 점검 공지 (MAINTENANCE)  
+### 🔧 점검 공지 (MAINTENANCE)
+
 - **아이콘**: 🔧
 - **특징**: 점검 시간, 영향받는 서비스 명시
 - **자동 고정**: 기본적으로 상단 고정됨
 - **자동 만료**: 점검 종료 시간에 자동 비활성화
 
 ### 🎉 이벤트 (EVENT)
+
 - **아이콘**: 🎉
 - **특징**: 이벤트 기간, 참여 방법, 보상 정보 포함
 - **기간 제한**: 이벤트 종료 시 자동 비활성화
 
 ### 📋 일반 공지 (GENERAL)
+
 - **아이콘**: 📋
 - **특징**: 일반적인 공지사항 및 안내사항
 
@@ -142,26 +153,28 @@ Content-Type: application/json
 ### 새로운 공지 유형 추가
 
 1. **데이터베이스 enum 수정**:
+
 ```sql
 -- prisma/schema.prisma에서 type 필드의 enum에 새 값 추가
 ```
 
 2. **프론트엔드 레이블 및 색상 추가**:
+
 ```javascript
 // pages/notices/index.js
 const getTypeLabel = (type) => {
   const typeMap = {
     // 새로운 유형 추가
-    NEW_TYPE: '새로운 유형 이름'
+    NEW_TYPE: '새로운 유형 이름',
   };
-}
+};
 
 const getTypeColor = (type) => {
   const colorMap = {
     // 새로운 유형의 색상 추가
-    NEW_TYPE: 'bg-purple-100 text-purple-800'
+    NEW_TYPE: 'bg-purple-100 text-purple-800',
   };
-}
+};
 ```
 
 ### 자동 공지 생성 함수 추가
@@ -188,10 +201,10 @@ model Notice {
   showUntil    DateTime? // 표시 종료 시간 (선택적)
   author       String    @default("관리자") // 작성자
   views        Int       @default(0) // 조회수
-  
+
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  
+
   @@map("notices")
 }
 ```
@@ -199,10 +212,12 @@ model Notice {
 ## 모니터링 및 분석
 
 ### 조회수 추적
+
 - 공지사항 조회 시 자동으로 조회수 증가
 - 관리자 페이지에서 조회수 확인 가능
 
 ### 성능 최적화
+
 - 페이지네이션을 통한 대량 데이터 처리
 - 만료된 공지사항 자동 필터링
 - 인덱스 최적화된 데이터베이스 쿼리
@@ -210,10 +225,12 @@ model Notice {
 ## 보안 고려사항
 
 ### XSS 방지
+
 - 사용자 입력에 대한 적절한 이스케이프 처리
 - `dangerouslySetInnerHTML` 사용 시 신뢰할 수 있는 내용만 허용
 
 ### 권한 관리
+
 - 관리자 권한 확인 (향후 인증 시스템 추가 예정)
 - API 엔드포인트 보호
 
@@ -229,6 +246,7 @@ model Notice {
 ---
 
 📞 **문의사항**: [📧 문의하기](http://localhost:3000/inquiry) 메뉴 이용
-🔗 **관련 링크**: 
+🔗 **관련 링크**:
+
 - [공지사항 페이지](http://localhost:3000/notices)
 - [관리자 페이지](http://localhost:3000/admin/notices)

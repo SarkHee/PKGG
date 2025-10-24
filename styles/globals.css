@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 /* 글로벌 배경색 설정 */
-html, body {
+html,
+body {
   background-color: #ffffff;
   color: #111827;
   margin: 0;
@@ -21,12 +22,12 @@ html, body {
   background: #ffffff;
   border-radius: 12px;
   border: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   margin-bottom: 1rem;
   transition: all 0.2s ease;
 }
 .match-expandable-card.open {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
 }
 .match-expandable-header {
   padding: 0.5rem 1rem 0.5rem 0.5rem;
@@ -45,12 +46,12 @@ html, body {
   cursor: pointer;
   transition: all 0.2s ease;
   margin-left: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 .expand-arrow-btn:hover {
   background: #f3f4f6;
   color: #374151;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 .expand-arrow-btn.open {
   background: #e0e7ff;
@@ -64,8 +65,14 @@ html, body {
   padding: 16px;
 }
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .match-expandable-detail table {
   border-collapse: collapse;
@@ -74,9 +81,10 @@ html, body {
   background: #fff;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
-.match-expandable-detail th, .match-expandable-detail td {
+.match-expandable-detail th,
+.match-expandable-detail td {
   border: none;
   border-bottom: 1px solid #f1f5f9;
   padding: 8px 12px;
@@ -115,7 +123,7 @@ html, body {
 .dash-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   border: none;
   padding: 24px 16px 18px 16px;
   text-align: center;
@@ -127,7 +135,7 @@ html, body {
   transition: all 0.2s ease;
 }
 .dash-card:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 .dash-card-title {
@@ -158,7 +166,7 @@ html, body {
 .dash-mode-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   border: none;
   padding: 20px 16px;
   min-height: 160px;
@@ -169,7 +177,7 @@ html, body {
   transition: all 0.2s ease;
 }
 .dash-mode-card:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 .dash-mode-title {
@@ -213,11 +221,11 @@ html, body {
   border: none;
   padding: 24px 28px 18px 28px;
   margin-bottom: 18px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
 }
 .ranked-summary-card:hover {
-  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
 }
 .ranked-summary-header {
   display: flex;
@@ -280,7 +288,7 @@ html, body {
 .ranked-mode-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   border: none;
   padding: 20px 16px;
   min-height: 160px;
@@ -292,7 +300,7 @@ html, body {
   transition: all 0.2s ease;
 }
 .ranked-mode-card:hover {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 .ranked-mode-header {
@@ -342,7 +350,7 @@ html, body {
 .ranked-detail-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 16px rgba(37,99,235,0.08);
+  box-shadow: 0 2px 16px rgba(37, 99, 235, 0.08);
   border: none;
   padding: 24px 20px;
   margin-top: 8px;
@@ -352,7 +360,7 @@ html, body {
   transition: all 0.2s ease;
 }
 .ranked-detail-card:hover {
-  box-shadow: 0 4px 24px rgba(37,99,235,0.12);
+  box-shadow: 0 4px 24px rgba(37, 99, 235, 0.12);
 }
 .ranked-row {
   display: flex;
@@ -379,21 +387,26 @@ html, body {
   font-size: 1.08em;
   cursor: pointer;
   border: none;
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.04);
+  transition:
+    background 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.04);
 }
 .tab.active {
   background: #2563eb;
   color: #fff;
-  box-shadow: 0 4px 16px rgba(37,99,235,0.10);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1);
   z-index: 2;
 }
 
 /* === Figma 기반 PK.GG 글로벌 스타일 === */
 
-html, body {
-  font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', Arial, sans-serif;
-  background: #F7F8FA;
+html,
+body {
+  font-family:
+    'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', Arial, sans-serif;
+  background: #f7f8fa;
   color: #222;
   min-height: 100vh;
   margin: 0;
@@ -410,7 +423,8 @@ a:hover {
 }
 
 /* 버튼 스타일 */
-button, .btn {
+button,
+.btn {
   background: #2563eb;
   color: #fff;
   border: none;
@@ -419,30 +433,39 @@ button, .btn {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
 }
-button:hover, .btn:hover {
+button:hover,
+.btn:hover {
   background: #1e40af;
 }
 
 /* 카드 스타일 */
-.card, .stat-card, .match-card {
+.card,
+.stat-card,
+.match-card {
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
   border: none;
   padding: 20px 16px;
   margin-bottom: 20px;
   transition: all 0.2s ease;
 }
-.card:hover, .stat-card:hover, .match-card:hover {
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+.card:hover,
+.stat-card:hover,
+.match-card:hover {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 
 /* 입력창 스타일 */
-input, select, textarea {
+input,
+select,
+textarea {
   border: 1.5px solid #e5e7eb;
   border-radius: 10px;
   padding: 10px 14px;
@@ -450,7 +473,9 @@ input, select, textarea {
   background: #fff;
   transition: border 0.2s;
 }
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-color: #2563eb;
   outline: none;
 }
@@ -469,7 +494,9 @@ input:focus, select:focus, textarea:focus {
   font-weight: 500;
   cursor: pointer;
   border: none;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 .tab.active {
   background: #2563eb;
@@ -484,7 +511,7 @@ input:focus, select:focus, textarea:focus {
   -webkit-backdrop-filter: blur(12px);
   color: #fff;
   padding: 18px 32px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border-bottom: 1px solid rgba(75, 85, 99, 0.5); /* gray-600 with 50% opacity */
   display: flex;
   align-items: center;
@@ -509,12 +536,16 @@ input:focus, select:focus, textarea:focus {
   color: #d1d5db; /* gray-300 */
   text-align: center;
   margin-top: auto;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
   font-size: 1.05em;
 }
 
 /* 로딩 스피너 */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

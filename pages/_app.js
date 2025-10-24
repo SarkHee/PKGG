@@ -14,7 +14,7 @@ function MyApp({ Component, pageProps }) {
         console.log('포럼 초기화 요청 실패:', error.message);
       }
     };
-    
+
     initializeForum();
   }, []);
 

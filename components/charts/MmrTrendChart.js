@@ -1,10 +1,27 @@
 // PK.GG/components/MmrTrendChart.js
 
 import React from 'react';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 /**
  * MMR 추이 그래프를 렌더링하는 컴포넌트.
@@ -15,7 +32,9 @@ const MmrTrendChart = ({ matches }) => {
   if (!Array.isArray(matches) || matches.length === 0) {
     return (
       <div className="card text-center text-gray-500 bg-gray-100 rounded-lg shadow-inner">
-        <p>최근 MMR 추이 데이터를 불러올 수 없습니다. 경기를 더 플레이해보세요!</p>
+        <p>
+          최근 MMR 추이 데이터를 불러올 수 없습니다. 경기를 더 플레이해보세요!
+        </p>
       </div>
     );
   }
@@ -32,15 +51,19 @@ const MmrTrendChart = ({ matches }) => {
     return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   });
 
-  const mmrData = sortedMatches.map(match => {
-    return typeof match.mmrScore === 'number' && !isNaN(match.mmrScore) ? match.mmrScore : 0;
+  const mmrData = sortedMatches.map((match) => {
+    return typeof match.mmrScore === 'number' && !isNaN(match.mmrScore)
+      ? match.mmrScore
+      : 0;
   });
 
-  const hasValidMmrData = mmrData.some(mmr => mmr > 0);
+  const hasValidMmrData = mmrData.some((mmr) => mmr > 0);
   if (!hasValidMmrData) {
     return (
       <div className="card text-center text-gray-500 bg-gray-100 rounded-lg shadow-inner">
-        <p>유효한 MMR 추이 데이터가 부족합니다. (MMR이 모두 0 또는 계산 불가)</p>
+        <p>
+          유효한 MMR 추이 데이터가 부족합니다. (MMR이 모두 0 또는 계산 불가)
+        </p>
       </div>
     );
   }
@@ -69,7 +92,7 @@ const MmrTrendChart = ({ matches }) => {
         position: 'top',
         labels: {
           color: 'rgb(107, 114, 128)',
-        }
+        },
       },
       title: {
         display: true,
@@ -78,14 +101,14 @@ const MmrTrendChart = ({ matches }) => {
       },
       tooltip: {
         callbacks: {
-          label: function(context) {
+          label: function (context) {
             return `MMR: ${context.raw}`;
           },
-          title: function(context) {
+          title: function (context) {
             return context[0].label;
-          }
-        }
-      }
+          },
+        },
+      },
     },
     scales: {
       x: {
@@ -97,11 +120,11 @@ const MmrTrendChart = ({ matches }) => {
         ticks: {
           color: 'rgb(107, 114, 128)',
           maxRotation: 45,
-          minRotation: 45
+          minRotation: 45,
         },
         grid: {
           color: 'rgba(209, 213, 219, 0.2)',
-        }
+        },
       },
       y: {
         title: {
@@ -115,7 +138,7 @@ const MmrTrendChart = ({ matches }) => {
         },
         grid: {
           color: 'rgba(209, 213, 219, 0.2)',
-        }
+        },
       },
     },
   };

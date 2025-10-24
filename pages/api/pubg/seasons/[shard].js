@@ -2,7 +2,7 @@
 // /Users/mac/Desktop/PKGG/pages/api/pubg/seasons/[shard].js
 
 const PUBG_API_KEY = process.env.PUBG_API_KEY;
-const PUBG_BASE_URL = "https://api.pubg.com/shards";
+const PUBG_BASE_URL = 'https://api.pubg.com/shards';
 
 // 시즌 정보 캐시 (1시간 유지)
 let seasonCache = new Map();
@@ -10,11 +10,11 @@ const CACHE_DURATION = 60 * 60 * 1000; // 1시간
 
 /**
  * PUBG 시즌 정보 조회 API
- * 
+ *
  * 사용법:
  * GET /api/pubg/seasons/steam
  * GET /api/pubg/seasons/kakao
- * 
+ *
  * 쿼리 파라미터:
  * - current=true : 현재 시즌만 반환
  * - cache=false : 캐시 무시하고 새로 조회
@@ -28,8 +28,8 @@ export default async function handler(req, res) {
   const { current, cache } = req.query;
 
   if (!shard) {
-    return res.status(400).json({ 
-      error: '샤드(플랫폼)가 필요합니다. 예: /api/pubg/seasons/steam' 
+    return res.status(400).json({
+      error: '샤드(플랫폼)가 필요합니다. 예: /api/pubg/seasons/steam',
     });
   }
 
@@ -37,12 +37,12 @@ export default async function handler(req, res) {
     // 캐시 확인 (cache=false가 아닌 경우)
     if (cache !== 'false') {
       const cached = seasonCache.get(shard);
-      if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         console.log(`시즌 정보 캐시 사용: ${shard}`);
         return res.status(200).json({
           ...cached.data,
           cached: true,
-          cacheAge: Math.round((Date.now() - cached.timestamp) / 1000)
+          cacheAge: Math.round((Date.now() - cached.timestamp) / 1000),
         });
       }
     }
@@ -53,9 +53,9 @@ export default async function handler(req, res) {
 
     const response = await fetch(url, {
       headers: {
-        "Authorization": `Bearer ${PUBG_API_KEY}`,
-        "Accept": "application/vnd.api+json"
-      }
+        Authorization: `Bearer ${PUBG_API_KEY}`,
+        Accept: 'application/vnd.api+json',
+      },
     });
 
     if (!response.ok) {
@@ -63,19 +63,19 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    
+
     // 시즌 데이터 가공
-    const seasons = data.data.map(season => ({
+    const seasons = data.data.map((season) => ({
       id: season.id,
       type: season.type,
       isCurrentSeason: season.attributes.isCurrentSeason || false,
       isOffseason: season.attributes.isOffseason || false,
-      attributes: season.attributes
+      attributes: season.attributes,
     }));
 
     // 현재 시즌 찾기
-    const currentSeason = seasons.find(season => season.isCurrentSeason);
-    
+    const currentSeason = seasons.find((season) => season.isCurrentSeason);
+
     const processedData = {
       success: true,
       shard: shard,
@@ -83,22 +83,21 @@ export default async function handler(req, res) {
       currentSeason: currentSeason,
       seasons: current === 'true' ? [currentSeason].filter(Boolean) : seasons,
       lastUpdated: new Date().toISOString(),
-      note: '시즌 목록은 약 2개월마다 업데이트됩니다.'
+      note: '시즌 목록은 약 2개월마다 업데이트됩니다.',
     };
 
     // 캐시 저장
     seasonCache.set(shard, {
       data: processedData,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     res.status(200).json(processedData);
-
   } catch (error) {
     console.error('시즌 조회 실패:', error);
     res.status(500).json({
       error: '시즌 정보 조회에 실패했습니다.',
-      details: error.message
+      details: error.message,
     });
   }
 }

@@ -6,7 +6,7 @@ export default function SynergyDisplay({ synergyStatusList }) {
     return <p>클랜원과의 매치 기록이 없습니다.</p>;
   }
 
-  const goodCount = synergyStatusList.filter(s => s === '좋음').length;
+  const goodCount = synergyStatusList.filter((s) => s === '좋음').length;
   const totalCount = synergyStatusList.length;
   const ratio = totalCount > 0 ? goodCount / totalCount : 0;
 
@@ -36,13 +36,24 @@ export default function SynergyDisplay({ synergyStatusList }) {
 
   return (
     <div style={synergyStyles.container}>
-      <h4 style={synergyStyles.title}>클랜원과의 매치 시너지 상태: <span style={{ color: textColor }}>{synergyMessage}</span></h4>
+      <h4 style={synergyStyles.title}>
+        클랜원과의 매치 시너지 상태:{' '}
+        <span style={{ color: textColor }}>{synergyMessage}</span>
+      </h4>
       <div style={synergyStyles.progressBarBackground}>
-        <div style={{ ...synergyStyles.progressBarFill, width: barWidth, backgroundColor: barColor }}>
+        <div
+          style={{
+            ...synergyStyles.progressBarFill,
+            width: barWidth,
+            backgroundColor: barColor,
+          }}
+        >
           <span style={synergyStyles.progressBarText}>{barWidth} 좋음</span>
         </div>
       </div>
-      <p style={synergyStyles.infoText}>({goodCount} / {totalCount} 경기 좋음)</p>
+      <p style={synergyStyles.infoText}>
+        ({goodCount} / {totalCount} 경기 좋음)
+      </p>
     </div>
   );
 }

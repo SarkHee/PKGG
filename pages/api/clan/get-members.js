@@ -22,9 +22,9 @@ export default async function handler(req, res) {
           score: true,
           pubgPlayerId: true,
           pubgShardId: true,
-          lastUpdated: true
+          lastUpdated: true,
         },
-        orderBy: { score: 'desc' }
+        orderBy: { score: 'desc' },
       });
 
       const clan = await prisma.clan.findUnique({
@@ -32,8 +32,8 @@ export default async function handler(req, res) {
         select: {
           name: true,
           pubgClanTag: true,
-          memberCount: true
-        }
+          memberCount: true,
+        },
       });
 
       if (!clan) {
@@ -44,8 +44,8 @@ export default async function handler(req, res) {
       if (format === 'nicknames') {
         // 닉네임만 배열로 반환
         return res.status(200).json({
-          nicknames: members.map(member => member.nickname),
-          totalCount: members.length
+          nicknames: members.map((member) => member.nickname),
+          totalCount: members.length,
         });
       }
 
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         clan,
         members,
-        totalCount: members.length
+        totalCount: members.length,
       });
     }
 
@@ -68,11 +68,11 @@ export default async function handler(req, res) {
               score: true,
               pubgPlayerId: true,
               pubgShardId: true,
-              lastUpdated: true
+              lastUpdated: true,
             },
-            orderBy: { score: 'desc' }
-          }
-        }
+            orderBy: { score: 'desc' },
+          },
+        },
       });
 
       if (!clan) {
@@ -83,8 +83,8 @@ export default async function handler(req, res) {
       if (format === 'nicknames') {
         // 닉네임만 배열로 반환
         return res.status(200).json({
-          nicknames: clan.members.map(member => member.nickname),
-          totalCount: clan.members.length
+          nicknames: clan.members.map((member) => member.nickname),
+          totalCount: clan.members.length,
         });
       }
 
@@ -93,28 +93,29 @@ export default async function handler(req, res) {
         clan: {
           name: clan.name,
           pubgClanTag: clan.pubgClanTag,
-          memberCount: clan.memberCount
+          memberCount: clan.memberCount,
         },
         members: clan.members,
-        totalCount: clan.members.length
+        totalCount: clan.members.length,
       });
     }
 
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: 'clanId or pubgClanId parameter is required',
       usage: {
         example1: '/api/clan/get-members?clanId=1',
-        example2: '/api/clan/get-members?pubgClanId=clan.eb5c32a3cc484b59981f9c61e9ea2747',
+        example2:
+          '/api/clan/get-members?pubgClanId=clan.eb5c32a3cc484b59981f9c61e9ea2747',
         example3: '/api/clan/get-members?clanId=1&format=nicknames',
-        description: 'Use clanId for internal DB ID or pubgClanId for PUBG API clan ID. Add format=nicknames to get only nickname array.'
-      }
+        description:
+          'Use clanId for internal DB ID or pubgClanId for PUBG API clan ID. Add format=nicknames to get only nickname array.',
+      },
     });
-
   } catch (error) {
     console.error('클랜 멤버 조회 오류:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Internal server error',
-      details: error.message 
+      details: error.message,
     });
   } finally {
     await prisma.$disconnect();

@@ -11,11 +11,7 @@ export default function Tooltip({ children, content }) {
       onMouseLeave={() => setShow(false)}
     >
       {children}
-      {show && (
-        <span style={tooltipStyles.tooltip}>
-          {content}
-        </span>
-      )}
+      {show && <span style={tooltipStyles.tooltip}>{content}</span>}
     </span>
   );
 }

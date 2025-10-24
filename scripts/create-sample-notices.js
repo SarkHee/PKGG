@@ -1,5 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
-const { createUpdateNotice, createMaintenanceNotice, createEventNotice, examples } = require('../utils/noticeManager.js');
+const {
+  createUpdateNotice,
+  createMaintenanceNotice,
+  createEventNotice,
+  examples,
+} = require('../utils/noticeManager.js');
 
 const prisma = new PrismaClient();
 
@@ -29,12 +34,13 @@ async function createSampleNotices() {
 앞으로도 더 나은 서비스를 제공하기 위해 최선을 다하겠습니다.
 
 문의사항이 있으시면 언제든지 **📧 문의하기** 메뉴를 이용해주세요!`,
-        summary: '새로운 공지사항 시스템이 오픈되었습니다. 사이트 업데이트 소식을 실시간으로 확인하세요!',
+        summary:
+          '새로운 공지사항 시스템이 오픈되었습니다. 사이트 업데이트 소식을 실시간으로 확인하세요!',
         type: 'GENERAL',
         priority: 'HIGH',
         isPinned: true,
-        author: '관리자'
-      }
+        author: '관리자',
+      },
     });
     console.log('✅ 환영 공지사항 생성 완료');
 
@@ -45,13 +51,25 @@ async function createSampleNotices() {
     // 3. 점검 공지사항 (내일 새벽 2시-4시)
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const maintenanceStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 2, 0);
-    const maintenanceEnd = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 4, 0);
+    const maintenanceStart = new Date(
+      tomorrow.getFullYear(),
+      tomorrow.getMonth(),
+      tomorrow.getDate(),
+      2,
+      0
+    );
+    const maintenanceEnd = new Date(
+      tomorrow.getFullYear(),
+      tomorrow.getMonth(),
+      tomorrow.getDate(),
+      4,
+      0
+    );
 
     const maintenanceNotice = await createMaintenanceNotice({
       ...examples.maintenanceNotice,
       startTime: maintenanceStart,
-      endTime: maintenanceEnd
+      endTime: maintenanceEnd,
     });
     console.log('✅ 점검 공지사항 생성 완료');
 
@@ -63,7 +81,7 @@ async function createSampleNotices() {
     const eventNotice = await createEventNotice({
       ...examples.eventNotice,
       startDate: eventStart,
-      endDate: eventEnd
+      endDate: eventEnd,
     });
     console.log('✅ 이벤트 공지사항 생성 완료');
 
@@ -88,7 +106,7 @@ PKGG의 새로운 클랜 랭킹 시스템을 소개합니다!
 더 정확하고 공정한 랭킹 시스템을 위해 지속적으로 개선해나가겠습니다.`,
         type: 'GENERAL',
         priority: 'NORMAL',
-        isPinned: false
+        isPinned: false,
       },
       {
         title: '🔧 서비스 개선 사항 안내',
@@ -110,8 +128,8 @@ PKGG의 새로운 클랜 랭킹 시스템을 소개합니다!
 계속해서 더 나은 서비스를 제공하기 위해 노력하겠습니다!`,
         type: 'UPDATE',
         priority: 'NORMAL',
-        isPinned: false
-      }
+        isPinned: false,
+      },
     ];
 
     for (const noticeData of additionalNotices) {
@@ -119,15 +137,14 @@ PKGG의 새로운 클랜 랭킹 시스템을 소개합니다!
         data: {
           ...noticeData,
           summary: noticeData.content.substring(0, 100) + '...',
-          author: '관리자'
-        }
+          author: '관리자',
+        },
       });
     }
     console.log('✅ 추가 공지사항들 생성 완료');
 
     console.log('\n🎉 샘플 공지사항 생성이 모두 완료되었습니다!');
     console.log('📋 총 생성된 공지사항 수:', await prisma.notice.count());
-
   } catch (error) {
     console.error('❌ 샘플 공지사항 생성 중 오류 발생:', error);
   } finally {

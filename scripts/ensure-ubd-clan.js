@@ -19,12 +19,15 @@ async function main() {
       announcement: '이번 주 훈련은 금요일!',
       memberCount: 0,
       avgScore: 0,
-      mainStyle: '-'
-    }
+      mainStyle: '-',
+    },
   });
   console.log('UBD 클랜을 DB에 추가했습니다.');
 }
 
 main()
-  .catch(e => { console.error(e); process.exit(1); })
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
   .finally(() => prisma.$disconnect());

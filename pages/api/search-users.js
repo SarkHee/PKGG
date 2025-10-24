@@ -20,19 +20,19 @@ export default async function handler(req, res) {
       where: {
         nickname: {
           contains: q,
-          mode: 'insensitive'
-        }
+          mode: 'insensitive',
+        },
       },
       select: {
-        nickname: true
+        nickname: true,
       },
       take: 10, // 최대 10개 결과
       orderBy: {
-        nickname: 'asc'
-      }
+        nickname: 'asc',
+      },
     });
 
-    const usernames = users.map(user => user.nickname);
+    const usernames = users.map((user) => user.nickname);
 
     return res.status(200).json({ users: usernames });
   } catch (error) {

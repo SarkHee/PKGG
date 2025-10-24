@@ -8,10 +8,18 @@ export default function handler(req, res) {
   exec(`node ${scriptPath}`, (error, stdout, stderr) => {
     if (error) {
       console.error('❌ 실행 오류:', error);
-      return res.status(500).json({ success: false, message: '클랜 데이터 갱신 실패', error: error.message });
+      return res.status(500).json({
+        success: false,
+        message: '클랜 데이터 갱신 실패',
+        error: error.message,
+      });
     }
 
     console.log('✅ 스크립트 실행 결과:\n', stdout);
-    return res.status(200).json({ success: true, message: '클랜 데이터 갱신 완료', output: stdout });
+    return res.status(200).json({
+      success: true,
+      message: '클랜 데이터 갱신 완료',
+      output: stdout,
+    });
   });
 }
