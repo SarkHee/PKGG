@@ -1356,6 +1356,20 @@ export default async function handler(req, res) {
       console.log(
         `[GAMEMODE RAW] 경기 ${matchId}: 원본 gameMode="${gameMode}"`
       );
+      console.log(
+        `🔍 게임 모드 분석 중...`,
+        {
+          matchId,
+          gameMode,
+          matchType: matchData.data.attributes.matchType,
+          mapName: matchData.data.attributes.mapName,
+          modeType: '일반', // 임시
+        }
+      );
+      console.log(`📊 rankedStats 확인: ${rankedStats ? rankedStats.length + '개 모드' : 'undefined/null'}`);
+      if (rankedStats && rankedStats.length > 0) {
+        console.log(`📊 rankedStats 내용:`, rankedStats.map(r => ({ mode: r.mode, rounds: r.rounds || r.roundsPlayed })));
+      }
 
       // 1차: 직접적인 ranked 키워드 검사
       let isRanked =

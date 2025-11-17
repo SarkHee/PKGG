@@ -592,7 +592,7 @@ function ModeStatsTabs({ modeStats }) {
             </li>
             <li>
               평균 생존시간:{' '}
-              <span className="font-medium">{stats.avgSurvivalTime}초</span>
+              <span className="font-medium">{Math.round(stats.avgSurvivalTime / 60)}분</span>
             </li>
             <li>
               평균 어시스트:{' '}

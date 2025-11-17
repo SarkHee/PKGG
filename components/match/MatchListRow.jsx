@@ -278,7 +278,7 @@ export default function MatchListRow({
             <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {match.mapName && `${match.mapName} • `}
               {translateGameMode(match.mode)} •
-              {Math.floor(match.survivalTime || match.surviveTime || 0)}초 생존
+              {Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분 생존
             </div>
           </div>
 

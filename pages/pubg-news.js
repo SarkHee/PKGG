@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Layout from "../components/layout/Layout"';
+import Layout from '../components/layout/Layout';
 import PubgNewsCard from '../components/PubgNewsCard';
 import Head from 'next/head';
 

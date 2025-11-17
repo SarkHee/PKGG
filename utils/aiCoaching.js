@@ -98,23 +98,89 @@ function identifyStrengths(stats) {
     winRate = 0,
     avgAssists = 0,
     avgSurvivalTime = 0,
-    kd = 0,
     headshotRate = 0,
-    totalMatches = 0,
-  } = stats;
+    kd = 0,
+  } = stats || {};
 
-  // 시즌 전체 통계 기준으로 강점 판단
-  if (avgKills >= 2.0) strengths.push('뛰어난 킬 능력 (시즌 평균 높음)');
-  if (avgDamage >= 300) strengths.push('우수한 데미지 딜링 (시즌 평균 높음)');
-  if (top10Rate >= 30) strengths.push('안정적인 상위권 진입 (시즌 평균 높음)');
-  if (winRate >= 10) strengths.push('높은 승률 (시즌 평균 높음)');
-  if (avgAssists >= 1.0) strengths.push('팀플레이 능력 (시즌 평균 높음)');
-  if (avgSurvivalTime >= 1200) strengths.push('우수한 생존력 (시즌 평균 높음)');
-  if (kd >= 1.5) strengths.push('높은 K/D 비율 (시즌 평균 높음)');
-  if (headshotRate >= 30) strengths.push('정확한 조준 실력 (시즌 평균 높음)');
-  if (totalMatches >= 50) strengths.push('풍부한 경험 (다수의 게임 플레이)');
+  // 전문적인 분석 기준으로 강점 식별
+  if (avgKills >= 3.0) {
+    strengths.push({
+      category: '킬 능력',
+      description: `뛰어난 교전 능력 (평균 ${avgKills.toFixed(1)}킬)`,
+      impact: '공격적인 플레이를 통한 팀 기여도 우수',
+      recommendation: '리더십을 발휘하여 팀의 공격을 이끌어가세요'
+    });
+  } else if (avgKills >= 2.0) {
+    strengths.push({
+      category: '킬 능력',
+      description: `안정적인 킬 성과 (평균 ${avgKills.toFixed(1)}킬)`,
+      impact: '꾸준한 전투 기여도',
+      recommendation: '현재 수준을 유지하며 포지셔닝을 개선하세요'
+    });
+  }
 
-  return strengths.length > 0 ? strengths : ['꾸준한 성장 잠재력'];
+  if (avgDamage >= 400) {
+    strengths.push({
+      category: '딜량 기여',
+      description: `탁월한 화력 지원 (평균 ${Math.round(avgDamage)}딜)`,
+      impact: '팀 전체 딜량의 핵심 역할',
+      recommendation: '원거리 교전에서 팀을 지원하는 역할을 강화하세요'
+    });
+  } else if (avgDamage >= 250) {
+    strengths.push({
+      category: '딜량 기여',
+      description: `적절한 화력 기여 (평균 ${Math.round(avgDamage)}딜)`,
+      impact: '팀 딜량에 안정적 기여',
+      recommendation: '적극적인 견제 플레이로 딜량을 늘려보세요'
+    });
+  }
+
+  if (top10Rate >= 60) {
+    strengths.push({
+      category: '생존 능력',
+      description: `뛰어난 생존력 (${top10Rate.toFixed(1)}% TOP10 진입)`,
+      impact: '안정적인 랭킹 포인트 확보',
+      recommendation: '생존력을 바탕으로 후반 상황판단력을 기르세요'
+    });
+  }
+
+  if (winRate >= 15) {
+    strengths.push({
+      category: '승률',
+      description: `우수한 승률 (${winRate.toFixed(1)}%)`,
+      impact: '팀워크와 상황판단력 우수',
+      recommendation: '리더십을 발휘하여 팀의 승리를 이끄세요'
+    });
+  }
+
+  if (avgAssists >= 1.5) {
+    strengths.push({
+      category: '팀워크',
+      description: `뛰어난 어시스트 능력 (평균 ${avgAssists.toFixed(1)}어시)`,
+      impact: '팀 플레이의 핵심 역할',
+      recommendation: '팀원들과의 조합 플레이를 더욱 강화하세요'
+    });
+  }
+
+  if (headshotRate >= 30) {
+    strengths.push({
+      category: '정확도',
+      description: `높은 헤드샷 비율 (${headshotRate.toFixed(1)}%)`,
+      impact: '효율적인 적 제거 능력',
+      recommendation: '정확한 조준실력을 바탕으로 원거리 교전을 주도하세요'
+    });
+  }
+
+  if (avgSurvivalTime >= 1500) {
+    strengths.push({
+      category: '포지셔닝',
+      description: `뛰어난 포지셔닝 센스 (평균 ${Math.round(avgSurvivalTime/60)}분 생존)`,
+      impact: '안정적인 게임 운영',
+      recommendation: '포지셔닝 실력을 바탕으로 팀의 로테이션을 이끄세요'
+    });
+  }
+
+  return strengths;
 }
 
 /**
