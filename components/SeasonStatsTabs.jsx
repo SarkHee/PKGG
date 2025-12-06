@@ -170,7 +170,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
     return (
       <div
         key={group.key}
-        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden"
+        className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden"
       >
         {/* 헤더 */}
         <div className={`bg-gradient-to-r ${group.color} text-white p-4`}>
@@ -201,20 +201,16 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
         <div className="p-6">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              <div className="text-2xl font-bold text-orange-600">
                 {stats?.kd ?? stats?.kda ?? '0.00'}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                K/D
-              </div>
+              <div className="text-sm text-gray-500">K/D</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-2xl font-bold text-blue-600">
                 {(stats?.avgDamage ?? stats?.damageDealt ?? 0).toFixed(1)}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                경기 당 데미지
-              </div>
+              <div className="text-sm text-gray-500">경기 당 데미지</div>
             </div>
           </div>
 
@@ -222,7 +218,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
             <div>
               <div className="flex justify-between text-sm">
                 <span>승 %</span>
-                <span className="font-medium text-green-600 dark:text-green-400">
+                <span className="font-medium text-green-600">
                   {stats?.winRate
                     ? `${stats.winRate}%`
                     : stats?.winRatio
@@ -234,7 +230,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
             <div>
               <div className="flex justify-between text-sm">
                 <span>Top 10%</span>
-                <span className="font-medium text-blue-600 dark:text-blue-400">
+                <span className="font-medium text-blue-600">
                   {stats?.top10Rate
                     ? `${stats.top10Rate}%`
                     : stats?.top10Ratio
@@ -261,7 +257,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
             <div>
               <div className="flex justify-between text-sm">
                 <span>헤드샷 킬</span>
-                <span className="font-medium text-red-600 dark:text-red-400">
+                <span className="font-medium text-red-600">
                   {stats?.headshotKills ?? stats?.headshots ?? '0'}개
                 </span>
               </div>
@@ -272,7 +268,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
             <div>
               <div className="flex justify-between text-sm">
                 <span>헤드샷 비율</span>
-                <span className="font-medium text-red-600 dark:text-red-400">
+                <span className="font-medium text-red-600">
                   {stats?.headshotRate
                     ? `${stats.headshotRate}%`
                     : stats?.headshotKillRatio
@@ -289,7 +285,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
             <div>
               <div className="flex justify-between text-sm">
                 <span>총 킬수</span>
-                <span className="font-medium text-orange-600 dark:text-orange-400">
+                <span className="font-medium text-orange-600">
                   {stats?.kills ?? stats?.totalKills ?? '0'}개
                 </span>
               </div>
@@ -332,7 +328,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
             <div>
               <div className="flex justify-between text-sm">
                 <span>최대 킬</span>
-                <span className="font-medium text-red-600 dark:text-red-400">
+                <span className="font-medium text-red-600">
                   {stats?.maxKills ?? stats?.mostKills ?? 0}
                 </span>
               </div>
