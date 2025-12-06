@@ -324,7 +324,7 @@ const PlayerHeader = ({
         <div className="flex items-center gap-4 mb-4">
           <h1
             className="text-3xl font-extrabold text-gray-900 dark:text-sky-300"
-            style={{ lineHeight: 1.1 }}
+            style={{ lineHeight: 1.1, color: '#0f172a' }}
           >
             {profile?.nickname || '-'}
           </h1>
