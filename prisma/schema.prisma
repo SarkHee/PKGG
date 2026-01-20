@@ -46,8 +46,8 @@ model ClanMember {
   avgSurviveTime Float   @default(0)
   winRate        Float   @default(0)
   top10Rate      Float   @default(0)
-  clanId         Int
-  clan           Clan    @relation(fields: [clanId], references: [id])
+  clanId         Int?    // NULL로 설정 가능 (클랜 미가입 상태)
+  clan           Clan?   @relation(fields: [clanId], references: [id])
   
   // PUBG API 관련 필드들 추가
   pubgClanId     String? // PUBG API의 clan ID (예: "clan.eb5c32a3cc484b59981f9c61e9ea2747")

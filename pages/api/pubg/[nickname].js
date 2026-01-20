@@ -498,9 +498,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. 클랜 정보 조회
-    const clanInfo = await getClanInfo(nickname);
-    const clanMembersLower = clanInfo?.members || [];
+    // 1. 클랜 정보 조회 (일단 JSON 파일 기반)
+    let clanInfo = await getClanInfo(nickname);
+    let clanMembersLower = clanInfo?.members || [];
     console.log(
       `[API INFO] getClanInfo 결과: 클랜이름='${
         clanInfo?.clanName || '없음'
@@ -553,30 +553,187 @@ export default async function handler(req, res) {
 
     // PUBG API에서 클랜 정보 조회
     let pubgClanInfo = null;
-    if (clanId) {
-      try {
-        const clanLookupUrl = `${PUBG_BASE_URL}/${shard}/clans/${clanId}`;
-        console.log(`[CLAN API] 클랜 정보 조회 URL: ${clanLookupUrl}`);
+    let dbClan = null;
+    
+    try {
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
 
-        const clanRes = await fetch(clanLookupUrl, {
-          headers: {
-            Authorization: `Bearer ${PUBG_API_KEY_RAW}`,
-            Accept: 'application/vnd.api+json',
+      // 기존 플레이어의 DB 멤버 정보 조회
+      const existingMember = await prisma.clanMember.findFirst({
+        where: {
+          nickname: {
+            equals: nickname,
+            mode: 'insensitive',
           },
-        });
+        },
+        include: { clan: true },
+      });
 
-        if (clanRes.ok) {
-          const clanData = await clanRes.json();
-          pubgClanInfo = clanData.data;
-          console.log(
-            `[CLAN API] 클랜 정보 조회 성공: ${pubgClanInfo.attributes.clanName} (레벨 ${pubgClanInfo.attributes.clanLevel})`
-          );
-        } else {
-          console.warn(`[CLAN API] 클랜 정보 조회 실패: ${clanRes.status}`);
+      if (clanId) {
+        // ✅ PUBG API에서 클랜이 있음 → 클랜 정보 조회 및 DB 동기화
+        try {
+          const clanLookupUrl = `${PUBG_BASE_URL}/${shard}/clans/${clanId}`;
+          console.log(`[CLAN API] 클랜 정보 조회 URL: ${clanLookupUrl}`);
+
+          const clanRes = await fetch(clanLookupUrl, {
+            headers: {
+              Authorization: `Bearer ${PUBG_API_KEY_RAW}`,
+              Accept: 'application/vnd.api+json',
+            },
+          });
+
+          if (clanRes.ok) {
+            const clanData = await clanRes.json();
+            pubgClanInfo = clanData.data;
+            console.log(
+              `[CLAN API] 클랜 정보 조회 성공: ${pubgClanInfo.attributes.clanName} (레벨 ${pubgClanInfo.attributes.clanLevel})`
+            );
+
+            // DB에서 클랜 검색 또는 생성
+            dbClan = await prisma.clan.findUnique({
+              where: { pubgClanId: clanId },
+              include: { members: true },
+            });
+
+            if (dbClan) {
+              // 클랜 정보 업데이트
+              await prisma.clan.update({
+                where: { id: dbClan.id },
+                data: {
+                  name: pubgClanInfo.attributes.clanName,
+                  pubgClanTag: pubgClanInfo.attributes.clanTag,
+                  pubgClanLevel: pubgClanInfo.attributes.clanLevel,
+                  pubgMemberCount: pubgClanInfo.attributes.clanMemberCount,
+                  lastSynced: new Date(),
+                },
+              });
+              console.log(
+                `[DB CLAN] 클랜 정보 업데이트 완료: ${pubgClanInfo.attributes.clanName}`
+              );
+            } else {
+              // 새로운 클랜 생성
+              dbClan = await prisma.clan.create({
+                data: {
+                  name: pubgClanInfo.attributes.clanName,
+                  leader: 'Unknown',
+                  pubgClanId: clanId,
+                  pubgClanTag: pubgClanInfo.attributes.clanTag,
+                  pubgClanLevel: pubgClanInfo.attributes.clanLevel,
+                  pubgMemberCount: pubgClanInfo.attributes.clanMemberCount,
+                  memberCount: pubgClanInfo.attributes.clanMemberCount || 0,
+                  lastSynced: new Date(),
+                },
+              });
+              console.log(
+                `[DB CLAN] 새로운 클랜 생성: ${pubgClanInfo.attributes.clanName}`
+              );
+            }
+
+            // 플레이어를 해당 클랜에 할당
+            if (existingMember) {
+              if (existingMember.clanId !== dbClan.id) {
+                // 클랜이 변경됨
+                await prisma.clanMember.update({
+                  where: { id: existingMember.id },
+                  data: {
+                    clanId: dbClan.id,
+                    lastUpdated: new Date(),
+                  },
+                });
+                console.log(
+                  `[DB CLAN] 플레이어 '${nickname}'의 클랜 업데이트: ${pubgClanInfo.attributes.clanName}`
+                );
+              }
+            } else {
+              // 신규 플레이어 생성 및 클랜 할당
+              await prisma.clanMember.create({
+                data: {
+                  nickname,
+                  clanId: dbClan.id,
+                  score: 0,
+                  style: '미분석',
+                  avgDamage: 0,
+                },
+              });
+              console.log(
+                `[DB CLAN] 새로운 플레이어 '${nickname}' 생성 및 클랜 할당`
+              );
+            }
+
+            // 최신 멤버 정보 조회
+            dbClan = await prisma.clan.findUnique({
+              where: { id: dbClan.id },
+              include: { members: true },
+            });
+
+            if (dbClan && dbClan.members && dbClan.members.length > 0) {
+              clanMembersLower = dbClan.members.map((m) =>
+                m.nickname.toLowerCase()
+              );
+              clanInfo = {
+                clanName: dbClan.name,
+                members: clanMembersLower,
+              };
+              console.log(
+                `[DB CLAN] 팀플레이 분석용 클랜 멤버 업데이트: ${clanMembersLower.length}명 (DB 기반)`
+              );
+            }
+          } else {
+            console.warn(`[CLAN API] 클랜 정보 조회 실패: ${clanRes.status}`);
+            // 클랜 조회 실패 시 DB 클랜 정보는 유지 (optional)
+            if (existingMember?.clan) {
+              dbClan = existingMember.clan;
+              clanInfo = {
+                clanName: dbClan.name,
+                members: existingMember.clan.members.map((m) =>
+                  m.nickname.toLowerCase()
+                ),
+              };
+            }
+          }
+        } catch (clanApiError) {
+          console.error(`[CLAN API] 클랜 정보 조회 중 오류:`, clanApiError);
+          if (existingMember?.clan) {
+            dbClan = existingMember.clan;
+          }
         }
-      } catch (clanError) {
-        console.error(`[CLAN API] 클랜 정보 조회 중 오류:`, clanError);
+      } else {
+        // ❌ PUBG API에서 클랜이 없음 → DB에서도 클랜 제거 (중요!)
+        console.log(
+          `[CLAN API] PUBG API에서 클랜 정보 없음. 플레이어 '${nickname}'은 클랜에 가입되지 않음.`
+        );
+
+        if (existingMember && existingMember.clanId) {
+          // 기존에 DB에 클랜이 있었다면 제거 (PUBG API가 진실의 원천)
+          console.log(
+            `[DB CLAN] 플레이어 '${nickname}'이 클랜에서 나감. DB에서 클랜 정보 제거 중...`
+          );
+
+          // clanId를 NULL로 설정하여 클랜 제거
+          await prisma.clanMember.update({
+            where: { id: existingMember.id },
+            data: {
+              clanId: null, // 클랜 제거 (PUBG API가 진실의 원천)
+              lastUpdated: new Date(),
+            },
+          });
+
+          console.log(
+            `[DB CLAN] 플레이어 '${nickname}'의 클랜 정보 DB에서 제거 완료`
+          );
+          clanMembersLower = [];
+          clanInfo = null;
+        }
       }
+
+      await prisma.$disconnect();
+    } catch (dbError) {
+      console.warn(
+        `[DB CLAN ERROR] DB 동기화 실패:`,
+        dbError.message
+      );
+      // DB 동기화 실패 시 기본 동작 (JSON 파일 또는 기존 정보 사용)
     }
 
     let seasonAvgDamage = 0;
@@ -2137,7 +2294,10 @@ export default async function handler(req, res) {
               id: clanId,
             }
           : clanInfo?.clanName
-            ? { name: clanInfo.clanName }
+            ? { 
+                name: clanInfo.clanName,
+                id: clanId,
+              }
             : null,
         clanTier: clanTier,
         lastUpdated: new Date().toISOString(),
