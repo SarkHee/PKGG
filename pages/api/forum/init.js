@@ -107,8 +107,8 @@ export default async function handler(req, res) {
       const missingCategories = [];
 
       for (const category of DEFAULT_CATEGORIES) {
-        const exists = await prisma.forumCategory.findUnique({
-          where: { id: category.id },
+        const exists = await prisma.forumCategory.findFirst({
+          where: { name: category.name },
         });
 
         if (!exists) {
