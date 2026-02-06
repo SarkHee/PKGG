@@ -2,6 +2,7 @@
 
 import '../styles/globals.css'; // globals.css 파일을 임포트합니다.
 import { useEffect } from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 function MyApp({ Component, pageProps }) {
   // 앱 시작 시 포럼 카테고리 초기화
@@ -25,6 +26,7 @@ function MyApp({ Component, pageProps }) {
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <Component {...pageProps} />
+      <SpeedInsights />
     </div>
   );
 }
