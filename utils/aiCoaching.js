@@ -1,6 +1,19 @@
 // AI 코칭 시스템 유틸리티
 import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+
+// 안전한 Prisma 초기화: 개발 환경에서 여러 인스턴스 생성 방지 및
+// `DATABASE_URL` 미설정 시 앱이 중단되지 않도록 처리합니다.
+let prisma;
+if (process.env.DATABASE_URL) {
+  // 서버 재시작 없이 HMR 등으로 파일이 다시 로드될 수 있으므로 전역 캐시 사용
+  if (!globalThis.__prisma) {
+    globalThis.__prisma = new PrismaClient();
+  }
+  prisma = globalThis.__prisma;
+} else {
+  console.warn('Warning: DATABASE_URL not set — Prisma client not initialized.');
+  prisma = null;
+}
 
 /**
  * 플레이어의 플레이 스타일을 분석하는 함수 (전체 시즌 기준)

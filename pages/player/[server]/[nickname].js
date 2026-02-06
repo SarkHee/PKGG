@@ -1692,10 +1692,13 @@ export async function getServerSideProps({ params }) {
         // 내부 API 엔드포인트 직접 호출
         const baseUrl = process.env.VERCEL_URL
           ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000';
+          : 'http://localhost:3001';
 
-        console.log(`API 호출 시도: ${baseUrl}/api/pubg/${nickname}`);
-        const apiResponse = await fetch(`${baseUrl}/api/pubg/${nickname}`);
+        console.log(`API 호출 시도: ${baseUrl}/api/pubg/player-v2?nickname=${nickname}`);
+        const apiResponse = await fetch(
+          `${baseUrl}/api/pubg/player-v2?nickname=${encodeURIComponent(nickname)}`,
+          { timeout: 15000 }
+        );
 
         if (apiResponse.ok) {
           const apiData = await apiResponse.json();
@@ -1748,9 +1751,12 @@ export async function getServerSideProps({ params }) {
         // 내부 API 엔드포인트 직접 호출
         const baseUrl = process.env.VERCEL_URL
           ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000';
+          : 'http://localhost:3001';
 
-        const apiResponse = await fetch(`${baseUrl}/api/pubg/${nickname}`);
+        const apiResponse = await fetch(
+          `${baseUrl}/api/pubg/player-v2?nickname=${encodeURIComponent(nickname)}`,
+          { timeout: 15000 }
+        );
 
         if (!apiResponse.ok) {
           throw new Error(`API call failed: ${apiResponse.status}`);

@@ -1,7 +1,12 @@
 import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// Prisma 클라이언트 싱글톤 패턴 (개발 중 HMR으로 인한 중복 인스턴스 생성 방지)
+let prisma;
+if (!globalThis.__prismaPlayer) {
+  globalThis.__prismaPlayer = new PrismaClient();
+}
+prisma = globalThis.__prismaPlayer;
 
 export default async function handler(req, res) {
   const { nickname } = req.query;

@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "name": "pk-gg",
+  "builds": [
+    { "src": "next.config.js", "use": "@vercel/next" }
+  ],
+  "routes": []
+}

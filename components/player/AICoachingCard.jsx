@@ -674,7 +674,7 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
                 key={idx}
                 className="bg-emerald-500/20 text-emerald-100 px-3 py-1 rounded-full text-sm border border-emerald-400/30"
               >
-                ✨ {strength}
+                ✨ {typeof strength === 'object' ? strength.category : strength}
               </span>
             ))}
           </div>
@@ -1138,7 +1138,7 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
                     📈 중기 목표 (1개월)
                   </div>
                   <div className="text-sm text-gray-700">
-                    강점인 "{analysis.strengths[0]}"를 더욱 극대화하여 경쟁 우위
+                    강점인 "{typeof analysis.strengths[0] === 'object' ? analysis.strengths[0].category : analysis.strengths[0]}"를 더욱 극대화하여 경쟁 우위
                     확보
                   </div>
                 </div>
