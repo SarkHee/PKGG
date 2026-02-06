@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Head from 'next/head';
-import Header from "../../components/layout/Header";
+import Header from "../components/layout/Header";
 
 export default function TestForum() {
   const [testResult, setTestResult] = useState(null);

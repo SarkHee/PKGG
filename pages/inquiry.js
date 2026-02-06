@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from "../../components/layout/Header";
+import Header from "../components/layout/Header";
 
 export default function InquiryPage() {
   const [formData, setFormData] = useState({

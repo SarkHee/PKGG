@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from "../../components/layout/Header";
+import Header from "../../../components/layout/Header";
 
 const CATEGORY_INFO = {
   strategy: { name: '전략 & 팁', icon: '🧠', color: 'blue' },
