@@ -1666,7 +1666,12 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 export async function getServerSideProps({ params }) {
   const { server, nickname } = params;
   const { PrismaClient } = require('@prisma/client');
+  const axios = require('axios');
   const prisma = new PrismaClient();
+
+  const PUBG_API_KEY = `Bearer ${process.env.PUBG_API_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o'}`;
+  const PUBG_HEADERS = { Authorization: PUBG_API_KEY, Accept: 'application/vnd.api+json' };
+  const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
   try {
     // DB에서 클랜 멤버 조회
@@ -1674,10 +1679,7 @@ export async function getServerSideProps({ params }) {
       where: { nickname },
       include: {
         clan: true,
-        matches: {
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-        },
+        matches: { orderBy: { createdAt: 'desc' }, take: 20 },
         modeStats: true,
       },
     });
@@ -1685,120 +1687,128 @@ export async function getServerSideProps({ params }) {
     let playerData;
     let dataSource = 'database';
 
-    if (members.length > 0) {
-      console.log(`DB에서 ${nickname} 발견, API와 결합하여 데이터 제공`);
+    // PUBG API에서 직접 최신 플레이어+클랜 정보 가져오기
+    let pubgPlayer = null;
+    let pubgClan = null;
+    let pubgShard = server || 'steam';
 
-      try {
-        // 내부 API 엔드포인트 직접 호출
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-
-        console.log(`API 호출 시도: ${baseUrl}/api/pubg/player-v2?nickname=${nickname}`);
-        const apiResponse = await fetch(
-          `${baseUrl}/api/pubg/player-v2?nickname=${encodeURIComponent(nickname)}`,
-          { signal: AbortSignal.timeout(15000) }
-        );
-
-        if (apiResponse.ok) {
-          const apiData = await apiResponse.json();
-          console.log('API 호출 성공, 데이터 통합 중...');
-
-          // DB 데이터를 기반으로 하고, API에서 최신 클랜/플레이어 정보만 업데이트
-          const dbData = await getDbOnlyPlayerData(members, prisma, 'database');
-          const member = members[0];
-
-          playerData = {
-            ...dbData,
-            profile: {
-              ...dbData.profile,
-              nickname: apiData.player?.name || dbData.profile?.nickname,
-              playerId: apiData.player?.id,
-              shardId: apiData.player?.shardId || server,
-              clan: apiData.clan
-                ? {
-                    name: apiData.clan.name,
-                    tag: apiData.clan.tag,
-                    level: apiData.clan.level,
-                    memberCount: apiData.clan.memberCount,
-                  }
-                : dbData.profile?.clan,
-            },
-          };
-
-          dataSource = 'db_with_api_enhancement';
-
-          // 백그라운드에서 DB 업데이트
-          if (member?.id) {
-            updatePlayerDataInBackground(member.id, apiData).catch((err) =>
-              console.error('백그라운드 업데이트 실패:', err)
-            );
-          }
-        } else {
-          const errorData = await apiResponse.json().catch(() => ({}));
-          console.log(
-            `API 호출 실패 (${apiResponse.status}): ${errorData.error || 'Unknown error'}, DB 데이터만 사용`
+    try {
+      const searchShards = server && server !== 'unknown' ? [server, ...shards.filter(s => s !== server)] : shards;
+      for (const shard of searchShards) {
+        try {
+          const resp = await axios.get(
+            `https://api.pubg.com/shards/${shard}/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
+            { headers: PUBG_HEADERS, timeout: 8000 }
           );
-          playerData = await getDbOnlyPlayerData(members, prisma, 'database');
-          dataSource = 'database';
+          if (resp.data.data && resp.data.data.length > 0) {
+            pubgPlayer = resp.data.data[0];
+            pubgShard = shard;
+            console.log(`✅ PUBG API 플레이어 발견: ${nickname} (${shard})`);
+
+            if (pubgPlayer.attributes.clanId) {
+              try {
+                const clanResp = await axios.get(
+                  `https://api.pubg.com/shards/${shard}/clans/${pubgPlayer.attributes.clanId}`,
+                  { headers: PUBG_HEADERS, timeout: 5000 }
+                );
+                pubgClan = clanResp.data.data;
+                console.log(`✅ 클랜 정보: ${pubgClan.attributes.clanName}`);
+              } catch (e) {
+                console.warn('클랜 조회 실패:', e.message);
+              }
+            }
+            break;
+          }
+        } catch (e) {
+          if (e.response?.status !== 404) console.warn(`${shard} 샤드 오류:`, e.message);
         }
-      } catch (apiError) {
-        console.log('API 오류, DB 데이터만 사용:', apiError.message);
-        playerData = await getDbOnlyPlayerData(members, prisma, 'database');
+      }
+    } catch (pubgError) {
+      console.warn('PUBG API 호출 오류:', pubgError.message);
+    }
+
+    if (members.length > 0) {
+      // DB 데이터 기반으로 로드
+      playerData = await getDbOnlyPlayerData(members, prisma, 'database');
+
+      if (pubgPlayer) {
+        // API 성공: 최신 클랜/플레이어 정보로 profile 업데이트
+        playerData = {
+          ...playerData,
+          profile: {
+            ...playerData.profile,
+            nickname: pubgPlayer.attributes.name || nickname,
+            playerId: pubgPlayer.id,
+            shardId: pubgShard,
+            clan: pubgClan
+              ? {
+                  name: pubgClan.attributes.clanName,
+                  tag: pubgClan.attributes.clanTag,
+                  level: pubgClan.attributes.clanLevel,
+                  memberCount: pubgClan.attributes.clanMemberCount,
+                }
+              : playerData.profile?.clan,
+          },
+        };
+        dataSource = 'db_with_api_enhancement';
+
+        // 백그라운드 DB 업데이트
+        const member = members[0];
+        if (member?.id) {
+          updatePlayerDataInBackground(member.id, { player: pubgPlayer, clan: pubgClan }).catch(() => {});
+        }
+      } else {
         dataSource = 'database';
       }
     } else {
-      console.log(`DB에 ${nickname} 없음, API 단독 호출`);
-
-      try {
-        // 내부 API 엔드포인트 직접 호출
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-
-        const apiResponse = await fetch(
-          `${baseUrl}/api/pubg/player-v2?nickname=${encodeURIComponent(nickname)}`,
-          { signal: AbortSignal.timeout(15000) }
-        );
-
-        if (!apiResponse.ok) {
-          throw new Error(`API call failed: ${apiResponse.status}`);
-        }
-
-        const apiData = await apiResponse.json();
-        playerData = apiData;
-        dataSource = 'pubg_api';
-
-        // 🚀 새 유저 자동 DB 저장
-        try {
-          await saveNewUserToDB(nickname, apiData, prisma);
-          console.log(`✅ 새 유저 ${nickname} 자동 DB 저장 완료`);
-        } catch (saveError) {
-          console.error(`❌ 새 유저 ${nickname} DB 저장 실패:`, saveError);
-          // DB 저장 실패해도 API 데이터는 정상 반환
-        }
-      } catch (apiError) {
-        throw new Error(`플레이어를 찾을 수 없습니다: ${apiError.message}`);
+      // DB에 없는 신규 유저
+      if (!pubgPlayer) {
+        throw new Error(`플레이어를 찾을 수 없습니다: ${nickname}`);
       }
+
+      // 신규 유저 기본 데이터 구성
+      playerData = {
+        profile: {
+          nickname: pubgPlayer.attributes.name,
+          playerId: pubgPlayer.id,
+          shardId: pubgShard,
+          lastUpdated: new Date().toISOString(),
+          clan: pubgClan
+            ? {
+                name: pubgClan.attributes.clanName,
+                tag: pubgClan.attributes.clanTag,
+                level: pubgClan.attributes.clanLevel,
+                memberCount: pubgClan.attributes.clanMemberCount,
+              }
+            : null,
+        },
+        summary: { avgDamage: 0, avgKills: 0, avgAssists: 0, avgSurviveTime: 0, winRate: 0, top10Rate: 0, score: 0, style: '-' },
+        recentMatches: [],
+        modeStats: [],
+        modeDistribution: { ranked: 0, normal: 0, event: 0 },
+        clanMembers: [],
+        rankedStats: [],
+        rankedSummary: null,
+      };
+      dataSource = 'pubg_api';
+
+      // 신규 유저 DB 저장 (백그라운드)
+      saveNewUserToDB(nickname, playerData, prisma).catch((e) =>
+        console.error('신규 유저 DB 저장 실패:', e.message)
+      );
     }
 
     await prisma.$disconnect();
 
     return {
-      props: {
-        playerData,
-        error: null,
-        dataSource,
-      },
+      props: { playerData, error: null, dataSource },
     };
   } catch (error) {
     console.error('getServerSideProps error:', error);
     await prisma.$disconnect();
 
     return {
-      props: {
-        playerData: null,
-        error: error.message,
-        dataSource: null,
-      },
+      props: { playerData: null, error: error.message, dataSource: null },
     };
   }
 }
