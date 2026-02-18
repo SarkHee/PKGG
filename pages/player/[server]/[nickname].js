@@ -1690,14 +1690,13 @@ export async function getServerSideProps({ params }) {
 
       try {
         // 내부 API 엔드포인트 직접 호출
-        const baseUrl = process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3001';
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
         console.log(`API 호출 시도: ${baseUrl}/api/pubg/player-v2?nickname=${nickname}`);
         const apiResponse = await fetch(
           `${baseUrl}/api/pubg/player-v2?nickname=${encodeURIComponent(nickname)}`,
-          { timeout: 15000 }
+          { signal: AbortSignal.timeout(15000) }
         );
 
         if (apiResponse.ok) {
@@ -1749,13 +1748,12 @@ export async function getServerSideProps({ params }) {
 
       try {
         // 내부 API 엔드포인트 직접 호출
-        const baseUrl = process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3001';
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
         const apiResponse = await fetch(
           `${baseUrl}/api/pubg/player-v2?nickname=${encodeURIComponent(nickname)}`,
-          { timeout: 15000 }
+          { signal: AbortSignal.timeout(15000) }
         );
 
         if (!apiResponse.ok) {
