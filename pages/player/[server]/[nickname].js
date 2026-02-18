@@ -1687,10 +1687,11 @@ export async function getServerSideProps({ params }) {
     let playerData;
     let dataSource = 'database';
 
-    // PUBG API에서 직접 최신 플레이어+클랜 정보 가져오기
+    // PUBG API에서 직접 최신 플레이어+클랜+시즌 정보 가져오기
     let pubgPlayer = null;
     let pubgClan = null;
     let pubgShard = server || 'steam';
+    let pubgSeasonStats = {};
 
     try {
       const searchShards = server && server !== 'unknown' ? [server, ...shards.filter(s => s !== server)] : shards;
@@ -1705,16 +1706,69 @@ export async function getServerSideProps({ params }) {
             pubgShard = shard;
             console.log(`✅ PUBG API 플레이어 발견: ${nickname} (${shard})`);
 
-            if (pubgPlayer.attributes.clanId) {
-              try {
-                const clanResp = await axios.get(
-                  `https://api.pubg.com/shards/${shard}/clans/${pubgPlayer.attributes.clanId}`,
-                  { headers: PUBG_HEADERS, timeout: 5000 }
-                );
-                pubgClan = clanResp.data.data;
-                console.log(`✅ 클랜 정보: ${pubgClan.attributes.clanName}`);
-              } catch (e) {
-                console.warn('클랜 조회 실패:', e.message);
+            // 클랜 + 현재 시즌 ID 병렬 조회
+            const [clanResult, seasonResult] = await Promise.allSettled([
+              pubgPlayer.attributes.clanId
+                ? axios.get(
+                    `https://api.pubg.com/shards/${shard}/clans/${pubgPlayer.attributes.clanId}`,
+                    { headers: PUBG_HEADERS, timeout: 5000 }
+                  )
+                : Promise.resolve(null),
+              axios.get(
+                `https://api.pubg.com/shards/${shard}/seasons`,
+                { headers: PUBG_HEADERS, timeout: 5000 }
+              ),
+            ]);
+
+            if (clanResult.status === 'fulfilled' && clanResult.value) {
+              pubgClan = clanResult.value.data.data;
+              console.log(`✅ 클랜 정보: ${pubgClan.attributes.clanName}`);
+            }
+
+            // 현재 시즌 ID 추출 후 플레이어 시즌 통계 조회
+            if (seasonResult.status === 'fulfilled') {
+              const seasons = seasonResult.value.data.data || [];
+              const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
+              if (currentSeason) {
+                console.log(`✅ 현재 시즌: ${currentSeason.id}`);
+                try {
+                  const statsResp = await axios.get(
+                    `https://api.pubg.com/shards/${shard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}`,
+                    { headers: PUBG_HEADERS, timeout: 8000 }
+                  );
+                  const gameModeStats = statsResp.data.data?.attributes?.gameModeStats || {};
+                  // gameModeStats → seasonStatsBySeason 형식 변환
+                  const transformedModes = {};
+                  for (const [mode, s] of Object.entries(gameModeStats)) {
+                    const rounds = s.roundsPlayed || 0;
+                    if (rounds === 0) continue;
+                    transformedModes[mode] = {
+                      rounds,
+                      wins: s.wins || 0,
+                      top10s: s.top10s || 0,
+                      kd: parseFloat(((s.kills || 0) / Math.max(1, rounds - (s.wins || 0))).toFixed(2)),
+                      avgDamage: Math.round((s.damageDealt || 0) / rounds),
+                      winRate: Math.round(((s.wins || 0) / rounds) * 100),
+                      top10Rate: Math.round(((s.top10s || 0) / rounds) * 100),
+                      headshotRate: (s.kills || 0) > 0 ? Math.round(((s.headshotKills || 0) / s.kills) * 100) : 0,
+                      longestKill: Math.round(s.longestKill || 0),
+                      headshots: s.headshotKills || 0,
+                      totalKills: s.kills || 0,
+                      maxKills: s.roundMostKills || 0,
+                      avgRank: 0,
+                      avgSurvivalTime: Math.round((s.timeSurvived || 0) / rounds),
+                      avgAssists: parseFloat(((s.assists || 0) / rounds).toFixed(1)),
+                      assists: s.assists || 0,
+                      mostAssists: 0,
+                    };
+                  }
+                  if (Object.keys(transformedModes).length > 0) {
+                    pubgSeasonStats = { [currentSeason.id]: transformedModes };
+                    console.log(`✅ 시즌 통계 모드: ${Object.keys(transformedModes).join(', ')}`);
+                  }
+                } catch (e) {
+                  console.warn('시즌 통계 조회 실패:', e.message);
+                }
               }
             }
             break;
@@ -1732,7 +1786,7 @@ export async function getServerSideProps({ params }) {
       playerData = await getDbOnlyPlayerData(members, prisma, 'database');
 
       if (pubgPlayer) {
-        // API 성공: 최신 클랜/플레이어 정보로 profile 업데이트
+        // API 성공: 최신 클랜/플레이어 정보 + 시즌 통계 업데이트
         playerData = {
           ...playerData,
           profile: {
@@ -1749,6 +1803,7 @@ export async function getServerSideProps({ params }) {
                 }
               : playerData.profile?.clan,
           },
+          seasonStats: Object.keys(pubgSeasonStats).length > 0 ? pubgSeasonStats : (playerData.seasonStats || {}),
         };
         dataSource = 'db_with_api_enhancement';
 
@@ -1786,6 +1841,7 @@ export async function getServerSideProps({ params }) {
         recentMatches: [],
         modeStats: [],
         modeDistribution: { ranked: 0, normal: 0, event: 0 },
+        seasonStats: pubgSeasonStats,
         clanMembers: [],
         rankedStats: [],
         rankedSummary: null,
