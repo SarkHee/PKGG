@@ -1703,22 +1703,25 @@ export async function getServerSideProps({ params }) {
           const apiData = await apiResponse.json();
           console.log('API 호출 성공, 데이터 통합 중...');
 
-          // API 데이터와 DB 데이터 통합
+          // DB 데이터를 기반으로 하고, API에서 최신 클랜/플레이어 정보만 업데이트
+          const dbData = await getDbOnlyPlayerData(members, prisma, 'database');
           const member = members[0];
 
           playerData = {
-            ...apiData,
+            ...dbData,
             profile: {
-              ...apiData.profile,
-              clan:
-                apiData.profile?.clan ||
-                (member?.clan
-                  ? {
-                      name: member.clan.name,
-                      tag: member.clan.tag || member.clan.name,
-                      level: member.clan.level || 1,
-                    }
-                  : null),
+              ...dbData.profile,
+              nickname: apiData.player?.name || dbData.profile?.nickname,
+              playerId: apiData.player?.id,
+              shardId: apiData.player?.shardId || server,
+              clan: apiData.clan
+                ? {
+                    name: apiData.clan.name,
+                    tag: apiData.clan.tag,
+                    level: apiData.clan.level,
+                    memberCount: apiData.clan.memberCount,
+                  }
+                : dbData.profile?.clan,
             },
           };
 
