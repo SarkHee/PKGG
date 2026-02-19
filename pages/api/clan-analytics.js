@@ -402,8 +402,27 @@ export default async function handler(req, res) {
       }
     }
 
+    // 3-0. pubgClanId 기준 중복 클랜 제거 (동일 PUBG 클랜이 DB에 중복 저장된 경우)
+    const seenPubgIds = new Map();
+    const dedupedClanStats = [];
+    for (const clan of clanStats) {
+      const key = clan.pubgClanId || `__name__${clan.name}`;
+      if (!seenPubgIds.has(key)) {
+        seenPubgIds.set(key, clan);
+        dedupedClanStats.push(clan);
+      } else {
+        // 더 많은 멤버를 가진 쪽 유지
+        const prev = seenPubgIds.get(key);
+        if (clan.members.length > prev.members.length) {
+          seenPubgIds.set(key, clan);
+          const idx = dedupedClanStats.indexOf(prev);
+          if (idx !== -1) dedupedClanStats[idx] = clan;
+        }
+      }
+    }
+
     // 3-1. 클랜별 평균 및 플레이 스타일 계산
-    const clanAnalytics = clanStats.map((clan) => {
+    const clanAnalytics = dedupedClanStats.map((clan) => {
       const members = clan.members;
       const memberCount = members.length;
 

@@ -34,479 +34,100 @@ function MatchList({ recentMatches, playerData }) {
   );
 }
 
-// DB 전용 플레이어 데이터 조회 함수
-async function getDbOnlyPlayerData(members, prisma, dataSource) {
-  const member = members[0];
-
-  // 최근 20경기
-  const matches = await prisma.playerMatch.findMany({
-    where: { clanMemberId: member.id },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  });
-
-  // 모드별 통계
-  const modeStatsArr = await prisma.playerModeStats.findMany({
-    where: { clanMemberId: member.id },
-  });
-
-  // 모드 비율(최근 20경기)
-  const modeCount = { ranked: 0, normal: 0, event: 0 };
-  (matches || []).forEach((m) => {
-    if (m.mode?.includes('ranked')) modeCount.ranked++;
-    else if (m.mode?.includes('event')) modeCount.event++;
-    else modeCount.normal++;
-  });
-  const total = matches && matches.length ? matches.length : 1;
-  const modeDistribution = {
-    ranked: Math.round((modeCount.ranked / total) * 100),
-    normal: Math.round((modeCount.normal / total) * 100),
-    event: Math.round((modeCount.event / total) * 100),
-  };
-
-  const playerData = {
-    profile: {
-      nickname: member.nickname,
-      lastUpdated: new Date().toISOString(), // 현재 시간으로 설정
-      clan: member.clan
-        ? {
-            name: member.clan.name,
-            tag: member.clan.pubgClanTag || member.clan.tag,
-            level: member.clan.pubgClanLevel,
-            memberCount: member.clan.pubgMemberCount || member.clan.memberCount,
-            description: member.clan.description,
-          }
-        : null,
-    },
-    summary: {
-      avgDamage: member.avgDamage ?? 0,
-      avgKills: member.avgKills ?? 0,
-      avgAssists: member.avgAssists ?? 0,
-      avgSurviveTime: member.avgSurviveTime ?? 0,
-      winRate: member.winRate ?? 0,
-      top10Rate: member.top10Rate ?? 0,
-      score: member.score ?? 0,
-      style: member.style ?? '-',
-    },
-    recentMatches: (matches || []).map((m) => ({
-      matchId: m.matchId,
-      mode: m.mode,
-      mapName: m.mapName,
-      placement: m.placement,
-      kills: m.kills,
-      assists: m.assists,
-      damage: m.damage,
-      surviveTime: m.surviveTime,
-      matchTimestamp: m.createdAt
-        ? m.createdAt.toISOString()
-        : new Date().toISOString(),
-    })),
-    modeStats: modeStatsArr || [],
-    modeDistribution,
-    clanMembers: (members || []).map((m) => ({
-      id: m.id,
-      nickname: m.nickname,
-      score: m.score,
-      style: m.style,
-      avgDamage: m.avgDamage,
-      avgKills: m.avgKills,
-      avgAssists: m.avgAssists,
-      avgSurviveTime: m.avgSurviveTime,
-      winRate: m.winRate,
-      top10Rate: m.top10Rate,
-      pubgClanId: m.pubgClanId,
-      pubgPlayerId: m.pubgPlayerId,
-      pubgShardId: m.pubgShardId,
-      lastUpdated: m.lastUpdated ? m.lastUpdated.toISOString() : null,
-      clan: m.clan
-        ? {
-            id: m.clan.id,
-            name: m.clan.name,
-            leader: m.clan.leader,
-            description: m.clan.description,
-            memberCount: m.clan.memberCount,
-          }
-        : null,
-    })),
-    // DB에서 랭크 정보가 없으므로 기본값을 설정하되, API 호출이 가능하면 실시간으로 가져오도록 함
-    rankedStats: [
-      {
-        mode: 'squad-fpp',
-        tier: 'Unranked',
-        rp: 0,
-        kd: 0,
-        avgDamage: 0,
-        winRate: 0,
-        survivalTime: 0,
-        rounds: 0,
-      },
-      {
-        mode: 'squad',
-        tier: 'Unranked',
-        rp: 0,
-        kd: 0,
-        avgDamage: 0,
-        winRate: 0,
-        survivalTime: 0,
-        rounds: 0,
-      },
-      {
-        mode: 'duo-fpp',
-        tier: 'Unranked',
-        rp: 0,
-        kd: 0,
-        avgDamage: 0,
-        winRate: 0,
-        survivalTime: 0,
-        rounds: 0,
-      },
-      {
-        mode: 'solo-fpp',
-        tier: 'Unranked',
-        rp: 0,
-        kd: 0,
-        avgDamage: 0,
-        winRate: 0,
-        survivalTime: 0,
-        rounds: 0,
-      },
-    ],
-    rankedSummary: {
-      mode: 'squad-fpp',
-      tier: 'Unranked',
-      rp: 0,
-      games: 0,
-      wins: 0,
-      kd: 0,
-      avgDamage: 0,
-      winRate: 0,
-      top10Rate: 0,
-      kda: 0,
-      avgAssist: 0,
-      avgKill: 0,
-      avgRank: 0,
-      survivalTime: 0,
-    },
-  };
-
-  return playerData;
-}
-
-// PUBG API 데이터로 새 클랜 생성하는 함수
-async function createNewClanFromApi(clanData, prisma) {
-  try {
-    console.log(`새 클랜 생성 시작: ${clanData.name} (ID: ${clanData.id})`);
-
-    // 이미 해당 PUBG 클랜 ID가 있는지 확인
-    const existingClan = await prisma.clan.findUnique({
-      where: { pubgClanId: clanData.id },
-    });
-
-    if (existingClan) {
-      console.log(
-        `클랜 ${clanData.name}은 이미 존재함 (DB ID: ${existingClan.id})`
-      );
-      return existingClan;
-    }
-
-    // 새 클랜 생성
-    const newClan = await prisma.clan.create({
-      data: {
-        name: clanData.name,
-        leader: clanData.leader || '알 수 없음',
-        description: clanData.description || '',
-        announcement: clanData.announcement || '',
-        memberCount: clanData.memberCount || 0,
-        pubgClanId: clanData.id,
-        pubgClanTag: clanData.tag || clanData.name,
-        pubgClanLevel: clanData.level || 1,
-        pubgMemberCount: clanData.memberCount || 0,
-        lastSynced: new Date(),
-        region: 'UNKNOWN', // 나중에 멤버 분석으로 결정
-        isKorean: false, // 나중에 멤버 분석으로 결정
-      },
-    });
-
-    console.log(`새 클랜 생성 완료: ${newClan.name} (DB ID: ${newClan.id})`);
-    return newClan;
-  } catch (error) {
-    console.error(`새 클랜 생성 실패:`, error);
-    throw error;
-  }
-}
-
-// 새 유저를 DB에 저장하는 통합 함수
-async function saveNewUserToDB(nickname, apiData, prisma) {
-  try {
-    console.log(`새 유저 ${nickname} DB 저장 시작...`);
-
-    let targetClan = null;
-
-    // 1. 클랜이 있는 경우
-    if (apiData.profile?.clan) {
-      const clanData = apiData.profile.clan;
-
-      // 기존 클랜 확인
-      const existingClan = await prisma.clan.findFirst({
-        where: {
-          OR: [{ pubgClanId: clanData.id }, { name: clanData.name }],
-        },
-      });
-
-      if (existingClan) {
-        targetClan = existingClan;
-        console.log(`기존 클랜 사용: ${existingClan.name}`);
-      } else {
-        // 새 클랜 생성
-        targetClan = await createNewClanFromApi(clanData, prisma);
-      }
-    }
-
-    // 2. 유저를 클랜 멤버로 추가 (클랜이 있는 경우) 또는 독립 저장
-    if (targetClan) {
-      // 클랜 멤버로 추가
-      await addNewUserToExistingClan(nickname, apiData, targetClan, prisma);
-    } else {
-      // 클랜 없는 유저 - 임시로 "무소속" 클랜에 추가
-      const nolanClan = await prisma.clan.upsert({
-        where: { name: '무소속' },
-        update: {},
-        create: {
-          name: '무소속',
-          leader: 'SYSTEM',
-          description: '클랜에 소속되지 않은 플레이어들',
-          announcement: '',
-          memberCount: 0,
-          pubgClanId: 'no-clan',
-          pubgClanTag: 'NONE',
-          pubgClanLevel: 0,
-          pubgMemberCount: 0,
-          lastSynced: new Date(),
-          region: 'GLOBAL',
-          isKorean: false,
-        },
-      });
-
-      await addNewUserToExistingClan(nickname, apiData, nolanClan, prisma);
-    }
-
-    console.log(`새 유저 ${nickname} DB 저장 완료`);
-  } catch (error) {
-    console.error(`새 유저 ${nickname} DB 저장 실패:`, error);
-    throw error;
-  }
-}
-
-// 기존 클랜에 새로운 유저를 추가하는 함수
-async function addNewUserToExistingClan(
-  nickname,
-  apiData,
-  existingClan,
-  prisma
-) {
-  try {
-    console.log(
-      `기존 클랜 ${existingClan.name}에 새 유저 ${nickname} 추가 시작...`
-    );
-
-    // 이미 해당 클랜에 같은 닉네임이 있는지 확인
-    const existingMember = await prisma.clanMember.findFirst({
-      where: {
-        nickname: nickname,
-        clanId: existingClan.id,
-      },
-    });
-
-    if (existingMember) {
-      console.log(`유저 ${nickname}은 이미 클랜 ${existingClan.name}에 존재함`);
-      return;
-    }
-
-    // 새 클랜 멤버 추가
-    const newMember = await prisma.clanMember.create({
-      data: {
-        nickname: nickname,
-        score: apiData.summary?.averageScore || 0,
-        style:
-          apiData.summary?.realPlayStyle ||
-          apiData.summary?.playstyle ||
-          '📦 일반 밸런스형',
-        avgDamage: apiData.summary?.avgDamage || 0,
-        avgKills: 0, // API에서 제공하지 않으므로 백그라운드에서 계산
-        avgAssists: 0, // API에서 제공하지 않으므로 백그라운드에서 계산
-        avgSurviveTime: apiData.summary?.averageSurvivalTime || 0,
-        winRate: 0, // API에서 제공하지 않으므로 백그라운드에서 계산
-        top10Rate: 0, // API에서 제공하지 않으므로 백그라운드에서 계산
-        clanId: existingClan.id,
-        // PUBG API 정보 추가
-        pubgClanId: apiData.profile?.clan?.id || null,
-        pubgPlayerId: apiData.profile?.playerId || null,
-        pubgShardId: apiData.profile?.shardId || 'steam',
-      },
-    });
-
-    console.log(`새 클랜 멤버 ${nickname} 추가 완료 (ID: ${newMember.id})`);
-
-    // 백그라운드에서 추가 데이터 업데이트
-    updatePlayerDataInBackground(newMember.id, apiData).catch((err) => {
-      console.error('새 유저 백그라운드 업데이트 실패:', err);
-    });
-
-    // 클랜 멤버 수 업데이트
-    const memberCount = await prisma.clanMember.count({
-      where: { clanId: existingClan.id },
-    });
-
-    await prisma.clan.update({
-      where: { id: existingClan.id },
-      data: { memberCount },
-    });
-
-    console.log(
-      `기존 클랜 ${existingClan.name}에 새 유저 ${nickname} 추가 완료`
-    );
-  } catch (error) {
-    console.error(`새 유저 ${nickname} 기존 클랜 추가 실패:`, error);
-    throw error;
-  }
-}
-
-// 백그라운드에서 DB 업데이트 (비동기)
-async function updatePlayerDataInBackground(memberId, apiData) {
+// 플레이어 데이터 DB 저장/업데이트 (백그라운드 upsert)
+async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matches = []) {
   const { PrismaClient } = require('@prisma/client');
-  const backgroundPrisma = new PrismaClient();
-
+  const prisma = new PrismaClient();
   try {
-    console.log(`백그라운드에서 멤버 ID ${memberId} 데이터 업데이트 시작...`);
+    const nickname = pubgPlayer.attributes.name;
 
-    // 기본 통계 업데이트 (최근 매치에서 계산)
-    if (apiData.summary || apiData.recentMatches) {
-      const updateData = {};
-
-      // API summary에서 직접 가져올 수 있는 데이터
-      if (apiData.summary?.avgDamage !== undefined)
-        updateData.avgDamage = apiData.summary.avgDamage;
-      if (apiData.summary?.averageSurvivalTime !== undefined)
-        updateData.avgSurviveTime = apiData.summary.averageSurvivalTime;
-      if (apiData.summary?.averageScore !== undefined)
-        updateData.score = apiData.summary.averageScore;
-      if (apiData.summary?.realPlayStyle)
-        updateData.style = apiData.summary.realPlayStyle;
-      else if (apiData.summary?.playstyle)
-        updateData.style = apiData.summary.playstyle;
-
-      // 최근 매치에서 킬/어시스트/승률/Top10 계산
-      if (apiData.recentMatches && apiData.recentMatches.length > 0) {
-        const matches = apiData.recentMatches;
-        const totalMatches = matches.length;
-
-        const totalKills = matches.reduce((sum, m) => sum + (m.kills || 0), 0);
-        const totalAssists = matches.reduce(
-          (sum, m) => sum + (m.assists || 0),
-          0
-        );
-        const wins = matches.filter(
-          (m) => (m.rank || m.placement) === 1
-        ).length;
-        const top10s = matches.filter(
-          (m) => (m.rank || m.placement) <= 10
-        ).length;
-
-        updateData.avgKills = totalMatches > 0 ? totalKills / totalMatches : 0;
-        updateData.avgAssists =
-          totalMatches > 0 ? totalAssists / totalMatches : 0;
-        updateData.winRate = totalMatches > 0 ? (wins / totalMatches) * 100 : 0;
-        updateData.top10Rate =
-          totalMatches > 0 ? (top10s / totalMatches) * 100 : 0;
-      }
-
-      // 업데이트할 데이터가 있을 때만 실행
-      if (Object.keys(updateData).length > 0) {
-        await backgroundPrisma.clanMember.update({
-          where: { id: memberId },
-          data: updateData,
+    // 클랜 upsert (클랜이 있는 경우)
+    let clanDbId = null;
+    if (pubgClan) {
+      const attrs = pubgClan.attributes;
+      try {
+        const clan = await prisma.clan.upsert({
+          where: { pubgClanId: pubgClan.id },
+          update: {
+            name: attrs.clanName,
+            pubgClanTag: attrs.clanTag,
+            pubgClanLevel: attrs.clanLevel,
+            pubgMemberCount: attrs.clanMemberCount,
+            memberCount: attrs.clanMemberCount || 0,
+            lastSynced: new Date(),
+          },
+          create: {
+            name: attrs.clanName,
+            leader: '알 수 없음',
+            memberCount: attrs.clanMemberCount || 0,
+            pubgClanId: pubgClan.id,
+            pubgClanTag: attrs.clanTag,
+            pubgClanLevel: attrs.clanLevel,
+            pubgMemberCount: attrs.clanMemberCount || 0,
+            lastSynced: new Date(),
+          },
         });
-        console.log(
-          `멤버 ID ${memberId} 기본 통계 업데이트 완료 (kills: ${updateData.avgKills?.toFixed(1) || 'N/A'}, winRate: ${updateData.winRate?.toFixed(1) || 'N/A'}%)`
-        );
+        clanDbId = clan.id;
+      } catch (e) {
+        console.warn('클랜 upsert 실패:', e.message);
       }
     }
 
-    // 최근 매치 데이터 업데이트 (최대 20개)
-    if (apiData.recentMatches && apiData.recentMatches.length > 0) {
-      // 기존 매치 삭제 후 새로 추가
-      await backgroundPrisma.playerMatch.deleteMany({
-        where: { clanMemberId: memberId },
-      });
+    // ClanMember upsert (pubgPlayerId 기준)
+    const memberData = {
+      nickname,
+      pubgPlayerId: pubgPlayer.id,
+      pubgShardId: shard,
+      pubgClanId: pubgClan?.id || null,
+      clanId: clanDbId,
+      avgDamage: summary?.avgDamage || 0,
+      avgKills: summary?.avgKills || 0,
+      avgAssists: summary?.avgAssists || 0,
+      avgSurviveTime: summary?.avgSurviveTime || 0,
+      winRate: summary?.winRate || 0,
+      top10Rate: summary?.top10Rate || 0,
+      score: summary?.score || 0,
+      style: '-',
+      lastUpdated: new Date(),
+    };
 
-      const matchesToInsert = apiData.recentMatches
-        .slice(0, 20)
-        .map((match) => ({
-          clanMemberId: memberId,
-          matchId: match.matchId || `${Date.now()}-${Math.random()}`,
-          mode: match.mode || match.gameMode || 'unknown',
-          mapName: match.mapName || '알 수 없음',
-          placement:
-            typeof (match.rank || match.placement) === 'number'
-              ? match.rank || match.placement
-              : 0,
-          kills: match.kills || 0,
-          assists: match.assists || 0,
-          damage: match.damage || 0,
-          surviveTime: match.survivalTime || match.surviveTime || 0,
-          createdAt: match.matchTimestamp
-            ? new Date(match.matchTimestamp)
-            : new Date(),
-        }));
-
-      await backgroundPrisma.playerMatch.createMany({
-        data: matchesToInsert,
-      });
-      console.log(
-        `멤버 ID ${memberId} 매치 데이터 ${matchesToInsert.length}개 업데이트 완료`
-      );
+    const existing = await prisma.clanMember.findFirst({
+      where: { pubgPlayerId: pubgPlayer.id },
+    });
+    let memberId;
+    if (existing) {
+      await prisma.clanMember.update({ where: { id: existing.id }, data: memberData });
+      memberId = existing.id;
+      console.log(`✅ DB 업데이트: ${nickname}`);
+    } else {
+      const created = await prisma.clanMember.create({ data: memberData });
+      memberId = created.id;
+      console.log(`✅ DB 신규 저장: ${nickname}`);
     }
 
-    // 모드별 통계 업데이트
-    if (apiData.seasonStats) {
-      // 기존 모드 통계 삭제
-      await backgroundPrisma.playerModeStats.deleteMany({
-        where: { clanMemberId: memberId },
-      });
-
-      const modeStatsToInsert = Object.entries(apiData.seasonStats).map(
-        ([mode, stats]) => ({
+    // 최근 매치 저장 (기존 삭제 후 재저장)
+    if (matches.length > 0 && memberId) {
+      await prisma.playerMatch.deleteMany({ where: { clanMemberId: memberId } });
+      await prisma.playerMatch.createMany({
+        data: matches.slice(0, 20).map(m => ({
           clanMemberId: memberId,
-          mode: mode,
-          matches: stats.rounds || 0,
-          wins: stats.wins || 0,
-          top10s: stats.top10s || 0,
-          avgDamage: stats.avgDamage || 0,
-          avgKills: stats.kills || 0,
-          avgAssists: stats.assists || 0,
-          winRate: stats.winRate || 0,
-          top10Rate: stats.top10Rate || 0,
-        })
-      );
-
-      if (modeStatsToInsert.length > 0) {
-        await backgroundPrisma.playerModeStats.createMany({
-          data: modeStatsToInsert,
-        });
-        console.log(
-          `멤버 ID ${memberId} 모드별 통계 ${modeStatsToInsert.length}개 업데이트 완료`
-        );
-      }
+          matchId: m.matchId || `${Date.now()}-${Math.random()}`,
+          mode: m.mode || 'unknown',
+          mapName: m.mapName || '알 수 없음',
+          placement: m.placement || 0,
+          kills: m.kills || 0,
+          assists: m.assists || 0,
+          damage: m.damage || 0,
+          surviveTime: m.surviveTime || 0,
+          createdAt: m.matchTimestamp ? new Date(m.matchTimestamp) : new Date(),
+        })),
+      });
+      console.log(`✅ 매치 ${matches.length}개 DB 저장 완료`);
     }
-
-    console.log(`멤버 ID ${memberId} 백그라운드 업데이트 완료`);
-  } catch (updateError) {
-    console.error(
-      `백그라운드 업데이트 실패 (멤버 ID: ${memberId}):`,
-      updateError
-    );
+  } catch (e) {
+    console.error('savePlayerToDatabase 오류:', e.message);
   } finally {
-    await backgroundPrisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 
@@ -1206,7 +827,8 @@ export default function PlayerPage({ playerData, error, dataSource }) {
   return (
     <>
       <Header />
-      <div className="container mx-auto p-6 bg-gradient-to-br from-white via-gray-50 to-blue-50 min-h-screen text-gray-900 font-sans">
+      <div className="bg-gray-50 min-h-screen text-gray-900">
+        <div className="max-w-screen-xl mx-auto px-4 py-6">
         <Head>
           <title>{`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`}</title>
           <meta
@@ -1215,64 +837,24 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           />
         </Head>
 
-        {/* 데이터 소스 알림 */}
+        {/* 데이터 소스 알림 - 간결하게 */}
         {dataSource === 'database' && (
-          <div className="mb-6 p-5 bg-gradient-to-r from-yellow-50 via-yellow-100 to-yellow-50 border-2 border-yellow-200 text-yellow-800 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="inline-block px-4 py-2 bg-yellow-500 text-white text-sm font-bold rounded-full mb-3 shadow-sm">
-                📊 데이터 소스 안내
-              </div>
-              <div className="text-base font-semibold mb-2">
-                <strong>DB 데이터 표시:</strong> 일부 정보 제한 가능
-              </div>
-              <div className="text-sm text-yellow-700">
-                최신화하기로 실시간 데이터 조회 가능
-              </div>
-            </div>
+          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-sm">
+            <span className="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0"></span>
+            <span className="font-medium">캐시 데이터 표시 중</span>
+            <span className="text-amber-500">— 최신화 버튼으로 실시간 데이터를 불러올 수 있습니다</span>
           </div>
         )}
-
-        {dataSource === 'db_with_api_enhancement' && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 text-blue-800 rounded-lg shadow-sm">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium">
-                향상된 데이터 업데이트 완료
-              </span>
-            </div>
+        {(dataSource === 'db_with_api_enhancement' || dataSource === 'enhanced') && (
+          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm">
+            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></span>
+            <span className="font-medium">최신 데이터 반영 완료</span>
           </div>
         )}
-
-        {dataSource === 'enhanced' && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 text-blue-800 rounded-lg shadow-sm">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium">
-                향상된 데이터 업데이트 완료
-              </span>
-            </div>
-          </div>
-        )}
-
-        {dataSource === 'pubg_api_only' && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 text-green-800 rounded-lg shadow-sm">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium">
-                실시간 데이터 업데이트 완료
-              </span>
-            </div>
-          </div>
-        )}
-
-        {dataSource === 'pubg_api' && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 text-green-800 rounded-lg shadow-sm">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium">
-                실시간 데이터 업데이트 완료
-              </span>
-            </div>
+        {(dataSource === 'pubg_api' || dataSource === 'pubg_api_only') && (
+          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
+            <span className="font-medium">실시간 데이터 로드 완료</span>
           </div>
         )}
 
@@ -1290,20 +872,14 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         />
 
         {/* 개인 맞춤형 AI 코칭 시스템 */}
-        <div className="mb-10">
-          <div className="bg-gradient-to-r from-violet-50 via-violet-100 to-purple-50 rounded-2xl p-6 mb-6 border-l-4 border-violet-500 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🤖</span>
-              <h2 className="text-xl font-bold text-gray-800">
-                개인 맞춤형 AI 코칭
-              </h2>
-              <span className="text-sm bg-violet-200 text-violet-800 px-3 py-1 rounded-full font-medium">
-                훈련/피드백
-              </span>
-            </div>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+            <h2 className="text-lg font-bold text-gray-800">개인 맞춤형 AI 코칭</h2>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">훈련/피드백</span>
           </div>
           {/* AI 개인 맞춤 코칭 카드 */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-xl transition-all">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             {/* 디버깅을 위한 데이터 출력 */}
             {typeof window !== 'undefined' &&
               console.log('🚀 PlayerPage - summary 전체:', summary) &&
@@ -1434,19 +1010,13 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         </div>
 
         {/* 클랜 및 팀플레이 분석 섹션 */}
-        <div className="mb-10">
-          <div className="bg-gradient-to-r from-blue-50 via-blue-100 to-purple-50 rounded-2xl p-6 mb-6 border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🤝</span>
-              <h2 className="text-xl font-bold text-gray-800">
-                클랜 및 팀플레이 분석
-              </h2>
-              <span className="text-sm bg-blue-200 text-blue-800 px-3 py-1 rounded-full font-medium">
-                클랜 시너지
-              </span>
-            </div>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+            <h2 className="text-lg font-bold text-gray-800">클랜 및 팀플레이 분석</h2>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">클랜 시너지</span>
           </div>
-          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
             <PlayerDashboard
               profile={profile}
               summary={summary}
@@ -1488,19 +1058,13 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
         {/* 시즌 플레이 현황 */}
         {displayData?.modeDistribution && (
-          <div className="mb-10">
-            <div className="bg-gradient-to-r from-purple-50 via-purple-100 to-pink-50 rounded-2xl p-6 mb-6 border-l-4 border-purple-500 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">📊</span>
-                <h2 className="text-xl font-bold text-gray-800">
-                  시즌 플레이 현황
-                </h2>
-                <span className="text-sm bg-purple-200 text-purple-800 px-3 py-1 rounded-full font-medium">
-                  모드별 분석
-                </span>
-              </div>
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-4 px-1">
+              <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+              <h2 className="text-lg font-bold text-gray-800">시즌 플레이 현황</h2>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">모드별 분석</span>
             </div>
-            <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
               <ModeDistributionChart
                 modeDistribution={displayData.modeDistribution}
               />
@@ -1509,154 +1073,115 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         )}
 
         {/* 차트 및 시각화 섹션 */}
-        <div className="mb-10">
-          <div className="bg-gradient-to-r from-cyan-50 via-cyan-100 to-teal-50 dark:from-cyan-900/20 dark:to-teal-800/20 rounded-2xl p-6 mb-6 border-l-4 border-cyan-500 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">�</span>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                경기 추이 분석
-              </h2>
-              <span className="text-sm bg-cyan-200 dark:bg-cyan-700 text-cyan-800 dark:text-cyan-200 px-3 py-1 rounded-full font-medium">
-                성과 트렌드
-              </span>
-            </div>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+            <h2 className="text-lg font-bold text-gray-800">경기 추이 분석</h2>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">성과 트렌드</span>
           </div>
 
-          <div className="grid grid-cols-1 gap-8">
-            {/* 딜량 추이 그래프 */}
-            <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-xl">💪</span>
-                <h4 className="text-xl font-bold text-gray-900">딜량 추이</h4>
-              </div>
-              <RecentDamageTrendChart matches={recentMatches} />
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-base">💪</span>
+              <h4 className="text-sm font-bold text-gray-700">딜량 추이</h4>
             </div>
+            <RecentDamageTrendChart matches={recentMatches} />
           </div>
         </div>
 
         {/* 게임 모드별 통계 섹션 */}
-        <div className="mb-10">
-          <div className="bg-gradient-to-r from-indigo-50 via-indigo-100 to-blue-50 rounded-2xl p-6 mb-6 border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🎮</span>
-              <h2 className="text-xl font-bold text-gray-800">
-                게임 모드별 통계
-              </h2>
-              <span className="text-sm bg-indigo-200 text-indigo-800 px-3 py-1 rounded-full font-medium">
-                상세 분석
-              </span>
-            </div>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+            <h2 className="text-lg font-bold text-gray-800">게임 모드별 통계</h2>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
           </div>
-          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
-            <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
-          </div>
+          <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
         </div>
 
         {/* 최근 경기 내역 섹션 */}
-        <section className="recent-matches-section mb-10">
-          <div className="bg-gradient-to-r from-orange-50 via-orange-100 to-red-50 rounded-2xl p-6 mb-6 border-l-4 border-orange-500 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">�</span>
-              <h2 className="text-xl font-bold text-gray-800">
-                최근 경기 내역
-              </h2>
-              <span className="text-sm bg-orange-200 text-orange-800 px-3 py-1 rounded-full font-medium">
-                최근 20경기
-              </span>
-            </div>
+        <section className="recent-matches-section mb-8">
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+            <h2 className="text-lg font-bold text-gray-800">최근 경기 내역</h2>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">최근 20경기</span>
           </div>
-          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             {/* 경기 모드 필터 탭 */}
-            <div className="mb-8 flex justify-center">
-              <div className="flex gap-2 bg-gray-100 p-2 rounded-xl shadow-inner">
+            <div className="border-b border-gray-100 px-4 py-3 overflow-x-auto">
+              <div className="flex gap-1 min-w-max">
                 {[
-                  '전체',
-                  '경쟁전',
-                  '경쟁전 솔로',
-                  '솔로',
-                  '듀오',
-                  '스쿼드',
-                  '경쟁전 FPP',
-                  '경쟁전 솔로 FPP',
-                  '솔로 FPP',
-                  '듀오 FPP',
-                  '스쿼드 FPP',
-                ].map((tab) => (
+                  { label: '전체', key: '전체' },
+                  { label: '경쟁전', key: '경쟁전' },
+                  { label: '솔로', key: '솔로' },
+                  { label: '듀오', key: '듀오' },
+                  { label: '스쿼드', key: '스쿼드' },
+                  { label: '경쟁전 솔로', key: '경쟁전 솔로' },
+                  { label: 'FPP 솔로', key: '솔로 FPP' },
+                  { label: 'FPP 듀오', key: '듀오 FPP' },
+                  { label: 'FPP 스쿼드', key: '스쿼드 FPP' },
+                ].map(({ label, key }) => (
                   <button
-                    key={tab}
-                    onClick={() => setSelectedMatchFilter(tab)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedMatchFilter === tab
-                        ? 'bg-blue-500 text-white shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-200'
+                    key={key}
+                    onClick={() => setSelectedMatchFilter(key)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                      selectedMatchFilter === key
+                        ? 'bg-blue-500 text-white'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                     }`}
                   >
-                    {tab}
+                    {label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {filteredMatches && filteredMatches.length > 0 ? (
-              <MatchList
-                recentMatches={filteredMatches}
-                playerData={playerData}
-              />
-            ) : (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-6">📋</div>
-                <div className="text-lg text-gray-600 font-medium">
-                  {selectedMatchFilter === '전체'
-                    ? '최근 경기 데이터가 없습니다.'
-                    : `${selectedMatchFilter} 모드의 기록된 전적이 없습니다.`}
+            <div className="p-4">
+              {filteredMatches && filteredMatches.length > 0 ? (
+                <MatchList
+                  recentMatches={filteredMatches}
+                  playerData={playerData}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="text-4xl mb-3">📋</div>
+                  <div className="text-sm font-medium text-gray-600">
+                    {selectedMatchFilter === '전체'
+                      ? '최근 경기 데이터가 없습니다.'
+                      : `${selectedMatchFilter} 모드의 기록된 전적이 없습니다.`}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    게임을 플레이하면 데이터가 업데이트됩니다.
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500 mt-2">
-                  게임을 플레이하면 데이터가 업데이트됩니다.
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </section>
 
         {/* 경기 상세 정보 표시 */}
         {selectedMatchId && (
-          <div ref={detailRef} className="mt-8 mb-10">
-            <div className="bg-gradient-to-r from-purple-50 via-purple-100 to-pink-50 rounded-2xl p-6 mb-6 border-l-4 border-purple-500 shadow-sm">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🔍</span>
-                <h4 className="text-xl font-bold text-gray-800">
-                  경기 상세 정보
-                </h4>
-                <span className="text-sm bg-purple-200 text-purple-800 px-3 py-1 rounded-full font-medium">
-                  상세 분석
-                </span>
-              </div>
+          <div ref={detailRef} className="mt-6 mb-8">
+            <div className="flex items-center gap-3 mb-4 px-1">
+              <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+              <h4 className="text-lg font-bold text-gray-800">경기 상세 정보</h4>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
             </div>
-            <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-all">
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
               <MatchDetailExpandable matchId={selectedMatchId} />
             </div>
           </div>
         )}
 
-        {/* 데이터 정보 섹션 */}
-        <div className="mt-10 mb-6">
-          <div className="bg-gradient-to-r from-gray-50 via-gray-100 to-slate-50 rounded-2xl p-6 border border-gray-300 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">ℹ️</span>
-                <h2 className="text-lg font-bold text-gray-800">데이터 정보</h2>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-gray-500">
-                <span className="text-xl">⏰</span>
-                <span className="font-medium">
-                  데이터 최종 업데이트:{' '}
-                  {profile?.lastUpdated
-                    ? new Date(profile.lastUpdated).toLocaleString('ko-KR')
-                    : '알 수 없음'}
-                </span>
-              </div>
-            </div>
-          </div>
+        {/* 데이터 정보 푸터 */}
+        <div className="mt-8 mb-2 text-center text-xs text-gray-400 flex items-center justify-center gap-1.5">
+          <span>최종 업데이트:</span>
+          <span className="font-medium text-gray-500">
+            {profile?.lastUpdated
+              ? new Date(profile.lastUpdated).toLocaleString('ko-KR')
+              : '알 수 없음'}
+          </span>
+        </div>
         </div>
       </div>
     </>
@@ -1665,204 +1190,320 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
 export async function getServerSideProps({ params }) {
   const { server, nickname } = params;
-  const { PrismaClient } = require('@prisma/client');
   const axios = require('axios');
-  const prisma = new PrismaClient();
 
   const PUBG_API_KEY = `Bearer ${process.env.PUBG_API_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o'}`;
   const PUBG_HEADERS = { Authorization: PUBG_API_KEY, Accept: 'application/vnd.api+json' };
   const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
   try {
-    // DB에서 클랜 멤버 조회
-    const members = await prisma.clanMember.findMany({
-      where: { nickname },
-      include: {
-        clan: true,
-        matches: { orderBy: { createdAt: 'desc' }, take: 20 },
-        modeStats: true,
-      },
-    });
-
-    let playerData;
-    let dataSource = 'database';
-
-    // PUBG API에서 직접 최신 플레이어+클랜+시즌 정보 가져오기
+    // Step 1: PUBG API로 플레이어 검색 (shard 우선순위 적용)
     let pubgPlayer = null;
-    let pubgClan = null;
     let pubgShard = server || 'steam';
+    const searchShards = server && server !== 'unknown'
+      ? [server, ...shards.filter(s => s !== server)]
+      : shards;
+
+    for (const shard of searchShards) {
+      try {
+        const resp = await axios.get(
+          `https://api.pubg.com/shards/${shard}/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
+          { headers: PUBG_HEADERS, timeout: 8000 }
+        );
+        if (resp.data.data?.length > 0) {
+          pubgPlayer = resp.data.data[0];
+          pubgShard = shard;
+          console.log(`✅ 플레이어 발견: ${nickname} (${shard})`);
+          break;
+        }
+      } catch (e) {
+        if (e.response?.status !== 404) console.warn(`${shard} 샤드 오류:`, e.message);
+      }
+    }
+
+    if (!pubgPlayer) {
+      throw new Error(`플레이어를 찾을 수 없습니다: ${nickname}`);
+    }
+
+    // Step 2: 클랜 + 시즌 목록 병렬 조회
+    const [clanResult, seasonResult] = await Promise.allSettled([
+      pubgPlayer.attributes.clanId
+        ? axios.get(
+            `https://api.pubg.com/shards/${pubgShard}/clans/${pubgPlayer.attributes.clanId}`,
+            { headers: PUBG_HEADERS, timeout: 5000 }
+          )
+        : Promise.resolve(null),
+      axios.get(
+        `https://api.pubg.com/shards/${pubgShard}/seasons`,
+        { headers: PUBG_HEADERS, timeout: 5000 }
+      ),
+    ]);
+
+    let pubgClan = null;
+    if (clanResult.status === 'fulfilled' && clanResult.value) {
+      pubgClan = clanResult.value.data.data;
+      console.log(`✅ 클랜: ${pubgClan.attributes.clanName}`);
+    }
+
+    // Step 3: 현재 시즌 통계 + 랭크 통계 병렬 조회
     let pubgSeasonStats = {};
+    let pubgSummaryFromStats = null;
+    let pubgRankedSummary = null;
+    let pubgModeDistribution = { ranked: 0, normal: 0, event: 0 };
 
-    try {
-      const searchShards = server && server !== 'unknown' ? [server, ...shards.filter(s => s !== server)] : shards;
-      for (const shard of searchShards) {
-        try {
-          const resp = await axios.get(
-            `https://api.pubg.com/shards/${shard}/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
+    if (seasonResult.status === 'fulfilled') {
+      const seasons = seasonResult.value.data.data || [];
+      const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
+      if (currentSeason) {
+        console.log(`✅ 현재 시즌: ${currentSeason.id}`);
+        const [statsResult, rankedResult] = await Promise.allSettled([
+          axios.get(
+            `https://api.pubg.com/shards/${pubgShard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}`,
             { headers: PUBG_HEADERS, timeout: 8000 }
-          );
-          if (resp.data.data && resp.data.data.length > 0) {
-            pubgPlayer = resp.data.data[0];
-            pubgShard = shard;
-            console.log(`✅ PUBG API 플레이어 발견: ${nickname} (${shard})`);
+          ),
+          axios.get(
+            `https://api.pubg.com/shards/${pubgShard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}/ranked`,
+            { headers: PUBG_HEADERS, timeout: 8000 }
+          ),
+        ]);
 
-            // 클랜 + 현재 시즌 ID 병렬 조회
-            const [clanResult, seasonResult] = await Promise.allSettled([
-              pubgPlayer.attributes.clanId
-                ? axios.get(
-                    `https://api.pubg.com/shards/${shard}/clans/${pubgPlayer.attributes.clanId}`,
-                    { headers: PUBG_HEADERS, timeout: 5000 }
-                  )
-                : Promise.resolve(null),
-              axios.get(
-                `https://api.pubg.com/shards/${shard}/seasons`,
-                { headers: PUBG_HEADERS, timeout: 5000 }
-              ),
-            ]);
-
-            if (clanResult.status === 'fulfilled' && clanResult.value) {
-              pubgClan = clanResult.value.data.data;
-              console.log(`✅ 클랜 정보: ${pubgClan.attributes.clanName}`);
-            }
-
-            // 현재 시즌 ID 추출 후 플레이어 시즌 통계 조회
-            if (seasonResult.status === 'fulfilled') {
-              const seasons = seasonResult.value.data.data || [];
-              const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
-              if (currentSeason) {
-                console.log(`✅ 현재 시즌: ${currentSeason.id}`);
-                try {
-                  const statsResp = await axios.get(
-                    `https://api.pubg.com/shards/${shard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}`,
-                    { headers: PUBG_HEADERS, timeout: 8000 }
-                  );
-                  const gameModeStats = statsResp.data.data?.attributes?.gameModeStats || {};
-                  // gameModeStats → seasonStatsBySeason 형식 변환
-                  const transformedModes = {};
-                  for (const [mode, s] of Object.entries(gameModeStats)) {
-                    const rounds = s.roundsPlayed || 0;
-                    if (rounds === 0) continue;
-                    transformedModes[mode] = {
-                      rounds,
-                      wins: s.wins || 0,
-                      top10s: s.top10s || 0,
-                      kd: parseFloat(((s.kills || 0) / Math.max(1, rounds - (s.wins || 0))).toFixed(2)),
-                      avgDamage: Math.round((s.damageDealt || 0) / rounds),
-                      winRate: Math.round(((s.wins || 0) / rounds) * 100),
-                      top10Rate: Math.round(((s.top10s || 0) / rounds) * 100),
-                      headshotRate: (s.kills || 0) > 0 ? Math.round(((s.headshotKills || 0) / s.kills) * 100) : 0,
-                      longestKill: Math.round(s.longestKill || 0),
-                      headshots: s.headshotKills || 0,
-                      totalKills: s.kills || 0,
-                      maxKills: s.roundMostKills || 0,
-                      avgRank: 0,
-                      avgSurvivalTime: Math.round((s.timeSurvived || 0) / rounds),
-                      avgAssists: parseFloat(((s.assists || 0) / rounds).toFixed(1)),
-                      assists: s.assists || 0,
-                      mostAssists: 0,
-                    };
-                  }
-                  if (Object.keys(transformedModes).length > 0) {
-                    pubgSeasonStats = { [currentSeason.id]: transformedModes };
-                    console.log(`✅ 시즌 통계 모드: ${Object.keys(transformedModes).join(', ')}`);
-                  }
-                } catch (e) {
-                  console.warn('시즌 통계 조회 실패:', e.message);
-                }
-              }
-            }
-            break;
+        // 시즌 통계 변환
+        if (statsResult.status === 'fulfilled') {
+          const gameModeStats = statsResult.value.data.data?.attributes?.gameModeStats || {};
+          const transformedModes = {};
+          for (const [mode, s] of Object.entries(gameModeStats)) {
+            const rounds = s.roundsPlayed || 0;
+            if (rounds === 0) continue;
+            transformedModes[mode] = {
+              rounds,
+              wins: s.wins || 0,
+              top10s: s.top10s || 0,
+              kd: parseFloat(((s.kills || 0) / Math.max(1, rounds - (s.wins || 0))).toFixed(2)),
+              avgDamage: Math.round((s.damageDealt || 0) / rounds),
+              winRate: Math.round(((s.wins || 0) / rounds) * 100),
+              top10Rate: Math.round(((s.top10s || 0) / rounds) * 100),
+              headshotRate: (s.kills || 0) > 0 ? Math.round(((s.headshotKills || 0) / s.kills) * 100) : 0,
+              longestKill: Math.round(s.longestKill || 0),
+              headshots: s.headshotKills || 0,
+              totalKills: s.kills || 0,
+              maxKills: s.roundMostKills || 0,
+              avgRank: 0,
+              avgSurvivalTime: Math.round((s.timeSurvived || 0) / rounds),
+              avgAssists: parseFloat(((s.assists || 0) / rounds).toFixed(1)),
+              assists: s.assists || 0,
+              mostAssists: 0,
+            };
           }
-        } catch (e) {
-          if (e.response?.status !== 404) console.warn(`${shard} 샤드 오류:`, e.message);
+          if (Object.keys(transformedModes).length > 0) {
+            pubgSeasonStats = { [currentSeason.id]: transformedModes };
+            console.log(`✅ 시즌 통계 모드: ${Object.keys(transformedModes).join(', ')}`);
+
+            // modeDistribution 계산
+            let rankedGames = 0, normalGames = 0, eventGames = 0;
+            for (const [mode, ms] of Object.entries(transformedModes)) {
+              const r = ms.rounds || 0;
+              if (mode.startsWith('ranked')) rankedGames += r;
+              else if (mode.startsWith('normal') || mode.includes('event')) eventGames += r;
+              else normalGames += r;
+            }
+            const totalForDist = rankedGames + normalGames + eventGames || 1;
+            pubgModeDistribution = {
+              ranked: Math.round((rankedGames / totalForDist) * 100),
+              normal: Math.round((normalGames / totalForDist) * 100),
+              event: Math.round((eventGames / totalForDist) * 100),
+            };
+
+            // summary 계산 (시즌 전체 합산)
+            let totalRounds = 0, totalWins = 0, totalTop10s = 0;
+            let totalDamage = 0, totalKills = 0, totalAssists = 0, totalSurvivalTime = 0;
+            for (const ms of Object.values(transformedModes)) {
+              const r = ms.rounds || 0;
+              if (r === 0) continue;
+              totalRounds += r;
+              totalWins += ms.wins || 0;
+              totalTop10s += ms.top10s || 0;
+              totalDamage += (ms.avgDamage || 0) * r;
+              totalKills += ms.totalKills || 0;
+              totalAssists += ms.assists || 0;
+              totalSurvivalTime += (ms.avgSurvivalTime || 0) * r;
+            }
+            if (totalRounds > 0) {
+              const avgDamage = Math.round(totalDamage / totalRounds);
+              const avgKills = parseFloat((totalKills / totalRounds).toFixed(2));
+              const winRate = parseFloat(((totalWins / totalRounds) * 100).toFixed(1));
+              const top10Rate = parseFloat(((totalTop10s / totalRounds) * 100).toFixed(1));
+              pubgSummaryFromStats = {
+                avgDamage,
+                avgKills,
+                avgAssists: parseFloat((totalAssists / totalRounds).toFixed(2)),
+                avgSurviveTime: Math.round(totalSurvivalTime / totalRounds),
+                winRate,
+                top10Rate,
+                score: Math.round(avgDamage * 0.4 + avgKills * 40 + top10Rate + 1000),
+                roundsPlayed: totalRounds,
+                kills: totalKills,
+                style: '-',
+              };
+              console.log(`✅ summary: avgDamage=${avgDamage}, avgKills=${avgKills}, winRate=${winRate}%`);
+            }
+          }
+        } else {
+          console.warn('시즌 통계 조회 실패:', statsResult.reason?.message);
+        }
+
+        // 랭크 통계 변환
+        if (rankedResult.status === 'fulfilled') {
+          const rankedModeStats = rankedResult.value.data.data?.attributes?.rankedGameModeStats || {};
+          const modeData = rankedModeStats['squad-fpp'] || rankedModeStats['squad'] || Object.values(rankedModeStats)[0];
+          if (modeData && modeData.roundsPlayed > 0) {
+            const r = modeData.roundsPlayed;
+            const deaths = Math.max(1, r - (modeData.wins || 0));
+            pubgRankedSummary = {
+              mode: 'squad-fpp',
+              tier: modeData.currentTier?.tier || 'Unranked',
+              subTier: modeData.currentTier?.subTier || 0,
+              currentTier: modeData.currentTier?.tier || 'Unranked',
+              rp: modeData.currentRankPoint || 0,
+              bestTier: modeData.bestTier?.tier || modeData.currentTier?.tier || 'Unranked',
+              bestRankPoint: modeData.bestRankPoint || modeData.currentRankPoint || 0,
+              games: r,
+              wins: modeData.wins || 0,
+              kd: parseFloat(((modeData.kills || 0) / deaths).toFixed(2)),
+              kda: parseFloat((((modeData.kills || 0) + (modeData.assists || 0)) / deaths).toFixed(2)),
+              avgDamage: r > 0 ? Math.round((modeData.damageDealt || 0) / r) : 0,
+              winRate: parseFloat(((modeData.wins || 0) / r * 100).toFixed(1)),
+              top10Rate: parseFloat(((modeData.top10s || 0) / r * 100).toFixed(1)),
+              top10Ratio: (modeData.top10s || 0) / r,
+              avgRank: 0,
+              kills: modeData.kills || 0,
+              deaths,
+              assists: modeData.assists || 0,
+              headshotKills: modeData.headshotKills || 0,
+              headshotRate: (modeData.kills || 0) > 0
+                ? parseFloat(((modeData.headshotKills || 0) / (modeData.kills || 1) * 100).toFixed(1))
+                : 0,
+              damageDealt: modeData.damageDealt || 0,
+              dBNOs: modeData.dBNOs || 0,
+              roundsPlayed: r,
+            };
+            console.log(`✅ 랭크: 티어=${pubgRankedSummary.tier}, RP=${pubgRankedSummary.rp}, 게임=${r}`);
+          }
+        } else {
+          console.warn('랭크 통계 조회 실패:', rankedResult.reason?.message);
         }
       }
-    } catch (pubgError) {
-      console.warn('PUBG API 호출 오류:', pubgError.message);
     }
 
-    if (members.length > 0) {
-      // DB 데이터 기반으로 로드
-      playerData = await getDbOnlyPlayerData(members, prisma, 'database');
-
-      if (pubgPlayer) {
-        // API 성공: 최신 클랜/플레이어 정보 + 시즌 통계 업데이트
-        playerData = {
-          ...playerData,
-          profile: {
-            ...playerData.profile,
-            nickname: pubgPlayer.attributes.name || nickname,
-            playerId: pubgPlayer.id,
-            shardId: pubgShard,
-            clan: pubgClan
-              ? {
-                  name: pubgClan.attributes.clanName,
-                  tag: pubgClan.attributes.clanTag,
-                  level: pubgClan.attributes.clanLevel,
-                  memberCount: pubgClan.attributes.clanMemberCount,
-                }
-              : playerData.profile?.clan,
-          },
-          seasonStats: Object.keys(pubgSeasonStats).length > 0 ? pubgSeasonStats : (playerData.seasonStats || {}),
-        };
-        dataSource = 'db_with_api_enhancement';
-
-        // 백그라운드 DB 업데이트
-        const member = members[0];
-        if (member?.id) {
-          updatePlayerDataInBackground(member.id, { player: pubgPlayer, clan: pubgClan }).catch(() => {});
+    // Step 4: PUBG API에서 최근 매치 직접 조회 (병렬)
+    let recentMatches = [];
+    const matchIds = (pubgPlayer.relationships?.matches?.data || []).slice(0, 20).map(m => m.id);
+    if (matchIds.length > 0) {
+      try {
+        console.log(`⚙️ 최근 매치 ${matchIds.length}개 병렬 조회 중...`);
+        const matchResults = await Promise.allSettled(
+          matchIds.map(matchId =>
+            axios.get(
+              `https://api.pubg.com/shards/${pubgShard}/matches/${matchId}`,
+              { headers: PUBG_HEADERS, timeout: 8000 }
+            )
+          )
+        );
+        recentMatches = matchResults
+          .filter(r => r.status === 'fulfilled')
+          .map(r => {
+            const data = r.value.data;
+            const matchId = data.data.id;
+            const attrs = data.data.attributes;
+            const participants = (data.included || []).filter(i => i.type === 'participant');
+            const me = participants.find(p =>
+              p.attributes.stats.name?.toLowerCase() === nickname.toLowerCase()
+            );
+            if (!me) return null;
+            const s = me.attributes.stats;
+            return {
+              matchId,
+              mode: attrs.gameMode,
+              mapName: attrs.mapName,
+              placement: s.winPlace || 0,
+              kills: s.kills || 0,
+              assists: s.assists || 0,
+              damage: Math.round(s.damageDealt || 0),
+              surviveTime: s.timeSurvived || 0,
+              matchTimestamp: attrs.createdAt || new Date().toISOString(),
+            };
+          })
+          .filter(m => m !== null);
+        console.log(`✅ 매치 조회 완료: ${recentMatches.length}개`);
+      } catch (e) {
+        console.warn('매치 API 조회 실패:', e.message);
+      }
+    }
+    // DB 캐시 폴백 (API 실패 또는 매치 없는 경우)
+    if (recentMatches.length === 0) {
+      try {
+        const { PrismaClient } = require('@prisma/client');
+        const prisma = new PrismaClient();
+        const cached = await prisma.clanMember.findFirst({
+          where: { pubgPlayerId: pubgPlayer.id },
+          include: { matches: { orderBy: { createdAt: 'desc' }, take: 20 } },
+        });
+        if (cached?.matches?.length > 0) {
+          recentMatches = cached.matches.map(m => ({
+            matchId: m.matchId,
+            mode: m.mode,
+            mapName: m.mapName,
+            placement: m.placement,
+            kills: m.kills,
+            assists: m.assists,
+            damage: m.damage,
+            surviveTime: m.surviveTime,
+            matchTimestamp: m.createdAt ? m.createdAt.toISOString() : new Date().toISOString(),
+          }));
         }
-      } else {
-        dataSource = 'database';
+        await prisma.$disconnect();
+      } catch (e) {
+        console.warn('DB 매치 캐시 조회 실패:', e.message);
       }
-    } else {
-      // DB에 없는 신규 유저
-      if (!pubgPlayer) {
-        throw new Error(`플레이어를 찾을 수 없습니다: ${nickname}`);
-      }
-
-      // 신규 유저 기본 데이터 구성
-      playerData = {
-        profile: {
-          nickname: pubgPlayer.attributes.name,
-          playerId: pubgPlayer.id,
-          shardId: pubgShard,
-          lastUpdated: new Date().toISOString(),
-          clan: pubgClan
-            ? {
-                name: pubgClan.attributes.clanName,
-                tag: pubgClan.attributes.clanTag,
-                level: pubgClan.attributes.clanLevel,
-                memberCount: pubgClan.attributes.clanMemberCount,
-              }
-            : null,
-        },
-        summary: { avgDamage: 0, avgKills: 0, avgAssists: 0, avgSurviveTime: 0, winRate: 0, top10Rate: 0, score: 0, style: '-' },
-        recentMatches: [],
-        modeStats: [],
-        modeDistribution: { ranked: 0, normal: 0, event: 0 },
-        seasonStats: pubgSeasonStats,
-        clanMembers: [],
-        rankedStats: [],
-        rankedSummary: null,
-      };
-      dataSource = 'pubg_api';
-
-      // 신규 유저 DB 저장 (백그라운드)
-      saveNewUserToDB(nickname, playerData, prisma).catch((e) =>
-        console.error('신규 유저 DB 저장 실패:', e.message)
-      );
     }
 
-    await prisma.$disconnect();
+    // Step 5: API 기반 playerData 구성
+    const playerData = {
+      profile: {
+        nickname: pubgPlayer.attributes.name,
+        playerId: pubgPlayer.id,
+        shardId: pubgShard,
+        lastUpdated: new Date().toISOString(),
+        clan: pubgClan
+          ? {
+              name: pubgClan.attributes.clanName,
+              tag: pubgClan.attributes.clanTag,
+              level: pubgClan.attributes.clanLevel,
+              memberCount: pubgClan.attributes.clanMemberCount,
+            }
+          : null,
+      },
+      summary: pubgSummaryFromStats || {
+        avgDamage: 0, avgKills: 0, avgAssists: 0, avgSurviveTime: 0,
+        winRate: 0, top10Rate: 0, score: 0, style: '-',
+      },
+      recentMatches,
+      modeStats: [],
+      modeDistribution: pubgModeDistribution,
+      seasonStats: pubgSeasonStats,
+      clanMembers: [],
+      rankedStats: [],
+      rankedSummary: pubgRankedSummary,
+    };
+
+    // Step 6: 백그라운드 DB 저장 (upsert + 매치 저장)
+    savePlayerToDatabase(pubgPlayer, pubgShard, pubgClan, pubgSummaryFromStats, recentMatches)
+      .catch(e => console.error('DB 저장 실패:', e.message));
 
     return {
-      props: { playerData, error: null, dataSource },
+      props: { playerData, error: null, dataSource: 'pubg_api' },
     };
   } catch (error) {
     console.error('getServerSideProps error:', error);
-    await prisma.$disconnect();
-
     return {
       props: { playerData: null, error: error.message, dataSource: null },
     };

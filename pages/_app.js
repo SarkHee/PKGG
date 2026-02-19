@@ -2,6 +2,7 @@
 
 import '../styles/globals.css'; // globals.css 파일을 임포트합니다.
 import { useEffect } from 'react';
+import Script from 'next/script';
 
 function MyApp({ Component, pageProps }) {
   // 앱 시작 시 포럼 카테고리 초기화
@@ -23,9 +24,17 @@ function MyApp({ Component, pageProps }) {
   // Component는 현재 페이지 컴포넌트 (예: Home, ClanDetailsPage 등)
   // pageProps는 getServerSideProps 또는 getStaticProps를 통해 페이지에 전달되는 props
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      <Component {...pageProps} />
-    </div>
+    <>
+      <Script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7884456727026548"
+        crossOrigin="anonymous"
+        strategy="afterInteractive"
+      />
+      <div className="min-h-screen bg-white text-gray-900">
+        <Component {...pageProps} />
+      </div>
+    </>
   );
 }
 

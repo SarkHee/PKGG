@@ -1,13 +1,7 @@
 export default function MatchDetailLog({ match }) {
   if (!match) return null;
 
-  // 실제 텔레메트리 데이터 우선 사용
-  const killLog =
-    Array.isArray(match.killLog) && match.killLog.length > 0
-      ? match.killLog
-      : Array.isArray(match.killLog)
-        ? match.killLog
-        : [];
+  const killLog = Array.isArray(match.killLog) && match.killLog.length > 0 ? match.killLog : [];
 
   const movePath = match.movePath || '';
 
@@ -19,108 +13,42 @@ export default function MatchDetailLog({ match }) {
       ? match.weaponStats
       : {};
 
-  // 텔레메트리 데이터가 없는 경우에만 더미 데이터 생성
-  const hasTelemetryData =
-    killLog.length > 0 || movePath || Object.keys(weaponStats).length > 0;
+  const hasTelemetryData = killLog.length > 0 || movePath || Object.keys(weaponStats).length > 0;
   const shouldUseMockData = !hasTelemetryData;
-
-  console.log('MatchDetailLog 데이터:', {
-    matchId: match.matchId,
-    killLogCount: killLog.length,
-    movePath: movePath,
-    weaponStatsCount: Object.keys(weaponStats).length,
-    hasTelemetryData,
-    shouldUseMockData,
-    telemetryUrl: match.telemetryUrl,
-  });
 
   // 생존 시간 기반 더미 이동경로 생성
   const generateMockMovePath = () => {
     const survivalTime = match.survivalTime || match.surviveTime || 0;
     const minutes = Math.floor(survivalTime / 60);
-
     if (minutes < 5) return 'School → Apartments';
     else if (minutes < 10) return 'School → Apartments → Hospital';
     else if (minutes < 20) return 'School → Apartments → Hospital → Military';
     else return 'School → Apartments → Hospital → Military → Center';
   };
 
-  // 더미 무기 데이터 생성 (실제 PUBG 무기명 사용)
   const generateMockWeaponStats = () => {
     const totalDamage = match.damage || 0;
     if (totalDamage === 0) return {};
-
-    // 실제 PUBG 인기 무기들
-    const weapons = [
-      'M416',
-      'AKM',
-      'SCAR-L',
-      'M16A4',
-      'Beryl M762',
-      'Kar98k',
-      'M24',
-      'AWM',
-      'SLR',
-      'Mini14',
-      'UMP45',
-      'Vector',
-      'Tommy Gun',
-      'MP5K',
-      'M249',
-      'DP-27',
-      'MG3',
-      'S686',
-      'S1897',
-      'S12K',
-      'DBS',
-      'P18C',
-      'P92',
-      'P1911',
-      'Deagle',
-    ];
-
+    const weapons = ['M416', 'AKM', 'SCAR-L', 'M16A4', 'Beryl M762', 'Kar98k', 'M24', 'AWM', 'SLR', 'Mini14', 'UMP45', 'Vector'];
     const result = {};
     let remaining = Math.round(totalDamage);
-
-    // 랜덤하게 2-3개 무기에 딜량 분배
-    const numWeapons = Math.min(
-      Math.floor(Math.random() * 2) + 2,
-      weapons.length
-    );
+    const numWeapons = Math.min(Math.floor(Math.random() * 2) + 2, weapons.length);
     const selectedWeapons = [];
-
-    // 무기 카테고리별로 선택 (더 현실적으로)
-    const primaryWeapons = weapons.slice(0, 5); // 주무기
-    const sniperWeapons = weapons.slice(5, 10); // 저격총
-    const subWeapons = weapons.slice(10, 14); // 보조무기
-
-    // 주무기는 항상 포함
-    selectedWeapons.push(
-      primaryWeapons[Math.floor(Math.random() * primaryWeapons.length)]
-    );
-
-    // 나머지 무기 선택
-    const remainingWeapons = weapons.filter(
-      (w) => !selectedWeapons.includes(w)
-    );
+    selectedWeapons.push(weapons[Math.floor(Math.random() * 5)]);
+    const remainingWeapons = weapons.filter((w) => !selectedWeapons.includes(w));
     for (let i = 1; i < numWeapons; i++) {
-      selectedWeapons.push(
-        remainingWeapons[Math.floor(Math.random() * remainingWeapons.length)]
-      );
+      selectedWeapons.push(remainingWeapons[Math.floor(Math.random() * remainingWeapons.length)]);
     }
-
     for (let i = 0; i < numWeapons - 1; i++) {
       const damage = Math.round(remaining * (0.3 + Math.random() * 0.4));
       result[selectedWeapons[i]] = damage;
       remaining -= damage;
     }
     result[selectedWeapons[numWeapons - 1]] = Math.max(0, remaining);
-
     return result;
   };
 
-  const displayMovePath =
-    movePath || (shouldUseMockData ? generateMockMovePath() : '');
+  const displayMovePath = movePath || (shouldUseMockData ? generateMockMovePath() : '');
   const displayWeaponStats =
     Object.keys(weaponStats).length > 0
       ? weaponStats
@@ -128,230 +56,130 @@ export default function MatchDetailLog({ match }) {
         ? generateMockWeaponStats()
         : {};
 
-  // 무기별 아이콘 매핑
   const getWeaponIcon = (weaponName) => {
     const weapon = weaponName.toLowerCase();
-    if (
-      weapon.includes('kar98') ||
-      weapon.includes('m24') ||
-      weapon.includes('awm') ||
-      weapon.includes('slr') ||
-      weapon.includes('mini14') ||
-      weapon.includes('mk14')
-    )
-      return '🎯';
-    if (
-      weapon.includes('m416') ||
-      weapon.includes('akm') ||
-      weapon.includes('scar') ||
-      weapon.includes('m16') ||
-      weapon.includes('beryl') ||
-      weapon.includes('g36c')
-    )
-      return '🔫';
-    if (
-      weapon.includes('ump') ||
-      weapon.includes('vector') ||
-      weapon.includes('tommy') ||
-      weapon.includes('mp5') ||
-      weapon.includes('bizon')
-    )
-      return '🔫';
-    if (
-      weapon.includes('m249') ||
-      weapon.includes('dp-27') ||
-      weapon.includes('dp-28') ||
-      weapon.includes('mg3')
-    )
-      return '💥';
-    if (
-      weapon.includes('s686') ||
-      weapon.includes('s1897') ||
-      weapon.includes('s12k') ||
-      weapon.includes('dbs') ||
-      weapon.includes('shotgun')
-    )
-      return '💣';
-    if (
-      weapon.includes('p18c') ||
-      weapon.includes('p92') ||
-      weapon.includes('p1911') ||
-      weapon.includes('deagle') ||
-      weapon.includes('pistol')
-    )
-      return '🔫';
-    if (
-      weapon.includes('frag') ||
-      weapon.includes('grenade') ||
-      weapon.includes('molotov') ||
-      weapon.includes('explosion')
-    )
-      return '💥';
-    if (
-      weapon.includes('punch') ||
-      weapon.includes('hit') ||
-      weapon.includes('melee')
-    )
-      return '👊';
-    if (
-      weapon.includes('vehicle') ||
-      weapon.includes('car') ||
-      weapon.includes('motorcycle')
-    )
-      return '🚗';
-    if (
-      weapon.includes('redzone') ||
-      weapon.includes('bluezone') ||
-      weapon.includes('zone')
-    )
-      return '💀';
+    if (weapon.includes('kar98') || weapon.includes('m24') || weapon.includes('awm') || weapon.includes('slr') || weapon.includes('mini14') || weapon.includes('mk14')) return '🎯';
+    if (weapon.includes('m249') || weapon.includes('dp-27') || weapon.includes('dp-28') || weapon.includes('mg3')) return '💥';
+    if (weapon.includes('s686') || weapon.includes('s1897') || weapon.includes('s12k') || weapon.includes('dbs')) return '💣';
+    if (weapon.includes('frag') || weapon.includes('grenade') || weapon.includes('molotov')) return '💥';
+    if (weapon.includes('punch') || weapon.includes('melee')) return '👊';
+    if (weapon.includes('vehicle') || weapon.includes('car')) return '🚗';
     return '🔫';
   };
 
+  // 최대 딜량 (progress bar용)
+  const maxWeaponDmg = Math.max(...Object.values(displayWeaponStats).map(Number), 1);
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
-      <div className="font-bold text-base mb-4 text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
-        📝 상세 전투 로그
+    <div className="mt-3">
+      <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
+        상세 전투 로그
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* 킬 로그 */}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-          <div className="font-semibold mb-3 text-gray-800 dark:text-gray-200 flex items-center gap-2">
-            ⚔️ 킬 로그
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">킬 로그</span>
           </div>
-          <div className="text-sm text-gray-700 dark:text-gray-300">
+          <div className="p-3">
             {killLog.length > 0 ? (
-              <div className="space-y-2">
-                {!hasTelemetryData && (
-                  <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded mb-2">
-                    ⚠️ 상세 텔레메트리 데이터 없음 - 기본 통계만 표시
-                  </div>
-                )}
+              <div className="space-y-1.5">
                 {killLog.map((log, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600"
-                  >
-                    <span className="w-5 h-5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-xs flex items-center justify-center font-bold">
+                  <div key={i} className="flex items-center gap-2 px-2 py-1.5 bg-red-50 rounded-lg border border-red-100">
+                    <span className="w-4 h-4 bg-red-400 text-white rounded-full text-xs flex items-center justify-center font-bold flex-shrink-0">
                       {i + 1}
                     </span>
-                    <span className="text-sm">{log}</span>
+                    <span className="text-xs text-gray-700">{log}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-4">
-                <div className="text-2xl mb-2">🎯</div>
-                <div className="text-gray-500 dark:text-gray-400 text-sm">
-                  {(match.kills || 0) > 0
-                    ? '킬 상세 정보 없음'
-                    : '킬 기록 없음'}
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="text-2xl mb-1.5">🎯</div>
+                <div className="text-xs font-medium text-gray-500">
+                  {(match.kills || 0) > 0 ? '킬 상세 정보 없음' : '킬 기록 없음'}
                 </div>
-                <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-                  {(match.kills || 0) > 0
-                    ? '텔레메트리 데이터가 없어 상세 킬로그를 표시할 수 없습니다'
-                    : '이 경기에서는 킬을 기록하지 못했습니다'}
+                <div className="text-xs text-gray-400 mt-0.5">
+                  {(match.kills || 0) > 0 ? '텔레메트리 데이터 없음' : '이 경기에서 킬 없음'}
                 </div>
-                {match.telemetryUrl && (
-                  <div className="text-xs text-blue-500 dark:text-blue-400 mt-2">
-                    📊 텔레메트리 데이터 처리 중...
-                  </div>
-                )}
               </div>
             )}
           </div>
         </div>
 
         {/* 이동 경로 */}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-          <div className="font-semibold mb-3 text-gray-800 dark:text-gray-200 flex items-center gap-2">
-            🗺️ 이동 경로
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">이동 경로</span>
+            {shouldUseMockData && displayMovePath && (
+              <span className="ml-auto text-xs text-amber-500 font-medium">추정</span>
+            )}
           </div>
-          <div className="text-sm text-gray-700 dark:text-gray-300">
+          <div className="p-3">
             {displayMovePath ? (
-              <div className="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
-                <div className="flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-blue-400">📍</span>
-                  <span className="font-mono text-sm">{displayMovePath}</span>
+              <div className="px-3 py-2.5 bg-blue-50 rounded-lg border border-blue-100">
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-400 mt-0.5 flex-shrink-0">📍</span>
+                  <span className="font-mono text-xs text-gray-700 leading-relaxed">{displayMovePath}</span>
                 </div>
-                {shouldUseMockData && displayMovePath && (
-                  <div className="text-xs text-amber-500 dark:text-amber-400 mt-2">
-                    ⚠️ 생존 시간 기반 추정 경로 - 정확한 이동 데이터 없음
-                  </div>
-                )}
-                {hasTelemetryData && (
-                  <div className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    ✅ 텔레메트리 기반 실제 이동 경로
-                  </div>
-                )}
               </div>
             ) : (
-              <div className="text-center py-4">
-                <div className="text-2xl mb-2">🗺️</div>
-                <div className="text-gray-500 dark:text-gray-400 text-sm">
-                  이동 경로 데이터 없음
-                </div>
-                <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-                  텔레메트리 데이터가 없어 이동 경로를 표시할 수 없습니다
-                </div>
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="text-2xl mb-1.5">🗺️</div>
+                <div className="text-xs font-medium text-gray-500">이동 경로 없음</div>
+                <div className="text-xs text-gray-400 mt-0.5">텔레메트리 데이터 없음</div>
               </div>
             )}
           </div>
         </div>
 
         {/* 무기별 딜량 */}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-          <div className="font-semibold mb-3 text-gray-800 dark:text-gray-200 flex items-center gap-2">
-            🔫 무기별 딜량
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-orange-400 rounded-full"></span>
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">무기별 딜량</span>
+            {shouldUseMockData && Object.keys(displayWeaponStats).length > 0 && (
+              <span className="ml-auto text-xs text-amber-500 font-medium">추정</span>
+            )}
           </div>
-          <div className="text-sm text-gray-700 dark:text-gray-300">
+          <div className="p-3">
             {Object.keys(displayWeaponStats).length > 0 ? (
               <div className="space-y-2">
-                {!hasTelemetryData &&
-                  Object.keys(displayWeaponStats).length > 0 && (
-                    <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded mb-2">
-                      ⚠️ 추정 데이터 - 총 딜량 기반 분배
-                    </div>
-                  )}
-                {hasTelemetryData && (
-                  <div className="text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded mb-2">
-                    ✅ 텔레메트리 기반 실제 무기별 딜량
-                  </div>
-                )}
                 {Object.entries(displayWeaponStats)
-                  .sort(([, a], [, b]) => (Number(b) || 0) - (Number(a) || 0)) // 딜량 높은 순으로 정렬
-                  .map(([weapon, dmg]) => (
-                    <div
-                      key={weapon}
-                      className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-orange-600 dark:text-orange-400">
-                          {getWeaponIcon(weapon)}
-                        </span>
-                        <span className="font-medium text-sm">{weapon}</span>
+                  .sort(([, a], [, b]) => Number(b) - Number(a))
+                  .map(([weapon, dmg]) => {
+                    const dmgNum = Math.round(Number(dmg) || 0);
+                    const pct = Math.round((dmgNum / maxWeaponDmg) * 100);
+                    return (
+                      <div key={weapon}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm">{getWeaponIcon(weapon)}</span>
+                            <span className="text-xs font-medium text-gray-700">{weapon}</span>
+                          </div>
+                          <span className="text-xs font-bold text-orange-600">{dmgNum.toLocaleString()}</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-orange-400 rounded-full"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
                       </div>
-                      <span className="font-bold text-orange-600 dark:text-orange-400">
-                        {typeof dmg === 'number'
-                          ? Math.round(dmg).toLocaleString()
-                          : Math.round(Number(dmg) || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             ) : (
-              <div className="text-center py-4">
-                <div className="text-2xl mb-2">🔫</div>
-                <div className="text-gray-500 dark:text-gray-400 text-sm">
-                  {(match.damage || 0) > 0
-                    ? '무기별 데이터 없음'
-                    : '딜량 기록 없음'}
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="text-2xl mb-1.5">🔫</div>
+                <div className="text-xs font-medium text-gray-500">
+                  {(match.damage || 0) > 0 ? '무기별 데이터 없음' : '딜량 기록 없음'}
                 </div>
-                <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-                  {(match.damage || 0) > 0
-                    ? '텔레메트리 데이터가 없어 무기별 상세 정보를 표시할 수 없습니다'
-                    : '이 경기에서는 딜량을 기록하지 못했습니다'}
+                <div className="text-xs text-gray-400 mt-0.5">
+                  {(match.damage || 0) > 0 ? '텔레메트리 데이터 없음' : '이 경기에서 딜량 없음'}
                 </div>
               </div>
             )}

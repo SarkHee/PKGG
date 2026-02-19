@@ -296,278 +296,181 @@ export default function Home() {
         <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20">
           <div className="text-center max-w-4xl mx-auto mb-16">
             {/* 로고 */}
-            <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold mb-6 md:mb-8 tracking-wider">
+            <div className="mb-3">
+              <span className="inline-block text-xs font-semibold tracking-widest text-blue-400 uppercase mb-3 opacity-80">
+                PUBG Stats & Analytics
+              </span>
+            </div>
+            <h1 className="text-5xl sm:text-7xl md:text-9xl font-black mb-4 md:mb-6 tracking-tighter bg-gradient-to-b from-white to-blue-200 bg-clip-text text-transparent drop-shadow-lg">
               PK.GG
             </h1>
 
             {/* 서브타이틀 */}
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-300 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
-              PUBG 플레이어 통계와 클랜 정보를 확인해보세요
+            <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-8 md:mb-10 max-w-xl mx-auto leading-relaxed px-4">
+              PUBG 플레이어 통계와 클랜 정보를 한눈에 확인하세요
             </p>
 
             {/* 검색 메시지 알림 */}
             {searchMessage && (
-              <div className="mb-4 max-w-2xl mx-auto px-4">
-                <div className="bg-orange-500/90 border border-orange-400 text-white px-4 py-3 rounded-lg shadow-lg animate-pulse">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">⚠️</span>
+              <div className="mb-6 max-w-xl mx-auto px-4">
+                <div className="bg-orange-500/20 border border-orange-500/50 text-orange-300 px-4 py-3 rounded-xl">
+                  <div className="flex items-center gap-2 justify-center">
+                    <span>⚠️</span>
                     <p className="text-sm font-medium">{searchMessage}</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 검색 섹션 */}
-            <div className="flex flex-col gap-4 mb-6 md:mb-8 max-w-2xl mx-auto px-4">
-              <select
-                value={server}
-                onChange={(e) => setServer(e.target.value)}
-                className="w-full sm:w-auto px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center sm:text-left"
-              >
-                <option value="steam">Steam</option>
-                <option value="kakao">Kakao</option>
-                <option value="console">Console</option>
-              </select>
-
-              <div className="flex w-full">
-                <input
-                  type="text"
-                  placeholder="플레이어 이름을 입력하세요..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="flex-1 px-4 py-3 bg-gray-800 border border-gray-600 rounded-l-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-                />
-                <button
-                  onClick={handleSearch}
-                  className="px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-r-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 text-sm sm:text-base"
-                >
-                  검색
-                </button>
+            {/* 검색 섹션 - 카드 형태 */}
+            <div className="max-w-xl mx-auto px-4 mb-4">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl">
+                {/* 서버 선택 탭 */}
+                <div className="flex gap-2 mb-3">
+                  {['steam', 'kakao', 'console'].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setServer(s)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                        server === s
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300'
+                      }`}
+                    >
+                      {s === 'steam' ? '🎮 Steam' : s === 'kakao' ? '🟡 Kakao' : '🎯 Console'}
+                    </button>
+                  ))}
+                </div>
+                {/* 검색 입력 */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="플레이어 닉네임을 입력하세요..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
+                  />
+                  <button
+                    onClick={handleSearch}
+                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/30 hover:shadow-blue-500/40 flex items-center gap-2 text-sm"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    검색
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div className="text-gray-400 text-xs sm:text-sm px-4">
-              <p>정확한 게임 내 닉네임을 입력해주세요</p>
+              <p className="text-gray-600 text-xs mt-2.5">정확한 게임 내 닉네임을 입력해주세요</p>
             </div>
           </div>
 
           {/* PUBG 뉴스 섹션 */}
           {Array.isArray(recentNews) && recentNews.length > 0 && (
-            <div className="w-full max-w-7xl mx-auto mb-16">
-              <div className="px-4">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                    📢 PUBG 이벤트 & 뉴스
-                  </h2>
-                  <Link href="/pubg-news" passHref>
-                    <span className="text-blue-400 hover:text-blue-300 text-sm font-medium cursor-pointer flex items-center gap-1">
-                      전체보기 →
-                    </span>
-                  </Link>
-                </div>
+            <div className="w-full max-w-6xl mx-auto mb-14 px-4">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span className="w-1 h-5 bg-blue-500 rounded-full inline-block"></span>
+                  PUBG 이벤트 & 뉴스
+                </h2>
+                <Link href="/pubg-news" passHref>
+                  <span className="text-blue-400 hover:text-blue-300 text-sm font-medium cursor-pointer transition-colors">
+                    전체보기 →
+                  </span>
+                </Link>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {Array.isArray(recentNews) &&
-                    recentNews.map((news, index) => (
-                      <div
-                        key={news?.id || index}
-                        className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl p-6 hover:bg-white/95 transition-all duration-300 hover:scale-105 shadow-lg group"
-                      >
-                        {/* 이미지 영역 (있을 경우) */}
-                        {news?.imageUrl ? (
-                          <div className="relative h-32 overflow-hidden rounded-lg mb-4">
-                            <img
-                              src={news.imageUrl}
-                              alt={news.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg mb-4 flex items-center justify-center">
-                            <span className="text-white text-2xl">📢</span>
-                          </div>
-                        )}
-
-                        {/* 카테고리 및 소스 태그 */}
-                        <div className="flex items-center gap-2 mb-3">
-                          {news?.category && (
-                            <span
-                              className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                news.category === '이벤트'
-                                  ? 'bg-purple-100 text-purple-800'
-                                  : news.category === '업데이트'
-                                    ? 'bg-green-100 text-green-800'
-                                    : news.category === '공지사항'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-gray-100 text-gray-800'
-                              }`}
-                            >
-                              {news.category}
-                            </span>
-                          )}
-                          {news?.source && (
-                            <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
-                              {news.source === 'PUBG_EVENTS'
-                                ? '이벤트'
-                                : news.source === 'STEAM_PUBG'
-                                  ? 'Steam'
-                                  : '공식'}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* 제목 */}
-                        <h3
-                          className="font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors"
-                          style={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {news?.title || '제목 없음'}
-                        </h3>
-
-                        {/* 요약 */}
-                        {news?.summary && (
-                          <p
-                            className="text-gray-600 text-sm mb-4 leading-relaxed"
-                            style={{
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                            }}
-                          >
-                            {news.summary}
-                          </p>
-                        )}
-
-                        {/* 날짜 정보 */}
-                        {(news?.publishedAt || news?.publishDate) && (
-                          <div className="flex items-center gap-1 text-xs text-gray-500 mb-4">
-                            📅
-                            <span>
-                              {(() => {
-                                try {
-                                  const date = new Date(
-                                    news.publishedAt || news.publishDate
-                                  );
-                                  return date.toLocaleDateString('ko-KR', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                  });
-                                } catch (e) {
-                                  return '날짜 정보 없음';
-                                }
-                              })()}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* 링크 버튼 */}
-                        <a
-                          href={news?.link || news?.url || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 w-full justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors group-hover:shadow-md"
-                        >
-                          자세히 보기
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                            />
-                          </svg>
-                        </a>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {recentNews.map((news, index) => (
+                  <div
+                    key={news?.id || index}
+                    className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-blue-500/40 hover:bg-white/8 transition-all duration-300 group"
+                  >
+                    {news?.imageUrl ? (
+                      <div className="relative h-28 overflow-hidden">
+                        <img
+                          src={news.imageUrl}
+                          alt={news.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent" />
                       </div>
-                    ))}
-                </div>
+                    ) : (
+                      <div className="h-28 bg-gradient-to-br from-blue-800/50 to-blue-900/50 flex items-center justify-center">
+                        <span className="text-3xl opacity-50">📢</span>
+                      </div>
+                    )}
+
+                    <div className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        {news?.category && (
+                          <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                            news.category === '이벤트' ? 'bg-purple-500/20 text-purple-300' :
+                            news.category === '업데이트' ? 'bg-green-500/20 text-green-300' :
+                            'bg-blue-500/20 text-blue-300'
+                          }`}>
+                            {news.category}
+                          </span>
+                        )}
+                        {(news?.publishedAt || news?.publishDate) && (
+                          <span className="text-xs text-gray-500">
+                            {(() => {
+                              try {
+                                return new Date(news.publishedAt || news.publishDate).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                              } catch { return ''; }
+                            })()}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="font-semibold text-gray-100 text-sm mb-3 group-hover:text-blue-300 transition-colors line-clamp-2">
+                        {news?.title || '제목 없음'}
+                      </h3>
+
+                      <a
+                        href={news?.link || news?.url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        자세히 보기
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* 특징 카드 섹션 */}
-          <div className="w-full max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
-              <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl p-6 hover:bg-white/95 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
-                <div className="text-blue-600 text-3xl mb-4">📊</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  실시간 통계
-                </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  PUBG API와 연동하여 실시간으로 업데이트되는 정확한 플레이어
-                  통계를 제공합니다.
-                </p>
-              </div>
-
-              <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl p-6 hover:bg-white/95 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
-                <div className="text-green-600 text-3xl mb-4">👥</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  클랜 분석
-                </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  클랜 멤버들의 상세한 통계와 팀 시너지를 분석하여 클랜 성과를
-                  한눈에 파악할 수 있습니다.
-                </p>
-              </div>
-
-              <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl p-6 hover:bg-white/95 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
-                <div className="text-purple-600 text-3xl mb-4">🏆</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  PK.GG 점수
-                </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  독자적인 알고리즘으로 계산된 PK.GG 점수로 플레이어의 실력을
-                  객관적으로 평가합니다.
-                </p>
-              </div>
-
-              <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl p-6 hover:bg-white/95 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
-                <div className="text-yellow-600 text-3xl mb-4">🎯</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  상세 매치 분석
-                </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  각 경기별 상세 통계와 헤드샷률, 생존 시간 등 깊이 있는 분석
-                  데이터를 제공합니다.
-                </p>
-              </div>
-
-              <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl p-6 hover:bg-white/95 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
-                <div className="text-red-600 text-3xl mb-4">📈</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  랭크 트래킹
-                </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  경쟁전 랭크 변화를 추적하고 시즌별 성장 곡선을 시각적으로
-                  확인할 수 있습니다.
-                </p>
-              </div>
-
-              <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl p-6 hover:bg-white/95 transition-all duration-300 hover:scale-105 hover:shadow-xl shadow-lg">
-                <div className="text-cyan-600 text-3xl mb-4">⚡</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  빠른 검색
-                </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Steam, Kakao, Console 모든 플랫폼을 지원하며 빠르고 정확한
-                  플레이어 검색을 제공합니다.
-                </p>
-              </div>
+          <div className="w-full max-w-6xl mx-auto px-4">
+            <div className="text-center mb-8">
+              <h2 className="text-base font-semibold text-gray-500 uppercase tracking-widest">Features</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                { icon: '📊', title: '실시간 통계', desc: 'PUBG API 연동으로 정확한 플레이어 통계', color: 'blue' },
+                { icon: '👥', title: '클랜 분석', desc: '팀 시너지와 클랜 성과를 한눈에', color: 'green' },
+                { icon: '🏆', title: 'PK.GG 점수', desc: '독자 알고리즘의 실력 평가 지수', color: 'purple' },
+                { icon: '🎯', title: '매치 분석', desc: '경기별 상세 통계와 히트맵', color: 'yellow' },
+                { icon: '📈', title: '랭크 트래킹', desc: '경쟁전 랭크 변화 추적', color: 'red' },
+                { icon: '⚡', title: '빠른 검색', desc: 'Steam·Kakao·Console 전 플랫폼 지원', color: 'cyan' },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="bg-white/5 border border-white/8 rounded-xl p-4 hover:border-white/20 hover:bg-white/8 transition-all duration-200"
+                >
+                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <h3 className="text-sm font-bold text-gray-200 mb-1">{item.title}</h3>
+                  <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </main>

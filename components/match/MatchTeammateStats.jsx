@@ -1,93 +1,122 @@
 export default function MatchTeammateStats({ teammatesDetail }) {
   if (!Array.isArray(teammatesDetail) || teammatesDetail.length === 0) {
-    return <div className="text-gray-500 text-sm py-2">팀원 데이터 없음</div>;
+    return (
+      <div className="flex items-center justify-center py-6 text-gray-400 text-sm bg-gray-50 rounded-xl border border-gray-200">
+        팀원 데이터가 없습니다
+      </div>
+    );
   }
 
-  // 생존시간을 분:초 형식으로 변환하는 함수
   const formatSurvivalTime = (seconds) => {
     if (!seconds || seconds < 0) return '0:00';
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
+
+  const getDmgColor = (dmg) => {
+    if (dmg >= 400) return 'text-blue-600 font-black';
+    if (dmg >= 200) return 'text-orange-500 font-bold';
+    return 'text-gray-500';
+  };
+
+  const getKillColor = (kills) => {
+    if (kills >= 5) return 'text-red-500 font-black';
+    if (kills >= 3) return 'text-orange-500 font-bold';
+    if (kills >= 1) return 'text-gray-700 font-semibold';
+    return 'text-gray-400';
+  };
+
+  const getRankDisplay = (rank) => {
+    if (rank === 1) return <span className="text-yellow-500 font-black">🥇</span>;
+    if (rank === 2) return <span className="text-gray-400 font-black">🥈</span>;
+    if (rank === 3) return <span className="text-amber-600 font-black">🥉</span>;
+    return <span className="text-gray-500 font-bold">#{rank}</span>;
+  };
+
+  // 최대 딜량 구하기 (progress bar용)
+  const maxDamage = Math.max(...teammatesDetail.map(t => t.damage || 0), 1);
 
   return (
     <div className="mb-4">
-      <div className="font-bold text-base mb-3 text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
-        👥 팀원별 상세 스탯
+      <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
+        팀원별 상세 스탯
       </div>
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-gray-200">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th className="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-200">
-                닉네임
-              </th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">
-                킬
-              </th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">
-                어시
-              </th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">
-                딜량
-              </th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">
-                기절
-              </th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">
-                생존
-              </th>
-              <th className="px-3 py-2 text-center font-semibold text-gray-700 dark:text-gray-200">
-                등수
-              </th>
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">닉네임</th>
+              <th className="px-3 py-2.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">킬</th>
+              <th className="px-3 py-2.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">어시</th>
+              <th className="px-3 py-2.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">딜량</th>
+              <th className="px-3 py-2.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">기절</th>
+              <th className="px-3 py-2.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">생존</th>
+              <th className="px-3 py-2.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">등수</th>
             </tr>
           </thead>
           <tbody>
-            {teammatesDetail.map((t, index) => (
+            {teammatesDetail.map((t) => (
               <tr
                 key={t.name}
-                className={`border-t border-gray-200 dark:border-gray-600 ${
+                className={`border-b border-gray-100 last:border-0 transition-colors ${
                   t.isSelf
-                    ? 'bg-indigo-50 dark:bg-indigo-900/20 font-semibold'
-                    : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                    ? 'bg-blue-50'
+                    : 'bg-white hover:bg-gray-50'
                 }`}
               >
-                <td className="px-3 py-2">
+                {/* 닉네임 */}
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    {t.isSelf && (
-                      <span className="text-indigo-600 dark:text-indigo-400">
-                        👤
+                    {t.isSelf ? (
+                      <span className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+                        나
                       </span>
+                    ) : (
+                      <span className="w-5 h-5 bg-gray-200 rounded-full flex-shrink-0" />
                     )}
-                    <span
-                      className={
-                        t.isSelf
-                          ? 'text-indigo-700 dark:text-indigo-300'
-                          : 'text-gray-900 dark:text-gray-100'
-                      }
-                    >
+                    <span className={`font-semibold ${t.isSelf ? 'text-blue-700' : 'text-gray-800'}`}>
                       {t.name}
                     </span>
                   </div>
                 </td>
-                <td className="px-3 py-2 text-center font-medium text-gray-900 dark:text-gray-100">
-                  {t.kills || 0}
+                {/* 킬 */}
+                <td className="px-3 py-3 text-center">
+                  <span className={getKillColor(t.kills || 0)}>
+                    {t.kills || 0}
+                  </span>
                 </td>
-                <td className="px-3 py-2 text-center font-medium text-gray-900 dark:text-gray-100">
+                {/* 어시스트 */}
+                <td className="px-3 py-3 text-center text-gray-500">
                   {t.assists || 0}
                 </td>
-                <td className="px-3 py-2 text-center font-medium text-orange-600 dark:text-orange-400">
-                  {Math.round(t.damage || 0)}
+                {/* 딜량 + 프로그레스 바 */}
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-2 min-w-[100px]">
+                    <span className={`min-w-[42px] text-right text-sm ${getDmgColor(t.damage || 0)}`}>
+                      {Math.round(t.damage || 0)}
+                    </span>
+                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          (t.damage || 0) >= 400 ? 'bg-blue-500' : (t.damage || 0) >= 200 ? 'bg-orange-400' : 'bg-gray-300'
+                        }`}
+                        style={{ width: `${Math.round(((t.damage || 0) / maxDamage) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
                 </td>
-                <td className="px-3 py-2 text-center font-medium text-gray-900 dark:text-gray-100">
+                {/* 기절 */}
+                <td className="px-3 py-3 text-center text-gray-500">
                   {t.dbnos || 0}
                 </td>
-                <td className="px-3 py-2 text-center font-medium text-blue-600 dark:text-blue-400">
+                {/* 생존 */}
+                <td className="px-3 py-3 text-center text-gray-600">
                   {formatSurvivalTime(t.survivalTime)}
                 </td>
-                <td className="px-3 py-2 text-center font-bold text-gray-700 dark:text-gray-300">
-                  #{t.rank || '-'}
+                {/* 등수 */}
+                <td className="px-3 py-3 text-center">
+                  {getRankDisplay(t.rank)}
                 </td>
               </tr>
             ))}
