@@ -21,46 +21,38 @@ export default function MatchListRow({
     return mode;
   };
 
-  const getGameModeInfo = (match, playerData) => {
-    if (match.modeType && match.modeType !== '일반') {
-      return { type: 'ranked', label: match.modeType, color: '#dc2626' };
+  // matchType: PUBG API의 공식 필드 (official=일반, ranked=경쟁전, event/casual=이벤트)
+  const getGameModeInfo = (match) => {
+    const mt = (match.matchType || '').toLowerCase();
+
+    // 1순위: matchType 필드 (가장 정확)
+    if (mt === 'ranked' || mt === 'competitive') {
+      return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
     }
-
-    const modeFields = [match.gameMode, match.matchType, match.mode, match.type, match.queueType, match.customMode];
-    const rankedKeywords = ['ranked', 'rank', 'competitive', 'comp', 'rating', 'mmr'];
-
-    for (const field of modeFields) {
-      if (field && typeof field === 'string') {
-        const fieldLower = field.toLowerCase();
-        for (const keyword of rankedKeywords) {
-          if (fieldLower.includes(keyword.toLowerCase())) {
-            return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
-          }
-        }
-      }
-    }
-
-    if (playerData?.rankedSummary) {
-      const rankedData = playerData.rankedSummary;
-      if (rankedData.games >= 50 || rankedData.roundsPlayed >= 50) {
-        if (match.matchTimestamp) {
-          const daysSinceMatch = (Date.now() - match.matchTimestamp) / (1000 * 60 * 60 * 24);
-          if (daysSinceMatch <= 7) {
-            return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
-          }
-        }
-      }
-    }
-
-    const gameMode = match.gameMode || match.mode || '';
-    if (gameMode.toLowerCase().includes('event') || gameMode.toLowerCase().includes('arcade')) {
+    if (mt === 'event' || mt === 'casual' || mt === 'airoyale') {
       return { type: 'event', label: '이벤트', color: '#f59e0b' };
     }
+    if (mt === 'official' || mt === 'training') {
+      // official은 일반게임, mode로 서브 구분
+      const mode = (match.mode || '').toLowerCase();
+      if (mode.includes('event') || mode.includes('arcade')) {
+        return { type: 'event', label: '이벤트', color: '#f59e0b' };
+      }
+      return { type: 'normal', label: '일반', color: '#059669' };
+    }
 
+    // 2순위: matchType이 없는 경우 mode 필드로 추정
+    const mode = (match.mode || '').toLowerCase();
+    if (mode.includes('ranked')) {
+      return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
+    }
+    if (mode.includes('event') || mode.includes('arcade')) {
+      return { type: 'event', label: '이벤트', color: '#f59e0b' };
+    }
     return { type: 'normal', label: '일반', color: '#059669' };
   };
 
-  const modeInfo = getGameModeInfo(match, playerData);
+  const modeInfo = getGameModeInfo(match);
 
   const isWin = match.win || (match.rank === 1) || (match.placement === 1);
   const isTop10 = match.top10 || ((match.rank || match.placement) <= 10);

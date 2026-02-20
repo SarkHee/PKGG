@@ -3,6 +3,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { analyzeClanRegion } from '../../utils/clanRegionAnalyzer.js';
+import { calculateMMR } from '../../utils/mmrCalculator.js';
 
 const prisma = new PrismaClient();
 
@@ -350,6 +351,8 @@ export default async function handler(req, res) {
             score: true,
             avgDamage: true,
             avgKills: true,
+            avgAssists: true,
+            avgSurviveTime: true,
             winRate: true,
             top10Rate: true,
           },
@@ -441,22 +444,25 @@ export default async function handler(req, res) {
         };
       }
 
+      const avgDamage  = members.reduce((sum, m) => sum + m.avgDamage, 0) / memberCount;
+      const avgKills   = members.reduce((sum, m) => sum + m.avgKills, 0) / memberCount;
+      const avgWinRate = members.reduce((sum, m) => sum + m.winRate, 0) / memberCount;
+      const avgTop10   = members.reduce((sum, m) => sum + m.top10Rate, 0) / memberCount;
+
       const avgStats = {
         score: Math.round(
           members.reduce((sum, m) => sum + m.score, 0) / memberCount
         ),
-        damage: Math.round(
-          members.reduce((sum, m) => sum + m.avgDamage, 0) / memberCount
-        ),
-        kills: (
-          members.reduce((sum, m) => sum + m.avgKills, 0) / memberCount
-        ).toFixed(1),
-        winRate: (
-          members.reduce((sum, m) => sum + m.winRate, 0) / memberCount
-        ).toFixed(1),
-        top10Rate: (
-          members.reduce((sum, m) => sum + m.top10Rate, 0) / memberCount
-        ).toFixed(1),
+        damage: Math.round(avgDamage),
+        kills: avgKills.toFixed(1),
+        winRate: avgWinRate.toFixed(1),
+        top10Rate: avgTop10.toFixed(1),
+        avgMMR: calculateMMR({
+          avgDamage:  avgDamage,
+          avgKills:   avgKills,
+          winRate:    avgWinRate,
+          top10Rate:  avgTop10,
+        }),
       };
 
       // 플레이 스타일 분석

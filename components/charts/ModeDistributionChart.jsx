@@ -10,78 +10,97 @@ const MODE_ICONS = ['⚔️', '🏆', '🎉'];
 
 export default function ModeDistributionChart({ modeDistribution }) {
   if (!modeDistribution) return null;
-  const dataArr = [
-    modeDistribution.normal,
-    modeDistribution.ranked,
-    modeDistribution.event,
-  ];
-  const total = dataArr.reduce((a, b) => a + b, 0);
 
-  // 성향 요약 텍스트 (PUBG OP.GG 스타일)
+  // 실제 경기 수 (있으면 직접 사용, 없으면 퍼센트로 역산)
+  const total        = modeDistribution.total       || 20;
+  const normalCount  = modeDistribution.normalCount  ?? Math.round((modeDistribution.normal  / 100) * total);
+  const rankedCount  = modeDistribution.rankedCount  ?? Math.round((modeDistribution.ranked  / 100) * total);
+  const eventCount   = modeDistribution.eventCount   ?? Math.round((modeDistribution.event   / 100) * total);
+
+  const counts = [normalCount, rankedCount, eventCount];
+  const pcts   = [modeDistribution.normal, modeDistribution.ranked, modeDistribution.event];
+
+  // 가장 많은 모드 판별
   let mainType = 0;
-  if (dataArr[1] >= dataArr[0] && dataArr[1] >= dataArr[2]) mainType = 1;
-  else if (dataArr[2] >= dataArr[0] && dataArr[2] >= dataArr[1]) mainType = 2;
+  if (counts[1] >= counts[0] && counts[1] >= counts[2]) mainType = 1;
+  else if (counts[2] >= counts[0] && counts[2] >= counts[1]) mainType = 2;
 
-  // 실제 플레이 경기 수 기반 요약
-  const actualCounts = {
-    normal: Math.round((modeDistribution.normal / 100) * 20),
-    ranked: Math.round((modeDistribution.ranked / 100) * 20),
-    event: Math.round((modeDistribution.event / 100) * 20),
-  };
-
-  let summary = '';
-  if (mainType === 0) {
-    summary = `최근 20경기 중 ${dataArr[0]}%를 일반게임으로 플레이했습니다. 일반게임에 특화된 유저입니다.`;
-  } else if (mainType === 1) {
-    summary = `최근 활동에서 경쟁전 비중이 높습니다. 랭크 상승에 집중하는 유저입니다.`;
-  } else {
-    summary = `이벤트게임을 자주 플레이합니다. 다양한 모드를 즐기는 유저입니다.`;
-  }
+  const summaryMap = [
+    `최근 ${total}경기 중 일반게임 ${normalCount}판 (${pcts[0]}%)으로 가장 많이 플레이했습니다.`,
+    `최근 ${total}경기 중 경쟁전 ${rankedCount}판 (${pcts[1]}%) — 랭크 상승에 집중하는 유저입니다.`,
+    `최근 ${total}경기 중 이벤트 ${eventCount}판 (${pcts[2]}%) — 다양한 모드를 즐기는 유저입니다.`,
+  ];
 
   const chartData = {
-    labels: MODE_LABELS.map((label, i) => `${MODE_ICONS[i]} ${label}`),
+    labels: MODE_LABELS.map((label, i) => `${MODE_ICONS[i]} ${label} ${counts[i]}판`),
     datasets: [
       {
-        data: dataArr,
+        data: counts,
         backgroundColor: MODE_COLORS,
-        borderWidth: 1,
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverOffset: 6,
       },
     ],
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-      <div style={{ maxWidth: 300, margin: '0 auto' }}>
-        <Doughnut
-          data={chartData}
-          options={{
-            plugins: {
-              legend: {
-                display: true,
-                position: 'bottom',
-                labels: {
-                  padding: 15,
-                  usePointStyle: true,
-                  font: {
-                    size: 12,
+    <div>
+      {/* 도넛 차트 */}
+      <div className="flex flex-col md:flex-row items-center gap-6">
+        <div style={{ width: 220, height: 220, flexShrink: 0 }}>
+          <Doughnut
+            data={chartData}
+            options={{
+              cutout: '62%',
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) =>
+                      ` ${ctx.label.replace(/[^가-힣a-zA-Z ]/g, '').trim()}: ${ctx.parsed}판 (${pcts[ctx.dataIndex]}%)`,
                   },
                 },
               },
-              tooltip: {
-                callbacks: {
-                  label: function (context) {
-                    return `${context.label}: ${context.parsed}%`;
-                  },
-                },
-              },
-            },
-            responsive: true,
-            maintainAspectRatio: true,
-          }}
-        />
-      </div>
-      <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center px-2">
-        {summary}
+              responsive: true,
+              maintainAspectRatio: false,
+            }}
+          />
+        </div>
+
+        {/* 범례 + 수치 */}
+        <div className="flex-1 space-y-3 w-full">
+          {MODE_LABELS.map((label, i) => (
+            <div key={label} className="flex items-center gap-3">
+              {/* 색상 바 */}
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-semibold text-gray-700">
+                    {MODE_ICONS[i]} {label}
+                  </span>
+                  <span className="text-sm font-black" style={{ color: MODE_COLORS[i] }}>
+                    {counts[i]}판
+                    <span className="text-xs font-normal text-gray-400 ml-1">({pcts[i]}%)</span>
+                  </span>
+                </div>
+                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${pcts[i]}%`,
+                      backgroundColor: MODE_COLORS[i],
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* 요약 문구 */}
+          <p className="text-xs text-gray-500 pt-2 border-t border-gray-100">
+            {summaryMap[mainType]}
+          </p>
+        </div>
       </div>
     </div>
   );

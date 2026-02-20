@@ -1,18 +1,53 @@
 import { useState } from 'react';
 import Tooltip from '../ui/Tooltip';
+import { getMMRTier, MMR_DISCLAIMER } from '../../utils/mmrCalculator';
 
 const PlayerHeader = ({
   profile,
   summary,
   rankedSummary,
+  seasonStats,
   clanInfo,
   recentMatches,
   onRefresh,
   refreshing,
   cooldown,
   refreshMsg,
+  mmr = 1000,
 }) => {
   const [showRankedDetails, setShowRankedDetails] = useState(false);
+
+  // ── 시즌 통계 전체 모드 통합 집계 ──
+  const seasonData = Object.values(seasonStats || {})[0] || {};
+  let tR = 0, tW = 0, tT10 = 0, tDmg = 0, tKills = 0, tAssists = 0, tSurvival = 0;
+  for (const ms of Object.values(seasonData)) {
+    const r = ms.rounds || 0;
+    if (r === 0) continue;
+    tR += r; tW += ms.wins || 0; tT10 += ms.top10s || 0;
+    tDmg += (ms.avgDamage || 0) * r;
+    tKills += (ms.totalKills || 0);
+    tAssists += (ms.assists || 0);
+    tSurvival += (ms.avgSurvivalTime || 0) * r;
+  }
+  const combinedStat = tR > 0 ? {
+    rounds:     tR,
+    avgDamage:  Math.round(tDmg / tR),
+    avgKills:   parseFloat((tKills / tR).toFixed(2)),
+    winRate:    parseFloat(((tW / tR) * 100).toFixed(1)),
+    top10Rate:  parseFloat(((tT10 / tR) * 100).toFixed(1)),
+    avgSurvival: Math.round(tSurvival / tR),
+    score: Math.round(1000 + (tDmg / tR) * 0.5 + (tKills / tR) * 50 + ((tW / tR) * 100) * 10 + ((tT10 / tR) * 100) * 3),
+  } : null;
+  // combinedStat가 없으면 summary 데이터로 폴백
+  const seasonStat = combinedStat || (summary?.avgDamage ? {
+    rounds:      summary.roundsPlayed || 0,
+    avgDamage:   Math.round(summary.avgDamage || 0),
+    avgKills:    parseFloat((summary.avgKills || 0).toFixed(2)),
+    winRate:     parseFloat((summary.winRate || 0).toFixed(1)),
+    top10Rate:   parseFloat((summary.top10Rate || 0).toFixed(1)),
+    avgSurvival: Math.round(summary.avgSurviveTime || 0),
+    score:       summary.score || 1000,
+  } : null);
 
   // 최근 20경기 통계 계산
   const calculate20MatchStats = (matches) => {
@@ -218,6 +253,22 @@ const PlayerHeader = ({
 
           {/* 우측 액션 버튼 */}
           <div className="flex items-center gap-3">
+            {/* MMR 배지 */}
+            {(() => {
+              const tier = getMMRTier(mmr);
+              return (
+                <Tooltip content={MMR_DISCLAIMER}>
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
+                    <span className="text-base leading-none">{tier.emoji}</span>
+                    <div className="flex flex-col leading-none">
+                      <span className={`text-xs font-black ${tier.textColor}`}>{mmr.toLocaleString()}</span>
+                      <span className={`text-[10px] font-semibold ${tier.textColor} opacity-70`}>{tier.label}</span>
+                    </div>
+                    <span className="text-xs text-gray-400 font-bold ml-0.5">?</span>
+                  </div>
+                </Tooltip>
+              );
+            })()}
             <select
               className="px-3 py-2 bg-blue-800/60 border border-blue-600/50 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-700/60 transition-colors backdrop-blur-sm"
               defaultValue="current"
@@ -259,52 +310,72 @@ const PlayerHeader = ({
       <div className="bg-white border-x border-b border-gray-200">
         <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
 
-          {/* 1. 시즌 성과 */}
+          {/* 1. 시즌 성과 - 전체 통합 평균 */}
           <div className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1 h-5 bg-blue-500 rounded-full"></div>
               <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">시즌 성과</h2>
+              {seasonStat && (
+                <span className="text-xs text-gray-400 ml-auto">{seasonStat.rounds}경기</span>
+              )}
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="text-center">
-                <div className="text-xs text-gray-400 mb-1">평균 딜량</div>
-                <div className="text-xl font-black text-gray-900">
-                  {(summary?.seasonAvgDamage || 0).toFixed(0)}
+
+            {seasonStat ? (
+              <>
+                {/* 핵심 3개 스탯 */}
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400 mb-1">평균 딜량</div>
+                    <div className="text-xl font-black text-gray-900">{seasonStat.avgDamage}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400 mb-1">평균 킬</div>
+                    <div className="text-xl font-black text-gray-900">{seasonStat.avgKills}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400 mb-1">
+                      <Tooltip content="PK.GG 자체 산출 점수 (시즌 전체 기준)&#10;딜량·킬·승률·TOP10을 가중 합산합니다.&#10;배그 공식 RP와 무관합니다.">
+                        PK.GG 점수 ℹ️
+                      </Tooltip>
+                    </div>
+                    <div className="text-xl font-black text-blue-600">{seasonStat.score}</div>
+                    <div className="text-xs text-gray-400">
+                      {seasonStat.score >= 1600 ? '우수' : seasonStat.score >= 1300 ? '보통' : '성장형'}
+                    </div>
+                  </div>
                 </div>
+
+                {/* 보조 스탯 */}
+                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100">
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400">승률</div>
+                    <div className="text-sm font-bold text-gray-700">{seasonStat.winRate}%</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400">TOP10</div>
+                    <div className="text-sm font-bold text-gray-700">{seasonStat.top10Rate}%</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-gray-400">생존</div>
+                    <div className="text-sm font-bold text-gray-700">{Math.round(seasonStat.avgSurvival / 60)}분</div>
+                  </div>
+                </div>
+
+                {/* 폼 상태 */}
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2 flex-wrap">
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getFormStyle(recent20Form.form)}`}>
+                    {recent20Form.form}
+                  </span>
+                  <span className="text-xs text-gray-400 truncate">{recent20Form.comment}</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="text-3xl mb-2">📊</div>
+                <div className="text-sm text-gray-500">시즌 데이터가 없습니다</div>
+                <div className="text-xs text-gray-400 mt-1">최신화 버튼으로 데이터를 불러오세요</div>
               </div>
-              <div className="text-center">
-                <div className="text-xs text-gray-400 mb-1">생존시간</div>
-                <div className="text-xl font-black text-gray-900">
-                  {Math.floor(summary?.averageSurvivalTime || 0)}초
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-xs text-gray-400 mb-1">
-                  <Tooltip content="킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다. (공식 랭킹 RP가 아님)">
-                    PK.GG 점수 ℹ️
-                  </Tooltip>
-                </div>
-                <div className="text-xl font-black text-blue-600">
-                  {summary?.averageScore || 1000}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {(summary?.averageScore || 1000) >= 1500
-                    ? '우수'
-                    : (summary?.averageScore || 1000) >= 1200
-                      ? '보통'
-                      : '성장형'}
-                </div>
-              </div>
-            </div>
-            {/* 폼 + 스타일 */}
-            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 flex-wrap">
-              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getFormStyle(summary?.recentForm || '안정')}`}>
-                {summary?.recentForm || '안정'}
-              </span>
-              <span className="text-xs text-gray-500 truncate">
-                {summary?.formComment || '시즌 전체 성과를 분석 중입니다.'}
-              </span>
-            </div>
+            )}
           </div>
 
           {/* 2. 최근 N경기 요약 */}

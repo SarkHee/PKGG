@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { calculateMMR } from '../../../utils/mmrCalculator';
 
 import PlayerDashboard from '../../../components/player/PlayerDashboard';
 import ModeDistributionChart from '../../../components/charts/ModeDistributionChart';
@@ -87,7 +88,7 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
       winRate: summary?.winRate || 0,
       top10Rate: summary?.top10Rate || 0,
       score: summary?.score || 0,
-      style: '-',
+      style: summary?.playstyle || summary?.style || '-',
       lastUpdated: new Date(),
     };
 
@@ -335,35 +336,18 @@ export default function PlayerPage({ playerData, error, dataSource }) {
     }
   };
 
-  // 최신화 버튼 클릭 핸들러
-  const handleRefresh = async () => {
+  // 최신화 버튼 클릭 핸들러 - PUBG API에서 새로 불러와 DB 갱신
+  const handleRefresh = () => {
     if (refreshing || cooldown > 0) return;
     setRefreshing(true);
     setRefreshMsg('최신화 중...');
-    try {
-      const res = await fetch('/api/clan/update-member', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clanName: playerData.clanMembers?.[0]?.clan?.name || '',
-          nickname: playerData.profile.nickname,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setRefreshMsg('최신화 완료! 새로고침(F5) 시 반영됩니다.');
-        setCooldown(30);
-      } else {
-        setRefreshMsg(data.error || '최신화 실패');
-        setCooldown(5);
-      }
-    } catch (e) {
-      setRefreshMsg('네트워크 오류');
-      setCooldown(5);
-    } finally {
+    // ?force=1 쿼리 파라미터로 이동 → getServerSideProps에서 DB 캐시 무시하고 API 재호출
+    const { server: srv, nickname: nick } = router.query;
+    router.push(`/player/${srv}/${nick}?force=1`).finally(() => {
       setRefreshing(false);
-      setTimeout(() => setRefreshMsg(''), 5000);
-    }
+      setRefreshMsg('');
+      setCooldown(30);
+    });
   };
 
   if (error) {
@@ -857,18 +841,27 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             <span className="font-medium">실시간 데이터 로드 완료</span>
           </div>
         )}
+        {dataSource === 'pubg_api_refreshed' && (
+          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
+            <span className="font-medium">최신화 완료</span>
+            <span className="text-emerald-500">— PUBG API에서 새로운 데이터를 불러왔습니다</span>
+          </div>
+        )}
 
         {/* 새로운 플레이어 헤더 */}
         <PlayerHeader
           profile={profile}
           summary={summary}
           rankedSummary={rankedSummary}
+          seasonStats={seasonStats}
           clanInfo={profile?.clan}
           recentMatches={recentMatches}
           onRefresh={handleRefresh}
           refreshing={refreshing}
           cooldown={cooldown}
           refreshMsg={refreshMsg}
+          mmr={displayData?.mmr || 1000}
         />
 
         {/* 개인 맞춤형 AI 코칭 시스템 */}
@@ -1056,21 +1049,43 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           </div>
         </div>
 
-        {/* 시즌 플레이 현황 */}
-        {displayData?.modeDistribution && (
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4 px-1">
-              <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-              <h2 className="text-lg font-bold text-gray-800">시즌 플레이 현황</h2>
-              <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">모드별 분석</span>
+        {/* 시즌 플레이 현황 - 최근 20경기 matchType 기반 */}
+        {(() => {
+          // 최근 20경기의 matchType으로 실제 모드 분포 계산
+          const recent = (recentMatches || []).slice(0, 20);
+          if (recent.length === 0) return null;
+
+          let rankedCount = 0, normalCount = 0, eventCount = 0;
+          for (const m of recent) {
+            const mt = (m.matchType || '').toLowerCase();
+            if (mt === 'ranked' || mt === 'competitive') rankedCount++;
+            else if (mt === 'event' || mt === 'casual' || mt === 'airoyale') eventCount++;
+            else normalCount++; // official 또는 matchType 없음 → 일반
+          }
+          const total = recent.length;
+          const matchModeDistribution = {
+            ranked:      Math.round((rankedCount / total) * 100),
+            normal:      Math.round((normalCount / total) * 100),
+            event:       Math.round((eventCount  / total) * 100),
+            rankedCount,
+            normalCount,
+            eventCount,
+            total,
+          };
+
+          return (
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-4 px-1">
+                <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                <h2 className="text-lg font-bold text-gray-800">시즌 플레이 현황</h2>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">최근 {total}경기 기준</span>
+              </div>
+              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <ModeDistributionChart modeDistribution={matchModeDistribution} />
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-              <ModeDistributionChart
-                modeDistribution={displayData.modeDistribution}
-              />
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 차트 및 시각화 섹션 */}
         <div className="mb-8">
@@ -1188,9 +1203,189 @@ export default function PlayerPage({ playerData, error, dataSource }) {
   );
 }
 
-export async function getServerSideProps({ params }) {
+/**
+ * 시즌 통계에서 한국어 플레이스타일 자동 판별
+ * @param {{ avgDamage, avgKills, avgAssists, avgSurviveTime, winRate, top10Rate }} stats
+ * @returns {{ playstyle: string, realPlayStyle: string }}
+ */
+function derivePlayStyle(stats) {
+  const {
+    avgDamage = 0,
+    avgKills = 0,
+    avgAssists = 0,
+    avgSurviveTime = 0,
+    winRate = 0,
+    top10Rate = 0,
+  } = stats || {};
+
+  // ── 상세 스타일 (realPlayStyle) ──
+  let realPlayStyle;
+  if (avgKills >= 4 && avgDamage >= 400) {
+    realPlayStyle = '극단적 공격형';
+  } else if (avgKills >= 3 && avgDamage >= 300) {
+    realPlayStyle = '교전형';
+  } else if (avgKills >= 2 && avgDamage >= 250) {
+    realPlayStyle = '캐리형';
+  } else if (avgDamage >= 300 && avgKills < 2) {
+    realPlayStyle = '지속 전투형';
+  } else if (top10Rate >= 50 && avgSurviveTime >= 1200) {
+    realPlayStyle = '극단적 수비형';
+  } else if (top10Rate >= 30 && avgSurviveTime >= 900) {
+    realPlayStyle = '후반 존버형';
+  } else if (avgAssists >= 1.5 && top10Rate >= 25) {
+    realPlayStyle = '전략적 어시스트러';
+  } else if (avgDamage >= 180 && avgKills < 1.5 && avgSurviveTime >= 800) {
+    realPlayStyle = '저격 위주';
+  } else if (avgKills >= 2 && avgDamage < 180) {
+    realPlayStyle = '고효율 승부사';
+  } else if (avgDamage >= 200 && avgKills >= 1.5) {
+    realPlayStyle = '중거리 안정형';
+  } else if (top10Rate >= 25 || avgSurviveTime >= 800) {
+    realPlayStyle = '생존형';
+  } else if (avgKills >= 1.5) {
+    realPlayStyle = '공격형';
+  } else {
+    realPlayStyle = '일반 밸런스형';
+  }
+
+  // ── 기본 스타일 (playstyle) ──
+  const aggression = avgKills * 20 + avgDamage / 8;
+  const survival   = avgSurviveTime / 60 + top10Rate + winRate * 1.5;
+  const support    = avgAssists * 20 + top10Rate * 0.5;
+
+  let playstyle;
+  if (aggression >= 75) playstyle = '교전형';
+  else if (survival >= 60) playstyle = '수비형';
+  else if (support >= 50) playstyle = '안정형';
+  else playstyle = '밸런스';
+
+  return { playstyle, realPlayStyle };
+}
+
+// DB에서 플레이어 캐시 데이터 조회 (최근 2시간 이내만 유효)
+async function getPlayerFromDB(nickname, server) {
+  const { PrismaClient } = require('@prisma/client');
+  const { calculateMMR: calcMMR } = require('../../../utils/mmrCalculator');
+  const prisma = new PrismaClient();
+  try {
+    const member = await prisma.clanMember.findFirst({
+      where: { nickname: { equals: nickname, mode: 'insensitive' } },
+      include: {
+        clan: true,
+        matches: { orderBy: { createdAt: 'desc' }, take: 20 },
+      },
+    });
+
+    if (!member) return null;
+
+    // 2시간 이상 지난 캐시는 무효 처리
+    const hoursSince = (Date.now() - new Date(member.lastUpdated).getTime()) / 3600000;
+    if (hoursSince > 2) return null;
+
+    // 클랜 멤버 목록 조회
+    const clanMembers = member.clanId
+      ? await prisma.clanMember.findMany({
+          where: { clanId: member.clanId },
+          orderBy: { score: 'desc' },
+        })
+      : [];
+
+    const summaryBase = {
+      avgDamage: member.avgDamage || 0,
+      avgKills: member.avgKills || 0,
+      avgAssists: member.avgAssists || 0,
+      avgSurviveTime: member.avgSurviveTime || 0,
+      winRate: member.winRate || 0,
+      top10Rate: member.top10Rate || 0,
+      score: member.score || 0,
+    };
+    const { playstyle, realPlayStyle } = derivePlayStyle(summaryBase);
+    const summary = {
+      ...summaryBase,
+      playstyle,
+      realPlayStyle,
+      style: member.style && member.style !== '-' ? member.style : playstyle,
+    };
+
+    const recentMatches = member.matches.map(m => ({
+      matchId: m.matchId,
+      mode: m.mode,
+      mapName: m.mapName,
+      placement: m.placement,
+      kills: m.kills,
+      assists: m.assists,
+      damage: m.damage,
+      surviveTime: m.surviveTime,
+      matchTimestamp: m.createdAt ? m.createdAt.toISOString() : new Date().toISOString(),
+    }));
+
+    // 최근 경기에서 모드 분포 추정
+    const ranked = recentMatches.filter(m => m.mode?.includes('ranked')).length;
+    const event  = recentMatches.filter(m => m.mode?.includes('event')).length;
+    const normal = recentMatches.length - ranked - event;
+    const total  = recentMatches.length || 1;
+
+    return {
+      profile: {
+        nickname: member.nickname,
+        playerId: member.pubgPlayerId,
+        shardId: member.pubgShardId || server,
+        lastUpdated: member.lastUpdated.toISOString(),
+        clan: member.clan
+          ? {
+              name: member.clan.name,
+              tag: member.clan.pubgClanTag,
+              level: member.clan.pubgClanLevel,
+              memberCount: member.clan.pubgMemberCount,
+            }
+          : null,
+      },
+      summary,
+      recentMatches,
+      modeDistribution: {
+        ranked: Math.round((ranked / total) * 100),
+        normal: Math.round((normal / total) * 100),
+        event:  Math.round((event  / total) * 100),
+      },
+      seasonStats: {},
+      rankedSummary: null,
+      clanMembers: clanMembers.map(m => ({
+        id: m.id,
+        nickname: m.nickname,
+        score: m.score || 0,
+        avgDamage: m.avgDamage || 0,
+        avgKills: m.avgKills || 0,
+        winRate: m.winRate || 0,
+        top10Rate: m.top10Rate || 0,
+        style: m.style || '-',
+        mmr: calcMMR({ avgDamage: m.avgDamage, avgKills: m.avgKills, winRate: m.winRate, top10Rate: m.top10Rate }),
+      })),
+      modeStats: [],
+      rankedStats: [],
+      mmr: calcMMR(summary),
+    };
+  } catch (e) {
+    console.warn('DB 캐시 조회 실패:', e.message);
+    return null;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+export async function getServerSideProps({ params, query }) {
   const { server, nickname } = params;
+  const forceRefresh = query.force === '1';
   const axios = require('axios');
+  const { calculateMMR: calcMMR } = require('../../../utils/mmrCalculator');
+
+  // ── DB 우선 캐시 (force=1이면 무조건 API 호출) ──
+  if (!forceRefresh) {
+    const cached = await getPlayerFromDB(nickname, server);
+    if (cached) {
+      console.log(`✅ DB 캐시 사용: ${nickname}`);
+      return { props: { playerData: cached, error: null, dataSource: 'database' } };
+    }
+  }
 
   const PUBG_API_KEY = `Bearer ${process.env.PUBG_API_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o'}`;
   const PUBG_HEADERS = { Authorization: PUBG_API_KEY, Accept: 'application/vnd.api+json' };
@@ -1332,19 +1527,24 @@ export async function getServerSideProps({ params }) {
               const avgKills = parseFloat((totalKills / totalRounds).toFixed(2));
               const winRate = parseFloat(((totalWins / totalRounds) * 100).toFixed(1));
               const top10Rate = parseFloat(((totalTop10s / totalRounds) * 100).toFixed(1));
+              const avgAssists = parseFloat((totalAssists / totalRounds).toFixed(2));
+              const avgSurviveTime = Math.round(totalSurvivalTime / totalRounds);
+              const { playstyle, realPlayStyle } = derivePlayStyle({ avgDamage, avgKills, avgAssists, avgSurviveTime, winRate, top10Rate });
               pubgSummaryFromStats = {
                 avgDamage,
                 avgKills,
-                avgAssists: parseFloat((totalAssists / totalRounds).toFixed(2)),
-                avgSurviveTime: Math.round(totalSurvivalTime / totalRounds),
+                avgAssists,
+                avgSurviveTime,
                 winRate,
                 top10Rate,
                 score: Math.round(avgDamage * 0.4 + avgKills * 40 + top10Rate + 1000),
                 roundsPlayed: totalRounds,
                 kills: totalKills,
-                style: '-',
+                playstyle,
+                realPlayStyle,
+                style: playstyle,
               };
-              console.log(`✅ summary: avgDamage=${avgDamage}, avgKills=${avgKills}, winRate=${winRate}%`);
+              console.log(`✅ summary: avgDamage=${avgDamage}, avgKills=${avgKills}, winRate=${winRate}%, style=${playstyle}`);
             }
           }
         } else {
@@ -1414,15 +1614,47 @@ export async function getServerSideProps({ params }) {
             const data = r.value.data;
             const matchId = data.data.id;
             const attrs = data.data.attributes;
-            const participants = (data.included || []).filter(i => i.type === 'participant');
+            const included = data.included || [];
+            const participants = included.filter(i => i.type === 'participant');
+            const rosters     = included.filter(i => i.type === 'roster');
+
             const me = participants.find(p =>
               p.attributes.stats.name?.toLowerCase() === nickname.toLowerCase()
             );
             if (!me) return null;
+
+            // 내 로스터(팀) 찾기 → 팀원 목록 추출
+            const myRoster = rosters.find(r =>
+              r.relationships?.participants?.data?.some(ref => ref.id === me.id)
+            );
+            const teammateRefs = myRoster?.relationships?.participants?.data || [{ id: me.id }];
+            const teammatesDetail = teammateRefs
+              .map(ref => participants.find(p => p.id === ref.id))
+              .filter(Boolean)
+              .map(t => {
+                const ts = t.attributes.stats;
+                return {
+                  name: ts.name,
+                  kills: ts.kills || 0,
+                  assists: ts.assists || 0,
+                  damage: Math.round(ts.damageDealt || 0),
+                  dbnos: ts.DBNOs || 0,
+                  survivalTime: ts.timeSurvived || 0,
+                  rank: ts.winPlace || 0,
+                  isSelf: t.id === me.id,
+                };
+              })
+              .sort((a, b) => {
+                if (a.isSelf) return -1;
+                if (b.isSelf) return 1;
+                return b.damage - a.damage;
+              });
+
             const s = me.attributes.stats;
             return {
               matchId,
-              mode: attrs.gameMode,
+              mode: attrs.gameMode,        // squad, squad-fpp, duo 등 모드 유형
+              matchType: attrs.matchType,  // official(일반), ranked(경쟁전), casual, event
               mapName: attrs.mapName,
               placement: s.winPlace || 0,
               kills: s.kills || 0,
@@ -1430,6 +1662,7 @@ export async function getServerSideProps({ params }) {
               damage: Math.round(s.damageDealt || 0),
               surviveTime: s.timeSurvived || 0,
               matchTimestamp: attrs.createdAt || new Date().toISOString(),
+              teammatesDetail,
             };
           })
           .filter(m => m !== null);
@@ -1493,14 +1726,44 @@ export async function getServerSideProps({ params }) {
       clanMembers: [],
       rankedStats: [],
       rankedSummary: pubgRankedSummary,
+      mmr: calcMMR(pubgSummaryFromStats),
     };
 
-    // Step 6: 백그라운드 DB 저장 (upsert + 매치 저장)
+    // Step 6: 백그라운드 DB 저장 (upsert + 매치 저장) + 클랜 멤버 조회
     savePlayerToDatabase(pubgPlayer, pubgShard, pubgClan, pubgSummaryFromStats, recentMatches)
       .catch(e => console.error('DB 저장 실패:', e.message));
 
+    // 클랜 멤버 DB에서 조회 (클랜 소속인 경우)
+    if (pubgClan) {
+      try {
+        const { PrismaClient } = require('@prisma/client');
+        const prisma = new PrismaClient();
+        const clanRow = await prisma.clan.findFirst({ where: { pubgClanId: pubgClan.id } });
+        if (clanRow) {
+          const members = await prisma.clanMember.findMany({
+            where: { clanId: clanRow.id },
+            orderBy: { score: 'desc' },
+          });
+          playerData.clanMembers = members.map(m => ({
+            id: m.id,
+            nickname: m.nickname,
+            score: m.score || 0,
+            avgDamage: m.avgDamage || 0,
+            avgKills: m.avgKills || 0,
+            winRate: m.winRate || 0,
+            top10Rate: m.top10Rate || 0,
+            style: m.style || '-',
+            mmr: calcMMR({ avgDamage: m.avgDamage, avgKills: m.avgKills, winRate: m.winRate, top10Rate: m.top10Rate }),
+          }));
+        }
+        await prisma.$disconnect();
+      } catch (e) {
+        console.warn('클랜 멤버 DB 조회 실패:', e.message);
+      }
+    }
+
     return {
-      props: { playerData, error: null, dataSource: 'pubg_api' },
+      props: { playerData, error: null, dataSource: forceRefresh ? 'pubg_api_refreshed' : 'pubg_api' },
     };
   } catch (error) {
     console.error('getServerSideProps error:', error);

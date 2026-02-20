@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Layout from '../components/layout/Layout';
+import { getMMRTier, MMR_DISCLAIMER } from '../utils/mmrCalculator';
 
 // 랭킹 업데이트 상태 컴포넌트
 function RankingUpdateStatus() {
@@ -757,6 +758,13 @@ export default function ClanAnalytics() {
                           </span>
                         </Tooltip>
                       </th>
+                      <th className="px-4 py-3 text-left">
+                        <Tooltip content={MMR_DISCLAIMER}>
+                          <span className="cursor-help border-b border-dotted border-gray-400">
+                            클랜 MMR
+                          </span>
+                        </Tooltip>
+                      </th>
                       <th className="px-4 py-3 text-left">평균 데미지</th>
                       <th className="px-4 py-3 text-left">승률</th>
                       <th className="px-4 py-3 text-left">플레이 스타일</th>
@@ -838,6 +846,18 @@ export default function ClanAnalytics() {
                         </td>
                         <td className="px-4 py-3 font-bold text-blue-400">
                           {clan.avgStats.score}
+                        </td>
+                        <td className="px-4 py-3">
+                          {clan.avgStats.avgMMR ? (() => {
+                            const tier = getMMRTier(clan.avgStats.avgMMR);
+                            return (
+                              <Tooltip content={MMR_DISCLAIMER}>
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border cursor-help text-xs font-bold ${tier.bgColor} ${tier.borderColor} ${tier.textColor}`}>
+                                  {tier.emoji} {clan.avgStats.avgMMR.toLocaleString()}
+                                </span>
+                              </Tooltip>
+                            );
+                          })() : '-'}
                         </td>
                         <td className="px-4 py-3">{clan.avgStats.damage}</td>
                         <td className="px-4 py-3">{clan.avgStats.winRate}%</td>
@@ -1005,6 +1025,13 @@ export default function ClanAnalytics() {
                           </span>
                         </Tooltip>
                       </th>
+                      <th className="px-4 py-3 text-left">
+                        <Tooltip content={MMR_DISCLAIMER}>
+                          <span className="cursor-help border-b border-dotted border-gray-400">
+                            클랜 MMR
+                          </span>
+                        </Tooltip>
+                      </th>
                       <th className="px-4 py-3 text-left">플레이 스타일</th>
                     </tr>
                   </thead>
@@ -1041,6 +1068,18 @@ export default function ClanAnalytics() {
                           ) : (
                             <span className="text-gray-500">데이터 없음</span>
                           )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {clan.avgStats?.avgMMR ? (() => {
+                            const tier = getMMRTier(clan.avgStats.avgMMR);
+                            return (
+                              <Tooltip content={MMR_DISCLAIMER}>
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border cursor-help text-xs font-bold ${tier.bgColor} ${tier.borderColor} ${tier.textColor}`}>
+                                  {tier.emoji} {clan.avgStats.avgMMR.toLocaleString()}
+                                </span>
+                              </Tooltip>
+                            );
+                          })() : <span className="text-gray-500">-</span>}
                         </td>
                         <td className="px-4 py-3">
                           {clan.playStyle ? (
