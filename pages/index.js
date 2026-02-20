@@ -306,8 +306,11 @@ export default function Home() {
             </h1>
 
             {/* 서브타이틀 */}
-            <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-8 md:mb-10 max-w-xl mx-auto leading-relaxed px-4">
+            <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-2 max-w-xl mx-auto leading-relaxed px-4">
               PUBG 플레이어 통계와 클랜 정보를 한눈에 확인하세요
+            </p>
+            <p className="text-xs text-gray-600 mb-8 md:mb-10">
+              *아직 모든 클랜이 적용되지않습니다.
             </p>
 
             {/* 검색 메시지 알림 */}

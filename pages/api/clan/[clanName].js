@@ -28,6 +28,29 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: '클랜을 찾을 수 없습니다' });
     }
 
+    // pubgPlayerId 기준 중복 멤버 제거 (없으면 nickname 기준, 점수 높은 쪽 유지)
+    const dedupMembers = (memberList) => {
+      const seen = new Map();
+      for (const m of memberList) {
+        const key = m.pubgPlayerId || `nick_${m.nickname}`;
+        if (!seen.has(key)) {
+          seen.set(key, m);
+        } else if ((m.score || 0) > (seen.get(key).score || 0)) {
+          seen.set(key, m);
+        }
+      }
+      return Array.from(seen.values());
+    };
+
+    // pubgClanId 교차 검증: 이 클랜의 pubgClanId와 일치하는 멤버만 실제 소속으로 인정
+    // 클랜을 떠난 유저는 검색 시 pubgClanId가 갱신되므로 자동 제외됨
+    const confirmedMembers = clan.pubgClanId
+      ? clan.members.filter((m) => m.pubgClanId === clan.pubgClanId)
+      : clan.members;
+
+    // 중복 제거된 실제 소속 멤버
+    const uniqueMembers = dedupMembers(confirmedMembers);
+
     // 클랜 순위 계산 (모든 클랜 중에서)
     const allClans = await prisma.clan.findMany({
       include: {
@@ -38,7 +61,7 @@ export default async function handler(req, res) {
     // 각 클랜의 평균 점수 계산 및 순위 매기기
     const clansWithStats = allClans
       .map((c) => {
-        const activeMembers = c.members.filter((m) => m.score > 0);
+        const activeMembers = dedupMembers(c.members).filter((m) => m.score > 0);
 
         if (activeMembers.length === 0) {
           return { ...c, avgScore: 0 };
@@ -57,8 +80,8 @@ export default async function handler(req, res) {
 
     const clanRanking = clansWithStats.findIndex((c) => c.id === clan.id) + 1;
 
-    // 클랜 통계 계산
-    const activeMembers = clan.members.filter((m) => m.score > 0);
+    // 클랜 통계 계산 (중복 제거된 멤버 기준)
+    const activeMembers = uniqueMembers.filter((m) => m.score > 0);
 
     let stats = null;
     if (activeMembers.length > 0) {
@@ -86,8 +109,8 @@ export default async function handler(req, res) {
       };
     }
 
-    // 멤버 정보 정리
-    const members = clan.members.map((member) => ({
+    // 멤버 정보 정리 (중복 제거된 멤버 기준)
+    const members = uniqueMembers.map((member) => ({
       id: member.id,
       playerName: member.nickname,
       server: member.pubgShardId || 'steam', // 서버 정보 추가, 기본값은 steam

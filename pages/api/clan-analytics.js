@@ -355,6 +355,9 @@ export default async function handler(req, res) {
             avgSurviveTime: true,
             winRate: true,
             top10Rate: true,
+            pubgPlayerId: true,
+            nickname: true,
+            pubgClanId: true,
           },
         },
       },
@@ -426,7 +429,25 @@ export default async function handler(req, res) {
 
     // 3-1. 클랜별 평균 및 플레이 스타일 계산
     const clanAnalytics = dedupedClanStats.map((clan) => {
-      const members = clan.members;
+      // pubgClanId 교차 검증: 이 클랜의 pubgClanId와 일치하는 멤버만 실제 소속으로 인정
+      // (클랜을 떠난 유저는 검색 시 pubgClanId가 새 클랜/null로 갱신되므로 자동 제외)
+      const confirmedMembers = clan.pubgClanId
+        ? clan.members.filter((m) => m.pubgClanId === clan.pubgClanId)
+        : clan.members;
+
+      // 동일 pubgPlayerId(없으면 nickname)를 가진 중복 멤버 제거 — 점수가 높은 쪽 유지
+      const seenKeys = new Map();
+      for (const m of confirmedMembers) {
+        const key = m.pubgPlayerId || `nick_${m.nickname}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.set(key, m);
+        } else {
+          if ((m.score || 0) > (seenKeys.get(key).score || 0)) {
+            seenKeys.set(key, m);
+          }
+        }
+      }
+      const members = Array.from(seenKeys.values());
       const memberCount = members.length;
 
       if (memberCount === 0) {
@@ -482,44 +503,47 @@ export default async function handler(req, res) {
       };
     });
 
+    // DB 멤버가 1명 이상인 클랜만 유효 클랜으로 취급
+    const validClans = clanAnalytics.filter(
+      (clan) => clan.dbMemberCount > 0 && clan.name !== '무소속'
+    );
+
     // 4. 상위 클랜 랭킹 (평균 점수 기준)
-    const topClans = clanAnalytics
-      .filter((clan) => clan.avgStats) // avgStats가 있는 클랜만 (멤버가 1명 이상)
-      .filter((clan) => clan.name !== '무소속') // '무소속' 클랜 제외
+    const topClans = validClans
+      .filter((clan) => clan.avgStats)
       .sort((a, b) => b.avgStats.score - a.avgStats.score)
       .slice(0, 10);
 
-    // 4-1. 전체 클랜 랭킹 (검색용) - '무소속' 클랜 제외
-    const allRankedClans = clanAnalytics
-      .filter((clan) => clan.avgStats) // avgStats가 있는 클랜만
-      .filter((clan) => clan.name !== '무소속') // '무소속' 클랜 제외
+    // 4-1. 전체 클랜 랭킹 (검색용)
+    const allRankedClans = validClans
+      .filter((clan) => clan.avgStats)
       .sort((a, b) => b.avgStats.score - a.avgStats.score)
       .map((clan, index) => ({
         ...clan,
         rank: index + 1,
       }));
 
-    // 5. 클랜 레벨별 분포
+    // 5. 클랜 레벨별 분포 (유효 클랜 기준)
     const levelDistribution = {};
-    clanAnalytics.forEach((clan) => {
+    validClans.forEach((clan) => {
       const level = clan.level || 0;
       levelDistribution[level] = (levelDistribution[level] || 0) + 1;
     });
 
-    // 6. 멤버 수별 분포
+    // 6. 멤버 수별 분포 (유효 클랜 기준)
     const memberDistribution = {
-      small: clanAnalytics.filter((c) => c.apiMemberCount <= 10).length,
-      medium: clanAnalytics.filter(
+      small: validClans.filter((c) => c.apiMemberCount <= 10).length,
+      medium: validClans.filter(
         (c) => c.apiMemberCount > 10 && c.apiMemberCount <= 30
       ).length,
-      large: clanAnalytics.filter((c) => c.apiMemberCount > 30).length,
+      large: validClans.filter((c) => c.apiMemberCount > 30).length,
     };
 
     return res.status(200).json({
       overview: {
-        totalClans,
+        totalClans: validClans.length,
         totalMembers,
-        avgMembersPerClan: Math.round(totalMembers / totalClans),
+        avgMembersPerClan: validClans.length > 0 ? Math.round(totalMembers / validClans.length) : 0,
       },
       rankings: {
         topClansByScore: topClans,
@@ -529,9 +553,7 @@ export default async function handler(req, res) {
         byLevel: levelDistribution,
         byMemberCount: memberDistribution,
       },
-      allClans: clanAnalytics
-        .filter((clan) => clan.name !== '무소속') // '무소속' 클랜 제외
-        .sort((a, b) => b.apiMemberCount - a.apiMemberCount),
+      allClans: validClans.sort((a, b) => b.apiMemberCount - a.apiMemberCount),
     });
   } catch (error) {
     console.error('클랜 분석 오류:', error);

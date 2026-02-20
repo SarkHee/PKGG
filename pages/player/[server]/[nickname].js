@@ -92,13 +92,34 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
       lastUpdated: new Date(),
     };
 
-    const existing = await prisma.clanMember.findFirst({
-      where: { pubgPlayerId: pubgPlayer.id },
+    // pubgPlayerId 또는 nickname 기준으로 모든 관련 레코드 조회
+    // (batch-update 등으로 pubgPlayerId 없이 생성된 레코드도 포함)
+    const existingAll = await prisma.clanMember.findMany({
+      where: {
+        OR: [
+          { pubgPlayerId: pubgPlayer.id },
+          { nickname: { equals: nickname, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { score: 'desc' },
     });
+
     let memberId;
-    if (existing) {
-      await prisma.clanMember.update({ where: { id: existing.id }, data: memberData });
-      memberId = existing.id;
+    if (existingAll.length > 1) {
+      // 중복 레코드 → 첫 번째(점수 최고)만 남기고 나머지 삭제 후 업데이트
+      const keepId = existingAll[0].id;
+      const deleteIds = existingAll.slice(1).map((m) => m.id);
+      // 관련 매치/스탯도 삭제
+      await prisma.playerMatch.deleteMany({ where: { clanMemberId: { in: deleteIds } } });
+      await prisma.playerModeStats.deleteMany({ where: { clanMemberId: { in: deleteIds } } });
+      await prisma.clanMember.deleteMany({ where: { id: { in: deleteIds } } });
+      await prisma.clanMember.update({ where: { id: keepId }, data: memberData });
+      memberId = keepId;
+      console.log(`✅ DB 업데이트 (중복 ${deleteIds.length}개 제거): ${nickname}`);
+    } else if (existingAll.length === 1) {
+      // 단일 레코드 → 클랜 이동 포함 전체 업데이트
+      await prisma.clanMember.update({ where: { id: existingAll[0].id }, data: memberData });
+      memberId = existingAll[0].id;
       console.log(`✅ DB 업데이트: ${nickname}`);
     } else {
       const created = await prisma.clanMember.create({ data: memberData });
@@ -1283,12 +1304,27 @@ async function getPlayerFromDB(nickname, server) {
     if (hoursSince > 2) return null;
 
     // 클랜 멤버 목록 조회
-    const clanMembers = member.clanId
+    const rawClanMembers = member.clanId
       ? await prisma.clanMember.findMany({
           where: { clanId: member.clanId },
           orderBy: { score: 'desc' },
         })
       : [];
+
+    // pubgClanId 교차 검증: 이 클랜 소속이 확인된 멤버만 인정
+    const clanPubgId = member.clan?.pubgClanId || null;
+    const verifiedMembers = clanPubgId
+      ? rawClanMembers.filter((m) => m.pubgClanId === clanPubgId)
+      : rawClanMembers;
+
+    // 중복 제거 (pubgPlayerId 기준, 없으면 nickname 기준)
+    const seenKeys = new Set();
+    const clanMembers = verifiedMembers.filter((m) => {
+      const key = m.pubgPlayerId || `nick_${m.nickname}`;
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
 
     const summaryBase = {
       avgDamage: member.avgDamage || 0,
@@ -1740,10 +1776,25 @@ export async function getServerSideProps({ params, query }) {
         const prisma = new PrismaClient();
         const clanRow = await prisma.clan.findFirst({ where: { pubgClanId: pubgClan.id } });
         if (clanRow) {
-          const members = await prisma.clanMember.findMany({
+          const rawMembers = await prisma.clanMember.findMany({
             where: { clanId: clanRow.id },
             orderBy: { score: 'desc' },
           });
+
+          // pubgClanId 교차 검증: 실제 이 클랜 소속 멤버만 인정
+          const verifiedMembers = clanRow.pubgClanId
+            ? rawMembers.filter((m) => m.pubgClanId === clanRow.pubgClanId)
+            : rawMembers;
+
+          // 중복 제거 (pubgPlayerId 기준, 없으면 nickname 기준)
+          const seenKeys = new Set();
+          const members = verifiedMembers.filter((m) => {
+            const key = m.pubgPlayerId || `nick_${m.nickname}`;
+            if (seenKeys.has(key)) return false;
+            seenKeys.add(key);
+            return true;
+          });
+
           playerData.clanMembers = members.map(m => ({
             id: m.id,
             nickname: m.nickname,

@@ -39,6 +39,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '/clan-analytics', label: '클랜 분석', icon: '📊' },
+    { href: '/weapon-test', label: '무기성향 테스트', icon: '🔫', highlight: true },
     { href: '/forum', label: '포럼', icon: '💬' },
     { href: '/notices', label: '공지사항', icon: '📋' },
     { href: '/pubg-news', label: '배그뉴스', icon: '📢' },
@@ -65,13 +66,18 @@ export default function Header() {
               <nav className="hidden md:flex items-center gap-1">
                 {navLinks.map((link) => (
                   <Link key={link.href} href={link.href} passHref>
-                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
+                    <span className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
                       isActive(link.href)
                         ? 'bg-blue-50 text-blue-700'
+                        : link.highlight
+                        ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}>
                       <span className="text-base leading-none">{link.icon}</span>
                       {link.label}
+                      {link.highlight && !isActive(link.href) && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                      )}
                     </span>
                   </Link>
                 ))}

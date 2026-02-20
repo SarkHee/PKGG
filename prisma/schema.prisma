@@ -191,6 +191,22 @@ model PubgNews {
 }
 
 // 랭킹 업데이트 로그 모델
+// 무기 성향 테스트 결과
+model WeaponTestResult {
+  id              Int       @id @default(autoincrement())
+  sessionId       String    @unique // UUID generated in app
+  pubgPlayerId    String?
+  nickname        String?
+  platform        String?   @default("steam")
+  resultType      String    // personality type id
+  resultName      String    // personality type name (Korean)
+  similarityScore Float
+  surveyVector    Json      // normalized SurveyVector object
+  createdAt       DateTime  @default(now())
+
+  @@map("weapon_test_results")
+}
+
 model RankingUpdateLog {
   id             Int       @id @default(autoincrement())
   updateType     String    // 업데이트 타입 (clan_ranking, player_ranking 등)

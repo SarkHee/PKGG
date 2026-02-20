@@ -1,0 +1,523 @@
+import { useState, useEffect, useRef } from 'react';
+import Head from 'next/head';
+import { useRouter } from 'next/router';
+import {
+  Chart as ChartJS,
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Radar } from 'react-chartjs-2';
+import Header from '../../components/layout/Header';
+import {
+  SURVEY_QUESTIONS,
+  PERSONALITY_TYPES,
+  VECTOR_LABELS,
+  computeVector,
+  findBestType,
+  generateSessionId,
+} from '../../utils/weaponTestData';
+
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
+
+// ─── Intro 화면 ──────────────────────────────────────────────
+function IntroScreen({ onStart }) {
+  const [nickname, setNickname] = useState('');
+  const [platform, setPlatform] = useState('steam');
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 flex items-center justify-center px-4 py-12">
+      <div className="max-w-lg w-full">
+        {/* 타이틀 */}
+        <div className="text-center mb-10">
+          <div className="text-6xl mb-4">🔫</div>
+          <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
+            무기 성향 테스트
+          </h1>
+          <p className="text-blue-300 text-lg font-semibold">PUBG Weapon Personality Test</p>
+          <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-900/50 border border-blue-700/50 rounded-full">
+            <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+            <span className="text-blue-300 text-sm font-medium">10문항 · 12가지 성향 · 3분 소요</span>
+          </div>
+        </div>
+
+        {/* 설명 카드 */}
+        <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-6 mb-6 backdrop-blur-sm">
+          <p className="text-gray-300 text-sm leading-relaxed mb-4">
+            10가지 전술 상황 질문을 통해 당신의 PUBG 무기 성향을 분석합니다.
+            가중치 기반 벡터 계산으로 <span className="text-blue-400 font-semibold">12개 타입</span> 중
+            당신과 가장 가까운 성향을 찾아드립니다.
+          </p>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            {[
+              { emoji: '🎯', label: '전투 스타일' },
+              { emoji: '🔫', label: '선호 무기' },
+              { emoji: '📊', label: '성향 벡터' },
+            ].map((item) => (
+              <div key={item.label} className="bg-gray-800/60 rounded-xl p-3">
+                <div className="text-2xl mb-1">{item.emoji}</div>
+                <div className="text-xs text-gray-400 font-medium">{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 닉네임 입력 (선택) */}
+        <div className="bg-gray-900/60 border border-gray-700/40 rounded-2xl p-5 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm font-semibold text-gray-300">PUBG 닉네임</span>
+            <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded-full">선택</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">입력 시 실제 플레이 데이터와 비교 분석이 가능합니다</p>
+          <div className="flex gap-2">
+            <select
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+              className="bg-gray-800 border border-gray-600 text-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 flex-shrink-0"
+            >
+              <option value="steam">Steam</option>
+              <option value="kakao">Kakao</option>
+            </select>
+            <input
+              type="text"
+              placeholder="닉네임 입력..."
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="flex-1 bg-gray-800 border border-gray-600 text-gray-200 rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* 시작 버튼 */}
+        <button
+          onClick={() => onStart(nickname.trim(), platform)}
+          className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-black text-lg rounded-2xl transition-all duration-200 shadow-lg shadow-blue-900/40 hover:shadow-blue-800/50 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          테스트 시작하기 →
+        </button>
+
+        <p className="text-center text-gray-600 text-xs mt-4">
+          로그인 불필요 · 결과 공유 가능 · 비로그인 기반
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── 설문 화면 ────────────────────────────────────────────────
+function SurveyScreen({ onComplete }) {
+  const [currentQ, setCurrentQ] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [animating, setAnimating] = useState(false);
+  const [visible, setVisible] = useState(true);
+
+  const question = SURVEY_QUESTIONS[currentQ];
+  const progress = ((currentQ) / SURVEY_QUESTIONS.length) * 100;
+
+  const handleSelect = (optIdx) => {
+    if (selected !== null || animating) return;
+    setSelected(optIdx);
+
+    setTimeout(() => {
+      setVisible(false);
+      setTimeout(() => {
+        const newAnswers = [...answers, optIdx];
+        if (currentQ + 1 >= SURVEY_QUESTIONS.length) {
+          onComplete(newAnswers);
+        } else {
+          setAnswers(newAnswers);
+          setCurrentQ(currentQ + 1);
+          setSelected(null);
+          setVisible(true);
+        }
+      }, 250);
+    }, 350);
+  };
+
+  const optionColors = [
+    { normal: 'border-gray-700 bg-gray-800/60 hover:border-blue-500 hover:bg-blue-900/30', selected: 'border-blue-500 bg-blue-900/40 ring-2 ring-blue-500/50' },
+    { normal: 'border-gray-700 bg-gray-800/60 hover:border-purple-500 hover:bg-purple-900/30', selected: 'border-purple-500 bg-purple-900/40 ring-2 ring-purple-500/50' },
+    { normal: 'border-gray-700 bg-gray-800/60 hover:border-emerald-500 hover:bg-emerald-900/30', selected: 'border-emerald-500 bg-emerald-900/40 ring-2 ring-emerald-500/50' },
+    { normal: 'border-gray-700 bg-gray-800/60 hover:border-amber-500 hover:bg-amber-900/30', selected: 'border-amber-500 bg-amber-900/40 ring-2 ring-amber-500/50' },
+  ];
+  const optionLetters = ['A', 'B', 'C', 'D'];
+  const letterColors = ['text-blue-400', 'text-purple-400', 'text-emerald-400', 'text-amber-400'];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 flex flex-col">
+      {/* 상단 프로그레스 */}
+      <div className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur-sm border-b border-gray-800/50 px-4 py-3">
+        <div className="max-w-lg mx-auto">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-400">
+              질문 <span className="text-white">{currentQ + 1}</span> / {SURVEY_QUESTIONS.length}
+            </span>
+            <span className="text-xs text-blue-400 font-medium">{question.category}</span>
+          </div>
+          <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 질문 카드 */}
+      <div className="flex-1 flex items-center justify-center px-4 py-8">
+        <div
+          className="max-w-lg w-full"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateY(0)' : 'translateY(-12px)',
+            transition: 'opacity 0.25s ease, transform 0.25s ease',
+          }}
+        >
+          {/* 아이콘 + 질문 */}
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-4">{question.icon}</div>
+            <h2 className="text-xl md:text-2xl font-black text-white leading-snug">
+              {question.question}
+            </h2>
+          </div>
+
+          {/* 선택지 */}
+          <div className="grid grid-cols-1 gap-3">
+            {question.options.map((opt, idx) => {
+              const isSelected = selected === idx;
+              const colorSet = optionColors[idx];
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleSelect(idx)}
+                  disabled={selected !== null}
+                  className={`w-full flex items-start gap-4 p-4 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer ${
+                    isSelected ? colorSet.selected : colorSet.normal
+                  } ${selected !== null && !isSelected ? 'opacity-40' : ''}`}
+                >
+                  <span className={`flex-shrink-0 w-8 h-8 rounded-full bg-gray-900 border border-gray-600 flex items-center justify-center text-sm font-black ${letterColors[idx]}`}>
+                    {optionLetters[idx]}
+                  </span>
+                  <div>
+                    <p className="text-white font-semibold text-sm leading-snug">{opt.text}</p>
+                    <p className="text-gray-500 text-xs mt-0.5">{opt.desc}</p>
+                  </div>
+                  {isSelected && (
+                    <span className="ml-auto flex-shrink-0 text-white text-lg">✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 로딩 화면 ───────────────────────────────────────────────
+function LoadingScreen() {
+  const [step, setStep] = useState(0);
+  const steps = ['답변 벡터 계산 중...', '12가지 성향과 비교 중...', '코사인 유사도 분석 중...', '결과 도출 중...'];
+  useEffect(() => {
+    const t = setInterval(() => setStep((s) => (s + 1) % steps.length), 600);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 flex items-center justify-center">
+      <div className="text-center">
+        <div className="relative w-20 h-20 mx-auto mb-6">
+          <div className="absolute inset-0 border-4 border-blue-900 rounded-full"></div>
+          <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-3 flex items-center justify-center text-2xl">🔫</div>
+        </div>
+        <p className="text-white font-bold text-lg mb-2">성향 분석 중</p>
+        <p className="text-blue-400 text-sm font-medium transition-all duration-300">{steps[step]}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── 레이더 차트 ─────────────────────────────────────────────
+function VectorRadarChart({ vector, color }) {
+  const keys = Object.keys(VECTOR_LABELS);
+  const data = {
+    labels: keys.map((k) => VECTOR_LABELS[k]),
+    datasets: [
+      {
+        label: '내 성향',
+        data: keys.map((k) => Math.round((vector[k] || 0) * 100)),
+        backgroundColor: `${color}22`,
+        borderColor: color,
+        borderWidth: 2.5,
+        pointBackgroundColor: color,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      },
+    ],
+  };
+  const options = {
+    responsive: true,
+    maintainAspectRatio: true,
+    scales: {
+      r: {
+        min: 0,
+        max: 100,
+        ticks: { stepSize: 25, color: '#6b7280', font: { size: 10 }, backdropColor: 'transparent' },
+        grid: { color: '#374151' },
+        angleLines: { color: '#374151' },
+        pointLabels: { color: '#d1d5db', font: { size: 11, weight: 'bold' } },
+      },
+    },
+    plugins: { legend: { display: false } },
+  };
+  return <Radar data={data} options={options} />;
+}
+
+// ─── 결과 화면 ────────────────────────────────────────────────
+function ResultScreen({ result, nickname, sessionId, onRestart }) {
+  const [copied, setCopied] = useState(false);
+  const { type, score, vector } = result;
+
+  const shareUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/weapon-test/result/${sessionId}`
+    : '';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  // 상위 3개 특성
+  const topTraits = Object.entries(vector)
+    .map(([k, v]) => ({ key: k, label: VECTOR_LABELS[k], value: v }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 px-4 py-8">
+      <div className="max-w-2xl mx-auto">
+        {/* 결과 헤더 카드 */}
+        <div className={`rounded-3xl bg-gradient-to-br ${type.bgClass} p-0.5 mb-6 shadow-2xl`}>
+          <div className="bg-gray-950 rounded-[22px] p-6 md:p-8">
+            {/* 배지 */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 border ${type.borderClass} rounded-full text-xs font-bold`}
+                style={{ color: type.color, borderColor: type.color + '60', background: type.color + '15' }}>
+                {type.primaryWeapon} TYPE
+              </span>
+              <span className="text-xs text-gray-500">유사도 {Math.round(score * 100)}%</span>
+            </div>
+
+            {/* 타입 이름 */}
+            <div className="flex items-start gap-4 mb-6">
+              <span className="text-6xl leading-none">{type.emoji}</span>
+              <div>
+                <div className="text-sm text-gray-400 font-medium mb-1">{type.nameEn}</div>
+                <h1 className="text-3xl md:text-4xl font-black text-white">{type.name}</h1>
+                {nickname && (
+                  <p className="text-sm text-gray-400 mt-1">{nickname}님의 성향</p>
+                )}
+              </div>
+            </div>
+
+            {/* 설명 */}
+            <p className="text-gray-300 leading-relaxed mb-6">{type.description}</p>
+
+            {/* 강점 */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {type.strengths.map((s) => (
+                <span key={s} className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-300 border border-gray-700">
+                  ✓ {s}
+                </span>
+              ))}
+            </div>
+
+            {/* 구분선 */}
+            <div className="border-t border-gray-800 pt-5">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">플레이 스타일</div>
+                  <p className="text-gray-300 text-xs leading-relaxed">{type.playstyle}</p>
+                </div>
+                <div>
+                  <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">꿀팁</div>
+                  <p className="text-gray-300 text-xs leading-relaxed">{type.tip}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 추천 무기 */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+          <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🔫 추천 무기</h3>
+          <div className="flex flex-wrap gap-3">
+            {type.weapons.map((w, i) => (
+              <div key={w} className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${i === 0 ? 'border-blue-600 bg-blue-900/30' : 'border-gray-700 bg-gray-800'}`}>
+                {i === 0 && <span className="text-yellow-400 text-xs font-bold">★</span>}
+                <span className={`font-bold text-sm ${i === 0 ? 'text-blue-300' : 'text-gray-300'}`}>{w}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 레이더 차트 + 상위 특성 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📊 성향 벡터</h3>
+            <div className="max-w-xs mx-auto">
+              <VectorRadarChart vector={vector} color={type.color} />
+            </div>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">⚡ TOP 특성</h3>
+            <div className="space-y-3">
+              {topTraits.map((t, i) => (
+                <div key={t.key}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm text-gray-300 font-medium">{t.label}</span>
+                    <span className="text-xs font-bold" style={{ color: type.color }}>{Math.round(t.value * 100)}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${t.value * 100}%`, background: type.color }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {/* 전체 특성 */}
+              {Object.entries(vector)
+                .filter(([k]) => !topTraits.find((t) => t.key === k))
+                .sort(([,a],[,b]) => b - a)
+                .map(([k, v]) => (
+                  <div key={k}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-gray-500">{VECTOR_LABELS[k]}</span>
+                      <span className="text-xs text-gray-600">{Math.round(v * 100)}%</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-gray-600" style={{ width: `${v * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 액션 버튼 */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={handleCopy}
+            className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all text-sm flex items-center justify-center gap-2"
+          >
+            {copied ? '✓ 링크 복사됨!' : '🔗 결과 공유하기'}
+          </button>
+          <button
+            onClick={onRestart}
+            className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold rounded-xl transition-all text-sm border border-gray-700"
+          >
+            🔄 다시 테스트하기
+          </button>
+        </div>
+
+        {/* 다른 타입 미리보기 */}
+        <div className="mt-8">
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 text-center">다른 성향 타입</h3>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {PERSONALITY_TYPES.filter((t) => t.id !== type.id).map((t) => (
+              <div key={t.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center opacity-60 hover:opacity-100 transition-opacity cursor-default">
+                <div className="text-2xl mb-1">{t.emoji}</div>
+                <div className="text-xs text-gray-400 font-semibold leading-tight">{t.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 메인 페이지 ─────────────────────────────────────────────
+export default function WeaponTestPage() {
+  const [phase, setPhase] = useState('intro'); // 'intro' | 'survey' | 'loading' | 'result'
+  const [nickname, setNickname] = useState('');
+  const [result, setResult] = useState(null);
+  const [sessionId, setSessionId] = useState('');
+
+  const handleStart = (nick, platform) => {
+    setNickname(nick);
+    setPhase('survey');
+  };
+
+  const handleSurveyComplete = async (answers) => {
+    setPhase('loading');
+    const vector = computeVector(answers);
+    const { type, score } = findBestType(vector);
+    const sid = generateSessionId();
+    setSessionId(sid);
+    setResult({ type, score, vector });
+
+    // DB 저장 (비동기, 실패해도 결과는 보여줌)
+    try {
+      await fetch('/api/weapon-test/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: sid,
+          nickname: nickname || null,
+          platform: 'steam',
+          resultType: type.id,
+          resultName: type.name,
+          similarityScore: score,
+          surveyVector: vector,
+        }),
+      });
+    } catch (e) {
+      console.warn('결과 저장 실패:', e.message);
+    }
+
+    // 로딩 최소 1.5초
+    setTimeout(() => setPhase('result'), 1500);
+  };
+
+  const handleRestart = () => {
+    setPhase('intro');
+    setResult(null);
+    setNickname('');
+    setSessionId('');
+  };
+
+  return (
+    <>
+      <Head>
+        <title>무기 성향 테스트 | PK.GG</title>
+        <meta name="description" content="10문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
+        <meta property="og:title" content="PUBG 무기 성향 테스트 | PK.GG" />
+        <meta property="og:description" content="10문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
+      </Head>
+
+      {phase !== 'survey' && <Header />}
+
+      {phase === 'intro' && <IntroScreen onStart={handleStart} />}
+      {phase === 'survey' && <SurveyScreen onComplete={handleSurveyComplete} />}
+      {phase === 'loading' && <LoadingScreen />}
+      {phase === 'result' && result && (
+        <ResultScreen
+          result={result}
+          nickname={nickname}
+          sessionId={sessionId}
+          onRestart={handleRestart}
+        />
+      )}
+    </>
+  );
+}

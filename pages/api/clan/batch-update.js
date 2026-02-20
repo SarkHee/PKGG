@@ -85,15 +85,34 @@ export default async function handler(req, res) {
             continue;
           }
 
-          // 클랜 멤버 찾기 또는 생성
-          let member = await prisma.clanMember.findFirst({
-            where: {
-              nickname: nickname,
-              clanId: clan.id,
-            },
+          // 닉네임으로 전역 검색 (clanId 무관) — 중복 레코드 방지
+          const existingMembers = await prisma.clanMember.findMany({
+            where: { nickname: { equals: nickname, mode: 'insensitive' } },
+            orderBy: { score: 'desc' },
           });
 
-          if (!member) {
+          let member;
+          if (existingMembers.length > 1) {
+            // 중복 레코드 정리 — 첫 번째 유지, 나머지 삭제
+            const keepId = existingMembers[0].id;
+            const deleteIds = existingMembers.slice(1).map((m) => m.id);
+            await prisma.playerMatch.deleteMany({ where: { clanMemberId: { in: deleteIds } } });
+            await prisma.playerModeStats.deleteMany({ where: { clanMemberId: { in: deleteIds } } });
+            await prisma.clanMember.deleteMany({ where: { id: { in: deleteIds } } });
+            // clanId도 최신으로 갱신
+            await prisma.clanMember.update({ where: { id: keepId }, data: { clanId: clan.id } });
+            member = { ...existingMembers[0], clanId: clan.id };
+          } else if (existingMembers.length === 1) {
+            // clanId가 다르면 현재 클랜으로 갱신
+            if (existingMembers[0].clanId !== clan.id) {
+              await prisma.clanMember.update({
+                where: { id: existingMembers[0].id },
+                data: { clanId: clan.id },
+              });
+            }
+            member = existingMembers[0];
+          } else {
+            // 신규 생성
             member = await prisma.clanMember.create({
               data: {
                 nickname: nickname,

@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Layout from '../components/layout/Layout';
+import Head from 'next/head';
+import Header from '../components/layout/Header';
 import { getMMRTier, MMR_DISCLAIMER } from '../utils/mmrCalculator';
 
 // 랭킹 업데이트 상태 컴포넌트
@@ -13,7 +14,6 @@ function RankingUpdateStatus() {
 
   useEffect(() => {
     fetchUpdateStatus();
-    // 1분마다 상태 업데이트
     const interval = setInterval(fetchUpdateStatus, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -22,9 +22,7 @@ function RankingUpdateStatus() {
     try {
       const response = await fetch('/api/clan/ranking-status');
       const data = await response.json();
-      if (data.success) {
-        setUpdateStatus(data.data);
-      }
+      if (data.success) setUpdateStatus(data.data);
     } catch (error) {
       console.error('상태 조회 실패:', error);
     } finally {
@@ -33,19 +31,13 @@ function RankingUpdateStatus() {
   };
 
   if (loading || !updateStatus) {
-    return (
-      <div className="text-sm text-gray-400 mt-1">
-        📊 업데이트 상태 조회 중...
-      </div>
-    );
+    return <div className="text-xs text-gray-500 mt-1">업데이트 상태 조회 중...</div>;
   }
 
   return (
-    <div className="text-sm text-gray-400 mt-1 space-y-1">
-      <div>📅 마지막 업데이트: {updateStatus.lastUpdate.timeKorean}</div>
-      <div>
-        ⏰ 다음 업데이트: 매일 {updateStatus.nextUpdate.schedules.join(', ')}
-      </div>
+    <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+      <div>마지막 업데이트: {updateStatus.lastUpdate.timeKorean}</div>
+      <div>다음 업데이트: 매일 {updateStatus.nextUpdate.schedules.join(', ')}</div>
     </div>
   );
 }
@@ -56,18 +48,12 @@ function ManualUpdateButton() {
 
   const handleManualUpdate = async () => {
     if (updating) return;
-
     setUpdating(true);
     try {
-      const response = await fetch('/api/clan/update-rankings', {
-        method: 'POST',
-      });
+      const response = await fetch('/api/clan/update-rankings', { method: 'POST' });
       const data = await response.json();
-
       if (data.success) {
-        alert(
-          `✅ 랭킹 업데이트 완료!\n${data.data.updatedCount}개 클랜이 업데이트되었습니다.`
-        );
+        alert(`✅ 랭킹 업데이트 완료!\n${data.data.updatedCount}개 클랜이 업데이트되었습니다.`);
         window.location.reload();
       } else {
         alert(`❌ 업데이트 실패: ${data.message}`);
@@ -83,171 +69,112 @@ function ManualUpdateButton() {
     <button
       onClick={handleManualUpdate}
       disabled={updating}
-      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-        updating
-          ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-          : 'bg-blue-600 hover:bg-blue-700 text-white'
+      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+        updating ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'
       }`}
     >
-      {updating ? '🔄 업데이트 중...' : '🔄 지금 업데이트'}
+      {updating ? '업데이트 중...' : '🔄 지금 업데이트'}
     </button>
   );
 }
 
-// 플레이스타일 아이콘 및 설명 매핑
-const playStyleConfig = {
-  '극단적 공격형': {
-    icon: '💀',
-    description: '최고 딜량과 킬을 추구하는 초공격적 플레이스타일',
-    color: 'bg-black text-white',
-  },
-  '핫드롭 마스터': {
-    icon: '🌋',
-    description: '극초반 높은 킬수와 딜량으로 핫드롭을 제압하는 스타일',
-    color: 'bg-orange-500 text-white',
-  },
-  '스피드 파이터': {
-    icon: '⚡',
-    description: '짧은 시간 내에 높은 킬수를 달성하는 빠른 전투 스타일',
-    color: 'bg-yellow-500 text-black',
-  },
-  '초반 어그로꾼': {
-    icon: '🔥',
-    description: '매우 짧은 생존시간에도 높은 딜량을 뽑아내는 공격적 스타일',
-    color: 'bg-orange-600 text-white',
-  },
-  '빠른 청소부': {
-    icon: '🧹',
-    description: '초반에 적당한 교전으로 빠르게 정리하는 효율적 스타일',
-    color: 'bg-green-500 text-white',
-  },
-  '초반 돌격형': {
-    icon: '🚀',
-    description: '게임 시작부터 적극적인 교전을 벌이는 기본 돌격 스타일',
-    color: 'bg-red-600 text-white',
-  },
-  '극단적 수비형': {
-    icon: '🛡️',
-    description: '교전을 최대한 피하고 안전한 플레이를 선호하는 스타일',
-    color: 'bg-gray-600 text-white',
-  },
-  '후반 존버형': {
-    icon: '🏕️',
-    description: '초반 교전을 피하고 후반 랭킹에 집중하는 스타일',
-    color: 'bg-brown-500 text-white',
-  },
-  '장거리 정찰러': {
-    icon: '🏃',
-    description: '넓은 맵 이동과 정찰을 중시하는 플레이스타일',
-    color: 'bg-teal-500 text-white',
-  },
-  '저격 위주': {
-    icon: '🎯',
-    description: '원거리 저격과 정밀한 교전을 선호하는 스타일',
-    color: 'bg-purple-600 text-white',
-  },
-  '중거리 안정형': {
-    icon: '⚖️',
-    description: '중거리 교전에서 안정적인 성과를 내는 플레이스타일',
-    color: 'bg-indigo-500 text-white',
-  },
-  '지속 전투형': {
-    icon: '🔥',
-    description: '긴 교전을 통해 높은 딜량과 킬을 확보하는 스타일',
-    color: 'bg-pink-600 text-white',
-  },
-  '유령 생존자': {
-    icon: '👻',
-    description: '교전 없이도 높은 순위를 달성하는 신비로운 스타일',
-    color: 'bg-slate-700 text-white',
-  },
-  '도박형 파밍러': {
-    icon: '🪂',
-    description: '위험한 지역에서 빠른 파밍을 시도하는 모험적 스타일',
-    color: 'bg-amber-500 text-black',
-  },
-  순간광폭형: {
-    icon: '⚡',
-    description: '짧은 시간에 폭발적인 화력을 집중하는 스타일',
-    color: 'bg-violet-600 text-white',
-  },
-  '치명적 저격수': {
-    icon: '🦅',
-    description: '높은 킬과 딜량으로 적을 제압하는 정밀 스타일',
-    color: 'bg-rose-600 text-white',
-  },
-  '전략적 어시스트러': {
-    icon: '🧠',
-    description: '팀워크와 어시스트를 중시하는 협력형 스타일',
-    color: 'bg-emerald-600 text-white',
-  },
-  '고효율 승부사': {
-    icon: '📊',
-    description: '적은 딜량으로도 많은 킬을 달성하는 효율형 스타일',
-    color: 'bg-cyan-600 text-white',
-  },
-  공격형: {
-    icon: '⚔️',
-    description: '전반적으로 공격적인 성향을 보이는 플레이스타일',
-    color: 'bg-red-400 text-white',
-  },
-  생존형: {
-    icon: '🛡️',
-    description: '생존과 안정성을 중시하는 플레이스타일',
-    color: 'bg-gray-500 text-white',
-  },
-  이동형: {
-    icon: '🏃‍♂️',
-    description: '이동과 포지셔닝을 중시하는 플레이스타일',
-    color: 'bg-lime-500 text-black',
-  },
-  혼합: {
-    icon: '🌀',
-    description: '다양한 스타일이 혼재하는 복합적 플레이스타일',
-    color: 'bg-neutral-600 text-white',
-  },
+// 지역 코드 → 표시 정보
+const REGION_MAP = {
+  KR: { label: '🇰🇷 한국', bg: 'bg-blue-900/60 text-blue-300 border-blue-700' },
+  CN: { label: '🇨🇳 중국', bg: 'bg-red-900/60 text-red-300 border-red-700' },
+  JP: { label: '🇯🇵 일본', bg: 'bg-purple-900/60 text-purple-300 border-purple-700' },
+  RU: { label: '🇷🇺 러시아', bg: 'bg-rose-900/60 text-rose-300 border-rose-700' },
+  EU: { label: '🇪🇺 유럽', bg: 'bg-green-900/60 text-green-300 border-green-700' },
+  NA: { label: '🇺🇸 북미', bg: 'bg-orange-900/60 text-orange-300 border-orange-700' },
+  SEA: { label: '🌏 동남아', bg: 'bg-teal-900/60 text-teal-300 border-teal-700' },
+  BR: { label: '🇧🇷 브라질', bg: 'bg-lime-900/60 text-lime-300 border-lime-700' },
+  ME: { label: '🌍 중동', bg: 'bg-amber-900/60 text-amber-300 border-amber-700' },
+  MIXED: { label: '🌐 혼합', bg: 'bg-yellow-900/60 text-yellow-300 border-yellow-700' },
 };
 
-// 간단한 툴팁 컴포넌트 (표 밖으로 나가도 잘리지 않음)
-const Tooltip = ({ children, content }) => {
-  const [isVisible, setIsVisible] = useState(false);
+function RegionBadge({ region }) {
+  if (!region) return <span className="text-gray-600 text-xs">-</span>;
+  const info = REGION_MAP[region] || { label: '❓ 미분류', bg: 'bg-gray-800 text-gray-400 border-gray-700' };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${info.bg}`}>
+      {info.label}
+    </span>
+  );
+}
 
+// 플레이스타일 배지
+const PLAY_STYLE_COLORS = {
+  '극단적 공격형': 'bg-red-900/60 text-red-300 border-red-700',
+  '핫드롭 마스터': 'bg-orange-900/60 text-orange-300 border-orange-700',
+  '스피드 파이터': 'bg-yellow-900/60 text-yellow-300 border-yellow-700',
+  '초반 어그로꾼': 'bg-orange-900/60 text-orange-300 border-orange-700',
+  '빠른 청소부': 'bg-green-900/60 text-green-300 border-green-700',
+  '초반 돌격형': 'bg-red-900/60 text-red-300 border-red-700',
+  '극단적 수비형': 'bg-gray-800 text-gray-300 border-gray-600',
+  '후반 존버형': 'bg-slate-800 text-slate-300 border-slate-600',
+  '장거리 정찰러': 'bg-teal-900/60 text-teal-300 border-teal-700',
+  '저격 위주': 'bg-purple-900/60 text-purple-300 border-purple-700',
+  '중거리 안정형': 'bg-indigo-900/60 text-indigo-300 border-indigo-700',
+  '지속 전투형': 'bg-pink-900/60 text-pink-300 border-pink-700',
+  '유령 생존자': 'bg-slate-800 text-slate-300 border-slate-600',
+  '도박형 파밍러': 'bg-amber-900/60 text-amber-300 border-amber-700',
+  순간광폭형: 'bg-violet-900/60 text-violet-300 border-violet-700',
+  '치명적 저격수': 'bg-rose-900/60 text-rose-300 border-rose-700',
+  '전략적 어시스트러': 'bg-emerald-900/60 text-emerald-300 border-emerald-700',
+  '고효율 승부사': 'bg-cyan-900/60 text-cyan-300 border-cyan-700',
+  공격형: 'bg-red-900/60 text-red-300 border-red-700',
+  생존형: 'bg-gray-800 text-gray-300 border-gray-600',
+  이동형: 'bg-lime-900/60 text-lime-300 border-lime-700',
+  혼합: 'bg-gray-800 text-gray-400 border-gray-700',
+};
+
+// 간단한 툴팁
+const Tooltip = ({ children, content }) => {
+  const [visible, setVisible] = useState(false);
   return (
     <div
       className="relative inline-block"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
     >
       {children}
-      {isVisible && (
-        <div className="absolute z-[9999] px-4 py-3 text-sm text-white bg-black bg-opacity-95 rounded-lg shadow-xl min-w-[300px] max-w-[500px] break-words whitespace-normal bottom-full mb-2 left-1/2 transform -translate-x-1/2">
+      {visible && (
+        <div className="absolute z-[9999] px-3 py-2 text-xs text-white bg-gray-900 border border-gray-700 rounded-lg shadow-xl min-w-[220px] max-w-[360px] break-words whitespace-normal bottom-full mb-2 left-1/2 -translate-x-1/2">
           {content}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-transparent border-t-4 border-t-black"></div>
+          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-transparent border-t-4 border-t-gray-900" />
         </div>
       )}
     </div>
   );
 };
 
-// 플레이스타일 배지 컴포넌트
-const PlayStyleBadge = ({ style, className = '', showDescription = true }) => {
-  const config = playStyleConfig[style] || playStyleConfig['혼합'];
-
-  const badge = (
-    <span
-      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${config.color} ${className}`}
-    >
-      <span className="text-sm">{config.icon}</span>
-      {style}
+const PlayStyleBadge = ({ style }) => {
+  const cls = PLAY_STYLE_COLORS[style] || PLAY_STYLE_COLORS['혼합'];
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${cls}`}>
+      {style || '혼합'}
     </span>
   );
-
-  if (showDescription) {
-    return <Tooltip content={config.description}>{badge}</Tooltip>;
-  }
-
-  return badge;
 };
+
+// 개요 통계 카드
+function StatCard({ label, value, sub, color = 'text-blue-400' }) {
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+      <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">{label}</div>
+      <div className={`text-3xl font-black ${color}`}>{value}</div>
+      {sub && <div className="text-xs text-gray-600 mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+// 랭킹 메달 색
+function rankColor(i) {
+  if (i === 0) return 'text-yellow-400';
+  if (i === 1) return 'text-gray-300';
+  if (i === 2) return 'text-orange-400';
+  return 'text-gray-500';
+}
 
 export default function ClanAnalytics() {
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -256,29 +183,22 @@ export default function ClanAnalytics() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState(null);
   const [showSearchResult, setShowSearchResult] = useState(false);
-
-  // 지역 필터 상태
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const [isKoreanOnly, setIsKoreanOnly] = useState(false);
-
-  // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
     fetchAnalytics();
-    setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
+    setCurrentPage(1);
   }, [selectedRegion, isKoreanOnly]);
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-
-      // 쿼리 파라미터 구성
       const params = new URLSearchParams();
       if (selectedRegion !== 'ALL') params.append('region', selectedRegion);
       if (isKoreanOnly) params.append('isKorean', 'true');
-
       const response = await fetch(`/api/clan-analytics?${params.toString()}`);
       if (!response.ok) throw new Error('분석 데이터를 가져올 수 없습니다');
       const data = await response.json();
@@ -292,25 +212,13 @@ export default function ClanAnalytics() {
 
   const handleSearch = () => {
     if (!searchQuery.trim() || !analyticsData) return;
-
     const foundClan = analyticsData.rankings.allRankedClans.find(
-      (clan) =>
-        clan.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        clan.tag.toLowerCase().includes(searchQuery.toLowerCase())
+      (c) =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.tag && c.tag.toLowerCase().includes(searchQuery.toLowerCase()))
     );
-
-    if (foundClan) {
-      setSearchResult(foundClan);
-    } else {
-      setSearchResult({ notFound: true });
-    }
+    setSearchResult(foundClan || { notFound: true });
     setShowSearchResult(true);
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
   };
 
   const closeSearchResult = () => {
@@ -321,534 +229,297 @@ export default function ClanAnalytics() {
 
   if (loading) {
     return (
-      <Layout>
-        <div
-          className="min-h-screen bg-gray-900 text-white overflow-visible"
-          style={{ paddingTop: '0', marginTop: '-6rem' }}
-        >
-          <div className="pt-24 pb-8 px-8">
-            <div className="max-w-6xl mx-auto">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-4 text-xl">클랜 분석 데이터 로딩 중...</p>
-              </div>
-            </div>
+      <>
+        <Head><title>클랜 분석 | PK.GG</title></Head>
+        <Header />
+        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4" />
+            <p className="text-gray-400">클랜 분석 데이터 로딩 중...</p>
           </div>
         </div>
-      </Layout>
+      </>
     );
   }
 
   if (error) {
     return (
-      <Layout>
-        <div
-          className="min-h-screen bg-gray-900 text-white overflow-visible"
-          style={{ paddingTop: '0', marginTop: '-6rem' }}
-        >
-          <div className="pt-24 pb-8 px-8">
-            <div className="max-w-6xl mx-auto">
-              <div className="text-center text-red-400">
-                <h2 className="text-2xl font-bold mb-4">오류 발생</h2>
-                <p>{error}</p>
-              </div>
-            </div>
+      <>
+        <Head><title>클랜 분석 | PK.GG</title></Head>
+        <Header />
+        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+          <div className="text-center text-red-400">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="text-xl font-bold mb-2">오류 발생</h2>
+            <p className="text-sm text-gray-500">{error}</p>
           </div>
         </div>
-      </Layout>
+      </>
     );
   }
 
   const { overview, rankings, distributions, allClans } = analyticsData;
 
-  // 페이지네이션 계산
   const totalPages = Math.ceil(allClans.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentClans = allClans.slice(startIndex, endIndex);
+  const currentClans = allClans.slice(startIndex, startIndex + itemsPerPage);
 
-  // 페이지 변경 함수
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    // 페이지 변경 시 스크롤을 전체 클랜 목록 섹션으로 이동
-    const clanListElement = document.getElementById('clan-list-section');
-    if (clanListElement) {
-      clanListElement.scrollIntoView({ behavior: 'smooth' });
-    }
+    document.getElementById('clan-list-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 페이지네이션 버튼 생성
-  const renderPaginationButtons = () => {
+  const renderPagination = () => {
     const buttons = [];
-    const maxVisiblePages = 10;
+    const maxVisible = 10;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
 
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const btn = (key, label, page, active = false) => (
+      <button
+        key={key}
+        onClick={() => handlePageChange(page)}
+        className={`px-3 py-1.5 mx-0.5 rounded-lg text-sm transition-colors ${
+          active
+            ? 'bg-blue-600 text-white font-bold'
+            : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700'
+        }`}
+      >
+        {label}
+      </button>
+    );
 
-    // 끝 페이지가 총 페이지보다 작으면 시작 페이지 조정
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    if (currentPage > 1) buttons.push(btn('prev', '←', currentPage - 1));
+    if (start > 1) {
+      buttons.push(btn(1, '1', 1));
+      if (start > 2) buttons.push(<span key="d1" className="px-1 text-gray-600 text-sm">…</span>);
     }
-
-    // 이전 페이지 버튼
-    if (currentPage > 1) {
-      buttons.push(
-        <button
-          key="prev"
-          onClick={() => handlePageChange(currentPage - 1)}
-          className="px-3 py-2 mx-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
-        >
-          ←
-        </button>
-      );
+    for (let i = start; i <= end; i++) buttons.push(btn(i, i, i, i === currentPage));
+    if (end < totalPages) {
+      if (end < totalPages - 1) buttons.push(<span key="d2" className="px-1 text-gray-600 text-sm">…</span>);
+      buttons.push(btn(totalPages, totalPages, totalPages));
     }
-
-    // 첫 페이지 (시작 페이지가 1이 아닐 때)
-    if (startPage > 1) {
-      buttons.push(
-        <button
-          key={1}
-          onClick={() => handlePageChange(1)}
-          className="px-3 py-2 mx-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
-        >
-          1
-        </button>
-      );
-      if (startPage > 2) {
-        buttons.push(
-          <span key="dots1" className="px-2 py-2 mx-1 text-gray-400">
-            ...
-          </span>
-        );
-      }
-    }
-
-    // 페이지 번호 버튼들
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`px-3 py-2 mx-1 rounded-lg transition-colors ${
-            currentPage === i
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-700 hover:bg-gray-600 text-white'
-          }`}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    // 마지막 페이지 (끝 페이지가 총 페이지가 아닐 때)
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        buttons.push(
-          <span key="dots2" className="px-2 py-2 mx-1 text-gray-400">
-            ...
-          </span>
-        );
-      }
-      buttons.push(
-        <button
-          key={totalPages}
-          onClick={() => handlePageChange(totalPages)}
-          className="px-3 py-2 mx-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
-        >
-          {totalPages}
-        </button>
-      );
-    }
-
-    // 다음 페이지 버튼
-    if (currentPage < totalPages) {
-      buttons.push(
-        <button
-          key="next"
-          onClick={() => handlePageChange(currentPage + 1)}
-          className="px-3 py-2 mx-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
-        >
-          →
-        </button>
-      );
-    }
-
+    if (currentPage < totalPages) buttons.push(btn('next', '→', currentPage + 1));
     return buttons;
   };
 
   return (
-    <Layout>
-      <div
-        className="min-h-screen bg-gray-900 text-white overflow-visible"
-        style={{ paddingTop: '0', marginTop: '-6rem' }}
-      >
-        <div className="pt-24 pb-8 px-8">
-          <div className="max-w-6xl mx-auto overflow-visible">
-            {/* 헤더 */}
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold mb-2">🏆 클랜 종합 분석</h1>
-              <p className="text-gray-400">
-                PUBG 클랜들의 통계와 랭킹을 확인하세요
-              </p>
-            </div>
+    <>
+      <Head><title>클랜 분석 | PK.GG</title></Head>
+      <Header />
 
-            {/* 필터 섹션 */}
-            <div className="mb-8 bg-gray-800 rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">🔍 필터 & 검색</h2>
+      <div className="min-h-screen bg-gray-950 px-4 py-8">
+        <div className="max-w-6xl mx-auto">
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* 지역 필터 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    🌍 지역 필터
-                  </label>
-                  <select
-                    value={selectedRegion}
-                    onChange={(e) => setSelectedRegion(e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="ALL">전체 지역</option>
-                    <option value="KR">🇰🇷 한국</option>
-                    <option value="CN">🇨🇳 중국</option>
-                    <option value="JP">🇯🇵 일본</option>
-                    <option value="RU">🇷🇺 러시아</option>
-                    <option value="EU">🇪🇺 유럽</option>
-                    <option value="NA">🇺🇸 북미</option>
-                    <option value="SEA">🌏 동남아시아</option>
-                    <option value="BR">🇧🇷 브라질</option>
-                    <option value="ME">🌍 중동</option>
-                    <option value="MIXED">🌐 혼합/국제</option>
-                    <option value="UNKNOWN">❓ 미분류</option>
-                  </select>
-                </div>
+          {/* 헤더 */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-black text-white mb-1">🏆 클랜 종합 분석</h1>
+            <p className="text-gray-500 text-sm">PUBG 클랜들의 통계와 랭킹을 확인하세요</p>
+          </div>
 
-                {/* 한국 클랜 전용 필터 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    🇰🇷 한국 클랜 필터
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={isKoreanOnly}
-                        onChange={(e) => setIsKoreanOnly(e.target.checked)}
-                        className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-300">
-                        한국 클랜만 표시
-                      </span>
-                    </label>
-                  </div>
-                </div>
+          {/* 개요 통계 카드 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <StatCard label="총 클랜 수" value={overview.totalClans.toLocaleString()} color="text-blue-400" />
+            <StatCard label="총 멤버 수" value={overview.totalMembers.toLocaleString()} color="text-green-400" />
+            <StatCard label="클랜당 평균 멤버" value={`${overview.avgMembersPerClan}명`} color="text-purple-400" />
+            <StatCard
+              label="한국 클랜"
+              value={allClans.filter((c) => c.isKorean).length.toLocaleString()}
+              sub="isKorean = true"
+              color="text-orange-400"
+            />
+          </div>
 
-                {/* 검색 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    🔎 클랜 검색
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="클랜명 또는 태그 입력..."
-                      className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <button
-                      onClick={handleSearch}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors"
-                    >
-                      검색
-                    </button>
-                  </div>
-                </div>
+          {/* 필터 & 검색 */}
+          <div className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-5">
+            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🔍 필터 & 검색</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 지역 필터 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">지역 필터</label>
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => setSelectedRegion(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  <option value="ALL">전체 지역</option>
+                  <option value="KR">🇰🇷 한국</option>
+                  <option value="CN">🇨🇳 중국</option>
+                  <option value="JP">🇯🇵 일본</option>
+                  <option value="RU">🇷🇺 러시아</option>
+                  <option value="EU">🇪🇺 유럽</option>
+                  <option value="NA">🇺🇸 북미</option>
+                  <option value="SEA">🌏 동남아시아</option>
+                  <option value="BR">🇧🇷 브라질</option>
+                  <option value="ME">🌍 중동</option>
+                  <option value="MIXED">🌐 혼합/국제</option>
+                  <option value="UNKNOWN">❓ 미분류</option>
+                </select>
               </div>
 
-              {/* 현재 필터 상태 표시 */}
-              <div className="mt-4 flex flex-wrap gap-2">
+              {/* 한국 클랜 필터 */}
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isKoreanOnly}
+                    onChange={(e) => setIsKoreanOnly(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600"
+                  />
+                  <span className="text-sm text-gray-300">🇰🇷 한국 클랜만 표시</span>
+                </label>
+              </div>
+
+              {/* 검색 */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">클랜 검색</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    placeholder="클랜명 또는 태그..."
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  />
+                  <button
+                    onClick={handleSearch}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm text-white font-semibold transition-colors"
+                  >
+                    검색
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 활성 필터 태그 */}
+            {(selectedRegion !== 'ALL' || isKoreanOnly) && (
+              <div className="mt-3 flex flex-wrap gap-2">
                 {selectedRegion !== 'ALL' && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-600 text-white">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-900/60 text-blue-300 border border-blue-700">
                     지역: {selectedRegion}
-                    <button
-                      onClick={() => setSelectedRegion('ALL')}
-                      className="ml-2 text-blue-200 hover:text-white"
-                    >
-                      ×
-                    </button>
+                    <button onClick={() => setSelectedRegion('ALL')} className="ml-1 hover:text-white">×</button>
                   </span>
                 )}
                 {isKoreanOnly && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-600 text-white">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-900/60 text-green-300 border border-green-700">
                     🇰🇷 한국 클랜만
-                    <button
-                      onClick={() => setIsKoreanOnly(false)}
-                      className="ml-2 text-green-200 hover:text-white"
-                    >
-                      ×
-                    </button>
+                    <button onClick={() => setIsKoreanOnly(false)} className="ml-1 hover:text-white">×</button>
                   </span>
                 )}
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* 검색 결과 모달 */}
-            {showSearchResult && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold">검색 결과</h3>
-                    <button
-                      onClick={closeSearchResult}
-                      className="text-gray-400 hover:text-white text-2xl"
-                    >
-                      ×
-                    </button>
+          {/* 검색 결과 모달 */}
+          {showSearchResult && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                <div className="flex justify-between items-center mb-5">
+                  <h3 className="text-lg font-bold text-white">검색 결과</h3>
+                  <button onClick={closeSearchResult} className="text-gray-500 hover:text-white text-2xl leading-none">×</button>
+                </div>
+
+                {searchResult?.notFound ? (
+                  <div className="text-center py-6">
+                    <div className="text-4xl mb-3">🔍</div>
+                    <p className="text-gray-400 mb-1">클랜을 찾을 수 없습니다</p>
+                    <p className="text-xs text-gray-600">클랜명이나 태그를 다시 확인해주세요</p>
                   </div>
-
-                  {searchResult?.notFound ? (
-                    <div className="text-center py-4">
-                      <p className="text-gray-400 mb-2">
-                        클랜을 찾을 수 없습니다
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        클랜명이나 태그를 다시 확인해주세요
-                      </p>
+                ) : searchResult ? (
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <div className={`text-4xl font-black mb-1 ${rankColor(searchResult.rank - 1)}`}>
+                        #{searchResult.rank}위
+                      </div>
+                      <h4 className="text-xl font-bold text-white">{searchResult.name}</h4>
+                      <p className="text-gray-500 text-sm">{searchResult.tag}</p>
                     </div>
-                  ) : searchResult ? (
-                    <div className="space-y-4">
-                      <div className="text-center">
-                        <div
-                          className={`text-3xl font-bold mb-2 ${
-                            searchResult.rank === 1
-                              ? 'text-yellow-400'
-                              : searchResult.rank === 2
-                                ? 'text-gray-300'
-                                : searchResult.rank === 3
-                                  ? 'text-orange-400'
-                                  : 'text-white'
-                          }`}
-                        >
-                          #{searchResult.rank}위
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: '평균 점수', value: searchResult.avgStats?.score, color: 'text-blue-400' },
+                        { label: '멤버 수', value: `${searchResult.apiMemberCount}명`, color: 'text-green-400' },
+                        { label: '평균 데미지', value: searchResult.avgStats?.damage, color: 'text-orange-400' },
+                        { label: '승률', value: `${searchResult.avgStats?.winRate}%`, color: 'text-purple-400' },
+                      ].map(({ label, value, color }) => (
+                        <div key={label} className="bg-gray-800 rounded-xl p-3">
+                          <div className="text-xs text-gray-500 mb-1">{label}</div>
+                          <div className={`text-lg font-bold ${color}`}>{value}</div>
                         </div>
-                        <h4 className="text-xl font-semibold">
-                          {searchResult.name}
-                        </h4>
-                        <p className="text-gray-400">{searchResult.tag}</p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="bg-gray-700 rounded p-3">
-                          <div className="text-gray-400">평균 점수</div>
-                          <div className="text-lg font-bold text-blue-400">
-                            {searchResult.avgStats.score}
-                          </div>
-                        </div>
-                        <div className="bg-gray-700 rounded p-3">
-                          <div className="text-gray-400">멤버 수</div>
-                          <div className="text-lg font-bold text-green-400">
-                            {searchResult.apiMemberCount}명
-                          </div>
-                        </div>
-                        <div className="bg-gray-700 rounded p-3">
-                          <div className="text-gray-400">평균 데미지</div>
-                          <div className="text-lg font-bold text-orange-400">
-                            {searchResult.avgStats.damage}
-                          </div>
-                        </div>
-                        <div className="bg-gray-700 rounded p-3">
-                          <div className="text-gray-400">승률</div>
-                          <div className="text-lg font-bold text-purple-400">
-                            {searchResult.avgStats.winRate}%
-                          </div>
-                        </div>
-                      </div>
-
-                      {searchResult.playStyle && (
-                        <div className="bg-gray-700 rounded p-3">
-                          <div className="text-gray-400 text-sm mb-2">
-                            플레이 스타일
-                          </div>
-                          <PlayStyleBadge
-                            style={searchResult.playStyle.primary}
-                            className="bg-blue-600 text-white"
-                          />
+                      ))}
+                    </div>
+                    {searchResult.playStyle && (
+                      <div className="bg-gray-800 rounded-xl p-3">
+                        <div className="text-xs text-gray-500 mb-2">플레이 스타일</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <PlayStyleBadge style={searchResult.playStyle.primary} />
                           {searchResult.playStyle.special && (
-                            <span className="ml-2 bg-purple-600 px-2 py-1 rounded text-xs font-semibold text-white">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-900/60 text-purple-300 border border-purple-700">
                               ⭐ {searchResult.playStyle.special}
                             </span>
                           )}
                         </div>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* 상위 클랜 랭킹 */}
-            <div className="mb-8">
-              <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold">
-                    🥇 클랜 랭킹 TOP 10 (평균 점수 기준)
-                  </h2>
-                  <RankingUpdateStatus />
-                </div>
-                <ManualUpdateButton />
+          {/* TOP 10 랭킹 */}
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-white">🥇 클랜 랭킹 TOP 10</h2>
+                <RankingUpdateStatus />
               </div>
-              <div className="bg-gray-800 rounded-lg overflow-visible">
-                <table className="w-full">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 py-3 text-left">순위</th>
-                      <th className="px-4 py-3 text-left">클랜</th>
-                      <th className="px-4 py-3 text-left">
-                        <Tooltip
-                          content={
-                            <div className="text-left">
-                              <div className="font-semibold text-yellow-400 mb-1">
-                                ⚠️ 지역 분류 정보
-                              </div>
-                              <div className="text-sm mb-2">
-                                자동 분석 기반 추정 지역
-                              </div>
-                              <div className="text-xs space-y-1">
-                                <div>
-                                  • 클랜명, 멤버 닉네임 등을 분석하여 추정
-                                </div>
-                                <div>
-                                  • 아직 완전히 통합되지 않은 데이터입니다
-                                </div>
-                                <div>
-                                  • 일부 클랜은 정확하지 않을 수 있습니다
-                                </div>
-                              </div>
-                            </div>
-                          }
-                        >
-                          <span className="cursor-help border-b border-dotted border-gray-400">
-                            지역
-                          </span>
+              <ManualUpdateButton />
+            </div>
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px]">
+                  <thead>
+                    <tr className="border-b border-gray-800">
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">순위</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">클랜</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">지역</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lv</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">멤버</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <Tooltip content={<div><div className="font-semibold text-yellow-400 mb-1">평균 점수</div><div className="text-gray-400">클랜 멤버들의 평균 PKGG 점수</div></div>}>
+                          <span className="cursor-help border-b border-dotted border-gray-600">평균 점수</span>
                         </Tooltip>
                       </th>
-                      <th className="px-4 py-3 text-left">레벨</th>
-                      <th className="px-4 py-3 text-left">멤버 수</th>
-                      <th className="px-4 py-3 text-left">
-                        <Tooltip
-                          content={
-                            <div className="text-left">
-                              <div className="font-semibold text-yellow-400 mb-1">
-                                MMR (Match Making Rating)
-                              </div>
-                              <div className="text-sm mb-2">
-                                PKGG 사이트 정의 MMR 시스템
-                              </div>
-                              <div className="text-xs space-y-1">
-                                <div>• 킬/데미지/생존시간 종합 평가</div>
-                                <div>• 높을수록 실력이 우수함을 의미</div>
-                                <div>• 클랜 멤버들의 평균 점수</div>
-                              </div>
-                            </div>
-                          }
-                        >
-                          <span className="cursor-help border-b border-dotted border-gray-400">
-                            평균 점수
-                          </span>
-                        </Tooltip>
-                      </th>
-                      <th className="px-4 py-3 text-left">
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                         <Tooltip content={MMR_DISCLAIMER}>
-                          <span className="cursor-help border-b border-dotted border-gray-400">
-                            클랜 MMR
-                          </span>
+                          <span className="cursor-help border-b border-dotted border-gray-600">클랜 MMR</span>
                         </Tooltip>
                       </th>
-                      <th className="px-4 py-3 text-left">평균 데미지</th>
-                      <th className="px-4 py-3 text-left">승률</th>
-                      <th className="px-4 py-3 text-left">플레이 스타일</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">데미지</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">승률</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">플레이 스타일</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-800/50">
                     {rankings.topClansByScore.map((clan, index) => (
-                      <tr key={clan.id} className="border-t border-gray-700">
+                      <tr key={clan.id} className="hover:bg-gray-800/40 transition-colors">
                         <td className="px-4 py-3">
-                          <span
-                            className={`font-bold ${index === 0 ? 'text-yellow-400' : index === 1 ? 'text-gray-300' : index === 2 ? 'text-orange-400' : 'text-white'}`}
-                          >
-                            #{index + 1}
-                          </span>
+                          <span className={`text-lg font-black ${rankColor(index)}`}>#{index + 1}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <div>
-                            <Link
-                              href={`/clan/${encodeURIComponent(clan.name)}`}
-                              className="font-semibold hover:text-blue-400 transition-colors cursor-pointer"
-                            >
-                              {clan.name}
-                            </Link>
-                            <div className="text-sm text-gray-400">
-                              {clan.tag}
-                            </div>
-                          </div>
+                          <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-bold text-white hover:text-blue-400 transition-colors">
+                            {clan.name}
+                          </Link>
+                          {clan.tag && <div className="text-xs text-gray-500">{clan.tag}</div>}
                         </td>
+                        <td className="px-4 py-3"><RegionBadge region={clan.region} /></td>
+                        <td className="px-4 py-3 text-gray-400 text-sm">{clan.level ?? '-'}</td>
+                        <td className="px-4 py-3 text-blue-400 font-semibold text-sm">{clan.apiMemberCount}명</td>
+                        <td className="px-4 py-3 font-bold text-blue-400">{clan.avgStats?.score}</td>
                         <td className="px-4 py-3">
-                          {clan.region ? (
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${
-                                clan.region === 'KR'
-                                  ? 'bg-blue-600 text-white'
-                                  : clan.region === 'CN'
-                                    ? 'bg-red-600 text-white'
-                                    : clan.region === 'JP'
-                                      ? 'bg-purple-600 text-white'
-                                      : clan.region === 'EU'
-                                        ? 'bg-green-600 text-white'
-                                        : clan.region === 'NA'
-                                          ? 'bg-orange-600 text-white'
-                                          : clan.region === 'MIXED'
-                                            ? 'bg-yellow-600 text-black'
-                                            : 'bg-gray-600 text-white'
-                              }`}
-                            >
-                              {clan.region === 'KR'
-                                ? '🇰🇷 한국'
-                                : clan.region === 'CN'
-                                  ? '🇨🇳 중국'
-                                  : clan.region === 'JP'
-                                    ? '🇯🇵 일본'
-                                    : clan.region === 'RU'
-                                      ? '🇷🇺 러시아'
-                                      : clan.region === 'EU'
-                                        ? '🇪🇺 유럽'
-                                        : clan.region === 'NA'
-                                          ? '🇺🇸 북미'
-                                          : clan.region === 'SEA'
-                                            ? '🌏 동남아'
-                                            : clan.region === 'BR'
-                                              ? '🇧🇷 브라질'
-                                              : clan.region === 'ME'
-                                                ? '🌍 중동'
-                                                : clan.region === 'MIXED'
-                                                  ? '🌐 혼합'
-                                                  : '❓ 미분류'}
-                            </span>
-                          ) : (
-                            <span className="text-gray-500 text-xs">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">{clan.level}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-blue-400">
-                            {clan.apiMemberCount}명
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 font-bold text-blue-400">
-                          {clan.avgStats.score}
-                        </td>
-                        <td className="px-4 py-3">
-                          {clan.avgStats.avgMMR ? (() => {
+                          {clan.avgStats?.avgMMR ? (() => {
                             const tier = getMMRTier(clan.avgStats.avgMMR);
                             return (
                               <Tooltip content={MMR_DISCLAIMER}>
@@ -857,37 +528,23 @@ export default function ClanAnalytics() {
                                 </span>
                               </Tooltip>
                             );
-                          })() : '-'}
+                          })() : <span className="text-gray-600">-</span>}
                         </td>
-                        <td className="px-4 py-3">{clan.avgStats.damage}</td>
-                        <td className="px-4 py-3">{clan.avgStats.winRate}%</td>
+                        <td className="px-4 py-3 text-orange-400 font-semibold text-sm">{clan.avgStats?.damage}</td>
+                        <td className="px-4 py-3 text-green-400 font-semibold text-sm">{clan.avgStats?.winRate}%</td>
                         <td className="px-4 py-3">
                           {clan.playStyle ? (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1">
-                                <PlayStyleBadge
-                                  style={clan.playStyle.primary}
-                                />
-                                {clan.playStyle.special && (
-                                  <Tooltip
-                                    content={`특수 특성: ${clan.playStyle.special}`}
-                                  >
-                                    <span className="bg-purple-600 px-2 py-1 rounded text-xs font-semibold text-white">
-                                      ⭐ {clan.playStyle.special}
-                                    </span>
-                                  </Tooltip>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                {clan.playStyle.secondary} | 지배율:{' '}
-                                {clan.playStyle.dominance}%
-                              </div>
-                              <div className="text-xs text-gray-300">
-                                다양성: {clan.playStyle.variety}
-                              </div>
+                            <div>
+                              <PlayStyleBadge style={clan.playStyle.primary} />
+                              {clan.playStyle.special && (
+                                <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-purple-900/60 text-purple-300 border border-purple-700">
+                                  ⭐ {clan.playStyle.special}
+                                </span>
+                              )}
+                              <div className="text-xs text-gray-600 mt-0.5">지배율 {clan.playStyle.dominance}%</div>
                             </div>
                           ) : (
-                            <span className="text-gray-500 text-sm">-</span>
+                            <span className="text-gray-600 text-sm">-</span>
                           )}
                         </td>
                       </tr>
@@ -896,177 +553,110 @@ export default function ClanAnalytics() {
                 </table>
               </div>
             </div>
+          </div>
 
-            {/* 분포 통계 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {/* 레벨별 분포 */}
-              <div className="bg-gray-800 rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-4">📊 클랜 레벨별 분포</h3>
-                <div className="space-y-3">
-                  {Object.entries(distributions.byLevel).map(
-                    ([level, count]) => (
-                      <div
-                        key={level}
-                        className="flex justify-between items-center"
-                      >
-                        <span>레벨 {level}</span>
-                        <div className="flex items-center">
-                          <div className="bg-gray-700 rounded-full h-2 w-24 mr-2">
-                            <div
-                              className="bg-blue-500 h-2 rounded-full"
-                              style={{
-                                width: `${(count / overview.totalClans) * 100}%`,
-                              }}
-                            ></div>
-                          </div>
-                          <span className="text-sm">{count}개</span>
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {/* 규모별 분포 */}
-              <div className="bg-gray-800 rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-4">👥 클랜 규모별 분포</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span>소형 (≤10명)</span>
-                    <div className="flex items-center">
-                      <div className="bg-gray-700 rounded-full h-2 w-24 mr-2">
+          {/* 분포 통계 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+            {/* 레벨별 분포 */}
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📊 클랜 레벨별 분포</h3>
+              <div className="space-y-2.5">
+                {Object.entries(distributions.byLevel)
+                  .sort(([a], [b]) => Number(a) - Number(b))
+                  .map(([level, count]) => (
+                    <div key={level} className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 w-14 shrink-0">레벨 {level}</span>
+                      <div className="flex-1 bg-gray-800 rounded-full h-2">
                         <div
-                          className="bg-green-500 h-2 rounded-full"
-                          style={{
-                            width: `${(distributions.byMemberCount.small / overview.totalClans) * 100}%`,
-                          }}
-                        ></div>
+                          className="bg-blue-500 h-2 rounded-full"
+                          style={{ width: `${Math.max((count / overview.totalClans) * 100, 2)}%` }}
+                        />
                       </div>
-                      <span className="text-sm">
-                        {distributions.byMemberCount.small}개
-                      </span>
+                      <span className="text-xs text-gray-400 w-10 text-right shrink-0">{count}개</span>
                     </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>중형 (11-30명)</span>
-                    <div className="flex items-center">
-                      <div className="bg-gray-700 rounded-full h-2 w-24 mr-2">
-                        <div
-                          className="bg-yellow-500 h-2 rounded-full"
-                          style={{
-                            width: `${(distributions.byMemberCount.medium / overview.totalClans) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm">
-                        {distributions.byMemberCount.medium}개
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>대형 (31명+)</span>
-                    <div className="flex items-center">
-                      <div className="bg-gray-700 rounded-full h-2 w-24 mr-2">
-                        <div
-                          className="bg-red-500 h-2 rounded-full"
-                          style={{
-                            width: `${(distributions.byMemberCount.large / overview.totalClans) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                      <span className="text-sm">
-                        {distributions.byMemberCount.large}개
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  ))}
               </div>
             </div>
 
-            {/* 전체 클랜 목록 */}
-            <div id="clan-list-section" className="mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">📋 전체 클랜 목록</h2>
-                <div className="text-sm text-gray-400">
-                  총 {allClans.length}개 클랜 중 {startIndex + 1}-
-                  {Math.min(endIndex, allClans.length)}번째 표시
-                </div>
+            {/* 규모별 분포 */}
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">👥 클랜 규모별 분포</h3>
+              <div className="space-y-2.5">
+                {[
+                  { label: '소형 (≤10명)', key: 'small', color: 'bg-green-500' },
+                  { label: '중형 (11–30명)', key: 'medium', color: 'bg-yellow-500' },
+                  { label: '대형 (31명+)', key: 'large', color: 'bg-red-500' },
+                ].map(({ label, key, color }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 w-24 shrink-0">{label}</span>
+                    <div className="flex-1 bg-gray-800 rounded-full h-2">
+                      <div
+                        className={`${color} h-2 rounded-full`}
+                        style={{ width: `${Math.max((distributions.byMemberCount[key] / overview.totalClans) * 100, 2)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-400 w-10 text-right shrink-0">
+                      {distributions.byMemberCount[key]}개
+                    </span>
+                  </div>
+                ))}
               </div>
+            </div>
+          </div>
 
-              <div className="bg-gray-800 rounded-lg overflow-visible">
-                <table className="w-full">
-                  <thead className="bg-gray-700">
-                    <tr>
-                      <th className="px-4 py-3 text-left">순번</th>
-                      <th className="px-4 py-3 text-left">클랜명</th>
-                      <th className="px-4 py-3 text-left">태그</th>
-                      <th className="px-4 py-3 text-left">레벨</th>
-                      <th className="px-4 py-3 text-left">멤버 수</th>
-                      <th className="px-4 py-3 text-left">
-                        <Tooltip
-                          content={
-                            <div className="text-left">
-                              <div className="font-semibold text-yellow-400 mb-1">
-                                MMR (Match Making Rating)
-                              </div>
-                              <div className="text-sm mb-2">
-                                PKGG 사이트 정의 MMR 시스템
-                              </div>
-                              <div className="text-xs space-y-1">
-                                <div>• 킬/데미지/생존시간 종합 평가</div>
-                                <div>• 높을수록 실력이 우수함을 의미</div>
-                                <div>• 클랜 멤버들의 평균 점수</div>
-                              </div>
-                            </div>
-                          }
-                        >
-                          <span className="cursor-help border-b border-dotted border-gray-400">
-                            평균 점수
-                          </span>
+          {/* 전체 클랜 목록 */}
+          <div id="clan-list-section" className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-white">📋 전체 클랜 목록</h2>
+              <div className="text-xs text-gray-500">
+                {allClans.length}개 중 {startIndex + 1}–{Math.min(startIndex + itemsPerPage, allClans.length)}번째
+              </div>
+            </div>
+
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-gray-800">
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">#</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">클랜명</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">태그</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lv</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">멤버</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <Tooltip content="클랜 멤버 평균 PKGG 점수">
+                          <span className="cursor-help border-b border-dotted border-gray-600">점수</span>
                         </Tooltip>
                       </th>
-                      <th className="px-4 py-3 text-left">
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                         <Tooltip content={MMR_DISCLAIMER}>
-                          <span className="cursor-help border-b border-dotted border-gray-400">
-                            클랜 MMR
-                          </span>
+                          <span className="cursor-help border-b border-dotted border-gray-600">MMR</span>
                         </Tooltip>
                       </th>
-                      <th className="px-4 py-3 text-left">플레이 스타일</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">플레이 스타일</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-800/50">
                     {currentClans.map((clan, index) => (
-                      <tr key={clan.id} className="border-t border-gray-700">
-                        <td className="px-4 py-3 text-gray-400 font-mono">
-                          {startIndex + index + 1}
-                        </td>
+                      <tr key={clan.id} className="hover:bg-gray-800/40 transition-colors">
+                        <td className="px-4 py-3 text-gray-600 text-xs font-mono">{startIndex + index + 1}</td>
                         <td className="px-4 py-3">
-                          <Link
-                            href={`/clan/${encodeURIComponent(clan.name)}`}
-                            className="font-semibold hover:text-blue-400 transition-colors cursor-pointer"
-                          >
+                          <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-semibold text-white hover:text-blue-400 transition-colors text-sm">
                             {clan.name}
                           </Link>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="bg-gray-700 px-2 py-1 rounded text-sm">
-                            {clan.tag}
+                          <span className="px-2 py-0.5 rounded-md text-xs bg-gray-800 border border-gray-700 text-gray-400">
+                            {clan.tag || '-'}
                           </span>
                         </td>
-                        <td className="px-4 py-3">{clan.level}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-green-400 font-semibold">
-                            {clan.apiMemberCount}명
-                          </span>
-                        </td>
+                        <td className="px-4 py-3 text-gray-500 text-sm">{clan.level ?? '-'}</td>
+                        <td className="px-4 py-3 text-green-400 font-semibold text-sm">{clan.apiMemberCount}명</td>
                         <td className="px-4 py-3">
                           {clan.avgStats ? (
-                            <span className="font-semibold">
-                              {clan.avgStats.score}
-                            </span>
+                            <span className="font-bold text-blue-400">{clan.avgStats.score}</span>
                           ) : (
-                            <span className="text-gray-500">데이터 없음</span>
+                            <span className="text-gray-700 text-xs">없음</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -1079,37 +669,20 @@ export default function ClanAnalytics() {
                                 </span>
                               </Tooltip>
                             );
-                          })() : <span className="text-gray-500">-</span>}
+                          })() : <span className="text-gray-700">-</span>}
                         </td>
                         <td className="px-4 py-3">
                           {clan.playStyle ? (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <PlayStyleBadge
-                                  style={clan.playStyle.primary}
-                                />
-                                <span className="text-gray-400 text-xs">
-                                  {clan.playStyle.secondary}
+                            <div>
+                              <PlayStyleBadge style={clan.playStyle.primary} />
+                              {clan.playStyle.special && (
+                                <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-purple-900/60 text-purple-300 border border-purple-700">
+                                  ⭐ {clan.playStyle.special}
                                 </span>
-                                {clan.playStyle.special && (
-                                  <Tooltip
-                                    content={`특수 특성: ${clan.playStyle.special}`}
-                                  >
-                                    <span className="bg-purple-600 px-2 py-1 rounded text-xs font-semibold text-white">
-                                      ⭐ {clan.playStyle.special}
-                                    </span>
-                                  </Tooltip>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                다양성: {clan.playStyle.variety} | 지배율:{' '}
-                                {clan.playStyle.dominance}%
-                              </div>
+                              )}
                             </div>
                           ) : (
-                            <span className="text-gray-500 text-sm">
-                              분석 불가
-                            </span>
+                            <span className="text-gray-700 text-xs">분석 불가</span>
                           )}
                         </td>
                       </tr>
@@ -1117,37 +690,32 @@ export default function ClanAnalytics() {
                   </tbody>
                 </table>
               </div>
-
-              {/* 페이지네이션 */}
-              {totalPages > 1 && (
-                <div className="mt-6 flex justify-center items-center">
-                  <div className="flex items-center bg-gray-800 rounded-lg p-2">
-                    {renderPaginationButtons()}
-                  </div>
-                </div>
-              )}
-
-              {/* 페이지네이션 정보 */}
-              {totalPages > 1 && (
-                <div className="mt-4 text-center text-sm text-gray-400">
-                  페이지 {currentPage} / {totalPages} (전체 {allClans.length}개
-                  클랜)
-                </div>
-              )}
             </div>
 
-            {/* 새로고침 버튼 */}
-            <div className="text-center">
-              <button
-                onClick={fetchAnalytics}
-                className="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-semibold transition-colors"
-              >
-                🔄 데이터 새로고침
-              </button>
-            </div>
+            {/* 페이지네이션 */}
+            {totalPages > 1 && (
+              <div className="mt-5 flex flex-col items-center gap-2">
+                <div className="flex items-center flex-wrap justify-center gap-0.5">
+                  {renderPagination()}
+                </div>
+                <div className="text-xs text-gray-600">
+                  {currentPage} / {totalPages} 페이지 (전체 {allClans.length}개)
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 새로고침 */}
+          <div className="text-center">
+            <button
+              onClick={fetchAnalytics}
+              className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm font-semibold text-gray-300 transition-colors"
+            >
+              🔄 데이터 새로고침
+            </button>
           </div>
         </div>
       </div>
-    </Layout>
+    </>
   );
 }
