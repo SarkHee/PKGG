@@ -26,18 +26,11 @@ const FORUM_CATEGORIES = [
     color: 'orange',
   },
   {
-    id: 'clan',
+    id: 'recruitment',
     name: '클랜 모집',
     description: '클랜원을 모집하거나 클랜을 찾아보세요',
     icon: '👥',
     color: 'purple',
-  },
-  {
-    id: 'showcase',
-    name: '플레이 영상',
-    description: '멋진 플레이 영상을 공유하세요',
-    icon: '🎬',
-    color: 'red',
   },
 ];
 

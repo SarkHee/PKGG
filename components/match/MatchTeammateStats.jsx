@@ -1,4 +1,4 @@
-export default function MatchTeammateStats({ teammatesDetail }) {
+export default function MatchTeammateStats({ teammatesDetail, shard = 'steam' }) {
   if (!Array.isArray(teammatesDetail) || teammatesDetail.length === 0) {
     return (
       <div className="flex items-center justify-center py-6 text-gray-400 text-sm bg-gray-50 rounded-xl border border-gray-200">
@@ -75,9 +75,23 @@ export default function MatchTeammateStats({ teammatesDetail }) {
                     ) : (
                       <span className="w-5 h-5 bg-gray-200 rounded-full flex-shrink-0" />
                     )}
-                    <span className={`font-semibold ${t.isSelf ? 'text-blue-700' : 'text-gray-800'}`}>
-                      {t.name}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {t.clanTag && (
+                        <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-50 text-indigo-500 border border-indigo-100 font-medium flex-shrink-0">
+                          [{t.clanTag}]
+                        </span>
+                      )}
+                      {t.isSelf ? (
+                        <span className="font-semibold truncate text-blue-700">{t.name}</span>
+                      ) : (
+                        <a
+                          href={`/player/${shard}/${encodeURIComponent(t.name)}`}
+                          className="font-semibold truncate text-gray-800 hover:text-blue-600 hover:underline transition-colors"
+                        >
+                          {t.name}
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </td>
                 {/* 킬 */}

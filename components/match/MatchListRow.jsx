@@ -185,18 +185,30 @@ export default function MatchListRow({
         <div className="flex-1 min-w-0">
           {Array.isArray(match.teammatesDetail) && match.teammatesDetail.length > 0 ? (
             <div className="flex flex-wrap gap-1">
-              {match.teammatesDetail.map((t) => (
-                <span
-                  key={t.name}
-                  className={`px-2 py-0.5 rounded-full text-xs truncate max-w-[80px] ${
-                    t.isSelf
-                      ? 'bg-blue-100 text-blue-700 font-bold border border-blue-200'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {t.name}
-                </span>
-              ))}
+              {match.teammatesDetail.map((t) => {
+                const shard = playerData?.profile?.shardId || 'steam';
+                const chip = (
+                  <span
+                    key={t.name}
+                    className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 max-w-[110px] ${
+                      t.isSelf
+                        ? 'bg-blue-100 text-blue-700 font-bold border border-blue-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer transition-colors'
+                    }`}
+                  >
+                    {t.clanTag && (
+                      <span className="text-gray-400 font-normal">[{t.clanTag}]</span>
+                    )}
+                    <span className="truncate">{t.name}</span>
+                  </span>
+                );
+                if (t.isSelf) return chip;
+                return (
+                  <a key={t.name} href={`/player/${shard}/${encodeURIComponent(t.name)}`}>
+                    {chip}
+                  </a>
+                );
+              })}
             </div>
           ) : (
             <span className="text-gray-300 text-xs">-</span>
@@ -241,7 +253,7 @@ export default function MatchListRow({
               <span className="text-gray-400">{Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분 생존</span>
             </div>
           </div>
-          <MatchTeammateStats teammatesDetail={match.teammatesDetail} />
+          <MatchTeammateStats teammatesDetail={match.teammatesDetail} shard={playerData?.profile?.shardId || 'steam'} />
           <div className="mt-4">
             <MatchDetailLog match={match} />
           </div>

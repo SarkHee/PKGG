@@ -2,7 +2,75 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from "../../../components/layout/Header";
+import Header from '../../../components/layout/Header';
+
+function DeleteModal({ type, onConfirm, onCancel, loading, error }) {
+  const [password, setPassword] = useState('');
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+        <h3 className="text-lg font-bold text-gray-900 mb-2">
+          {type === 'post' ? '게시글 삭제' : '댓글 삭제'}
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          작성 시 입력한 비밀번호를 입력하세요.<br />
+          삭제 후 복구할 수 없습니다.
+        </p>
+        {error && <p className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2.5">{error}</p>}
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="비밀번호"
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
+          onKeyDown={(e) => e.key === 'Enter' && onConfirm(password)}
+          autoFocus
+        />
+        <div className="flex gap-3">
+          <button onClick={onCancel} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+            취소
+          </button>
+          <button
+            onClick={() => onConfirm(password)}
+            disabled={loading || !password}
+            className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-lg text-sm font-semibold transition-colors"
+          >
+            {loading ? '삭제 중...' : '삭제'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatContent(content) {
+  return content.split('\n').map((line, i) => {
+    // 이미지 마크다운: ![alt](url)
+    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (imgMatch) {
+      return (
+        <div key={i} className="my-3">
+          <img
+            src={imgMatch[2]}
+            alt={imgMatch[1] || '이미지'}
+            className="max-w-full rounded-xl border border-gray-200 shadow-sm"
+            style={{ maxHeight: '500px', objectFit: 'contain' }}
+          />
+        </div>
+      );
+    }
+    return line.trim() ? (
+      <p key={i} className="mb-2 text-gray-800 leading-relaxed">{line}</p>
+    ) : (
+      <div key={i} className="mb-2" />
+    );
+  });
+}
 
 export default function PostDetail() {
   const router = useRouter();
@@ -11,130 +79,34 @@ export default function PostDetail() {
   const [post, setPost] = useState(null);
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [newReply, setNewReply] = useState('');
-  const [replyAuthor, setReplyAuthor] = useState('');
+  const [replyForm, setReplyForm] = useState({ content: '', author: '', password: '' });
   const [submittingReply, setSubmittingReply] = useState(false);
+  const [replyError, setReplyError] = useState('');
+  const [deleteModal, setDeleteModal] = useState(null); // { type: 'post' | 'reply', id }
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
-    if (postId) {
-      fetchPost();
-    }
+    if (postId) fetchPost();
   }, [postId]);
 
   const fetchPost = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-
-      // 실제 API 호출로 해당 게시물 데이터 가져오기
-      const response = await fetch(`/api/forum/posts?postId=${postId}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.post) {
-          setPost(data.post);
-          setReplies(data.replies || []);
-        } else {
-          // 해당 ID의 게시물이 없는 경우
-          setPost(null);
-        }
-      } else {
-        console.error('Failed to fetch post:', response.status);
-        setPost(null);
-      }
-    } catch (error) {
-      console.error('Error fetching post:', error);
-
-      // API 실패 시 임시 데이터로 폴백 (postId에 따라 다른 내용)
-      const fallbackPosts = {
-        1: {
-          id: '1',
-          title: '초보자를 위한 PUBG 생존 가이드',
-          content: `PUBG를 처음 시작하는 분들을 위한 생존 가이드를 작성했습니다.
-
-**1. 착지 지역 선택**
-- 인기 지역을 피하고 주변부에 착지하세요
-- 건물이 있는 곳을 목표로 하세요
-- 차량이 있는 지역을 기억해두세요
-
-**2. 초반 아이템 파밍**  
-- 무기와 방어구를 우선적으로 챙기세요
-- 치료 아이템과 에너지 드링크를 확보하세요
-- 가방을 빠르게 업그레이드하세요`,
-          author: 'PUBG마스터',
-          categoryId: 'strategy',
-          category: { name: '전략 & 팁', icon: '🧠' },
-          views: 1250,
-          createdAt: new Date().toISOString(),
-          likes: 45,
-          isLiked: false,
-        },
-        2: {
-          id: '2',
-          title: '랭크 시스템 분석 및 티어 올리는 법',
-          content: `PUBG 랭크 시스템에 대해 자세히 분석해보겠습니다.
-
-**티어 시스템**
-- Bronze → Silver → Gold → Platinum → Diamond → Master
-
-**랭크 포인트 획득 방식**
-- 킬 점수: 킬 당 20-30 RP
-- 순위 보너스: TOP 10 진입 시 추가 RP
-- 생존 시간 보너스: 오래 생존할수록 더 많은 RP
-
-**티어 올리기 팁**
-- 무작정 킬을 노리지 말고 안정적인 플레이
-- 팀플레이 중요 (듀오/스쿼드)
-- 핫드랍보다는 안정적인 착지`,
-          author: '랭크킹',
-          categoryId: 'strategy',
-          category: { name: '전략 & 팁', icon: '🧠' },
-          views: 890,
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          likes: 23,
-          isLiked: false,
-        },
-        3: {
-          id: '3',
-          title: 'UBD 클랜 모집합니다!',
-          content: `안녕하세요! UBD 클랜에서 새로운 멤버를 모집합니다.
-
-**클랜 소개**
-- 클랜명: UBD (Ultimate Battle Division)
-- 현재 인원: 45명
-- 주요 활동: 경쟁전, 클랜전, 스크림
-
-**모집 조건**
-- 티어: 골드 이상
-- 평균 딜량: 150+ 
-- 적극적인 참여 의지
-- 디스코드 사용 가능
-
-**지원 방법**
-- 게임 내 클랜 검색: UBD
-- 디스코드: UBD#1234
-- 클랜장: parksrk
-
-많은 지원 부탁드립니다!`,
-          author: 'parksrk',
-          categoryId: 'recruitment',
-          category: { name: '클랜 모집', icon: '👥' },
-          views: 456,
-          createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-          likes: 12,
-          isLiked: false,
-        },
-      };
-
-      const fallbackPost = fallbackPosts[postId] || fallbackPosts['1'];
-      setPost(fallbackPost);
-      setReplies([
-        {
-          id: 1,
-          content: `${fallbackPost.title}에 대한 댓글입니다. 유용한 정보 감사합니다!`,
-          author: '독자1',
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          likes: 3,
-        },
+      const [postRes, repliesRes] = await Promise.all([
+        fetch(`/api/forum/posts?postId=${postId}`),
+        fetch(`/api/forum/replies?postId=${postId}`),
       ]);
+      if (postRes.ok) {
+        const data = await postRes.json();
+        setPost(data.post || null);
+      }
+      if (repliesRes.ok) {
+        const data = await repliesRes.json();
+        setReplies(data.replies || []);
+      }
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -142,47 +114,66 @@ export default function PostDetail() {
 
   const handleSubmitReply = async (e) => {
     e.preventDefault();
-
-    if (!newReply.trim() || !replyAuthor.trim()) {
-      alert('댓글 내용과 작성자명을 입력해주세요.');
-      return;
-    }
-
+    if (!replyForm.content.trim()) { setReplyError('내용을 입력해주세요.'); return; }
+    if (!replyForm.author.trim()) { setReplyError('닉네임을 입력해주세요.'); return; }
     setSubmittingReply(true);
-
+    setReplyError('');
     try {
-      // 임시로 클라이언트에서 댓글 추가 (실제로는 API 호출)
-      const tempReply = {
-        id: Date.now(),
-        content: newReply,
-        author: replyAuthor,
-        createdAt: new Date().toISOString(),
-        likes: 0,
-      };
-
-      setReplies((prev) => [...prev, tempReply]);
-      setNewReply('');
-
-      // 실제로는 여기서 API 호출
-      // await fetch(`/api/forum/posts/${postId}/replies`, { ... });
-    } catch (error) {
-      console.error('Error submitting reply:', error);
-      alert('댓글 작성에 실패했습니다.');
+      const res = await fetch('/api/forum/replies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: parseInt(postId),
+          content: replyForm.content,
+          author: replyForm.author,
+          password: replyForm.password || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReplies((prev) => [...prev, data.reply]);
+        setReplyForm({ content: '', author: '', password: '' });
+        setPost((p) => p ? { ...p, replyCount: (p.replyCount || 0) + 1 } : p);
+      } else {
+        setReplyError(data.error || '댓글 작성에 실패했습니다.');
+      }
+    } catch {
+      setReplyError('네트워크 오류가 발생했습니다.');
     } finally {
       setSubmittingReply(false);
     }
   };
 
-  const handleLike = async () => {
+  const handleDelete = async (password) => {
+    setDeleteLoading(true);
+    setDeleteError('');
     try {
-      // 실제로는 API 호출
-      setPost((prev) => ({
-        ...prev,
-        likes: prev.isLiked ? prev.likes - 1 : prev.likes + 1,
-        isLiked: !prev.isLiked,
-      }));
-    } catch (error) {
-      console.error('Error liking post:', error);
+      const isPost = deleteModal.type === 'post';
+      const res = await fetch(isPost ? '/api/forum/posts' : '/api/forum/replies', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          isPost
+            ? { postId: parseInt(postId), password }
+            : { replyId: deleteModal.id, password }
+        ),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (isPost) {
+          router.push('/forum');
+        } else {
+          setReplies((prev) => prev.filter((r) => r.id !== deleteModal.id));
+          setPost((p) => p ? { ...p, replyCount: Math.max(0, (p.replyCount || 1) - 1) } : p);
+          setDeleteModal(null);
+        }
+      } else {
+        setDeleteError(data.error || '삭제에 실패했습니다.');
+      }
+    } catch {
+      setDeleteError('네트워크 오류가 발생했습니다.');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -190,14 +181,10 @@ export default function PostDetail() {
     return (
       <>
         <Header />
-        <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center py-20">
-              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">
-                게시글을 불러오는 중...
-              </p>
-            </div>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-gray-500 text-sm">게시글을 불러오는 중...</p>
           </div>
         </div>
       </>
@@ -208,18 +195,11 @@ export default function PostDetail() {
     return (
       <>
         <Header />
-        <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
-          <div className="max-w-4xl mx-auto text-center py-20">
-            <div className="text-6xl mb-6">📭</div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              게시글을 찾을 수 없습니다
-            </h1>
-            <Link
-              href="/forum"
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
-              포럼 메인으로 돌아가기
-            </Link>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-5xl mb-4">📭</div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">게시글을 찾을 수 없습니다</h2>
+            <Link href="/forum" className="text-blue-500 hover:underline text-sm">포럼으로 돌아가기</Link>
           </div>
         </div>
       </>
@@ -229,194 +209,168 @@ export default function PostDetail() {
   return (
     <>
       <Head>
-        <title>{post.title} | 커뮤니티 포럼 | PK.GG</title>
-        <meta name="description" content={post.content.substring(0, 160)} />
+        <title>{post.title} | PK.GG 커뮤니티</title>
+        <meta name="description" content={post.content?.substring(0, 160)} />
       </Head>
-
       <Header />
 
-      <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
-        <div className="max-w-4xl mx-auto">
+      {deleteModal && (
+        <DeleteModal
+          type={deleteModal.type}
+          onConfirm={handleDelete}
+          onCancel={() => { setDeleteModal(null); setDeleteError(''); }}
+          loading={deleteLoading}
+          error={deleteError}
+        />
+      )}
+
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-3xl mx-auto px-4 py-8">
           {/* 브레드크럼 */}
-          <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
-            <Link href="/forum" className="hover:text-blue-600">
-              커뮤니티 포럼
+          <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+            <Link href="/forum" className="hover:text-blue-600">포럼</Link>
+            <span>›</span>
+            <Link href={`/forum/category/${post.categoryId}`} className="hover:text-blue-600">
+              {post.category?.name}
             </Link>
             <span>›</span>
-            <Link
-              href={`/forum/category/${post.categoryId}`}
-              className="hover:text-blue-600"
-            >
-              {post.category.name}
-            </Link>
-            <span>›</span>
-            <span className="text-gray-900 dark:text-gray-100 truncate">
-              {post.title}
-            </span>
+            <span className="text-gray-800 truncate max-w-[200px]">{post.title}</span>
           </nav>
 
-          {/* 게시글 내용 */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-6">
-            {/* 게시글 헤더 */}
-            <div className="border-b border-gray-200 dark:border-gray-600 pb-4 mb-6">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-xl">{post.category.icon}</span>
-                <span className="text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded">
-                  {post.category.name}
+          {/* 게시글 */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4">
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">{post.category?.icon}</span>
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
+                  {post.category?.name}
                 </span>
+                {post.isPinned && (
+                  <span className="text-xs bg-red-50 text-red-500 border border-red-100 px-2 py-0.5 rounded-full">📌 공지</span>
+                )}
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-                {post.title}
-              </h1>
-              <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                <div className="flex items-center gap-4">
-                  <span>👤 {post.author}</span>
-                  <span>
-                    📅 {new Date(post.createdAt).toLocaleDateString('ko-KR')}
+              <h1 className="text-2xl font-bold text-gray-900 mb-4 leading-tight">{post.title}</h1>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
+                      {post.author?.[0]?.toUpperCase()}
+                    </span>
+                    <span className="font-medium text-gray-700">{post.author}</span>
                   </span>
-                  <span>👁️ {post.views}회</span>
+                  <span className="hidden sm:inline">{formatDate(post.createdAt)}</span>
+                  <span>👁 {post.views}</span>
+                  <span>💬 {post.replyCount}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                {post.hasPassword && (
                   <button
-                    onClick={handleLike}
-                    className={`flex items-center gap-1 px-3 py-1 rounded transition-colors ${
-                      post.isLiked
-                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                    onClick={() => setDeleteModal({ type: 'post', id: post.id })}
+                    className="text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    <span>{post.isLiked ? '❤️' : '🤍'}</span>
-                    <span>{post.likes}</span>
+                    삭제
                   </button>
-                </div>
+                )}
               </div>
             </div>
 
-            {/* 게시글 본문 */}
-            <div className="prose dark:prose-invert max-w-none">
-              {post.content.split('\n').map((line, index) => {
-                if (line.startsWith('**') && line.endsWith('**')) {
-                  return (
-                    <h3
-                      key={index}
-                      className="font-bold text-lg mt-6 mb-3 text-gray-900 dark:text-gray-100"
-                    >
-                      {line.slice(2, -2)}
-                    </h3>
-                  );
-                }
-                if (line.startsWith('- ')) {
-                  return (
-                    <li
-                      key={index}
-                      className="ml-4 mb-1 text-gray-700 dark:text-gray-300"
-                    >
-                      {line.slice(2)}
-                    </li>
-                  );
-                }
-                return line.trim() ? (
-                  <p
-                    key={index}
-                    className="mb-3 text-gray-700 dark:text-gray-300 leading-relaxed"
-                  >
-                    {line}
-                  </p>
-                ) : (
-                  <div key={index} className="mb-3"></div>
-                );
-              })}
+            {/* 본문 */}
+            <div className="px-6 py-6 text-sm leading-7 min-h-[100px]">
+              {formatContent(post.content)}
             </div>
           </div>
 
           {/* 댓글 섹션 */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              💬 댓글 ({replies.length})
-            </h3>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h2 className="font-bold text-gray-900 text-base">댓글 {replies.length}개</h2>
+            </div>
 
             {/* 댓글 목록 */}
-            <div className="space-y-4 mb-6">
-              {replies.map((reply) => (
-                <div
-                  key={reply.id}
-                  className="border-l-2 border-blue-200 dark:border-blue-800 pl-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                      <span>👤 {reply.author}</span>
-                      <span>
-                        📅{' '}
-                        {new Date(reply.createdAt).toLocaleDateString('ko-KR')}
-                      </span>
+            <div className="divide-y divide-gray-50">
+              {replies.length === 0 ? (
+                <div className="py-10 text-center text-gray-400 text-sm">
+                  첫 번째 댓글을 남겨보세요
+                </div>
+              ) : (
+                replies.map((reply) => (
+                  <div key={reply.id} className="px-6 py-4 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                          {reply.author?.[0]?.toUpperCase()}
+                        </span>
+                        <span className="font-semibold text-gray-800 text-sm">{reply.author}</span>
+                        <span className="text-xs text-gray-400">{formatDate(reply.createdAt)}</span>
+                      </div>
+                      <button
+                        onClick={() => setDeleteModal({ type: 'reply', id: reply.id })}
+                        className="text-xs text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
+                      >
+                        삭제
+                      </button>
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <span>🤍</span>
-                      <span>{reply.likes}</span>
-                    </div>
+                    <p className="text-sm text-gray-700 leading-relaxed ml-9 whitespace-pre-wrap">{reply.content}</p>
                   </div>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {reply.content}
-                  </p>
-                </div>
-              ))}
-
-              {replies.length === 0 && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <span className="text-4xl mb-3 block">💭</span>첫 번째 댓글을
-                  작성해보세요!
-                </div>
+                ))
               )}
             </div>
 
             {/* 댓글 작성 폼 */}
-            <form
-              onSubmit={handleSubmitReply}
-              className="border-t border-gray-200 dark:border-gray-600 pt-6"
+            <div className="px-6 py-5 border-t border-gray-100 bg-gray-50/50">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">댓글 작성</h3>
+              {replyError && (
+                <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                  {replyError}
+                </div>
+              )}
+              <form onSubmit={handleSubmitReply} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={replyForm.author}
+                    onChange={(e) => setReplyForm((p) => ({ ...p, author: e.target.value }))}
+                    placeholder="닉네임 *"
+                    maxLength={20}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                  />
+                  <input
+                    type="password"
+                    value={replyForm.password}
+                    onChange={(e) => setReplyForm((p) => ({ ...p, password: e.target.value }))}
+                    placeholder="삭제 비밀번호 (선택)"
+                    maxLength={30}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <textarea
+                    value={replyForm.content}
+                    onChange={(e) => setReplyForm((p) => ({ ...p, content: e.target.value }))}
+                    placeholder="댓글을 입력하세요..."
+                    rows={3}
+                    maxLength={1000}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none bg-white"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submittingReply}
+                    className="px-5 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg text-sm font-semibold transition-colors self-end"
+                  >
+                    {submittingReply ? '작성 중...' : '작성'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* 뒤로가기 */}
+          <div className="mt-4">
+            <button
+              onClick={() => router.back()}
+              className="text-sm text-gray-400 hover:text-blue-600 flex items-center gap-1 transition-colors"
             >
-              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                댓글 작성
-              </h4>
-
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={replyAuthor}
-                  onChange={(e) => setReplyAuthor(e.target.value)}
-                  placeholder="작성자명을 입력하세요"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  required
-                />
-              </div>
-
-              <div className="mb-4">
-                <textarea
-                  value={newReply}
-                  onChange={(e) => setNewReply(e.target.value)}
-                  placeholder="댓글을 입력하세요..."
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-vertical"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={submittingReply}
-                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-medium px-6 py-2 rounded-lg transition-colors flex items-center gap-2"
-                >
-                  {submittingReply ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      작성 중...
-                    </>
-                  ) : (
-                    <>💬 댓글 작성</>
-                  )}
-                </button>
-              </div>
-            </form>
+              ← 목록으로
+            </button>
           </div>
         </div>
       </div>

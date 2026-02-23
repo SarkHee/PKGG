@@ -5,16 +5,10 @@ import Link from 'next/link';
 import Header from "../../../components/layout/Header";
 
 const CATEGORY_INFO = {
-  strategy: { name: '전략 & 팁', icon: '🧠', color: 'blue' },
-  general: { name: '자유 게시판', icon: '💬', color: 'green' },
-  questions: { name: '질문 & 답변', icon: '❓', color: 'orange' },
-  recruitment: { name: '클랜 모집', icon: '👥', color: 'purple' },
-  showcase: { name: '플레이 영상', icon: '🎬', color: 'red' },
-  updates: { name: '업데이트 & 뉴스', icon: '📢', color: 'orange' },
-  'clan-analysis': { name: '클랜 분석', icon: '📊', color: 'cyan' },
-  inquiry: { name: '문의하기', icon: '📧', color: 'amber' },
-  // 하위 호환성을 위한 별칭
-  clan: { name: '클랜 모집', icon: '👥', color: 'purple' },
+  strategy: { name: '전략 & 팁', icon: '🧠', color: 'blue', description: '게임 전략, 팁, 가이드를 공유하세요' },
+  general: { name: '자유 게시판', icon: '💬', color: 'green', description: '자유롭게 이야기를 나누세요' },
+  questions: { name: '질문 & 답변', icon: '❓', color: 'orange', description: '궁금한 점을 물어보고 답변해주세요' },
+  recruitment: { name: '클랜 모집', icon: '👥', color: 'purple', description: '클랜원을 모집하거나 클랜을 찾아보세요' },
 };
 
 function PostCard({ post }) {

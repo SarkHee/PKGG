@@ -92,36 +92,51 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
       lastUpdated: new Date(),
     };
 
-    // pubgPlayerId 또는 nickname 기준으로 모든 관련 레코드 조회
-    // (batch-update 등으로 pubgPlayerId 없이 생성된 레코드도 포함)
-    const existingAll = await prisma.clanMember.findMany({
+    // 1순위: pubgPlayerId로 찾기 (PUBG 공식 식별자)
+    const byPlayerId = await prisma.clanMember.findFirst({
+      where: { pubgPlayerId: pubgPlayer.id },
+    });
+
+    // 2순위: nickname으로 찾기 (pubgPlayerId 없이 생성된 레코드 포함)
+    const byNickname = await prisma.clanMember.findMany({
       where: {
-        OR: [
-          { pubgPlayerId: pubgPlayer.id },
-          { nickname: { equals: nickname, mode: 'insensitive' } },
-        ],
+        nickname: { equals: nickname, mode: 'insensitive' },
+        ...(byPlayerId ? { id: { not: byPlayerId.id } } : {}),
       },
-      orderBy: { score: 'desc' },
     });
 
     let memberId;
-    if (existingAll.length > 1) {
-      // 중복 레코드 → 첫 번째(점수 최고)만 남기고 나머지 삭제 후 업데이트
-      const keepId = existingAll[0].id;
-      const deleteIds = existingAll.slice(1).map((m) => m.id);
-      // 관련 매치/스탯도 삭제
-      await prisma.playerMatch.deleteMany({ where: { clanMemberId: { in: deleteIds } } });
-      await prisma.playerModeStats.deleteMany({ where: { clanMemberId: { in: deleteIds } } });
-      await prisma.clanMember.deleteMany({ where: { id: { in: deleteIds } } });
-      await prisma.clanMember.update({ where: { id: keepId }, data: memberData });
-      memberId = keepId;
-      console.log(`✅ DB 업데이트 (중복 ${deleteIds.length}개 제거): ${nickname}`);
-    } else if (existingAll.length === 1) {
-      // 단일 레코드 → 클랜 이동 포함 전체 업데이트
-      await prisma.clanMember.update({ where: { id: existingAll[0].id }, data: memberData });
-      memberId = existingAll[0].id;
-      console.log(`✅ DB 업데이트: ${nickname}`);
+    if (byPlayerId) {
+      // pubgPlayerId로 찾은 레코드 → API 데이터로 완전 덮어쓰기
+      await prisma.clanMember.update({ where: { id: byPlayerId.id }, data: memberData });
+      memberId = byPlayerId.id;
+
+      // nickname만으로 생성된 중복 레코드 제거
+      if (byNickname.length > 0) {
+        const dupIds = byNickname.map((d) => d.id);
+        await prisma.playerMatch.deleteMany({ where: { clanMemberId: { in: dupIds } } });
+        await prisma.playerModeStats.deleteMany({ where: { clanMemberId: { in: dupIds } } });
+        await prisma.clanMember.deleteMany({ where: { id: { in: dupIds } } });
+        console.log(`✅ 중복 레코드 ${dupIds.length}개 정리: ${nickname}`);
+      }
+      console.log(`✅ DB 덮어쓰기 (pubgPlayerId): ${nickname}`);
+    } else if (byNickname.length > 0) {
+      // nickname으로만 찾은 레코드 → 첫 번째를 API 데이터로 덮어쓰기
+      const keepRecord = byNickname[0];
+      await prisma.clanMember.update({ where: { id: keepRecord.id }, data: memberData });
+      memberId = keepRecord.id;
+
+      // 나머지 중복 제거
+      if (byNickname.length > 1) {
+        const dupIds = byNickname.slice(1).map((d) => d.id);
+        await prisma.playerMatch.deleteMany({ where: { clanMemberId: { in: dupIds } } });
+        await prisma.playerModeStats.deleteMany({ where: { clanMemberId: { in: dupIds } } });
+        await prisma.clanMember.deleteMany({ where: { id: { in: dupIds } } });
+        console.log(`✅ 중복 레코드 ${dupIds.length}개 정리: ${nickname}`);
+      }
+      console.log(`✅ DB 덮어쓰기 (nickname): ${nickname}`);
     } else {
+      // 신규 레코드 생성
       const created = await prisma.clanMember.create({ data: memberData });
       memberId = created.id;
       console.log(`✅ DB 신규 저장: ${nickname}`);
@@ -266,7 +281,39 @@ export default function PlayerPage({ playerData, error, dataSource }) {
   const [currentSeasonId, setCurrentSeasonId] = useState(
     'division.bro.official.pc-2024-01'
   );
-  const [selectedMatchFilter, setSelectedMatchFilter] = useState('전체'); // 경기 필터 상태 추가
+  const [selectedMatchFilter, setSelectedMatchFilter] = useState('전체');
+
+  // 더보기 관련 상태
+  const [extraMatches, setExtraMatches] = useState([]);
+  const [matchOffset, setMatchOffset] = useState(
+    () => (playerData?.recentMatches?.length || 10)
+  );
+  const [noMoreMatches, setNoMoreMatches] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const handleLoadMore = async () => {
+    if (loadingMore || noMoreMatches) return;
+    const shard = playerData?.profile?.shardId || 'steam';
+    const nick = playerData?.profile?.nickname || '';
+    setLoadingMore(true);
+    try {
+      const res = await fetch(
+        `/api/matches/load-more?nickname=${encodeURIComponent(nick)}&shard=${shard}&offset=${matchOffset}`
+      );
+      const data = await res.json();
+      if (data.matches?.length > 0) {
+        setExtraMatches(prev => [...prev, ...data.matches]);
+        setMatchOffset(prev => prev + data.matches.length);
+        if (data.matches.length < 5) setNoMoreMatches(true);
+      } else {
+        setNoMoreMatches(true);
+      }
+    } catch (e) {
+      console.error('더보기 실패:', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // 쿨타임 타이머
   useEffect(() => {
@@ -826,8 +873,9 @@ export default function PlayerPage({ playerData, error, dataSource }) {
     bestSquad,
   } = synergyAnalysis;
 
-  // 필터된 경기 목록 (구조분해할당 이후에 계산)
-  const filteredMatches = filterMatches(recentMatches, selectedMatchFilter);
+  // 필터된 경기 목록 (초기 5경기 + 더보기로 로드된 경기 합산)
+  const allMatches = [...recentMatches, ...extraMatches];
+  const filteredMatches = filterMatches(allMatches, selectedMatchFilter);
 
   return (
     <>
@@ -1195,6 +1243,32 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           </div>
         </section>
 
+        {/* 더보기 버튼 — 최근 경기 섹션 하단 */}
+        {!noMoreMatches && (
+          <div className="flex justify-center mt-4 mb-2">
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="flex items-center gap-2 px-8 py-3 rounded-xl bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingMore ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  불러오는 중...
+                </>
+              ) : (
+                <>
+                  경기 더 보기
+                  <span className="text-xs text-gray-400">(+5경기)</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         {/* 경기 상세 정보 표시 */}
         {selectedMatchId && (
           <div ref={detailRef} className="mt-6 mb-8">
@@ -1293,7 +1367,7 @@ async function getPlayerFromDB(nickname, server) {
       where: { nickname: { equals: nickname, mode: 'insensitive' } },
       include: {
         clan: true,
-        matches: { orderBy: { createdAt: 'desc' }, take: 20 },
+        matches: { orderBy: { createdAt: 'desc' }, take: 10 },
       },
     });
 
@@ -1630,14 +1704,15 @@ export async function getServerSideProps({ params, query }) {
       }
     }
 
-    // Step 4: PUBG API에서 최근 매치 직접 조회 (병렬)
+    // Step 4: PUBG API에서 최근 매치 직접 조회 (초기 10경기만, 더보기는 /api/matches/load-more)
     let recentMatches = [];
-    const matchIds = (pubgPlayer.relationships?.matches?.data || []).slice(0, 20).map(m => m.id);
-    if (matchIds.length > 0) {
+    const allMatchIds = (pubgPlayer.relationships?.matches?.data || []).map(m => m.id);
+    const initialMatchIds = allMatchIds.slice(0, 10);
+    if (initialMatchIds.length > 0) {
       try {
-        console.log(`⚙️ 최근 매치 ${matchIds.length}개 병렬 조회 중...`);
+        console.log(`⚙️ 최근 매치 ${initialMatchIds.length}개 병렬 조회 중...`);
         const matchResults = await Promise.allSettled(
-          matchIds.map(matchId =>
+          initialMatchIds.map(matchId =>
             axios.get(
               `https://api.pubg.com/shards/${pubgShard}/matches/${matchId}`,
               { headers: PUBG_HEADERS, timeout: 8000 }
@@ -1733,6 +1808,53 @@ export async function getServerSideProps({ params, query }) {
       } catch (e) {
         console.warn('DB 매치 캐시 조회 실패:', e.message);
       }
+    }
+
+    // Step 4.5: teammate 클랜 정보 DB 조회 (추가 API 호출 없이)
+    try {
+      const allTeammateNames = [
+        ...new Set(
+          recentMatches.flatMap((m) =>
+            (m.teammatesDetail || [])
+              .filter((t) => !t.isSelf)
+              .map((t) => t.name)
+          )
+        ),
+      ];
+      if (allTeammateNames.length > 0) {
+        const { PrismaClient } = require('@prisma/client');
+        const prisma = new PrismaClient();
+        const teammateRows = await prisma.clanMember.findMany({
+          where: { nickname: { in: allTeammateNames, mode: 'insensitive' } },
+          select: { nickname: true, pubgClanId: true, clan: { select: { name: true, pubgClanTag: true, pubgClanId: true } } },
+        });
+        await prisma.$disconnect();
+
+        // nickname.toLowerCase() → clan 정보 맵
+        const clanMap = {};
+        for (const row of teammateRows) {
+          // pubgClanId 교차 검증: 멤버의 pubgClanId가 클랜의 pubgClanId와 일치해야 함
+          if (row.clan && row.pubgClanId && row.clan.pubgClanId === row.pubgClanId) {
+            clanMap[row.nickname.toLowerCase()] = {
+              clanTag: row.clan.pubgClanTag || '',
+              clanName: row.clan.name || '',
+            };
+          }
+        }
+
+        // 각 매치의 teammatesDetail에 클랜 정보 주입
+        for (const match of recentMatches) {
+          if (Array.isArray(match.teammatesDetail)) {
+            match.teammatesDetail = match.teammatesDetail.map((t) => ({
+              ...t,
+              ...(clanMap[t.name?.toLowerCase()] || {}),
+            }));
+          }
+        }
+        console.log(`✅ teammate 클랜 정보 조회: ${Object.keys(clanMap).length}명 매칭`);
+      }
+    } catch (e) {
+      console.warn('teammate 클랜 조회 실패:', e.message);
     }
 
     // Step 5: API 기반 playerData 구성

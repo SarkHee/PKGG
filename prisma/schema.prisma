@@ -118,7 +118,8 @@ model ForumPost {
   
   replies     ForumReply[]
   likedBy     ForumLike[]
-  
+  password    String?     // 게시글 삭제용 비밀번호 (sha256 해시)
+
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
@@ -134,6 +135,7 @@ model ForumReply {
   children  ForumReply[] @relation("ReplyToReply")
   
   likes     Int       @default(0)
+  password  String?   // 댓글 삭제용 비밀번호 (sha256 해시)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
