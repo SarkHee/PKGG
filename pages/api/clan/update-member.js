@@ -2,6 +2,7 @@
 // 특정 클랜 멤버의 PUBG 통계를 DB에 수동 업데이트
 
 import { PrismaClient } from '@prisma/client';
+import { calculateMMR } from '../../../utils/mmrCalculator';
 
 const prisma = new PrismaClient();
 const PUBG_API_KEY = process.env.PUBG_API_KEY;
@@ -129,8 +130,8 @@ async function getPubgStats(nickname) {
     let style = '-';
     const maxStyle = Object.entries(styleCounts).sort((a, b) => b[1] - a[1])[0];
     if (maxStyle && maxStyle[1] > 0) style = maxStyle[0];
-    // 점수 예시(평균 데미지*0.5 + 평균 킬*10 + 승률*2)
-    const score = Math.round(avgDamage * 0.5 + avgKills * 10 + winRate * 2);
+    // calculateMMR 통일 공식 사용
+    const score = calculateMMR({ avgDamage, avgKills, avgAssists, avgSurviveTime, winRate, top10Rate });
 
     // 모드별 통계 가공
     const modeStats = Object.entries(modeStatsMap).map(([mode, s]) => {

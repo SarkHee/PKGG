@@ -473,6 +473,7 @@ export default function ClanAnalytics() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-xl font-bold text-white">🥇 클랜 랭킹 TOP 10</h2>
+                <p className="text-xs text-blue-400 mt-0.5">클랜 MMR 기준 (멤버 평균 MMR)</p>
                 <RankingUpdateStatus />
               </div>
               <ManualUpdateButton />
@@ -607,7 +608,10 @@ export default function ClanAnalytics() {
           {/* 전체 클랜 목록 */}
           <div id="clan-list-section" className="mb-8">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">📋 전체 클랜 목록</h2>
+              <div>
+                <h2 className="text-xl font-bold text-white">📋 전체 클랜 목록</h2>
+                <p className="text-xs text-blue-400 mt-0.5">클랜 MMR 기준 정렬</p>
+              </div>
               <div className="text-xs text-gray-500">
                 {allClans.length}개 중 {startIndex + 1}–{Math.min(startIndex + itemsPerPage, allClans.length)}번째
               </div>
@@ -639,11 +643,24 @@ export default function ClanAnalytics() {
                   <tbody className="divide-y divide-gray-800/50">
                     {currentClans.map((clan, index) => (
                       <tr key={clan.id} className="hover:bg-gray-800/40 transition-colors">
-                        <td className="px-4 py-3 text-gray-600 text-xs font-mono">{startIndex + index + 1}</td>
                         <td className="px-4 py-3">
-                          <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-semibold text-white hover:text-blue-400 transition-colors text-sm">
-                            {clan.name}
-                          </Link>
+                          <span className={`text-sm font-bold ${rankColor(startIndex + index)}`}>
+                            #{startIndex + index + 1}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-semibold text-white hover:text-blue-400 transition-colors text-sm">
+                              {clan.name}
+                            </Link>
+                            {clan.staleMemberCount > 0 && (
+                              <Tooltip content={`${clan.staleMemberCount}명의 멤버 데이터가 90일 이상 업데이트되지 않았습니다. 해당 유저 페이지에서 최신화하면 자동 반영됩니다.`}>
+                                <span className="text-xs bg-yellow-900/50 text-yellow-400 border border-yellow-700/50 px-1.5 py-0.5 rounded cursor-help">
+                                  ⚠️ {clan.staleMemberCount}명 만료
+                                </span>
+                              </Tooltip>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <span className="px-2 py-0.5 rounded-md text-xs bg-gray-800 border border-gray-700 text-gray-400">

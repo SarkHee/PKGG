@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Tooltip from '../ui/Tooltip';
-import { getMMRTier, MMR_DISCLAIMER } from '../../utils/mmrCalculator';
+import { calculateMMR, getMMRTier, MMR_DISCLAIMER } from '../../utils/mmrCalculator';
 
 const PlayerHeader = ({
   profile,
@@ -87,13 +87,16 @@ const PlayerHeader = ({
 
   const recent20Stats = calculate20MatchStats(recentMatches);
 
-  const calculate20MatchScore = (stats) => {
-    if (stats.totalMatches === 0) return 1000;
-    const score = stats.avgDamage * 0.4 + stats.avgKills * 40 + stats.top10Rate;
-    return Math.round(score + 1000);
-  };
-
-  const recent20Score = calculate20MatchScore(recent20Stats);
+  const recent20Score = recent20Stats.totalMatches === 0
+    ? 1000
+    : calculateMMR({
+        avgDamage:       recent20Stats.avgDamage,
+        avgKills:        recent20Stats.avgKills,
+        winRate:         recent20Stats.winRate,
+        top10Rate:       recent20Stats.top10Rate,
+        avgSurvivalTime: recent20Stats.avgSurvivalTime,
+        avgAssists:      recent20Stats.avgAssists,
+      });
 
   const calculateFormStatus = (matches) => {
     if (!matches || matches.length < 5)

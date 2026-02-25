@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { calculateMMR } from '../../../utils/mmrCalculator';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -56,8 +57,13 @@ export default async function handler(req, res) {
     const avgSurvival = total.survival / count;
     const top10Ratio = total.top10 / count;
 
-    // ✅ MMR 계산
-    const mmrScore = avgDamage * 0.4 + avgKills * 40 + top10Ratio * 100;
+    // ✅ MMR 계산 — calculateMMR 통일 공식 사용
+    const mmrScore = calculateMMR({
+      avgDamage,
+      avgKills,
+      avgSurviveTime: avgSurvival,
+      top10Rate: top10Ratio * 100, // 0~1 → 0~100%
+    });
 
     // ✅ 스타일 판별
     let style = '⚙️ 분석 불가';

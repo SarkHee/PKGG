@@ -332,7 +332,8 @@ export default async function handler(req, res) {
     console.log('📋 Where condition:', JSON.stringify(whereCondition, null, 2));
 
     // 1. 전체 클랜 개요 (필터 적용)
-    const totalClans = await prisma.clan.count({ where: whereCondition });
+    // totalClans는 validClans.length로 대체 사용 (중복 제거 후 정확한 수치)
+    await prisma.clan.count({ where: whereCondition }); // DB 카운트 (참고용)
     const totalMembers = await prisma.clanMember.count({
       where: {
         clan: whereCondition,
@@ -358,6 +359,7 @@ export default async function handler(req, res) {
             pubgPlayerId: true,
             nickname: true,
             pubgClanId: true,
+            lastUpdated: true,
           },
         },
       },
@@ -427,13 +429,29 @@ export default async function handler(req, res) {
       }
     }
 
+    // 스테일 기준: 90일 이상 미업데이트 멤버는 "만료 후보"로 분류
+    const STALE_THRESHOLD_MS = 90 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
     // 3-1. 클랜별 평균 및 플레이 스타일 계산
     const clanAnalytics = dedupedClanStats.map((clan) => {
-      // pubgClanId 교차 검증: 이 클랜의 pubgClanId와 일치하는 멤버만 실제 소속으로 인정
-      // (클랜을 떠난 유저는 검색 시 pubgClanId가 새 클랜/null로 갱신되므로 자동 제외)
-      const confirmedMembers = clan.pubgClanId
+      // 1차: pubgClanId 교차 검증 (최신화된 탈퇴자 자동 제외)
+      // - 최신화 시 savePlayerToDatabase가 clanId + pubgClanId를 모두 갱신
+      // - 새 클랜/무소속으로 업데이트된 유저는 pubgClanId가 달라져 여기서 자동 제외
+      const pubgConfirmed = clan.pubgClanId
         ? clan.members.filter((m) => m.pubgClanId === clan.pubgClanId)
         : clan.members;
+
+      // 2차: 90일 이상 미업데이트 멤버 분리 (최신화 안 된 탈퇴자 후보)
+      const activeMembers = pubgConfirmed.filter(
+        (m) => !m.lastUpdated || now - new Date(m.lastUpdated).getTime() <= STALE_THRESHOLD_MS
+      );
+      const staleMembers = pubgConfirmed.filter(
+        (m) => m.lastUpdated && now - new Date(m.lastUpdated).getTime() > STALE_THRESHOLD_MS
+      );
+
+      // 활성 멤버가 1명 이상이면 활성 우선, 없으면 스테일 포함 (클랜 자체가 오래됐을 수 있음)
+      const confirmedMembers = activeMembers.length > 0 ? activeMembers : pubgConfirmed;
 
       // 동일 pubgPlayerId(없으면 nickname)를 가진 중복 멤버 제거 — 점수가 높은 쪽 유지
       const seenKeys = new Map();
@@ -460,6 +478,7 @@ export default async function handler(req, res) {
           level: clan.pubgClanLevel,
           apiMemberCount: clan.pubgMemberCount,
           dbMemberCount: memberCount,
+          staleMemberCount: staleMembers.length,
           avgStats: null,
           playStyle: null,
         };
@@ -498,6 +517,7 @@ export default async function handler(req, res) {
         level: clan.pubgClanLevel,
         apiMemberCount: clan.pubgMemberCount,
         dbMemberCount: memberCount,
+        staleMemberCount: staleMembers.length,
         avgStats,
         playStyle,
       };
@@ -508,16 +528,19 @@ export default async function handler(req, res) {
       (clan) => clan.dbMemberCount > 0 && clan.name !== '무소속'
     );
 
-    // 4. 상위 클랜 랭킹 (평균 점수 기준)
+    // MMR 기준 내림차순 정렬 헬퍼
+    const byMMR = (a, b) => (b.avgStats?.avgMMR || 0) - (a.avgStats?.avgMMR || 0);
+
+    // 4. 상위 클랜 랭킹 — 클랜 MMR 기준
     const topClans = validClans
-      .filter((clan) => clan.avgStats)
-      .sort((a, b) => b.avgStats.score - a.avgStats.score)
+      .filter((clan) => clan.avgStats?.avgMMR)
+      .sort(byMMR)
       .slice(0, 10);
 
-    // 4-1. 전체 클랜 랭킹 (검색용)
+    // 4-1. 전체 클랜 랭킹 (검색용) — MMR 기준
     const allRankedClans = validClans
-      .filter((clan) => clan.avgStats)
-      .sort((a, b) => b.avgStats.score - a.avgStats.score)
+      .filter((clan) => clan.avgStats?.avgMMR)
+      .sort(byMMR)
       .map((clan, index) => ({
         ...clan,
         rank: index + 1,
@@ -553,7 +576,8 @@ export default async function handler(req, res) {
         byLevel: levelDistribution,
         byMemberCount: memberDistribution,
       },
-      allClans: validClans.sort((a, b) => b.apiMemberCount - a.apiMemberCount),
+      // 전체 클랜 목록도 MMR 기준 (MMR 없는 클랜은 맨 뒤)
+      allClans: [...validClans].sort(byMMR),
     });
   } catch (error) {
     console.error('클랜 분석 오류:', error);

@@ -1,8 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
 export default async function handler(req, res) {
+  const prisma = new PrismaClient();
   try {
     if (req.method === 'POST') {
       const { playerNickname, playerServer, analysis, trainingPlan } = req.body;
@@ -32,7 +31,7 @@ export default async function handler(req, res) {
           aggressionIndex: analysis.aggressionIndex,
           consistencyIndex: analysis.consistencyIndex,
           recommendations: JSON.stringify([]),
-          trainingPlan: JSON.stringify(trainingPlan),
+          trainingPlan: JSON.stringify(trainingPlan ?? []),
         },
         update: {
           playStyle: analysis.playStyle,
@@ -41,7 +40,7 @@ export default async function handler(req, res) {
           weaknesses: JSON.stringify(analysis.weaknesses),
           aggressionIndex: analysis.aggressionIndex,
           consistencyIndex: analysis.consistencyIndex,
-          trainingPlan: JSON.stringify(trainingPlan),
+          trainingPlan: JSON.stringify(trainingPlan ?? []),
           lastAnalyzed: new Date(),
         },
       });

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { calculateMMR } from '../../../utils/mmrCalculator';
 
 const prisma = new PrismaClient();
 
@@ -80,13 +81,15 @@ export default async function handler(req, res) {
             Math.round(primaryMode.top10Ratio * 100 * 10) / 10;
         }
 
-        // 점수 계산 (킬 * 100 + 딜량 * 0.5 + 생존시간 * 0.1)
-        const kills = primaryMode.kills || 0;
-        const damage = primaryMode.damageDealt || 0;
-        const surviveTime = primaryMode.timeSurvived || 0;
-        updateData.score = Math.round(
-          kills * 100 + damage * 0.5 + surviveTime * 0.1
-        );
+        // calculateMMR 통일 공식 사용 (per-game 평균 기반)
+        updateData.score = calculateMMR({
+          avgDamage:      updateData.avgDamage,
+          avgKills:       updateData.avgKills,
+          avgAssists:     updateData.avgAssists,
+          avgSurviveTime: updateData.avgSurviveTime,
+          winRate:        updateData.winRate,
+          top10Rate:      updateData.top10Rate,
+        });
 
         // 플레이 스타일 결정
         const avgKills = updateData.avgKills || 0;

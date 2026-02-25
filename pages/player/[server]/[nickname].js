@@ -15,6 +15,7 @@ import EnhancedPlayerStats from '../../../components/player/EnhancedPlayerStats'
 import PlayerHeader from '../../../components/player/PlayerHeader';
 import MatchDetailExpandable from '../../../components/match/MatchDetailExpandable';
 import AICoachingCard from '../../../components/player/AICoachingCard';
+import WeaponMasteryCard from '../../../components/player/WeaponMasteryCard';
 
 // 반드시 export default 함수 바깥에 위치!
 function MatchList({ recentMatches, playerData }) {
@@ -1071,6 +1072,23 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           </div>
         </div>
 
+        {/* 주사용 무기 통계 섹션 */}
+        {profile?.playerId && (
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-4 px-1">
+              <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+              <h2 className="text-lg font-bold text-gray-800">주사용 무기 통계</h2>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">weapon mastery</span>
+            </div>
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <WeaponMasteryCard
+                playerId={profile.playerId}
+                shard={profile.shardId || router.query.server || 'steam'}
+              />
+            </div>
+          </div>
+        )}
+
         {/* 클랜 및 팀플레이 분석 섹션 */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4 px-1">
@@ -1485,8 +1503,10 @@ async function getPlayerFromDB(nickname, server) {
 export async function getServerSideProps({ params, query }) {
   const { server, nickname } = params;
   const forceRefresh = query.force === '1';
-  const axios = require('axios');
   const { calculateMMR: calcMMR } = require('../../../utils/mmrCalculator');
+  const { cachedPubgFetch, TTL, PubgApiError } = require('../../../utils/pubgApiCache');
+  const PUBG_BASE = 'https://api.pubg.com/shards';
+  const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
   // ── DB 우선 캐시 (force=1이면 무조건 API 호출) ──
   if (!forceRefresh) {
@@ -1496,10 +1516,6 @@ export async function getServerSideProps({ params, query }) {
       return { props: { playerData: cached, error: null, dataSource: 'database' } };
     }
   }
-
-  const PUBG_API_KEY = `Bearer ${process.env.PUBG_API_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o'}`;
-  const PUBG_HEADERS = { Authorization: PUBG_API_KEY, Accept: 'application/vnd.api+json' };
-  const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
   try {
     // Step 1: PUBG API로 플레이어 검색 (shard 우선순위 적용)
@@ -1511,18 +1527,18 @@ export async function getServerSideProps({ params, query }) {
 
     for (const shard of searchShards) {
       try {
-        const resp = await axios.get(
-          `https://api.pubg.com/shards/${shard}/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
-          { headers: PUBG_HEADERS, timeout: 8000 }
+        const json = await cachedPubgFetch(
+          `${PUBG_BASE}/${shard}/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
+          { ttl: TTL.PLAYER, force: forceRefresh }
         );
-        if (resp.data.data?.length > 0) {
-          pubgPlayer = resp.data.data[0];
+        if (json.data?.length > 0) {
+          pubgPlayer = json.data[0];
           pubgShard = shard;
           console.log(`✅ 플레이어 발견: ${nickname} (${shard})`);
           break;
         }
       } catch (e) {
-        if (e.response?.status !== 404) console.warn(`${shard} 샤드 오류:`, e.message);
+        if (e.code !== 'NOT_FOUND') console.warn(`${shard} 샤드 오류:`, e.message);
       }
     }
 
@@ -1530,23 +1546,23 @@ export async function getServerSideProps({ params, query }) {
       throw new Error(`플레이어를 찾을 수 없습니다: ${nickname}`);
     }
 
-    // Step 2: 클랜 + 시즌 목록 병렬 조회
+    // Step 2: 클랜 + 시즌 목록 병렬 조회 (캐시 + 중복제거 적용)
     const [clanResult, seasonResult] = await Promise.allSettled([
       pubgPlayer.attributes.clanId
-        ? axios.get(
-            `https://api.pubg.com/shards/${pubgShard}/clans/${pubgPlayer.attributes.clanId}`,
-            { headers: PUBG_HEADERS, timeout: 5000 }
+        ? cachedPubgFetch(
+            `${PUBG_BASE}/${pubgShard}/clans/${pubgPlayer.attributes.clanId}`,
+            { ttl: TTL.CLAN, force: forceRefresh }
           )
         : Promise.resolve(null),
-      axios.get(
-        `https://api.pubg.com/shards/${pubgShard}/seasons`,
-        { headers: PUBG_HEADERS, timeout: 5000 }
+      cachedPubgFetch(
+        `${PUBG_BASE}/${pubgShard}/seasons`,
+        { ttl: TTL.SEASON, force: false } // 시즌 목록은 잘 안 바뀌므로 force bypass 없음
       ),
     ]);
 
     let pubgClan = null;
     if (clanResult.status === 'fulfilled' && clanResult.value) {
-      pubgClan = clanResult.value.data.data;
+      pubgClan = clanResult.value.data; // cachedPubgFetch는 이미 파싱된 JSON, .data가 리소스 객체
       console.log(`✅ 클랜: ${pubgClan.attributes.clanName}`);
     }
 
@@ -1557,24 +1573,24 @@ export async function getServerSideProps({ params, query }) {
     let pubgModeDistribution = { ranked: 0, normal: 0, event: 0 };
 
     if (seasonResult.status === 'fulfilled') {
-      const seasons = seasonResult.value.data.data || [];
+      const seasons = seasonResult.value.data || []; // cachedPubgFetch: json.data = 배열
       const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
       if (currentSeason) {
         console.log(`✅ 현재 시즌: ${currentSeason.id}`);
         const [statsResult, rankedResult] = await Promise.allSettled([
-          axios.get(
-            `https://api.pubg.com/shards/${pubgShard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}`,
-            { headers: PUBG_HEADERS, timeout: 8000 }
+          cachedPubgFetch(
+            `${PUBG_BASE}/${pubgShard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}`,
+            { ttl: TTL.PLAYER, force: forceRefresh }
           ),
-          axios.get(
-            `https://api.pubg.com/shards/${pubgShard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}/ranked`,
-            { headers: PUBG_HEADERS, timeout: 8000 }
+          cachedPubgFetch(
+            `${PUBG_BASE}/${pubgShard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}/ranked`,
+            { ttl: TTL.PLAYER, force: forceRefresh }
           ),
         ]);
 
         // 시즌 통계 변환
         if (statsResult.status === 'fulfilled') {
-          const gameModeStats = statsResult.value.data.data?.attributes?.gameModeStats || {};
+          const gameModeStats = statsResult.value.data?.attributes?.gameModeStats || {};
           const transformedModes = {};
           for (const [mode, s] of Object.entries(gameModeStats)) {
             const rounds = s.roundsPlayed || 0;
@@ -1663,7 +1679,7 @@ export async function getServerSideProps({ params, query }) {
 
         // 랭크 통계 변환
         if (rankedResult.status === 'fulfilled') {
-          const rankedModeStats = rankedResult.value.data.data?.attributes?.rankedGameModeStats || {};
+          const rankedModeStats = rankedResult.value.data?.attributes?.rankedGameModeStats || {};
           const modeData = rankedModeStats['squad-fpp'] || rankedModeStats['squad'] || Object.values(rankedModeStats)[0];
           if (modeData && modeData.roundsPlayed > 0) {
             const r = modeData.roundsPlayed;
@@ -1713,16 +1729,16 @@ export async function getServerSideProps({ params, query }) {
         console.log(`⚙️ 최근 매치 ${initialMatchIds.length}개 병렬 조회 중...`);
         const matchResults = await Promise.allSettled(
           initialMatchIds.map(matchId =>
-            axios.get(
-              `https://api.pubg.com/shards/${pubgShard}/matches/${matchId}`,
-              { headers: PUBG_HEADERS, timeout: 8000 }
+            cachedPubgFetch(
+              `${PUBG_BASE}/${pubgShard}/matches/${matchId}`,
+              { ttl: TTL.MATCH, force: false } // 매치는 불변 데이터 → force bypass 없음
             )
           )
         );
         recentMatches = matchResults
           .filter(r => r.status === 'fulfilled')
           .map(r => {
-            const data = r.value.data;
+            const data = r.value; // cachedPubgFetch는 이미 파싱된 JSON
             const matchId = data.data.id;
             const attrs = data.data.attributes;
             const included = data.included || [];

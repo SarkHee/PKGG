@@ -2,6 +2,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
+import { calculateMMR } from '../../../utils/mmrCalculator';
 
 // PUBG API 설정
 // 중요: .env.local 파일에 PUBG_API_KEY=YOUR_ACTUAL_API_KEY_HERE 형태로 저장해야 합니다.
@@ -852,15 +853,14 @@ export default async function handler(req, res) {
             const winRate = (wins / totalRoundsPlayed) * 100;
             const top10Rate = (top10s / totalRoundsPlayed) * 100;
 
-            // PK.GG 점수 공식: 기본 1000점 + 성과 보너스
-            averageScore = Math.round(
-              1000 + // 기본 점수
-                avgKills * 50 + // 킬당 50점
-                avgDamage * 0.5 + // 딜량당 0.5점
-                avgSurvival * 0.05 + // 생존시간당 0.05점
-                winRate * 10 + // 승률 1%당 10점
-                top10Rate * 3 // Top10 1%당 3점
-            );
+            // PK.GG 점수 — calculateMMR 통일 공식 사용
+            averageScore = calculateMMR({
+              avgDamage,
+              avgKills,
+              avgSurviveTime: avgSurvival,
+              winRate,
+              top10Rate,
+            });
           } else {
             seasonAvgDamage = 0;
             averageScore = 1000; // 기본 점수
