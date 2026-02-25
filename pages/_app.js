@@ -1,36 +1,59 @@
 // pages/_app.js
 
-import '../styles/globals.css'; // globals.css 파일을 임포트합니다.
-import { useEffect } from 'react';
+import '../styles/globals.css';
+import { useEffect, useState } from 'react';
 import Script from 'next/script';
+import CookieBanner from '../components/CookieBanner';
 
 function MyApp({ Component, pageProps }) {
-  // 앱 시작 시 포럼 카테고리 초기화
+  // null = 아직 결정 안 함(배너 표시), true = 동의, false = 거부
+  const [cookieConsent, setCookieConsent] = useState(null);
+
   useEffect(() => {
+    // 앱 시작 시 포럼 카테고리 초기화
     const initializeForum = async () => {
       try {
-        // 포럼 카테고리 초기화 API 호출
         await fetch('/api/forum/init', { method: 'POST' });
       } catch (error) {
         console.log('포럼 초기화 요청 실패:', error.message);
       }
     };
-
     initializeForum();
 
-    // 다크 모드 관련 초기화 제거: 라이트 고정 유지
+    // 저장된 쿠키 동의 여부 확인
+    const saved = localStorage.getItem('cookie_consent');
+    if (saved === 'accepted') setCookieConsent(true);
+    else if (saved === 'rejected') setCookieConsent(false);
+    // else: null 유지 → 배너 표시
   }, []);
 
-  // Component는 현재 페이지 컴포넌트 (예: Home, ClanDetailsPage 등)
-  // pageProps는 getServerSideProps 또는 getStaticProps를 통해 페이지에 전달되는 props
+  const handleAccept = () => {
+    localStorage.setItem('cookie_consent', 'accepted');
+    setCookieConsent(true);
+  };
+
+  const handleReject = () => {
+    localStorage.setItem('cookie_consent', 'rejected');
+    setCookieConsent(false);
+  };
+
   return (
     <>
-      <Script
-        async
-        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7884456727026548"
-        crossOrigin="anonymous"
-        strategy="afterInteractive"
-      />
+      {/* 쿠키 동의 후에만 AdSense 로드 */}
+      {cookieConsent === true && (
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7884456727026548"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      )}
+
+      {/* 동의 미결정 상태일 때만 배너 표시 */}
+      {cookieConsent === null && (
+        <CookieBanner onAccept={handleAccept} onReject={handleReject} />
+      )}
+
       <div className="min-h-screen bg-white text-gray-900">
         <Component {...pageProps} />
       </div>

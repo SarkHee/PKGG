@@ -16,6 +16,7 @@ import PlayerHeader from '../../../components/player/PlayerHeader';
 import MatchDetailExpandable from '../../../components/match/MatchDetailExpandable';
 import AICoachingCard from '../../../components/player/AICoachingCard';
 import WeaponMasteryCard from '../../../components/player/WeaponMasteryCard';
+import AdUnit from '../../../components/AdUnit';
 
 // 반드시 export default 함수 바깥에 위치!
 function MatchList({ recentMatches, playerData }) {
@@ -934,6 +935,9 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           mmr={displayData?.mmr || 1000}
         />
 
+        {/* 광고 1: 플레이어 헤더 아래 (상단 배너) */}
+        <AdUnit slot="2646189375" format="auto" className="mb-6" />
+
         {/* 개인 맞춤형 AI 코칭 시스템 */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4 px-1">
@@ -1072,6 +1076,9 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           </div>
         </div>
 
+        {/* 광고 2: AI 코칭 아래 */}
+        <AdUnit slot="2646189375" format="auto" className="mb-6" />
+
         {/* 주사용 무기 통계 섹션 */}
         {profile?.playerId && (
           <div className="mb-8">
@@ -1088,6 +1095,9 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             </div>
           </div>
         )}
+
+        {/* 광고 3: 무기 통계 아래 */}
+        <AdUnit slot="2646189375" format="auto" className="mb-6" />
 
         {/* 클랜 및 팀플레이 분석 섹션 */}
         <div className="mb-8">
@@ -1135,6 +1145,9 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             })()}
           </div>
         </div>
+
+        {/* 광고 4: 클랜 분석 아래 */}
+        <AdUnit slot="2646189375" format="auto" className="mb-6" />
 
         {/* 시즌 플레이 현황 - 최근 20경기 matchType 기반 */}
         {(() => {

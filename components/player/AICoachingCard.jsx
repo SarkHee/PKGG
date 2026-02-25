@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { analyzePlayStyle } from '../../utils/aiCoaching';
 
 const STYLE_NAMES = {
@@ -206,12 +206,23 @@ function getPUBGImprovements(stats, analysis) {
 export default function AICoachingCard({ playerStats, playerInfo }) {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
+  const savedKeyRef = useRef('');
 
   const getValue = (v) => {
     if (v == null) return 0;
     const n = Number(v);
     return isNaN(n) ? 0 : n;
   };
+
+  // 실제 수치 기반 stable key — 부모가 매 렌더마다 새 객체를 넘겨도 값이 같으면 동일한 문자열
+  const statsKey = playerStats
+    ? [
+        playerStats.avgKills ?? playerStats.averageKills ?? 0,
+        playerStats.avgDamage ?? playerStats.averageDamage ?? 0,
+        playerStats.winRate ?? 0,
+        playerStats.totalMatches ?? playerStats.roundsPlayed ?? 0,
+      ].join('|')
+    : '';
 
   const stats = {
     avgKills: getValue(playerStats?.avgKills ?? playerStats?.averageKills),
@@ -226,24 +237,29 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
   };
 
   useEffect(() => {
-    if (!playerStats) return;
+    if (!statsKey) return;
     try {
       const result = analyzePlayStyle(stats);
       setAnalysis(result);
-      fetch('/api/player/ai-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          playerNickname: playerInfo?.nickname,
-          playerServer: playerInfo?.server,
-          analysis: result,
-        }),
-      }).catch(() => {});
+      // 동일한 통계값으로는 API 1회만 호출
+      if (savedKeyRef.current !== statsKey) {
+        savedKeyRef.current = statsKey;
+        fetch('/api/player/ai-analysis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            playerNickname: playerInfo?.nickname,
+            playerServer: playerInfo?.server,
+            analysis: result,
+          }),
+        }).catch(() => {});
+      }
     } catch (e) {
       console.error('AI 분석 오류:', e);
     }
     setLoading(false);
-  }, [playerStats]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statsKey]);
 
   if (loading) {
     return (
