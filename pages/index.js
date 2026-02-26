@@ -256,10 +256,22 @@ export default function Home() {
         <title>PK.GG - PUBG 플레이어 검색 및 통계</title>
         <meta
           name="description"
-          content="PUBG 플레이어 통계를 확인하고 클랜 정보를 검색해보세요."
+          content="PUBG 플레이어 통계를 확인하고 클랜 정보를 검색해보세요. MMR, 플레이스타일, 최근 매치, 클랜 랭킹을 한눈에."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
+        {/* OG */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://pk.gg/" />
+        <meta property="og:title" content="PK.GG - PUBG 플레이어 검색 및 통계" />
+        <meta property="og:description" content="PUBG 플레이어 통계를 확인하고 클랜 정보를 검색해보세요. MMR, 플레이스타일, 최근 매치, 클랜 랭킹을 한눈에." />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="PK.GG - PUBG 플레이어 검색 및 통계" />
+        <meta name="twitter:description" content="PUBG 플레이어 통계를 확인하고 클랜 정보를 검색해보세요." />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+        <link rel="canonical" href="https://pk.gg/" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

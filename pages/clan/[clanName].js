@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '../../components/layout/Layout';
 
@@ -183,6 +184,10 @@ export default function ClanDetail() {
   if (loading) {
     return (
       <Layout>
+        <Head>
+          <title>클랜 정보 로딩 중... | PK.GG</title>
+          <meta name="robots" content="noindex" />
+        </Head>
         <div className="min-h-screen bg-gray-900 text-white" style={{ marginTop: '-5rem' }}>
           <div className="pt-32 flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -196,6 +201,10 @@ export default function ClanDetail() {
   if (error) {
     return (
       <Layout>
+        <Head>
+          <title>클랜을 찾을 수 없습니다 | PK.GG</title>
+          <meta name="robots" content="noindex" />
+        </Head>
         <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center gap-4" style={{ marginTop: '-5rem' }}>
           <div className="text-5xl">😕</div>
           <div className="text-xl font-bold text-red-400">{error}</div>
@@ -228,8 +237,28 @@ export default function ClanDetail() {
     { id: 'analysis', name: '분석', icon: '🔍' },
   ];
 
+  const clanTitle = clan?.name ? `${clan.name} 클랜 정보 | PK.GG` : '클랜 정보 | PK.GG';
+  const clanDesc = clan?.name
+    ? `${clan.name} 클랜의 멤버 통계, MMR 랭킹, 플레이스타일 분석 정보를 확인하세요.`
+    : 'PUBG 클랜 통계 및 분석 정보.';
+  const clanUrl = `https://pk.gg/clan/${encodeURIComponent(clan?.name || '')}`;
+
   return (
     <Layout>
+      <Head>
+        <title>{clanTitle}</title>
+        <meta name="description" content={clanDesc} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={clanUrl} />
+        <meta property="og:title" content={clanTitle} />
+        <meta property="og:description" content={clanDesc} />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={clanTitle} />
+        <meta name="twitter:description" content={clanDesc} />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+        <link rel="canonical" href={clanUrl} />
+      </Head>
       <div className="min-h-screen bg-gray-950 text-white" style={{ marginTop: '-5rem' }}>
 
         {/* ── 히어로 헤더 ─────────────────────────────────────────────── */}

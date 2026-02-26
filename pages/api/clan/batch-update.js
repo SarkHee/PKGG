@@ -13,6 +13,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'POST 메소드만 지원됩니다.' });
   }
 
+  // 관리자 인증 확인
+  const token = req.headers['x-admin-token'];
+  if (!token || token !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: '관리자 인증이 필요합니다.' });
+  }
+
   const { clanName, memberNames, shard = 'steam' } = req.body;
 
   if (!clanName || !memberNames || !Array.isArray(memberNames)) {
@@ -118,6 +124,8 @@ export default async function handler(req, res) {
               data: {
                 nickname: nickname,
                 clanId: clan.id,
+                pubgPlayerId: data.basicInfo?.id || null,
+                pubgShardId: shard,
                 score: 0,
                 style: '-',
                 avgDamage: 0,
@@ -133,6 +141,8 @@ export default async function handler(req, res) {
           // 시즌 통계에서 주요 데이터 추출
           let avgDamage = 0;
           let avgKills = 0;
+          let avgAssists = 0;
+          let avgSurviveTime = 0;
           let winRate = 0;
           let top10Rate = 0;
 
@@ -142,26 +152,45 @@ export default async function handler(req, res) {
 
             for (const mode of priorityModes) {
               if (data.seasonStats[mode]) {
-                const stats = data.seasonStats[mode].attributes.gameModeStats;
+                // 배치 API 응답: attributes.gameModeStats[mode] 로 중첩
+                const gameModeStats = data.seasonStats[mode].attributes?.gameModeStats;
+                const stats = gameModeStats?.[mode];
                 if (stats && stats.roundsPlayed > 0) {
-                  avgDamage = stats.damageDealt / stats.roundsPlayed;
-                  avgKills = stats.kills / stats.roundsPlayed;
-                  winRate = (stats.wins / stats.roundsPlayed) * 100;
-                  top10Rate = (stats.top10s / stats.roundsPlayed) * 100;
+                  avgDamage      = (stats.damageDealt  || 0) / stats.roundsPlayed;
+                  avgKills       = (stats.kills        || 0) / stats.roundsPlayed;
+                  avgAssists     = (stats.assists      || 0) / stats.roundsPlayed;
+                  avgSurviveTime = (stats.timeSurvived || 0) / stats.roundsPlayed;
+                  winRate        = ((stats.wins  || 0) / stats.roundsPlayed) * 100;
+                  top10Rate      = ((stats.top10s|| 0) / stats.roundsPlayed) * 100;
                   break;
                 }
               }
             }
           }
 
-          // 멤버 정보 업데이트
+          // score 계산 (MMR 기반)
+          const { calculateMMR } = require('../../../utils/mmrCalculator');
+          const score = calculateMMR({ avgDamage, avgKills, winRate, top10Rate, avgSurviveTime, avgAssists });
+
+          // 멤버 정보 업데이트 — 0 덮어씌우기 방지: API에서 데이터를 받은 경우에만 갱신
+          const hasData = avgDamage > 0 || avgKills > 0 || winRate > 0;
           await prisma.clanMember.update({
             where: { id: member.id },
             data: {
-              avgDamage: Math.round(avgDamage),
-              avgKills: parseFloat(avgKills.toFixed(1)),
-              winRate: parseFloat(winRate.toFixed(1)),
-              top10Rate: parseFloat(top10Rate.toFixed(1)),
+              // pubgPlayerId/shardId — 없던 레코드에 채워넣기
+              ...(data.basicInfo?.id && !member.pubgPlayerId
+                ? { pubgPlayerId: data.basicInfo.id, pubgShardId: shard }
+                : {}),
+              ...(hasData ? {
+                avgDamage:      Math.round(avgDamage),
+                avgKills:       parseFloat(avgKills.toFixed(2)),
+                avgAssists:     parseFloat(avgAssists.toFixed(2)),
+                avgSurviveTime: Math.round(avgSurviveTime),
+                winRate:        parseFloat(winRate.toFixed(1)),
+                top10Rate:      parseFloat(top10Rate.toFixed(1)),
+                score,
+              } : {}),
+              lastUpdated: new Date(),
             },
           });
 

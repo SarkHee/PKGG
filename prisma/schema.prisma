@@ -243,6 +243,28 @@ model Notice {
   @@map("notices")
 }
 
+// 플레이어 검색 캐시 (클랜 소속 여부와 무관하게 모든 유저 캐싱)
+model PlayerCache {
+  id             Int      @id @default(autoincrement())
+  nickname       String
+  pubgShardId    String   @default("steam")
+  pubgPlayerId   String?
+
+  score          Int      @default(0)
+  style          String   @default("")
+  avgDamage      Float    @default(0)
+  avgKills       Float    @default(0)
+  avgAssists     Float    @default(0)
+  avgSurviveTime Float    @default(0)
+  winRate        Float    @default(0)
+  top10Rate      Float    @default(0)
+
+  lastUpdated    DateTime @default(now())
+
+  @@unique([nickname, pubgShardId])
+  @@map("player_cache")
+}
+
 // AI 코칭 시스템 모델들
 model PlayerAnalysis {
   id                Int       @id @default(autoincrement())

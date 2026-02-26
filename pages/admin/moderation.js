@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Header from '../../components/layout/Header';
+import { useRouter } from 'next/router';
 
 export default function ModerationPanel() {
+  const router = useRouter();
+  const [authed, setAuthed] = useState(false);
   const [bannedUsers, setBannedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('banned-users');
@@ -12,9 +15,20 @@ export default function ModerationPanel() {
     reason: '',
   });
 
+  // 관리자 인증 확인
   useEffect(() => {
-    fetchBannedUsers();
+    if (typeof window !== 'undefined') {
+      if (sessionStorage.getItem('admin_authed') !== 'true') {
+        router.replace('/admin');
+      } else {
+        setAuthed(true);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (authed) fetchBannedUsers();
+  }, [authed]);
 
   const fetchBannedUsers = async () => {
     try {
@@ -157,11 +171,14 @@ export default function ModerationPanel() {
     return 'text-red-500'; // 24시간 이상
   };
 
+  if (!authed) return null;
+
   return (
     <>
       <Head>
         <title>포럼 관리자 패널 | PK.GG</title>
         <meta name="description" content="포럼 사용자 제재 관리" />
+        <meta name="robots" content="noindex,nofollow" />
       </Head>
 
       <Header />

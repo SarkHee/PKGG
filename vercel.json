@@ -3,5 +3,15 @@
   "name": "pk-gg",
   "env": {
     "npm_config_legacy_peer_deps": "true"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/clan-update",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/clan-update",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }

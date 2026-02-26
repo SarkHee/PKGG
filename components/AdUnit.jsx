@@ -2,11 +2,14 @@ import { useEffect, useRef } from 'react';
 
 /**
  * Google AdSense 광고 단위
- * @param {string} slot - AdSense 광고 단위 ID (AdSense 콘솔 > 광고 단위에서 복사)
+ * 노출 여부: .env.local의 NEXT_PUBLIC_ADS_ENABLED=true 시 활성화
+ * @param {string} slot - AdSense 광고 단위 ID
  * @param {'horizontal'|'rectangle'|'auto'} format - 광고 형식
  * @param {string} className - 추가 스타일
  */
 export default function AdUnit({ slot, format = 'auto', className = '' }) {
+  // AdSense 승인 전까지 렌더링 안 함 (빈 공간도 없음)
+  if (process.env.NEXT_PUBLIC_ADS_ENABLED !== 'true') return null;
   const adRef = useRef(null);
   const pushed = useRef(false);
 

@@ -163,6 +163,31 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
       });
       console.log(`✅ 매치 ${matches.length}개 DB 저장 완료`);
     }
+
+    // PlayerCache upsert (모든 유저 캐싱)
+    try {
+      const cacheData = {
+        pubgPlayerId: pubgPlayer.id,
+        pubgShardId: shard,
+        score: summary?.score || 0,
+        style: summary?.playstyle || summary?.style || '',
+        avgDamage: summary?.avgDamage || 0,
+        avgKills: summary?.avgKills || 0,
+        avgAssists: summary?.avgAssists || 0,
+        avgSurviveTime: summary?.avgSurviveTime || 0,
+        winRate: summary?.winRate || 0,
+        top10Rate: summary?.top10Rate || 0,
+        lastUpdated: new Date(),
+      };
+      await prisma.playerCache.upsert({
+        where: { nickname_pubgShardId: { nickname, pubgShardId: shard } },
+        update: cacheData,
+        create: { nickname, ...cacheData },
+      });
+      console.log(`✅ PlayerCache 저장: ${nickname} (${shard})`);
+    } catch (cacheErr) {
+      console.warn('PlayerCache upsert 실패:', cacheErr.message);
+    }
   } catch (e) {
     console.error('savePlayerToDatabase 오류:', e.message);
   } finally {
@@ -886,10 +911,17 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         <div className="max-w-screen-xl mx-auto px-4 py-6">
         <Head>
           <title>{`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`}</title>
-          <meta
-            name="description"
-            content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 및 클랜 시너지 분석 정보.`}
-          />
+          <meta name="description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 및 클랜 시너지 분석 정보.`} />
+          <meta property="og:type" content="profile" />
+          <meta property="og:url" content={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
+          <meta property="og:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`} />
+          <meta property="og:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
+          <meta property="og:image" content="https://pk.gg/og-image.png" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`} />
+          <meta name="twitter:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
+          <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+          <link rel="canonical" href={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
         </Head>
 
         {/* 데이터 소스 알림 - 간결하게 */}
@@ -1080,7 +1112,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         <AdUnit slot="2646189375" format="auto" className="mb-6" />
 
         {/* 주사용 무기 통계 섹션 */}
-        {profile?.playerId && (
+        {profile?.nickname && (
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4 px-1">
               <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
@@ -1089,8 +1121,10 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             </div>
             <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
               <WeaponMasteryCard
-                playerId={profile.playerId}
+                playerId={profile.playerId || null}
+                nickname={profile.nickname}
                 shard={profile.shardId || router.query.server || 'steam'}
+                force={router.query.force === '1'}
               />
             </div>
           </div>
@@ -1389,11 +1423,71 @@ function derivePlayStyle(stats) {
 }
 
 // DB에서 플레이어 캐시 데이터 조회 (최근 2시간 이내만 유효)
+// 조회 순서: 1) PlayerCache → 2) ClanMember (하위 호환)
 async function getPlayerFromDB(nickname, server) {
   const { PrismaClient } = require('@prisma/client');
   const { calculateMMR: calcMMR } = require('../../../utils/mmrCalculator');
   const prisma = new PrismaClient();
   try {
+    // 1순위: PlayerCache 테이블 조회 (모든 유저 포함)
+    const cached = await prisma.playerCache.findFirst({
+      where: {
+        nickname: { equals: nickname, mode: 'insensitive' },
+        ...(server && server !== 'unknown' ? { pubgShardId: server } : {}),
+      },
+      orderBy: { lastUpdated: 'desc' },
+    });
+
+    if (cached) {
+      const hoursSince = (Date.now() - new Date(cached.lastUpdated).getTime()) / 3600000;
+      if (hoursSince <= 2) {
+        console.log(`✅ PlayerCache 히트: ${nickname} (${Math.round(hoursSince * 60)}분 전)`);
+        // PlayerCache에는 매치/클랜 정보가 없으므로 ClanMember도 함께 조회
+        const member = await prisma.clanMember.findFirst({
+          where: { nickname: { equals: nickname, mode: 'insensitive' } },
+          include: {
+            clan: true,
+            matches: { orderBy: { createdAt: 'desc' }, take: 10 },
+          },
+        });
+        if (member) {
+          // ClanMember 데이터가 있으면 아래 기존 로직으로 처리 (member 사용)
+          // → 아래 로직으로 fall-through하기 위해 cached를 무시하고 member 경로로 진행
+        } else {
+          // ClanMember 없는 솔로 유저: PlayerCache 기본 데이터로 응답 구성
+          const summaryBase = {
+            avgDamage: cached.avgDamage || 0,
+            avgKills: cached.avgKills || 0,
+            avgAssists: cached.avgAssists || 0,
+            avgSurviveTime: cached.avgSurviveTime || 0,
+            winRate: cached.winRate || 0,
+            top10Rate: cached.top10Rate || 0,
+            score: cached.score || 0,
+          };
+          const { playstyle, realPlayStyle } = derivePlayStyle(summaryBase);
+          const summary = { ...summaryBase, playstyle, realPlayStyle, style: cached.style || playstyle };
+          const mmr = calcMMR(summaryBase);
+          return {
+            profile: {
+              nickname: cached.nickname,
+              shardId: cached.pubgShardId,
+              playerId: cached.pubgPlayerId,
+              clanName: null,
+              clanTag: null,
+            },
+            summary,
+            mmr,
+            recentMatches: [],
+            modeStats: {},
+            clanMembers: [],
+            clanSynergy: null,
+            rankedStats: null,
+          };
+        }
+      }
+    }
+
+    // 2순위: ClanMember 테이블 (기존 로직)
     const member = await prisma.clanMember.findFirst({
       where: { nickname: { equals: nickname, mode: 'insensitive' } },
       include: {

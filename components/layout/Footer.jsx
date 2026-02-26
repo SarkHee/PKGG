@@ -9,6 +9,16 @@ export default function Footer() {
           개인정보처리방침
         </Link>
       </p>
+      {/* 숨겨진 관리자 링크 — 텍스트 드래그(선택) 시 노출 */}
+      <div className="mt-3 select-all">
+        <Link
+          href="/admin"
+          className="text-[10px] text-gray-950 hover:text-gray-800 transition-colors duration-500 cursor-default select-all"
+          tabIndex={-1}
+        >
+          admin
+        </Link>
+      </div>
     </footer>
   );
 }

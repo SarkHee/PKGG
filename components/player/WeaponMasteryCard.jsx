@@ -150,44 +150,76 @@ async function fetchWithRetry(url, maxRetry = 2, delayMs = 800) {
   throw lastError || new Error('fetch failed');
 }
 
-export default function WeaponMasteryCard({ playerId, shard = 'steam' }) {
+export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam', force = false }) {
   const [weapons, setWeapons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState(null);
   const [rawError, setRawError] = useState(null);
   const [sortBy, setSortBy] = useState('kills');
+  const [resolvedId, setResolvedId] = useState(playerId || null);
+  // playerId가 없을 때 ID 조회 중 여부 (빈 상태 오표시 방지)
+  const [idResolving, setIdResolving] = useState(!playerId && !!nickname);
+
+  // playerId가 없으면 nickname으로 ID 조회
+  useEffect(() => {
+    if (playerId) {
+      setResolvedId(playerId);
+      setIdResolving(false);
+      return;
+    }
+    if (!nickname) {
+      setIdResolving(false);
+      return;
+    }
+    setIdResolving(true);
+    fetch(`/api/pubg/player-id?nickname=${encodeURIComponent(nickname)}&shard=${shard}`)
+      .then((r) => r.json())
+      .then((data) => { if (data.playerId) setResolvedId(data.playerId); })
+      .catch(() => {})
+      .finally(() => setIdResolving(false));
+  }, [playerId, nickname, shard]);
 
   useEffect(() => {
-    if (!playerId) return;
+    if (!resolvedId) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
     setRawError(null);
 
-    fetchWithRetry(`/api/pubg/stats/mastery/${shard}/${playerId}/weapon`)
+    const masteryUrl = `/api/pubg/stats/mastery/${shard}/${resolvedId}/weapon${force ? '?force=1' : ''}`;
+    fetchWithRetry(masteryUrl)
       .then((r) => r.json())
       .then((json) => {
         if (cancelled) return;
         if (!json.success) {
           setError(json.error || '무기 데이터를 불러올 수 없습니다.');
-          setRawError(json.details || null);
+          setRawError(json.code ? `[${json.code}] ${json.details || ''}` : (json.details || null));
+          console.warn('[WeaponMastery] API error:', json);
           return;
         }
 
-        // PUBG API weapon_mastery attributes 구조:
-        // json.data.attributes.weaponsummaries = { "Item_Weapon_HK416_C": { StatsTotal: {...} } }
-        const summaries = json.data?.attributes?.weaponsummaries || {};
+        console.log('[WeaponMastery] raw attrs keys:', Object.keys(json.data?.attributes || {}));
+
+        // PUBG API weapon_mastery 구조 (v22.0.0 이후):
+        // - StatsTotal: 18.2 이전 누적 (더 이상 업데이트 안됨)
+        // - OfficialStatsTotal: 18.2 이후 일반 게임 누적
+        // - CompetitiveStatsTotal: 18.2 이후 경쟁전 누적
+        // → 세 소스를 모두 합산해야 정확한 전체 킬 수가 나옴
+        const attrs = json.data?.attributes || {};
+        const summaries = attrs.weaponsummaries || attrs.WeaponSummaries || attrs.weaponSummaries || {};
+        console.log('[WeaponMastery] summaries count:', Object.keys(summaries).length);
 
         const parsed = Object.entries(summaries)
           .map(([id, v]) => {
-            const info   = resolveWeapon(id);
-            const stats  = v.StatsTotal || {};
-            const kills      = stats.Kills       || 0;
-            const headshots  = stats.Headshots   || 0;
-            const damage     = Math.round(stats.DamagePlayer || 0);
-            const longestKill = stats.LongestKill ? Math.round(stats.LongestKill) : 0;
-            const hsRate = kills > 0 ? Math.round((headshots / kills) * 100) : 0;
-            return { id, ...info, kills, headshots, damage, longestKill, hsRate };
+            const info = resolveWeapon(id);
+            const s  = v.StatsTotal           || {};
+            const o  = v.OfficialStatsTotal   || {};
+            const c  = v.CompetitiveStatsTotal || {};
+
+            const kills      = (s.Kills || 0) + (o.Kills || 0) + (c.Kills || 0);
+            const damage     = Math.round((s.DamagePlayer || 0) + (o.DamagePlayer || 0) + (c.DamagePlayer || 0));
+            const longestKill = Math.round(Math.max(s.LongestKill || 0, o.LongestKill || 0, c.LongestKill || 0));
+            return { id, ...info, kills, damage, longestKill };
           })
           .filter((w) => w.kills > 0)
           .sort((a, b) => b.kills - a.kills);
@@ -203,21 +235,18 @@ export default function WeaponMasteryCard({ playerId, shard = 'steam' }) {
 
     // 컴포넌트 언마운트 시 비동기 결과 무시 (리렌더 방지)
     return () => { cancelled = true; };
-  }, [playerId, shard]);
+  }, [resolvedId, shard, force]);
 
   const sorted = [...weapons].sort((a, b) => {
-    if (sortBy === 'kills')     return b.kills - a.kills;
-    if (sortBy === 'damage')    return b.damage - a.damage;
-    if (sortBy === 'headshots') return b.hsRate - a.hsRate;
+    if (sortBy === 'kills')  return b.kills - a.kills;
+    if (sortBy === 'damage') return b.damage - a.damage;
     return 0;
   });
 
   const top5 = sorted.slice(0, 5);
-  const maxVal = top5.length > 0
-    ? (sortBy === 'headshots' ? top5[0].hsRate : top5[0][sortBy]) || 1
-    : 1;
+  const maxVal = top5.length > 0 ? top5[0][sortBy] || 1 : 1;
 
-  if (!playerId) return null;
+  if (!resolvedId && !nickname) return null;
 
   return (
     <div>
@@ -226,9 +255,8 @@ export default function WeaponMasteryCard({ playerId, shard = 'steam' }) {
         <p className="text-xs text-gray-400">누적 전체 기록 기준 · 상위 5개 무기</p>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
           {[
-            { key: 'kills',     label: '킬수' },
-            { key: 'damage',    label: '데미지' },
-            { key: 'headshots', label: '헤드샷%' },
+            { key: 'kills',  label: '킬수' },
+            { key: 'damage', label: '데미지' },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -245,16 +273,18 @@ export default function WeaponMasteryCard({ playerId, shard = 'steam' }) {
         </div>
       </div>
 
-      {/* 로딩 */}
-      {loading && (
+      {/* 로딩 (ID 조회 중 or 무기 데이터 조회 중) */}
+      {(idResolving || loading) && (
         <div className="flex items-center justify-center py-14 gap-3">
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-gray-500">무기 데이터 로딩 중...</span>
+          <span className="text-sm text-gray-500">
+            {idResolving ? '플레이어 정보 조회 중...' : '무기 데이터 로딩 중...'}
+          </span>
         </div>
       )}
 
       {/* 에러 */}
-      {!loading && error && (
+      {!idResolving && !loading && error && (
         <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
           <span className="text-3xl">🔒</span>
           <p className="text-sm text-gray-500">{error}</p>
@@ -265,8 +295,8 @@ export default function WeaponMasteryCard({ playerId, shard = 'steam' }) {
         </div>
       )}
 
-      {/* 데이터 없음 */}
-      {!loading && !error && weapons.length === 0 && (
+      {/* 데이터 없음 (ID 조회 완료 후에만 표시) */}
+      {!idResolving && !loading && !error && weapons.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
           <span className="text-3xl">🎮</span>
           <p className="text-sm text-gray-500">무기 사용 기록이 없습니다</p>
@@ -275,10 +305,10 @@ export default function WeaponMasteryCard({ playerId, shard = 'steam' }) {
       )}
 
       {/* 무기 목록 */}
-      {!loading && !error && top5.length > 0 && (
+      {!idResolving && !loading && !error && top5.length > 0 && (
         <div className="space-y-4">
           {top5.map((w, i) => {
-            const val    = sortBy === 'headshots' ? w.hsRate : w[sortBy];
+            const val    = w[sortBy];
             const barPct = Math.round((val / maxVal) * 100);
             const barColor  = CATEGORY_BAR[w.category]   || 'bg-gray-400';
             const badgeCls  = CATEGORY_BADGE[w.category] || 'bg-gray-50 text-gray-500 border-gray-200';
@@ -328,16 +358,14 @@ export default function WeaponMasteryCard({ playerId, shard = 'steam' }) {
                       />
                     </div>
                     <span className="text-xs font-bold text-gray-700 flex-shrink-0 w-16 text-right">
-                      {sortBy === 'kills'     && `${val.toLocaleString()}킬`}
-                      {sortBy === 'damage'    && `${val.toLocaleString()}`}
-                      {sortBy === 'headshots' && `${val}%`}
+                      {sortBy === 'kills'  && `${val.toLocaleString()}킬`}
+                      {sortBy === 'damage' && `${val.toLocaleString()}`}
                     </span>
                   </div>
 
                   {/* 보조 스탯 3개 */}
                   <div className="flex gap-3 text-[11px] text-gray-500">
                     <span>킬 <span className="font-semibold text-gray-700">{w.kills.toLocaleString()}</span></span>
-                    <span>헤드샷 <span className="font-semibold text-gray-700">{w.hsRate}%</span></span>
                     <span>데미지 <span className="font-semibold text-gray-700">{w.damage.toLocaleString()}</span></span>
                     {w.longestKill > 0 && (
                       <span>최장 <span className="font-semibold text-gray-700">{w.longestKill}m</span></span>

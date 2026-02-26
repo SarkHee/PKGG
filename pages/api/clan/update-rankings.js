@@ -132,6 +132,16 @@ export default async function handler(req, res) {
     });
   }
 
+  // 관리자 인증 또는 크론 인증 확인
+  const adminToken = req.headers['x-admin-token'];
+  const cronAuth = req.headers.authorization;
+  const isAdmin = adminToken && adminToken === process.env.ADMIN_PASSWORD;
+  const isCron = cronAuth === `Bearer ${process.env.CRON_SECRET}`;
+
+  if (!isAdmin && !isCron) {
+    return res.status(401).json({ success: false, message: '관리자 인증이 필요합니다.' });
+  }
+
   try {
     console.log('🔄 클랜 랭킹 수동 업데이트 API 호출');
 

@@ -43,14 +43,17 @@ function RankingUpdateStatus() {
 }
 
 // 수동 업데이트 버튼 컴포넌트
-function ManualUpdateButton() {
+function ManualUpdateButton({ adminToken }) {
   const [updating, setUpdating] = useState(false);
 
   const handleManualUpdate = async () => {
     if (updating) return;
     setUpdating(true);
     try {
-      const response = await fetch('/api/clan/update-rankings', { method: 'POST' });
+      const response = await fetch('/api/clan/update-rankings', {
+        method: 'POST',
+        headers: { 'x-admin-token': adminToken || '' },
+      });
       const data = await response.json();
       if (data.success) {
         alert(`✅ 랭킹 업데이트 완료!\n${data.data.updatedCount}개 클랜이 업데이트되었습니다.`);
@@ -186,7 +189,14 @@ export default function ClanAnalytics() {
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const [isKoreanOnly, setIsKoreanOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isAdmin, setIsAdmin] = useState(false);
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsAdmin(sessionStorage.getItem('admin_authed') === 'true');
+    }
+  }, []);
 
   useEffect(() => {
     fetchAnalytics();
@@ -230,7 +240,20 @@ export default function ClanAnalytics() {
   if (loading) {
     return (
       <>
-        <Head><title>클랜 분석 | PK.GG</title></Head>
+        <Head>
+        <title>클랜 분석 | PK.GG</title>
+        <meta name="description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://pk.gg/clan-analytics" />
+        <meta property="og:title" content="클랜 분석 | PK.GG" />
+        <meta property="og:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="클랜 분석 | PK.GG" />
+        <meta name="twitter:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지." />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+        <link rel="canonical" href="https://pk.gg/clan-analytics" />
+      </Head>
         <Header />
         <div className="min-h-screen bg-gray-950 flex items-center justify-center">
           <div className="text-center">
@@ -245,7 +268,20 @@ export default function ClanAnalytics() {
   if (error) {
     return (
       <>
-        <Head><title>클랜 분석 | PK.GG</title></Head>
+        <Head>
+        <title>클랜 분석 | PK.GG</title>
+        <meta name="description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://pk.gg/clan-analytics" />
+        <meta property="og:title" content="클랜 분석 | PK.GG" />
+        <meta property="og:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="클랜 분석 | PK.GG" />
+        <meta name="twitter:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지." />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+        <link rel="canonical" href="https://pk.gg/clan-analytics" />
+      </Head>
         <Header />
         <div className="min-h-screen bg-gray-950 flex items-center justify-center">
           <div className="text-center text-red-400">
@@ -306,7 +342,20 @@ export default function ClanAnalytics() {
 
   return (
     <>
-      <Head><title>클랜 분석 | PK.GG</title></Head>
+      <Head>
+        <title>클랜 분석 | PK.GG</title>
+        <meta name="description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://pk.gg/clan-analytics" />
+        <meta property="og:title" content="클랜 분석 | PK.GG" />
+        <meta property="og:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="클랜 분석 | PK.GG" />
+        <meta name="twitter:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지." />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+        <link rel="canonical" href="https://pk.gg/clan-analytics" />
+      </Head>
       <Header />
 
       <div className="min-h-screen bg-gray-950 px-4 py-8">
@@ -476,7 +525,9 @@ export default function ClanAnalytics() {
                 <p className="text-xs text-blue-400 mt-0.5">클랜 MMR 기준 (멤버 평균 MMR)</p>
                 <RankingUpdateStatus />
               </div>
-              <ManualUpdateButton />
+              {isAdmin && (
+                <ManualUpdateButton adminToken={typeof window !== 'undefined' ? sessionStorage.getItem('admin_pw') : ''} />
+              )}
             </div>
             <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
@@ -722,15 +773,17 @@ export default function ClanAnalytics() {
             )}
           </div>
 
-          {/* 새로고침 */}
-          <div className="text-center">
-            <button
-              onClick={fetchAnalytics}
-              className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm font-semibold text-gray-300 transition-colors"
-            >
-              🔄 데이터 새로고침
-            </button>
-          </div>
+          {/* 새로고침 (관리자 전용) */}
+          {isAdmin && (
+            <div className="text-center">
+              <button
+                onClick={fetchAnalytics}
+                className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm font-semibold text-gray-300 transition-colors"
+              >
+                🔄 데이터 새로고침
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>

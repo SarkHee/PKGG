@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 
 export default function AdminNoticesPage() {
+  const router = useRouter();
+  const [authed, setAuthed] = useState(false);
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -18,9 +21,20 @@ export default function AdminNoticesPage() {
     showUntil: '',
   });
 
+  // 관리자 인증 확인
   useEffect(() => {
-    fetchNotices();
+    if (typeof window !== 'undefined') {
+      if (sessionStorage.getItem('admin_authed') !== 'true') {
+        router.replace('/admin');
+      } else {
+        setAuthed(true);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (authed) fetchNotices();
+  }, [authed]);
 
   const fetchNotices = async () => {
     try {
@@ -139,8 +153,14 @@ export default function AdminNoticesPage() {
     return typeMap[type] || type;
   };
 
+  if (!authed) return null;
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <Head>
+        <title>공지 관리 | PK.GG</title>
+        <meta name="robots" content="noindex,nofollow" />
+      </Head>
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
