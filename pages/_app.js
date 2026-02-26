@@ -4,6 +4,7 @@ import '../styles/globals.css';
 import { useEffect, useState } from 'react';
 import Script from 'next/script';
 import CookieBanner from '../components/CookieBanner';
+import { Analytics } from '@vercel/analytics/next';
 
 function MyApp({ Component, pageProps }) {
   // null = 아직 결정 안 함(배너 표시), true = 동의, false = 거부
@@ -57,6 +58,7 @@ function MyApp({ Component, pageProps }) {
       <div className="min-h-screen bg-white text-gray-900">
         <Component {...pageProps} />
       </div>
+      <Analytics />
     </>
   );
 }
