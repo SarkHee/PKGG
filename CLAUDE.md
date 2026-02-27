@@ -16,12 +16,17 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 ### pages/
 | 경로 | 설명 |
 |------|------|
-| `index.js` | 메인 홈 |
+| `index.js` | 메인 홈 (오로라 CSS 그라디언트 배경) |
 | `player/[server]/[nickname].js` | 플레이어 상세 (무기, 시즌, 랭크 등) |
 | `clan/[clanName].js` | 클랜 상세 |
 | `clan-analytics.js` | 클랜 분석 |
 | `weapon-test/index.js` | 무기 성향 테스트 (결과 포함) |
 | `weapon-test/result/[id].js` | 무기 테스트 공유 결과 페이지 |
+| `weapon-damage.js` | 무기 데미지 표 (57종, 타입 필터·정렬·DPS·방어구/헬멧 시뮬레이터·킬샷 계산) |
+| `forum/index.js` | 포럼 메인 (카테고리 + 최근 게시글 목록 — 제목만 표시) |
+| `forum/category/[categoryId].js` | 카테고리별 게시글 목록 (제목만 표시) |
+| `forum/post/[postId].js` | 게시글 상세 (이미지 풀-와이드 렌더링) |
+| `forum/create.js` | 글 작성 (이미지 드래그 앤 드롭 업로드 지원) |
 | `admin/moderation.js` | 관리자: 신고 처리 |
 | `admin/notices.js` | 관리자: 공지 관리 |
 | `admin/index.js` | 관리자 대시보드 |
@@ -118,5 +123,12 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - WeaponMasteryCard: 헤드샷 기능 제거 (PUBG Headshots 필드 = 킬이 아닌 히트 수)
 - weapon-test: WeaponSlider 컴포넌트 추가 (PNG 이미지 + 탭 네비게이션)
 - PUBG API: 세 소스 합산으로 무기 킬/데미지 통계 정확도 개선
-- **i18n 다국어 지원 추가** (ko/en/ja/zh): `utils/i18n.js`, `locales/*.json`, `pages/_app.js` LanguageProvider, Header 언어 토글, 주요 페이지/컴포넌트 전체 적용 완료
+- **i18n 다국어 지원 추가** (ko/en/ja/zh): `utils/i18n.js`, `pages/_app.js` LanguageProvider, Header 언어 토글
   - 적용 완료: Header, Footer, index.js, clan-analytics.js, clan/[clanName].js, weapon-test/index.js, weapon-test/result/[id].js
+- **로고/파비콘/OG 이미지 적용**: `/public/logo.png`, `/public/favicon.png`, `/public/og.png`. `pages/_document.js` 에서 전역 파비콘·OG 설정
+- **메인 홈 리디자인**: hero 로고 이미지 교체, 오로라 그라디언트 CSS 배경으로 변경 (`styles/globals.css` aurora1/2/3 keyframes)
+- **포럼 UI 개선**:
+  - 게시글 목록 (category, 최근 목록): 미리보기 텍스트 제거 → 제목만 표시
+  - 게시글 상세: 이미지 `-mx-6 w-full` 풀-와이드 렌더링
+  - 글 작성: 이미지 드래그 앤 드롭 업로드 (`onDrop` → `uploadFile()`)
+- **무기 데미지 표 추가** (`pages/weapon-damage.js`): battlegrounds.party 데이터 기반, Update 40.1 패치 반영 (Mk12 44→43 너프 등). 타입 필터·정렬·DPS 자동 계산·패치 변경 ⚡ 강조

@@ -1,0 +1,27 @@
+-- PKGG 프로젝트 — 모든 테이블 RLS 활성화
+-- Supabase 대시보드 → SQL Editor에 붙여넣고 실행하세요
+--
+-- 이 프로젝트는 Prisma(서버사이드 직접 연결)만 사용하므로
+-- RLS를 활성화해도 앱 동작에는 전혀 영향 없습니다.
+-- PostgREST(Supabase REST API)를 통한 외부 접근만 차단됩니다.
+
+-- PascalCase 테이블 (Prisma 기본)
+ALTER TABLE "Clan" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ClanMember" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PlayerMatch" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PlayerModeStats" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ForumCategory" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ForumPost" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ForumReply" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ForumLike" ENABLE ROW LEVEL SECURITY;
+
+-- snake_case 테이블 (@@map 적용된 것들)
+ALTER TABLE forum_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pubg_news ENABLE ROW LEVEL SECURITY;
+ALTER TABLE weapon_test_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ranking_update_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE player_cache ENABLE ROW LEVEL SECURITY;
+ALTER TABLE player_analyses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE coaching_tips ENABLE ROW LEVEL SECURITY;
+ALTER TABLE training_sessions ENABLE ROW LEVEL SECURITY;

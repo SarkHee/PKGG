@@ -1,6 +1,7 @@
 // components/layout/Header.jsx
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useT } from '../../utils/i18n';
@@ -48,6 +49,7 @@ export default function Header() {
   const navLinks = [
     { href: '/clan-analytics', labelKey: 'nav.clan_analytics', icon: '📊' },
     { href: '/weapon-test', labelKey: 'nav.weapon_test', icon: '🔫', highlight: true },
+    { href: '/weapon-damage', labelKey: 'nav.weapon_damage', icon: '📋' },
     { href: '/forum', labelKey: 'nav.forum', icon: '💬' },
     { href: '/notices', labelKey: 'nav.notices', icon: '📋' },
     { href: '/pubg-news', labelKey: 'nav.news', icon: '📢' },
@@ -67,8 +69,15 @@ export default function Header() {
             {/* 로고 + 네비게이션 */}
             <div className="flex items-center gap-1 min-w-0">
               <Link href="/" passHref>
-                <span className="text-xl font-black text-blue-600 cursor-pointer mr-5 tracking-tight hover:text-blue-700 transition-colors whitespace-nowrap">
-                  PK.GG
+                <span className="cursor-pointer mr-5 flex items-center flex-shrink-0">
+                  <Image
+                    src="/logo.png"
+                    alt="PK.GG"
+                    width={518}
+                    height={295}
+                    className="h-8 w-auto object-contain"
+                    priority
+                  />
                 </span>
               </Link>
 

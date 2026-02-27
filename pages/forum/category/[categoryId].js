@@ -19,21 +19,17 @@ function PostCard({ post }) {
       className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => router.push(`/forum/post/${post.id}`)}
     >
-      <div className="flex items-start justify-between mb-2">
+      <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           {post.isPinned && <span className="text-red-500 text-sm">📌</span>}
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 transition-colors">
             {post.title}
           </h3>
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-gray-500 flex-shrink-0 ml-2">
           {new Date(post.createdAt).toLocaleDateString('ko-KR')}
         </div>
       </div>
-
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-        {post.preview || post.content.substring(0, 150) + '...'}
-      </p>
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 text-xs text-gray-500">

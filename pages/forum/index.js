@@ -115,17 +115,14 @@ function RecentPostCard({ post }) {
       className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => router.push(`/forum/post/${post.id}`)}
     >
-      <div className="flex items-start justify-between mb-2">
+      <div className="flex items-start justify-between mb-3">
         <h4 className="font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 transition-colors">
           {post.title}
         </h4>
-        <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+        <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded flex-shrink-0 ml-2">
           {post.category?.name || post.category}
         </span>
       </div>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-        {post.preview}...
-      </p>
       <div className="flex items-center justify-between text-xs text-gray-500">
         <div className="flex items-center gap-2">
           <span>👤 {post.author}</span>

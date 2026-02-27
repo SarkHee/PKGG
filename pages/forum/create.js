@@ -25,6 +25,7 @@ export default function CreatePost() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState({});
   const contentRef = useRef(null);
 
@@ -84,17 +85,16 @@ export default function CreatePost() {
     if (errors[field]) setErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadFile = async (file) => {
+    if (!file || !file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드할 수 있습니다.');
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       alert('이미지 크기는 5MB 이하여야 합니다.');
       return;
     }
-
     setUploadingImage(true);
-
     const reader = new FileReader();
     reader.onload = async (ev) => {
       try {
@@ -109,7 +109,6 @@ export default function CreatePost() {
         });
         const data = await res.json();
         if (res.ok) {
-          // 커서 위치에 이미지 마크다운 삽입
           const textarea = contentRef.current;
           const start = textarea?.selectionStart ?? formData.content.length;
           const end = textarea?.selectionEnd ?? formData.content.length;
@@ -128,11 +127,32 @@ export default function CreatePost() {
         alert(`이미지 업로드 오류: ${err.message || '네트워크 오류'}`);
       } finally {
         setUploadingImage(false);
-        // 파일 인풋 초기화 (같은 파일 재업로드 허용)
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFile(file);
   };
 
   return (
@@ -273,20 +293,39 @@ export default function CreatePost() {
                     </button>
                   </div>
                 </div>
-                <textarea
-                  ref={contentRef}
-                  value={formData.content}
-                  onChange={(e) => handleChange('content', e.target.value)}
-                  placeholder="게시글 내용을 작성하세요...&#10;이미지는 '이미지 첨부' 버튼으로 추가할 수 있습니다."
-                  maxLength={5000}
-                  rows={12}
-                  className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-y font-mono ${
-                    errors.content ? 'border-red-400' : 'border-gray-300'
-                  }`}
-                />
+                <div
+                  className="relative"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <textarea
+                    ref={contentRef}
+                    value={formData.content}
+                    onChange={(e) => handleChange('content', e.target.value)}
+                    placeholder="게시글 내용을 작성하세요...&#10;이미지는 버튼 클릭 또는 여기에 드래그해서 추가하세요."
+                    maxLength={5000}
+                    rows={12}
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-y font-mono transition-colors ${
+                      errors.content ? 'border-red-400' : isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300'
+                    }`}
+                  />
+                  {isDragging && (
+                    <div className="absolute inset-0 rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/80 flex flex-col items-center justify-center pointer-events-none">
+                      <div className="text-3xl mb-2">📷</div>
+                      <p className="text-sm font-semibold text-blue-600">여기에 놓으면 업로드됩니다</p>
+                    </div>
+                  )}
+                  {uploadingImage && (
+                    <div className="absolute inset-0 rounded-lg bg-white/80 flex flex-col items-center justify-center pointer-events-none">
+                      <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-2" />
+                      <p className="text-sm text-blue-600 font-medium">업로드 중...</p>
+                    </div>
+                  )}
+                </div>
                 {errors.content && <p className="mt-1 text-xs text-red-600">{errors.content}</p>}
                 <p className="mt-1.5 text-xs text-gray-400">
-                  JPG, PNG, GIF, WEBP 형식 · 최대 5MB · 이미지 첨부 후 내용에 자동 삽입됩니다
+                  JPG, PNG, GIF, WEBP · 최대 5MB · 버튼 클릭 또는 드래그 앤 드롭으로 업로드
                 </p>
               </div>
 

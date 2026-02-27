@@ -8,6 +8,7 @@ const translations = {
     // ── Navigation
     'nav.clan_analytics': '클랜 분석',
     'nav.weapon_test': '무기성향 테스트',
+    'nav.weapon_damage': '무기 데미지표',
     'nav.forum': '포럼',
     'nav.notices': '공지사항',
     'nav.news': '배그뉴스',
@@ -270,6 +271,7 @@ const translations = {
   en: {
     'nav.clan_analytics': 'Clan Analytics',
     'nav.weapon_test': 'Weapon Test',
+    'nav.weapon_damage': 'Weapon Damage',
     'nav.forum': 'Forum',
     'nav.notices': 'Notices',
     'nav.news': 'PUBG News',
@@ -523,6 +525,7 @@ const translations = {
   ja: {
     'nav.clan_analytics': 'クラン分析',
     'nav.weapon_test': '武器傾向テスト',
+    'nav.weapon_damage': '武器ダメージ表',
     'nav.forum': 'フォーラム',
     'nav.notices': 'お知らせ',
     'nav.news': 'PUBGニュース',
@@ -776,6 +779,7 @@ const translations = {
   zh: {
     'nav.clan_analytics': '战队分析',
     'nav.weapon_test': '武器偏好测试',
+    'nav.weapon_damage': '武器伤害表',
     'nav.forum': '论坛',
     'nav.notices': '公告',
     'nav.news': 'PUBG新闻',

@@ -1,8 +1,9 @@
 // pages/index.js
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import Image from 'next/image';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useT } from '../utils/i18n';
@@ -14,9 +15,6 @@ export default function Home() {
   const [recentNews, setRecentNews] = useState([]);
   const [newsLoading, setNewsLoading] = useState(false);
   const router = useRouter();
-  const canvasRef = useRef(null);
-  const particlesRef = useRef([]);
-  const animationRef = useRef(null);
   const { t } = useT();
 
   // URL 파라미터에서 검색 실패 메시지 확인
@@ -55,189 +53,6 @@ export default function Home() {
     loadRecentNews();
   }, []);
 
-  // Canvas 기반 파티클 시스템
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-
-    // 파티클 생성 (모바일 최적화)
-    const createParticles = () => {
-      const particles = [];
-      const particleCount = window.innerWidth < 768 ? 100 : 200;
-
-      for (let i = 0; i < particleCount; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          z: Math.random() * 1000,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
-          vz: Math.random() * 0.3 + 0.05,
-          size: Math.random() * 3 + 1,
-          opacity: Math.random() * 0.8 + 0.2,
-        });
-      }
-      return particles;
-    };
-
-    // 캔버스 크기 설정
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const dpr = window.devicePixelRatio || 1;
-      if (window.innerWidth < 768) {
-        canvas.style.width = window.innerWidth + 'px';
-        canvas.style.height = window.innerHeight + 'px';
-        canvas.width = window.innerWidth * Math.min(dpr, 2);
-        canvas.height = window.innerHeight * Math.min(dpr, 2);
-        ctx.scale(Math.min(dpr, 2), Math.min(dpr, 2));
-      }
-
-      particlesRef.current = createParticles();
-    };
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    particlesRef.current = createParticles();
-
-    // 애니메이션 루프
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // 배경 그라디언트
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2,
-        canvas.height / 2,
-        0,
-        canvas.width / 2,
-        canvas.height / 2,
-        canvas.width / 2
-      );
-      gradient.addColorStop(0, 'rgba(20, 30, 48, 0.9)');
-      gradient.addColorStop(1, 'rgba(15, 23, 42, 1)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // 파티클 그리기
-      particlesRef.current.forEach((particle) => {
-        const scale = 1000 / (1000 + particle.z);
-        const x2d = (particle.x - canvas.width / 2) * scale + canvas.width / 2;
-        const y2d =
-          (particle.y - canvas.height / 2) * scale + canvas.height / 2;
-
-        if (
-          x2d > -50 &&
-          x2d < canvas.width + 50 &&
-          y2d > -50 &&
-          y2d < canvas.height + 50
-        ) {
-          ctx.save();
-          ctx.globalAlpha = particle.opacity * scale;
-
-          const blue = Math.floor(100 + scale * 155);
-          const white = Math.floor(scale * 100);
-          ctx.fillStyle = `rgb(${white}, ${white + 50}, ${blue})`;
-
-          ctx.beginPath();
-          ctx.arc(x2d, y2d, particle.size * scale, 0, Math.PI * 2);
-          ctx.fill();
-
-          if (window.innerWidth >= 768) {
-            particlesRef.current.forEach((otherParticle) => {
-              const distance = Math.sqrt(
-                Math.pow(particle.x - otherParticle.x, 2) +
-                  Math.pow(particle.y - otherParticle.y, 2) +
-                  Math.pow(particle.z - otherParticle.z, 2)
-              );
-
-              if (distance < 120) {
-                const otherScale = 1000 / (1000 + otherParticle.z);
-                const otherX2d =
-                  (otherParticle.x - canvas.width / 2) * otherScale +
-                  canvas.width / 2;
-                const otherY2d =
-                  (otherParticle.y - canvas.height / 2) * otherScale +
-                  canvas.height / 2;
-
-                ctx.globalAlpha =
-                  (1 - distance / 120) * 0.2 * scale * otherScale;
-                ctx.strokeStyle = `rgb(100, 150, 255)`;
-                ctx.lineWidth = 0.5;
-                ctx.beginPath();
-                ctx.moveTo(x2d, y2d);
-                ctx.lineTo(otherX2d, otherY2d);
-                ctx.stroke();
-              }
-            });
-          }
-
-          ctx.restore();
-        }
-
-        // 파티클 이동
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-        particle.z -= particle.vz;
-
-        if (particle.life !== undefined) {
-          particle.life--;
-          if (particle.life <= 0) {
-            const index = particlesRef.current.indexOf(particle);
-            particlesRef.current.splice(index, 1);
-            return;
-          }
-          particle.opacity = particle.life / 60;
-        }
-
-        if (particle.z <= 0) {
-          particle.z = 1000;
-          particle.x = Math.random() * canvas.width;
-          particle.y = Math.random() * canvas.height;
-        }
-      });
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    // 터치 이벤트
-    const handleTouch = (e) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
-
-      for (let i = 0; i < 5; i++) {
-        particlesRef.current.push({
-          x: x + (Math.random() - 0.5) * 50,
-          y: y + (Math.random() - 0.5) * 50,
-          z: Math.random() * 200,
-          vx: (Math.random() - 0.5) * 2,
-          vy: (Math.random() - 0.5) * 2,
-          vz: Math.random() * 0.5 + 0.1,
-          size: Math.random() * 3 + 2,
-          opacity: 1.0,
-          life: 60,
-        });
-      }
-    };
-
-    canvas.addEventListener('touchstart', handleTouch, { passive: false });
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      canvas.removeEventListener('touchstart', handleTouch);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, []);
-
   const handleSearch = () => {
     if (searchTerm.trim()) {
       router.push(`/player/${server}/${encodeURIComponent(searchTerm.trim())}`);
@@ -256,16 +71,15 @@ export default function Home() {
         <title>{t('home.meta_title')}</title>
         <meta name="description" content={t('home.meta_desc')} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://pk.gg/" />
         <meta property="og:title" content={t('home.meta_title')} />
         <meta property="og:description" content={t('home.meta_desc')} />
-        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta property="og:image" content="https://pk.gg/og.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={t('home.meta_title')} />
         <meta name="twitter:description" content={t('home.meta_desc')} />
-        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+        <meta name="twitter:image" content="https://pk.gg/og.png" />
         <link rel="canonical" href="https://pk.gg/" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -279,15 +93,49 @@ export default function Home() {
         />
       </Head>
 
-      <div className="min-h-screen bg-gray-900 text-white relative overflow-hidden">
-        {/* Canvas 배경 */}
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 z-0"
-          style={{
-            background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-          }}
-        />
+      <div className="min-h-screen text-white relative overflow-hidden" style={{ background: '#060614' }}>
+        {/* 오로라 그라디언트 배경 */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          {/* 파랑 오로라 */}
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: '70vw',
+              height: '70vw',
+              top: '-15%',
+              left: '-10%',
+              background: 'radial-gradient(circle, rgba(37,99,235,0.35) 0%, transparent 70%)',
+              filter: 'blur(60px)',
+              animation: 'aurora1 18s ease-in-out infinite alternate',
+            }}
+          />
+          {/* 보라 오로라 */}
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: '60vw',
+              height: '60vw',
+              top: '10%',
+              right: '-10%',
+              background: 'radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%)',
+              filter: 'blur(70px)',
+              animation: 'aurora2 22s ease-in-out infinite alternate',
+            }}
+          />
+          {/* 청록 오로라 */}
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: '55vw',
+              height: '55vw',
+              bottom: '-10%',
+              left: '20%',
+              background: 'radial-gradient(circle, rgba(6,182,212,0.22) 0%, transparent 70%)',
+              filter: 'blur(65px)',
+              animation: 'aurora3 26s ease-in-out infinite alternate',
+            }}
+          />
+        </div>
 
         {/* 헤더 */}
         <Header
@@ -302,21 +150,38 @@ export default function Home() {
         {/* 메인 콘텐츠 */}
         <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20">
           <div className="text-center max-w-4xl mx-auto mb-16">
-            {/* 로고 */}
-            <div className="mb-3">
-              <span className="inline-block text-xs font-semibold tracking-widest text-blue-400 uppercase mb-3 opacity-80">
-                PUBG Stats & Analytics
+
+            {/* 배경 글로우 */}
+            <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none" style={{ top: '12%', zIndex: -1 }}>
+              <div className="w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)' }} />
+            </div>
+
+            {/* 배지 */}
+            <div className="mb-6">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-bold tracking-widest text-blue-400 uppercase">
+                <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
+                PUBG Stats &amp; Analytics
               </span>
             </div>
-            <h1 className="text-5xl sm:text-7xl md:text-9xl font-black mb-4 md:mb-6 tracking-tighter bg-gradient-to-b from-white to-blue-200 bg-clip-text text-transparent drop-shadow-lg">
-              PK.GG
+
+            {/* 로고 */}
+            <h1 className="mb-6">
+              <Image
+                src="/logo.png"
+                alt="PK.GG"
+                width={518}
+                height={295}
+                className="w-52 sm:w-80 md:w-[460px] h-auto mx-auto"
+                style={{ filter: 'drop-shadow(0 0 48px rgba(59,130,246,0.55)) drop-shadow(0 8px 24px rgba(0,0,0,0.6))' }}
+                priority
+              />
             </h1>
 
             {/* 서브타이틀 */}
-            <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-2 max-w-xl mx-auto leading-relaxed px-4">
+            <p className="text-lg sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-4">
               {t('home.subtitle')}
             </p>
-            <p className="text-xs text-gray-600 mb-8 md:mb-10">
+            <p className="text-xs text-gray-600 mb-10">
               {t('home.notice')}
             </p>
 
@@ -332,9 +197,9 @@ export default function Home() {
               </div>
             )}
 
-            {/* 검색 섹션 - 카드 형태 */}
+            {/* 검색 섹션 */}
             <div className="max-w-xl mx-auto px-4 mb-4">
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl">
+              <div className="bg-white/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-4 shadow-2xl shadow-blue-900/30">
                 {/* 서버 선택 탭 */}
                 <div className="flex gap-2 mb-3">
                   {['steam', 'kakao', 'console'].map((s) => (
@@ -460,8 +325,10 @@ export default function Home() {
 
           {/* 특징 카드 섹션 */}
           <div className="w-full max-w-6xl mx-auto px-4">
-            <div className="text-center mb-8">
-              <h2 className="text-base font-semibold text-gray-500 uppercase tracking-widest">{t('home.features')}</h2>
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
+              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">{t('home.features')}</h2>
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
@@ -473,10 +340,10 @@ export default function Home() {
                 { icon: '⚡', titleKey: 'feat.search_title', descKey: 'feat.search_desc' },
               ].map((item) => (
                 <div
-                  key={item.title}
-                  className="bg-white/5 border border-white/8 rounded-xl p-4 hover:border-white/20 hover:bg-white/8 transition-all duration-200"
+                  key={item.titleKey}
+                  className="bg-white/5 border border-blue-500/10 rounded-xl p-4 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-200 group"
                 >
-                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <div className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-200 inline-block">{item.icon}</div>
                   <h3 className="text-sm font-bold text-gray-200 mb-1">{t(item.titleKey)}</h3>
                   <p className="text-gray-500 text-xs leading-relaxed">{t(item.descKey)}</p>
                 </div>

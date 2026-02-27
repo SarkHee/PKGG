@@ -253,11 +253,11 @@ export default function ClanDetail() {
         <meta property="og:url" content={clanUrl} />
         <meta property="og:title" content={clanTitle} />
         <meta property="og:description" content={clanDesc} />
-        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta property="og:image" content="https://pk.gg/og.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={clanTitle} />
         <meta name="twitter:description" content={clanDesc} />
-        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+        <meta name="twitter:image" content="https://pk.gg/og.png" />
         <link rel="canonical" href={clanUrl} />
       </Head>
       <div className="min-h-screen bg-gray-950 text-white" style={{ marginTop: '-5rem' }}>

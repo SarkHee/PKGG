@@ -54,12 +54,12 @@ function formatContent(content) {
     const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (imgMatch) {
       return (
-        <div key={i} className="my-3">
+        <div key={i} className="my-4 -mx-6">
           <img
             src={imgMatch[2]}
             alt={imgMatch[1] || '이미지'}
-            className="max-w-full rounded-xl border border-gray-200 shadow-sm"
-            style={{ maxHeight: '500px', objectFit: 'contain' }}
+            className="w-full block"
+            style={{ objectFit: 'cover' }}
           />
         </div>
       );

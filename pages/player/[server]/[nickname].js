@@ -916,11 +916,11 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           <meta property="og:url" content={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
           <meta property="og:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`} />
           <meta property="og:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
-          <meta property="og:image" content="https://pk.gg/og-image.png" />
+          <meta property="og:image" content="https://pk.gg/og.png" />
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`} />
           <meta name="twitter:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
-          <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+          <meta name="twitter:image" content="https://pk.gg/og.png" />
           <link rel="canonical" href={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
         </Head>
 

@@ -511,3 +511,17 @@ textarea:focus {
     transform: rotate(360deg);
   }
 }
+
+/* 오로라 배경 애니메이션 */
+@keyframes aurora1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(5%, 8%) scale(1.1); }
+}
+@keyframes aurora2 {
+  0%, 100% { transform: translate(0, 0) scale(1.1); }
+  50% { transform: translate(-8%, 5%) scale(1); }
+}
+@keyframes aurora3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6%, -6%) scale(1.05); }
+}
