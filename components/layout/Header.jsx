@@ -1,20 +1,28 @@
-// components/Header.jsx
+// components/layout/Header.jsx
 
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { useT } from '../../utils/i18n';
+
+const LANG_OPTIONS = [
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+  { code: 'en', label: 'EN', flag: '🇺🇸' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'zh', label: '中文', flag: '🇨🇳' },
+];
 
 export default function Header() {
   const [nickname, setNickname] = useState('');
   const [server, setServer] = useState('steam');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
   const router = useRouter();
+  const { lang, t, switchLang } = useT();
 
   const handleInquiryClick = (e) => {
     e.preventDefault();
-    const emailSubject = 'PKGG 사이트 문의';
-    const emailBody = '안녕하세요! PKGG 사이트 관련 문의드립니다.\n\n문의내용:\n';
-    const mailtoLink = `mailto:sssyck123@naver.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    const mailtoLink = `mailto:sssyck123@naver.com?subject=${encodeURIComponent(t('nav.email_subject'))}&body=${encodeURIComponent(t('nav.email_body'))}`;
     window.location.href = mailtoLink;
   };
 
@@ -28,7 +36,7 @@ export default function Header() {
         body: JSON.stringify({ clanName: '', nickname }),
       });
     } catch (err) {
-      // 무시하고 계속 진행
+      // ignore
     }
     router.push(`/player/${server}/${encodeURIComponent(nickname)}`);
     setNickname('');
@@ -38,26 +46,28 @@ export default function Header() {
   const isActive = (path) => router.pathname === path || router.pathname.startsWith(path + '/');
 
   const navLinks = [
-    { href: '/clan-analytics', label: '클랜 분석', icon: '📊' },
-    { href: '/weapon-test', label: '무기성향 테스트', icon: '🔫', highlight: true },
-    { href: '/forum', label: '포럼', icon: '💬' },
-    { href: '/notices', label: '공지사항', icon: '📋' },
-    { href: '/pubg-news', label: '배그뉴스', icon: '📢' },
+    { href: '/clan-analytics', labelKey: 'nav.clan_analytics', icon: '📊' },
+    { href: '/weapon-test', labelKey: 'nav.weapon_test', icon: '🔫', highlight: true },
+    { href: '/forum', labelKey: 'nav.forum', icon: '💬' },
+    { href: '/notices', labelKey: 'nav.notices', icon: '📋' },
+    { href: '/pubg-news', labelKey: 'nav.news', icon: '📢' },
   ];
+
+  const currentLang = LANG_OPTIONS.find((l) => l.code === lang) || LANG_OPTIONS[0];
 
   return (
     <>
-      {/* 상단 파란 강조선 */}
+      {/* 상단 강조선 */}
       <div className="h-0.5 bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 w-full" />
 
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-screen-2xl mx-auto px-4">
-          <div className="flex items-center justify-between h-14">
+          <div className="flex items-center justify-between h-14 gap-2">
 
             {/* 로고 + 네비게이션 */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 min-w-0">
               <Link href="/" passHref>
-                <span className="text-xl font-black text-blue-600 cursor-pointer mr-5 tracking-tight hover:text-blue-700 transition-colors">
+                <span className="text-xl font-black text-blue-600 cursor-pointer mr-5 tracking-tight hover:text-blue-700 transition-colors whitespace-nowrap">
                   PK.GG
                 </span>
               </Link>
@@ -74,9 +84,9 @@ export default function Header() {
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}>
                       <span className="text-base leading-none">{link.icon}</span>
-                      {link.label}
+                      {t(link.labelKey)}
                       {link.highlight && !isActive(link.href) && (
-                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
                       )}
                     </span>
                   </Link>
@@ -86,40 +96,77 @@ export default function Header() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all bg-transparent border-none cursor-pointer"
                 >
                   <span className="text-base leading-none">📧</span>
-                  문의
+                  {t('nav.contact')}
                 </button>
               </nav>
             </div>
 
-            {/* 검색 폼 */}
-            <form onSubmit={handleSearch} className="hidden md:flex items-center gap-2">
-              <select
-                value={server}
-                onChange={(e) => setServer(e.target.value)}
-                className="h-9 border border-gray-200 rounded-lg px-2 text-sm text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
-              >
-                <option value="steam">Steam</option>
-                <option value="kakao">Kakao</option>
-              </select>
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  placeholder="닉네임 검색..."
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  className="h-9 border border-gray-200 rounded-l-lg pl-3 pr-2 text-sm text-gray-800 bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all w-44"
-                />
-                <button
-                  type="submit"
-                  className="h-9 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-r-lg text-sm font-semibold transition-colors flex items-center gap-1"
+            {/* 오른쪽: 검색 + 언어 */}
+            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+              {/* 검색 폼 */}
+              <form onSubmit={handleSearch} className="flex items-center gap-2">
+                <select
+                  value={server}
+                  onChange={(e) => setServer(e.target.value)}
+                  className="h-9 border border-gray-200 rounded-lg px-2 text-sm text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <option value="steam">Steam</option>
+                  <option value="kakao">Kakao</option>
+                </select>
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder={t('search.placeholder')}
+                    value={nickname}
+                    onChange={(e) => setNickname(e.target.value)}
+                    className="h-9 border border-gray-200 rounded-l-lg pl-3 pr-2 text-sm text-gray-800 bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all w-40"
+                  />
+                  <button
+                    type="submit"
+                    className="h-9 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-r-lg text-sm font-semibold transition-colors flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    {t('search.button')}
+                  </button>
+                </div>
+              </form>
+
+              {/* 언어 드롭다운 */}
+              <div className="relative">
+                <button
+                  onClick={() => setLangMenuOpen(!langMenuOpen)}
+                  onBlur={() => setTimeout(() => setLangMenuOpen(false), 150)}
+                  className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 hover:bg-gray-100 transition-all font-medium"
+                >
+                  <span>{currentLang.flag}</span>
+                  <span>{currentLang.label}</span>
+                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
-                  검색
                 </button>
+                {langMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[130px]">
+                    {LANG_OPTIONS.map((option) => (
+                      <button
+                        key={option.code}
+                        onClick={() => { switchLang(option.code); setLangMenuOpen(false); }}
+                        className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors text-left ${
+                          lang === option.code
+                            ? 'bg-blue-50 text-blue-700 font-semibold'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span>{option.flag}</span>
+                        <span>{option.label}</span>
+                        {lang === option.code && <span className="ml-auto text-blue-500 text-xs">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </form>
+            </div>
 
             {/* 모바일 메뉴 버튼 */}
             <button
@@ -147,11 +194,31 @@ export default function Header() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {link.icon} {link.label}
+                  {link.icon} {t(link.labelKey)}
                 </span>
               </Link>
             ))}
+
+            {/* 모바일 언어 선택 */}
             <div className="pt-2 border-t border-gray-100">
+              <div className="flex gap-1.5 flex-wrap mb-3">
+                {LANG_OPTIONS.map((option) => (
+                  <button
+                    key={option.code}
+                    onClick={() => { switchLang(option.code); setMobileMenuOpen(false); }}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
+                      lang === option.code
+                        ? 'bg-blue-600 border-blue-600 text-white'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {option.flag} {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-1 border-t border-gray-100">
               <form onSubmit={handleSearch} className="flex gap-2">
                 <select
                   value={server}
@@ -163,13 +230,13 @@ export default function Header() {
                 </select>
                 <input
                   type="text"
-                  placeholder="닉네임 검색..."
+                  placeholder={t('search.placeholder')}
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   className="flex-1 border border-gray-200 rounded-l-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-r-lg text-sm font-semibold">
-                  검색
+                  {t('search.button')}
                 </button>
               </form>
             </div>

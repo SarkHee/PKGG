@@ -5,6 +5,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
+import { useT } from '../utils/i18n';
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,16 +17,15 @@ export default function Home() {
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
   const animationRef = useRef(null);
+  const { t } = useT();
 
   // URL 파라미터에서 검색 실패 메시지 확인
   useEffect(() => {
     if (router.query.searchFailed) {
-      setSearchMessage(
-        '플레이어를 찾을 수 없습니다. 닉네임을 다시 확인해주세요.'
-      );
+      setSearchMessage(t('search.not_found'));
       setTimeout(() => setSearchMessage(''), 5000);
     }
-  }, [router.query]);
+  }, [router.query, t]);
 
   // PUBG 뉴스 가져오기
   const loadRecentNews = async () => {
@@ -253,23 +253,18 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>PK.GG - PUBG 플레이어 검색 및 통계</title>
-        <meta
-          name="description"
-          content="PUBG 플레이어 통계를 확인하고 클랜 정보를 검색해보세요. MMR, 플레이스타일, 최근 매치, 클랜 랭킹을 한눈에."
-        />
+        <title>{t('home.meta_title')}</title>
+        <meta name="description" content={t('home.meta_desc')} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
-        {/* OG */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://pk.gg/" />
-        <meta property="og:title" content="PK.GG - PUBG 플레이어 검색 및 통계" />
-        <meta property="og:description" content="PUBG 플레이어 통계를 확인하고 클랜 정보를 검색해보세요. MMR, 플레이스타일, 최근 매치, 클랜 랭킹을 한눈에." />
+        <meta property="og:title" content={t('home.meta_title')} />
+        <meta property="og:description" content={t('home.meta_desc')} />
         <meta property="og:image" content="https://pk.gg/og-image.png" />
-        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="PK.GG - PUBG 플레이어 검색 및 통계" />
-        <meta name="twitter:description" content="PUBG 플레이어 통계를 확인하고 클랜 정보를 검색해보세요." />
+        <meta name="twitter:title" content={t('home.meta_title')} />
+        <meta name="twitter:description" content={t('home.meta_desc')} />
         <meta name="twitter:image" content="https://pk.gg/og-image.png" />
         <link rel="canonical" href="https://pk.gg/" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -319,10 +314,10 @@ export default function Home() {
 
             {/* 서브타이틀 */}
             <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-2 max-w-xl mx-auto leading-relaxed px-4">
-              PUBG 플레이어 통계와 클랜 정보를 한눈에 확인하세요
+              {t('home.subtitle')}
             </p>
             <p className="text-xs text-gray-600 mb-8 md:mb-10">
-              *아직 모든 클랜이 적용되지않습니다.
+              {t('home.notice')}
             </p>
 
             {/* 검색 메시지 알림 */}
@@ -360,7 +355,7 @@ export default function Home() {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="플레이어 닉네임을 입력하세요..."
+                    placeholder={t('search.player_placeholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyPress={handleKeyPress}
@@ -373,11 +368,11 @@ export default function Home() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    검색
+                    {t('search.button')}
                   </button>
                 </div>
               </div>
-              <p className="text-gray-600 text-xs mt-2.5">정확한 게임 내 닉네임을 입력해주세요</p>
+              <p className="text-gray-600 text-xs mt-2.5">{t('search.hint')}</p>
             </div>
           </div>
 
@@ -387,11 +382,11 @@ export default function Home() {
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <span className="w-1 h-5 bg-blue-500 rounded-full inline-block"></span>
-                  PUBG 이벤트 & 뉴스
+                  {t('home.news_title')}
                 </h2>
                 <Link href="/pubg-news" passHref>
                   <span className="text-blue-400 hover:text-blue-300 text-sm font-medium cursor-pointer transition-colors">
-                    전체보기 →
+                    {t('home.news_all')}
                   </span>
                 </Link>
               </div>
@@ -441,7 +436,7 @@ export default function Home() {
                       </div>
 
                       <h3 className="font-semibold text-gray-100 text-sm mb-3 group-hover:text-blue-300 transition-colors line-clamp-2">
-                        {news?.title || '제목 없음'}
+                        {news?.title || t('home.no_title')}
                       </h3>
 
                       <a
@@ -451,7 +446,7 @@ export default function Home() {
                         className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        자세히 보기
+                        {t('home.news_detail')}
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -466,24 +461,24 @@ export default function Home() {
           {/* 특징 카드 섹션 */}
           <div className="w-full max-w-6xl mx-auto px-4">
             <div className="text-center mb-8">
-              <h2 className="text-base font-semibold text-gray-500 uppercase tracking-widest">Features</h2>
+              <h2 className="text-base font-semibold text-gray-500 uppercase tracking-widest">{t('home.features')}</h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { icon: '📊', title: '실시간 통계', desc: 'PUBG API 연동으로 정확한 플레이어 통계', color: 'blue' },
-                { icon: '👥', title: '클랜 분석', desc: '팀 시너지와 클랜 성과를 한눈에', color: 'green' },
-                { icon: '🏆', title: 'PK.GG 점수', desc: '독자 알고리즘의 실력 평가 지수', color: 'purple' },
-                { icon: '🎯', title: '매치 분석', desc: '경기별 상세 통계와 히트맵', color: 'yellow' },
-                { icon: '📈', title: '랭크 트래킹', desc: '경쟁전 랭크 변화 추적', color: 'red' },
-                { icon: '⚡', title: '빠른 검색', desc: 'Steam·Kakao·Console 전 플랫폼 지원', color: 'cyan' },
+                { icon: '📊', titleKey: 'feat.stats_title', descKey: 'feat.stats_desc' },
+                { icon: '👥', titleKey: 'feat.clan_title', descKey: 'feat.clan_desc' },
+                { icon: '🏆', titleKey: 'feat.score_title', descKey: 'feat.score_desc' },
+                { icon: '🎯', titleKey: 'feat.match_title', descKey: 'feat.match_desc' },
+                { icon: '📈', titleKey: 'feat.rank_title', descKey: 'feat.rank_desc' },
+                { icon: '⚡', titleKey: 'feat.search_title', descKey: 'feat.search_desc' },
               ].map((item) => (
                 <div
                   key={item.title}
                   className="bg-white/5 border border-white/8 rounded-xl p-4 hover:border-white/20 hover:bg-white/8 transition-all duration-200"
                 >
                   <div className="text-2xl mb-2">{item.icon}</div>
-                  <h3 className="text-sm font-bold text-gray-200 mb-1">{item.title}</h3>
-                  <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
+                  <h3 className="text-sm font-bold text-gray-200 mb-1">{t(item.titleKey)}</h3>
+                  <p className="text-gray-500 text-xs leading-relaxed">{t(item.descKey)}</p>
                 </div>
               ))}
             </div>

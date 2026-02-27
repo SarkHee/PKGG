@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
 import Header from '../../../components/layout/Header';
+import { useT } from '../../../utils/i18n';
 import { PERSONALITY_TYPES, VECTOR_LABELS } from '../../../utils/weaponTestData';
 
 const WEAPON_IMG = {
@@ -45,25 +46,26 @@ const WEAPON_IMG = {
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip);
 
-const RANK_META = [
-  { label: '1순위', numCls: 'text-yellow-400', borderCls: 'border-yellow-500/50 bg-yellow-500/10', shadow: 'rgba(234,179,8,0.25)' },
-  { label: '2순위', numCls: 'text-slate-300',  borderCls: 'border-slate-500/50 bg-slate-500/10',  shadow: 'rgba(148,163,184,0.18)' },
-  { label: '3순위', numCls: 'text-amber-600',  borderCls: 'border-amber-700/50 bg-amber-700/10',  shadow: 'rgba(180,83,9,0.2)'  },
+const RANK_META_STYLE = [
+  { rankKey: 'wt.rank1', numCls: 'text-yellow-400', borderCls: 'border-yellow-500/50 bg-yellow-500/10', shadow: 'rgba(234,179,8,0.25)' },
+  { rankKey: 'wt.rank2', numCls: 'text-slate-300',  borderCls: 'border-slate-500/50 bg-slate-500/10',  shadow: 'rgba(148,163,184,0.18)' },
+  { rankKey: 'wt.rank3', numCls: 'text-amber-600',  borderCls: 'border-amber-700/50 bg-amber-700/10',  shadow: 'rgba(180,83,9,0.2)'  },
 ];
 
 function WeaponSlider({ weapons, type }) {
+  const { t } = useT();
   const [active, setActive] = useState(0);
   const wName = weapons[active] || '';
   const img   = WEAPON_IMG[wName];
-  const meta  = RANK_META[active] || RANK_META[0];
+  const meta  = RANK_META_STYLE[active] || RANK_META_STYLE[0];
 
   return (
     <div className="rounded-2xl border border-gray-700/70 bg-gray-900 mb-6 overflow-hidden shadow-xl">
       <div className={`h-0.5 bg-gradient-to-r ${type.bgClass}`} />
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
-        <span className="text-xs font-bold text-gray-300 tracking-widest uppercase">추천 무기</span>
+        <span className="text-xs font-bold text-gray-300 tracking-widest uppercase">{t('wt.weapon_header')}</span>
         <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${meta.borderCls} ${meta.numCls}`}>
-          {meta.label}
+          {t(meta.rankKey)}
         </span>
       </div>
       <div className="flex justify-center items-center px-6 py-2">
@@ -84,7 +86,7 @@ function WeaponSlider({ weapons, type }) {
       <p className="text-center text-2xl font-black text-white pb-5 tracking-tight">{wName}</p>
       <div className="border-t border-gray-800 flex gap-2 p-3">
         {weapons.map((w, i) => {
-          const m = RANK_META[i];
+          const m = RANK_META_STYLE[i];
           const isActive = i === active;
           return (
             <button
@@ -97,7 +99,7 @@ function WeaponSlider({ weapons, type }) {
               }`}
             >
               <span className={`text-[10px] font-bold ${isActive ? m.numCls : 'text-gray-400'}`}>
-                {m.label}
+                {t(m.rankKey)}
               </span>
               <span className={`text-xs font-semibold truncate w-full text-center ${isActive ? 'text-white' : 'text-gray-300'}`}>
                 {w}
@@ -114,12 +116,13 @@ function WeaponSlider({ weapons, type }) {
 }
 
 function VectorRadarChart({ vector, color }) {
+  const { t } = useT();
   const keys = Object.keys(VECTOR_LABELS);
   const data = {
     labels: keys.map((k) => VECTOR_LABELS[k]),
     datasets: [
       {
-        label: '성향 벡터',
+        label: t('wt.tendency_vector'),
         data: keys.map((k) => Math.round((vector[k] || 0) * 100)),
         backgroundColor: `${color}22`,
         borderColor: color,
@@ -147,6 +150,8 @@ function VectorRadarChart({ vector, color }) {
 }
 
 export default function SharedResultPage({ rowData, error }) {
+  const { t } = useT();
+
   if (error || !rowData) {
     return (
       <>
@@ -154,11 +159,11 @@ export default function SharedResultPage({ rowData, error }) {
         <div className="min-h-screen bg-gray-950 flex items-center justify-center text-center px-4">
           <div>
             <div className="text-5xl mb-4">🔍</div>
-            <h1 className="text-xl font-bold text-white mb-2">결과를 찾을 수 없습니다</h1>
-            <p className="text-gray-400 text-sm mb-6">링크가 만료되었거나 잘못된 주소입니다.</p>
+            <h1 className="text-xl font-bold text-white mb-2">{t('wt.not_found')}</h1>
+            <p className="text-gray-400 text-sm mb-6">{t('wt.not_found_desc')}</p>
             <Link href="/weapon-test">
               <span className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm cursor-pointer transition-colors">
-                테스트 시작하기
+                {t('wt.start_test_btn')}
               </span>
             </Link>
           </div>
@@ -167,7 +172,7 @@ export default function SharedResultPage({ rowData, error }) {
     );
   }
 
-  const type = PERSONALITY_TYPES.find((t) => t.id === rowData.resultType) || PERSONALITY_TYPES[11];
+  const type = PERSONALITY_TYPES.find((tp) => tp.id === rowData.resultType) || PERSONALITY_TYPES[11];
   const vector = rowData.surveyVector || {};
   const score = rowData.similarityScore || 0;
   const nickname = rowData.nickname;
@@ -178,7 +183,7 @@ export default function SharedResultPage({ rowData, error }) {
     .slice(0, 3);
 
   const createdAt = rowData.createdAt
-    ? new Date(rowData.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+    ? new Date(rowData.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     : '';
 
   return (
@@ -197,10 +202,10 @@ export default function SharedResultPage({ rowData, error }) {
           {/* 공유 배너 */}
           <div className="mb-5 flex items-center gap-3 px-4 py-2.5 bg-blue-950/60 border border-blue-800/50 rounded-xl">
             <span className="text-blue-400 text-sm">🔗</span>
-            <span className="text-blue-300 text-sm font-medium">친구가 공유한 성향 결과입니다</span>
+            <span className="text-blue-300 text-sm font-medium">{t('wt.shared_banner')}</span>
             <Link href="/weapon-test">
               <span className="ml-auto text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg cursor-pointer transition-colors font-semibold">
-                나도 해보기
+                {t('wt.try_it')}
               </span>
             </Link>
           </div>
@@ -215,7 +220,7 @@ export default function SharedResultPage({ rowData, error }) {
                 >
                   {type.primaryWeapon} TYPE
                 </span>
-                <span className="text-xs text-gray-500">유사도 {Math.round(score * 100)}%</span>
+                <span className="text-xs text-gray-500">{t('wt.similarity')} {Math.round(score * 100)}%</span>
                 {createdAt && <span className="text-xs text-gray-600 ml-auto">{createdAt}</span>}
               </div>
 
@@ -224,7 +229,7 @@ export default function SharedResultPage({ rowData, error }) {
                 <div>
                   <div className="text-sm text-gray-400 font-medium mb-1">{type.nameEn}</div>
                   <h1 className="text-3xl md:text-4xl font-black text-white">{type.name}</h1>
-                  {nickname && <p className="text-sm text-gray-400 mt-1">{nickname}님의 성향</p>}
+                  {nickname && <p className="text-sm text-gray-400 mt-1">{nickname}{t('wt.your_type_suffix')}</p>}
                 </div>
               </div>
 
@@ -241,11 +246,11 @@ export default function SharedResultPage({ rowData, error }) {
               <div className="border-t border-gray-800 pt-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">플레이 스타일</div>
+                    <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">{t('wt.play_style')}</div>
                     <p className="text-gray-300 text-xs leading-relaxed">{type.playstyle}</p>
                   </div>
                   <div>
-                    <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">꿀팁</div>
+                    <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">{t('wt.tip')}</div>
                     <p className="text-gray-300 text-xs leading-relaxed">{type.tip}</p>
                   </div>
                 </div>
@@ -259,13 +264,13 @@ export default function SharedResultPage({ rowData, error }) {
           {/* 레이더 + 특성 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📊 성향 벡터</h3>
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📊 {t('wt.tendency_vector')}</h3>
               <div className="max-w-xs mx-auto">
                 <VectorRadarChart vector={vector} color={type.color} />
               </div>
             </div>
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">⚡ TOP 특성</h3>
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">⚡ {t('wt.top_traits')}</h3>
               <div className="space-y-3">
                 {topTraits.map((t) => (
                   <div key={t.key}>
@@ -300,7 +305,7 @@ export default function SharedResultPage({ rowData, error }) {
           <div className="text-center">
             <Link href="/weapon-test">
               <span className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-black text-base rounded-2xl cursor-pointer transition-all hover:scale-[1.02] shadow-lg shadow-blue-900/40">
-                🔫 나도 테스트 해보기
+                {t('wt.try_test')}
               </span>
             </Link>
           </div>

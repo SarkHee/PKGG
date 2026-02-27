@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { Radar } from 'react-chartjs-2';
 import Header from '../../components/layout/Header';
+import { useT } from '../../utils/i18n';
 import {
   SURVEY_QUESTIONS,
   PERSONALITY_TYPES,
@@ -55,6 +56,7 @@ ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, 
 
 // ─── Intro 화면 ──────────────────────────────────────────────
 function IntroScreen({ onStart }) {
+  const { t } = useT();
   const [nickname, setNickname] = useState('');
   const [platform, setPlatform] = useState('steam');
 
@@ -65,31 +67,29 @@ function IntroScreen({ onStart }) {
         <div className="text-center mb-10">
           <div className="text-6xl mb-4">🔫</div>
           <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
-            무기 성향 테스트
+            {t('wt.title')}
           </h1>
           <p className="text-blue-300 text-lg font-semibold">PUBG Weapon Personality Test</p>
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-900/50 border border-blue-700/50 rounded-full">
             <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
-            <span className="text-blue-300 text-sm font-medium">10문항 · 12가지 성향 · 3분 소요</span>
+            <span className="text-blue-300 text-sm font-medium">{t('wt.badge')}</span>
           </div>
         </div>
 
         {/* 설명 카드 */}
         <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-6 mb-6 backdrop-blur-sm">
           <p className="text-gray-300 text-sm leading-relaxed mb-4">
-            10가지 전술 상황 질문을 통해 당신의 PUBG 무기 성향을 분석합니다.
-            가중치 기반 벡터 계산으로 <span className="text-blue-400 font-semibold">12개 타입</span> 중
-            당신과 가장 가까운 성향을 찾아드립니다.
+            {t('wt.desc_pre')}<span className="text-blue-400 font-semibold">{t('wt.types')}</span>{t('wt.desc_post')}
           </p>
           <div className="grid grid-cols-3 gap-3 text-center">
             {[
-              { emoji: '🎯', label: '전투 스타일' },
-              { emoji: '🔫', label: '선호 무기' },
-              { emoji: '📊', label: '성향 벡터' },
+              { emoji: '🎯', labelKey: 'wt.combat_style' },
+              { emoji: '🔫', labelKey: 'wt.preferred_weapon' },
+              { emoji: '📊', labelKey: 'wt.tendency_vector' },
             ].map((item) => (
-              <div key={item.label} className="bg-gray-800/60 rounded-xl p-3">
+              <div key={item.labelKey} className="bg-gray-800/60 rounded-xl p-3">
                 <div className="text-2xl mb-1">{item.emoji}</div>
-                <div className="text-xs text-gray-400 font-medium">{item.label}</div>
+                <div className="text-xs text-gray-400 font-medium">{t(item.labelKey)}</div>
               </div>
             ))}
           </div>
@@ -98,10 +98,10 @@ function IntroScreen({ onStart }) {
         {/* 닉네임 입력 (선택) */}
         <div className="bg-gray-900/60 border border-gray-700/40 rounded-2xl p-5 mb-6">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm font-semibold text-gray-300">PUBG 닉네임</span>
-            <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded-full">선택</span>
+            <span className="text-sm font-semibold text-gray-300">{t('wt.nickname_label')}</span>
+            <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded-full">{t('wt.nickname_optional')}</span>
           </div>
-          <p className="text-xs text-gray-500 mb-3">입력 시 실제 플레이 데이터와 비교 분석이 가능합니다</p>
+          <p className="text-xs text-gray-500 mb-3">{t('wt.nickname_desc')}</p>
           <div className="flex gap-2">
             <select
               value={platform}
@@ -113,7 +113,7 @@ function IntroScreen({ onStart }) {
             </select>
             <input
               type="text"
-              placeholder="닉네임 입력..."
+              placeholder={t('wt.nickname_placeholder')}
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               className="flex-1 bg-gray-800 border border-gray-600 text-gray-200 rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
@@ -126,11 +126,11 @@ function IntroScreen({ onStart }) {
           onClick={() => onStart(nickname.trim(), platform)}
           className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-black text-lg rounded-2xl transition-all duration-200 shadow-lg shadow-blue-900/40 hover:shadow-blue-800/50 hover:scale-[1.02] active:scale-[0.98]"
         >
-          테스트 시작하기 →
+          {t('wt.start_btn')}
         </button>
 
         <p className="text-center text-gray-600 text-xs mt-4">
-          로그인 불필요 · 결과 공유 가능 · 비로그인 기반
+          {t('wt.no_login')}
         </p>
       </div>
     </div>
@@ -139,6 +139,7 @@ function IntroScreen({ onStart }) {
 
 // ─── 설문 화면 ────────────────────────────────────────────────
 function SurveyScreen({ onComplete }) {
+  const { t } = useT();
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -184,7 +185,7 @@ function SurveyScreen({ onComplete }) {
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold text-gray-400">
-              질문 <span className="text-white">{currentQ + 1}</span> / {SURVEY_QUESTIONS.length}
+              {t('wt.q_prefix')} <span className="text-white">{currentQ + 1}</span> / {SURVEY_QUESTIONS.length}
             </span>
             <span className="text-xs text-blue-400 font-medium">{question.category}</span>
           </div>
@@ -251,11 +252,17 @@ function SurveyScreen({ onComplete }) {
 
 // ─── 로딩 화면 ───────────────────────────────────────────────
 function LoadingScreen() {
+  const { t } = useT();
   const [step, setStep] = useState(0);
-  const steps = ['답변 벡터 계산 중...', '12가지 성향과 비교 중...', '코사인 유사도 분석 중...', '결과 도출 중...'];
+  const steps = [
+    t('wt.step1'),
+    t('wt.step2'),
+    t('wt.step3'),
+    t('wt.step4'),
+  ];
   useEffect(() => {
-    const t = setInterval(() => setStep((s) => (s + 1) % steps.length), 600);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setStep((s) => (s + 1) % steps.length), 600);
+    return () => clearInterval(timer);
   }, []);
 
   return (
@@ -266,7 +273,7 @@ function LoadingScreen() {
           <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
           <div className="absolute inset-3 flex items-center justify-center text-2xl">🔫</div>
         </div>
-        <p className="text-white font-bold text-lg mb-2">성향 분석 중</p>
+        <p className="text-white font-bold text-lg mb-2">{t('wt.analyzing')}</p>
         <p className="text-blue-400 text-sm font-medium transition-all duration-300">{steps[step]}</p>
       </div>
     </div>
@@ -274,17 +281,18 @@ function LoadingScreen() {
 }
 
 // ─── 무기 동반자 슬라이더 ────────────────────────────────────
-const RANK_META = [
-  { label: '1순위', numCls: 'text-yellow-400', borderCls: 'border-yellow-500/50 bg-yellow-500/10', shadow: 'rgba(234,179,8,0.25)' },
-  { label: '2순위', numCls: 'text-slate-300',  borderCls: 'border-slate-500/50 bg-slate-500/10',  shadow: 'rgba(148,163,184,0.18)' },
-  { label: '3순위', numCls: 'text-amber-600',  borderCls: 'border-amber-700/50 bg-amber-700/10',  shadow: 'rgba(180,83,9,0.2)'  },
+const RANK_META_STYLE = [
+  { rankKey: 'wt.rank1', numCls: 'text-yellow-400', borderCls: 'border-yellow-500/50 bg-yellow-500/10', shadow: 'rgba(234,179,8,0.25)' },
+  { rankKey: 'wt.rank2', numCls: 'text-slate-300',  borderCls: 'border-slate-500/50 bg-slate-500/10',  shadow: 'rgba(148,163,184,0.18)' },
+  { rankKey: 'wt.rank3', numCls: 'text-amber-600',  borderCls: 'border-amber-700/50 bg-amber-700/10',  shadow: 'rgba(180,83,9,0.2)'  },
 ];
 
 function WeaponSlider({ weapons, type }) {
+  const { t } = useT();
   const [active, setActive] = useState(0);
   const wName = weapons[active] || '';
   const img   = WEAPON_IMG[wName];
-  const meta  = RANK_META[active] || RANK_META[0];
+  const meta  = RANK_META_STYLE[active] || RANK_META_STYLE[0];
 
   return (
     <div className="rounded-2xl border border-gray-700/70 bg-gray-900 mb-6 overflow-hidden shadow-xl">
@@ -293,9 +301,9 @@ function WeaponSlider({ weapons, type }) {
 
       {/* 헤더 */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
-        <span className="text-xs font-bold text-gray-300 tracking-widest uppercase">추천 무기</span>
+        <span className="text-xs font-bold text-gray-300 tracking-widest uppercase">{t('wt.weapon_header')}</span>
         <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${meta.borderCls} ${meta.numCls}`}>
-          {meta.label}
+          {t(meta.rankKey)}
         </span>
       </div>
 
@@ -322,7 +330,7 @@ function WeaponSlider({ weapons, type }) {
       {/* 하단 탭 네비게이터 */}
       <div className="border-t border-gray-800 flex gap-2 p-3">
         {weapons.map((w, i) => {
-          const m = RANK_META[i];
+          const m = RANK_META_STYLE[i];
           const isActive = i === active;
           return (
             <button
@@ -335,7 +343,7 @@ function WeaponSlider({ weapons, type }) {
               }`}
             >
               <span className={`text-[10px] font-bold ${isActive ? m.numCls : 'text-gray-400'}`}>
-                {m.label}
+                {t(m.rankKey)}
               </span>
               <span className={`text-xs font-semibold truncate w-full text-center ${isActive ? 'text-white' : 'text-gray-300'}`}>
                 {w}
@@ -353,12 +361,13 @@ function WeaponSlider({ weapons, type }) {
 
 // ─── 레이더 차트 ─────────────────────────────────────────────
 function VectorRadarChart({ vector, color }) {
+  const { t } = useT();
   const keys = Object.keys(VECTOR_LABELS);
   const data = {
     labels: keys.map((k) => VECTOR_LABELS[k]),
     datasets: [
       {
-        label: '내 성향',
+        label: t('wt.my_tendency'),
         data: keys.map((k) => Math.round((vector[k] || 0) * 100)),
         backgroundColor: `${color}22`,
         borderColor: color,
@@ -389,6 +398,7 @@ function VectorRadarChart({ vector, color }) {
 
 // ─── 결과 화면 ────────────────────────────────────────────────
 function ResultScreen({ result, nickname, sessionId, onRestart }) {
+  const { t } = useT();
   const [copied, setCopied] = useState(false);
   const { type, score, vector } = result;
 
@@ -421,7 +431,7 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
                 style={{ color: type.color, borderColor: type.color + '60', background: type.color + '15' }}>
                 {type.primaryWeapon} TYPE
               </span>
-              <span className="text-xs text-gray-500">유사도 {Math.round(score * 100)}%</span>
+              <span className="text-xs text-gray-500">{t('wt.similarity')} {Math.round(score * 100)}%</span>
             </div>
 
             {/* 타입 이름 */}
@@ -431,7 +441,7 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
                 <div className="text-sm text-gray-400 font-medium mb-1">{type.nameEn}</div>
                 <h1 className="text-3xl md:text-4xl font-black text-white">{type.name}</h1>
                 {nickname && (
-                  <p className="text-sm text-gray-400 mt-1">{nickname}님의 성향</p>
+                  <p className="text-sm text-gray-400 mt-1">{nickname}{t('wt.your_type_suffix')}</p>
                 )}
               </div>
             </div>
@@ -452,11 +462,11 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
             <div className="border-t border-gray-800 pt-5">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">플레이 스타일</div>
+                  <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">{t('wt.play_style')}</div>
                   <p className="text-gray-300 text-xs leading-relaxed">{type.playstyle}</p>
                 </div>
                 <div>
-                  <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">꿀팁</div>
+                  <div className="text-gray-500 text-xs mb-1 font-medium uppercase tracking-wide">{t('wt.tip')}</div>
                   <p className="text-gray-300 text-xs leading-relaxed">{type.tip}</p>
                 </div>
               </div>
@@ -470,13 +480,13 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
         {/* 레이더 차트 + 상위 특성 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📊 성향 벡터</h3>
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📊 {t('wt.tendency_vector')}</h3>
             <div className="max-w-xs mx-auto">
               <VectorRadarChart vector={vector} color={type.color} />
             </div>
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">⚡ TOP 특성</h3>
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">⚡ {t('wt.top_traits')}</h3>
             <div className="space-y-3">
               {topTraits.map((t, i) => (
                 <div key={t.key}>
@@ -517,19 +527,19 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
             onClick={handleCopy}
             className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all text-sm flex items-center justify-center gap-2"
           >
-            {copied ? '✓ 링크 복사됨!' : '🔗 결과 공유하기'}
+            {copied ? t('wt.link_copied') : t('wt.share_result')}
           </button>
           <button
             onClick={onRestart}
             className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold rounded-xl transition-all text-sm border border-gray-700"
           >
-            🔄 다시 테스트하기
+            {t('wt.restart')}
           </button>
         </div>
 
         {/* 다른 타입 미리보기 */}
         <div className="mt-8">
-          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 text-center">다른 성향 타입</h3>
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 text-center">{t('wt.other_types')}</h3>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {PERSONALITY_TYPES.filter((t) => t.id !== type.id).map((t) => (
               <div key={t.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center opacity-60 hover:opacity-100 transition-opacity cursor-default">
@@ -546,6 +556,7 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
 
 // ─── 메인 페이지 ─────────────────────────────────────────────
 export default function WeaponTestPage() {
+  const { t } = useT();
   const [phase, setPhase] = useState('intro'); // 'intro' | 'survey' | 'loading' | 'result'
   const [nickname, setNickname] = useState('');
   const [result, setResult] = useState(null);
@@ -597,7 +608,7 @@ export default function WeaponTestPage() {
   return (
     <>
       <Head>
-        <title>무기 성향 테스트 | PK.GG</title>
+        <title>{t('wt.title')} | PK.GG</title>
         <meta name="description" content="10문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
         <meta property="og:title" content="PUBG 무기 성향 테스트 | PK.GG" />
         <meta property="og:description" content="10문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />

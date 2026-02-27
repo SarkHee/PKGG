@@ -6,11 +6,13 @@ import Link from 'next/link';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
 import { getMMRTier, MMR_DISCLAIMER } from '../utils/mmrCalculator';
+import { useT } from '../utils/i18n';
 
 // 랭킹 업데이트 상태 컴포넌트
 function RankingUpdateStatus() {
   const [updateStatus, setUpdateStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useT();
 
   useEffect(() => {
     fetchUpdateStatus();
@@ -31,13 +33,13 @@ function RankingUpdateStatus() {
   };
 
   if (loading || !updateStatus) {
-    return <div className="text-xs text-gray-500 mt-1">업데이트 상태 조회 중...</div>;
+    return <div className="text-xs text-gray-500 mt-1">{t('ca.update_checking')}</div>;
   }
 
   return (
     <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-      <div>마지막 업데이트: {updateStatus.lastUpdate.timeKorean}</div>
-      <div>다음 업데이트: 매일 {updateStatus.nextUpdate.schedules.join(', ')}</div>
+      <div>{t('ca.last_update')} {updateStatus.lastUpdate.timeKorean}</div>
+      <div>{t('ca.next_update')} {updateStatus.nextUpdate.schedules.join(', ')}</div>
     </div>
   );
 }
@@ -45,6 +47,7 @@ function RankingUpdateStatus() {
 // 수동 업데이트 버튼 컴포넌트
 function ManualUpdateButton({ adminToken }) {
   const [updating, setUpdating] = useState(false);
+  const { t } = useT();
 
   const handleManualUpdate = async () => {
     if (updating) return;
@@ -76,7 +79,7 @@ function ManualUpdateButton({ adminToken }) {
         updating ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white'
       }`}
     >
-      {updating ? '업데이트 중...' : '🔄 지금 업데이트'}
+      {updating ? t('ca.updating') : t('ca.update_btn')}
     </button>
   );
 }
@@ -95,12 +98,20 @@ const REGION_MAP = {
   MIXED: { label: '🌐 혼합', bg: 'bg-yellow-900/60 text-yellow-300 border-yellow-700' },
 };
 
+const REGION_FLAGS = {
+  KR: '🇰🇷', CN: '🇨🇳', JP: '🇯🇵', RU: '🇷🇺', EU: '🇪🇺',
+  NA: '🇺🇸', SEA: '🌏', BR: '🇧🇷', ME: '🌍', MIXED: '🌐',
+};
+
 function RegionBadge({ region }) {
+  const { t } = useT();
   if (!region) return <span className="text-gray-600 text-xs">-</span>;
-  const info = REGION_MAP[region] || { label: '❓ 미분류', bg: 'bg-gray-800 text-gray-400 border-gray-700' };
+  const bg = REGION_MAP[region]?.bg || 'bg-gray-800 text-gray-400 border-gray-700';
+  const flag = REGION_FLAGS[region] || '❓';
+  const label = `${flag} ${t('region.' + region)}`;
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${info.bg}`}>
-      {info.label}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${bg}`}>
+      {label}
     </span>
   );
 }
@@ -191,6 +202,7 @@ export default function ClanAnalytics() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
   const itemsPerPage = 10;
+  const { t } = useT();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -258,7 +270,7 @@ export default function ClanAnalytics() {
         <div className="min-h-screen bg-gray-950 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4" />
-            <p className="text-gray-400">클랜 분석 데이터 로딩 중...</p>
+            <p className="text-gray-400">{t('ca.loading')}</p>
           </div>
         </div>
       </>
@@ -286,7 +298,7 @@ export default function ClanAnalytics() {
         <div className="min-h-screen bg-gray-950 flex items-center justify-center">
           <div className="text-center text-red-400">
             <div className="text-4xl mb-4">⚠️</div>
-            <h2 className="text-xl font-bold mb-2">오류 발생</h2>
+            <h2 className="text-xl font-bold mb-2">{t('ca.error')}</h2>
             <p className="text-sm text-gray-500">{error}</p>
           </div>
         </div>
@@ -363,47 +375,34 @@ export default function ClanAnalytics() {
 
           {/* 헤더 */}
           <div className="mb-8">
-            <h1 className="text-3xl font-black text-white mb-1">🏆 클랜 종합 분석</h1>
-            <p className="text-gray-500 text-sm">PUBG 클랜들의 통계와 랭킹을 확인하세요</p>
-          </div>
-
-          {/* 개요 통계 카드 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <StatCard label="총 클랜 수" value={overview.totalClans.toLocaleString()} color="text-blue-400" />
-            <StatCard label="총 멤버 수" value={overview.totalMembers.toLocaleString()} color="text-green-400" />
-            <StatCard label="클랜당 평균 멤버" value={`${overview.avgMembersPerClan}명`} color="text-purple-400" />
-            <StatCard
-              label="한국 클랜"
-              value={allClans.filter((c) => c.isKorean).length.toLocaleString()}
-              sub="isKorean = true"
-              color="text-orange-400"
-            />
+            <h1 className="text-3xl font-black text-white mb-1">{t('ca.title')}</h1>
+            <p className="text-gray-500 text-sm">{t('ca.subtitle')}</p>
           </div>
 
           {/* 필터 & 검색 */}
           <div className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-5">
-            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🔍 필터 & 검색</h2>
+            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('ca.filter_title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 지역 필터 */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">지역 필터</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">{t('ca.region_filter')}</label>
                 <select
                   value={selectedRegion}
                   onChange={(e) => setSelectedRegion(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                 >
-                  <option value="ALL">전체 지역</option>
-                  <option value="KR">🇰🇷 한국</option>
-                  <option value="CN">🇨🇳 중국</option>
-                  <option value="JP">🇯🇵 일본</option>
-                  <option value="RU">🇷🇺 러시아</option>
-                  <option value="EU">🇪🇺 유럽</option>
-                  <option value="NA">🇺🇸 북미</option>
-                  <option value="SEA">🌏 동남아시아</option>
-                  <option value="BR">🇧🇷 브라질</option>
-                  <option value="ME">🌍 중동</option>
-                  <option value="MIXED">🌐 혼합/국제</option>
-                  <option value="UNKNOWN">❓ 미분류</option>
+                  <option value="ALL">{t('ca.region_all')}</option>
+                  <option value="KR">🇰🇷 {t('region.KR')}</option>
+                  <option value="CN">🇨🇳 {t('region.CN')}</option>
+                  <option value="JP">🇯🇵 {t('region.JP')}</option>
+                  <option value="RU">🇷🇺 {t('region.RU')}</option>
+                  <option value="EU">🇪🇺 {t('region.EU')}</option>
+                  <option value="NA">🇺🇸 {t('region.NA')}</option>
+                  <option value="SEA">🌏 {t('region.SEA')}</option>
+                  <option value="BR">🇧🇷 {t('region.BR')}</option>
+                  <option value="ME">🌍 {t('region.ME')}</option>
+                  <option value="MIXED">🌐 {t('region.MIXED')}</option>
+                  <option value="UNKNOWN">❓ {t('region.UNKNOWN')}</option>
                 </select>
               </div>
 
@@ -416,27 +415,27 @@ export default function ClanAnalytics() {
                     onChange={(e) => setIsKoreanOnly(e.target.checked)}
                     className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-600"
                   />
-                  <span className="text-sm text-gray-300">🇰🇷 한국 클랜만 표시</span>
+                  <span className="text-sm text-gray-300">{t('ca.korean_only')}</span>
                 </label>
               </div>
 
               {/* 검색 */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">클랜 검색</label>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">{t('ca.search_label')}</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder="클랜명 또는 태그..."
+                    placeholder={t('ca.search_placeholder')}
                     className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                   />
                   <button
                     onClick={handleSearch}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm text-white font-semibold transition-colors"
                   >
-                    검색
+                    {t('ca.search_btn')}
                   </button>
                 </div>
               </div>
@@ -447,13 +446,13 @@ export default function ClanAnalytics() {
               <div className="mt-3 flex flex-wrap gap-2">
                 {selectedRegion !== 'ALL' && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-900/60 text-blue-300 border border-blue-700">
-                    지역: {selectedRegion}
+                    {t('ca.filter_region_tag')} {selectedRegion}
                     <button onClick={() => setSelectedRegion('ALL')} className="ml-1 hover:text-white">×</button>
                   </span>
                 )}
                 {isKoreanOnly && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-900/60 text-green-300 border border-green-700">
-                    🇰🇷 한국 클랜만
+                    {t('ca.filter_korean_tag')}
                     <button onClick={() => setIsKoreanOnly(false)} className="ml-1 hover:text-white">×</button>
                   </span>
                 )}
@@ -466,31 +465,31 @@ export default function ClanAnalytics() {
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
                 <div className="flex justify-between items-center mb-5">
-                  <h3 className="text-lg font-bold text-white">검색 결과</h3>
+                  <h3 className="text-lg font-bold text-white">{t('ca.search_result')}</h3>
                   <button onClick={closeSearchResult} className="text-gray-500 hover:text-white text-2xl leading-none">×</button>
                 </div>
 
                 {searchResult?.notFound ? (
                   <div className="text-center py-6">
                     <div className="text-4xl mb-3">🔍</div>
-                    <p className="text-gray-400 mb-1">클랜을 찾을 수 없습니다</p>
-                    <p className="text-xs text-gray-600">클랜명이나 태그를 다시 확인해주세요</p>
+                    <p className="text-gray-400 mb-1">{t('ca.not_found')}</p>
+                    <p className="text-xs text-gray-600">{t('ca.not_found_sub')}</p>
                   </div>
                 ) : searchResult ? (
                   <div className="space-y-4">
                     <div className="text-center">
                       <div className={`text-4xl font-black mb-1 ${rankColor(searchResult.rank - 1)}`}>
-                        #{searchResult.rank}위
+                        #{searchResult.rank}{t('cd.rank_suffix')}
                       </div>
                       <h4 className="text-xl font-bold text-white">{searchResult.name}</h4>
                       <p className="text-gray-500 text-sm">{searchResult.tag}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { label: '평균 점수', value: searchResult.avgStats?.score, color: 'text-blue-400' },
-                        { label: '멤버 수', value: `${searchResult.apiMemberCount}명`, color: 'text-green-400' },
-                        { label: '평균 데미지', value: searchResult.avgStats?.damage, color: 'text-orange-400' },
-                        { label: '승률', value: `${searchResult.avgStats?.winRate}%`, color: 'text-purple-400' },
+                        { label: t('ca.search_result_score'), value: searchResult.avgStats?.score, color: 'text-blue-400' },
+                        { label: t('ca.search_result_members'), value: `${searchResult.apiMemberCount}${t('ca.persons')}`, color: 'text-green-400' },
+                        { label: t('ca.search_result_damage'), value: searchResult.avgStats?.damage, color: 'text-orange-400' },
+                        { label: t('ca.search_result_winrate'), value: `${searchResult.avgStats?.winRate}%`, color: 'text-purple-400' },
                       ].map(({ label, value, color }) => (
                         <div key={label} className="bg-gray-800 rounded-xl p-3">
                           <div className="text-xs text-gray-500 mb-1">{label}</div>
@@ -500,7 +499,7 @@ export default function ClanAnalytics() {
                     </div>
                     {searchResult.playStyle && (
                       <div className="bg-gray-800 rounded-xl p-3">
-                        <div className="text-xs text-gray-500 mb-2">플레이 스타일</div>
+                        <div className="text-xs text-gray-500 mb-2">{t('ca.search_result_style')}</div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <PlayStyleBadge style={searchResult.playStyle.primary} />
                           {searchResult.playStyle.special && (
@@ -521,8 +520,8 @@ export default function ClanAnalytics() {
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
-                <h2 className="text-xl font-bold text-white">🥇 클랜 랭킹 TOP 10</h2>
-                <p className="text-xs text-blue-400 mt-0.5">클랜 MMR 기준 (멤버 평균 MMR)</p>
+                <h2 className="text-xl font-bold text-white">{t('ca.top10_title')}</h2>
+                <p className="text-xs text-blue-400 mt-0.5">{t('ca.top10_subtitle')}</p>
                 <RankingUpdateStatus />
               </div>
               {isAdmin && (
@@ -534,24 +533,24 @@ export default function ClanAnalytics() {
                 <table className="w-full min-w-[700px]">
                   <thead>
                     <tr className="border-b border-gray-800">
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">순위</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">클랜</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">지역</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lv</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">멤버</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_rank')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_clan')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_region')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_level')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_members')}</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        <Tooltip content={<div><div className="font-semibold text-yellow-400 mb-1">평균 점수</div><div className="text-gray-400">클랜 멤버들의 평균 PKGG 점수</div></div>}>
-                          <span className="cursor-help border-b border-dotted border-gray-600">평균 점수</span>
+                        <Tooltip content={<div><div className="font-semibold text-yellow-400 mb-1">{t('ca.col_avg_score')}</div><div className="text-gray-400">{t('ca.tooltip_avg_score_desc')}</div></div>}>
+                          <span className="cursor-help border-b border-dotted border-gray-600">{t('ca.col_avg_score')}</span>
                         </Tooltip>
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                         <Tooltip content={MMR_DISCLAIMER}>
-                          <span className="cursor-help border-b border-dotted border-gray-600">클랜 MMR</span>
+                          <span className="cursor-help border-b border-dotted border-gray-600">{t('ca.col_mmr')}</span>
                         </Tooltip>
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">데미지</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">승률</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">플레이 스타일</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_damage')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_winrate')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_style')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/50">
@@ -568,7 +567,7 @@ export default function ClanAnalytics() {
                         </td>
                         <td className="px-4 py-3"><RegionBadge region={clan.region} /></td>
                         <td className="px-4 py-3 text-gray-400 text-sm">{clan.level ?? '-'}</td>
-                        <td className="px-4 py-3 text-blue-400 font-semibold text-sm">{clan.apiMemberCount}명</td>
+                        <td className="px-4 py-3 text-blue-400 font-semibold text-sm">{clan.apiMemberCount}{t('ca.persons')}</td>
                         <td className="px-4 py-3 font-bold text-blue-400">{clan.avgStats?.score}</td>
                         <td className="px-4 py-3">
                           {clan.avgStats?.avgMMR ? (() => {
@@ -593,7 +592,7 @@ export default function ClanAnalytics() {
                                   ⭐ {clan.playStyle.special}
                                 </span>
                               )}
-                              <div className="text-xs text-gray-600 mt-0.5">지배율 {clan.playStyle.dominance}%</div>
+                              <div className="text-xs text-gray-600 mt-0.5">{t('ca.dominance')} {clan.playStyle.dominance}%</div>
                             </div>
                           ) : (
                             <span className="text-gray-600 text-sm">-</span>
@@ -611,20 +610,20 @@ export default function ClanAnalytics() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
             {/* 레벨별 분포 */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📊 클랜 레벨별 분포</h3>
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('ca.level_dist')}</h3>
               <div className="space-y-2.5">
                 {Object.entries(distributions.byLevel)
                   .sort(([a], [b]) => Number(a) - Number(b))
                   .map(([level, count]) => (
                     <div key={level} className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500 w-14 shrink-0">레벨 {level}</span>
+                      <span className="text-xs text-gray-500 w-14 shrink-0">{t('ca.level_label')} {level}</span>
                       <div className="flex-1 bg-gray-800 rounded-full h-2">
                         <div
                           className="bg-blue-500 h-2 rounded-full"
                           style={{ width: `${Math.max((count / overview.totalClans) * 100, 2)}%` }}
                         />
                       </div>
-                      <span className="text-xs text-gray-400 w-10 text-right shrink-0">{count}개</span>
+                      <span className="text-xs text-gray-400 w-10 text-right shrink-0">{count}{t('ca.clans')}</span>
                     </div>
                   ))}
               </div>
@@ -632,15 +631,15 @@ export default function ClanAnalytics() {
 
             {/* 규모별 분포 */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">👥 클랜 규모별 분포</h3>
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('ca.member_dist')}</h3>
               <div className="space-y-2.5">
                 {[
-                  { label: '소형 (≤10명)', key: 'small', color: 'bg-green-500' },
-                  { label: '중형 (11–30명)', key: 'medium', color: 'bg-yellow-500' },
-                  { label: '대형 (31명+)', key: 'large', color: 'bg-red-500' },
-                ].map(({ label, key, color }) => (
+                  { labelKey: 'ca.small_clan', key: 'small', color: 'bg-green-500' },
+                  { labelKey: 'ca.medium_clan', key: 'medium', color: 'bg-yellow-500' },
+                  { labelKey: 'ca.large_clan', key: 'large', color: 'bg-red-500' },
+                ].map(({ labelKey, key, color }) => (
                   <div key={key} className="flex items-center gap-3">
-                    <span className="text-xs text-gray-500 w-24 shrink-0">{label}</span>
+                    <span className="text-xs text-gray-500 w-24 shrink-0">{t(labelKey)}</span>
                     <div className="flex-1 bg-gray-800 rounded-full h-2">
                       <div
                         className={`${color} h-2 rounded-full`}
@@ -648,7 +647,7 @@ export default function ClanAnalytics() {
                       />
                     </div>
                     <span className="text-xs text-gray-400 w-10 text-right shrink-0">
-                      {distributions.byMemberCount[key]}개
+                      {distributions.byMemberCount[key]}{t('ca.clans')}
                     </span>
                   </div>
                 ))}
@@ -660,11 +659,11 @@ export default function ClanAnalytics() {
           <div id="clan-list-section" className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-xl font-bold text-white">📋 전체 클랜 목록</h2>
-                <p className="text-xs text-blue-400 mt-0.5">클랜 MMR 기준 정렬</p>
+                <h2 className="text-xl font-bold text-white">{t('ca.list_title')}</h2>
+                <p className="text-xs text-blue-400 mt-0.5">{t('ca.list_subtitle')}</p>
               </div>
               <div className="text-xs text-gray-500">
-                {allClans.length}개 중 {startIndex + 1}–{Math.min(startIndex + itemsPerPage, allClans.length)}번째
+                {startIndex + 1}–{Math.min(startIndex + itemsPerPage, allClans.length)} / {allClans.length}
               </div>
             </div>
 
@@ -674,13 +673,13 @@ export default function ClanAnalytics() {
                   <thead>
                     <tr className="border-b border-gray-800">
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">#</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">클랜명</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">태그</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Lv</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">멤버</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_clan')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_tag')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_level')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_members')}</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        <Tooltip content="클랜 멤버 평균 PKGG 점수">
-                          <span className="cursor-help border-b border-dotted border-gray-600">점수</span>
+                        <Tooltip content={t('ca.tooltip_score_desc')}>
+                          <span className="cursor-help border-b border-dotted border-gray-600">{t('ca.col_score')}</span>
                         </Tooltip>
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -688,7 +687,7 @@ export default function ClanAnalytics() {
                           <span className="cursor-help border-b border-dotted border-gray-600">MMR</span>
                         </Tooltip>
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">플레이 스타일</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_style')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/50">
@@ -705,9 +704,9 @@ export default function ClanAnalytics() {
                               {clan.name}
                             </Link>
                             {clan.staleMemberCount > 0 && (
-                              <Tooltip content={`${clan.staleMemberCount}명의 멤버 데이터가 90일 이상 업데이트되지 않았습니다. 해당 유저 페이지에서 최신화하면 자동 반영됩니다.`}>
+                              <Tooltip content={`${clan.staleMemberCount}${t('ca.stale_tooltip_post')}`}>
                                 <span className="text-xs bg-yellow-900/50 text-yellow-400 border border-yellow-700/50 px-1.5 py-0.5 rounded cursor-help">
-                                  ⚠️ {clan.staleMemberCount}명 만료
+                                  ⚠️ {clan.staleMemberCount}{t('ca.stale_suffix')}
                                 </span>
                               </Tooltip>
                             )}
@@ -719,12 +718,12 @@ export default function ClanAnalytics() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-500 text-sm">{clan.level ?? '-'}</td>
-                        <td className="px-4 py-3 text-green-400 font-semibold text-sm">{clan.apiMemberCount}명</td>
+                        <td className="px-4 py-3 text-green-400 font-semibold text-sm">{clan.apiMemberCount}{t('ca.persons')}</td>
                         <td className="px-4 py-3">
                           {clan.avgStats ? (
                             <span className="font-bold text-blue-400">{clan.avgStats.score}</span>
                           ) : (
-                            <span className="text-gray-700 text-xs">없음</span>
+                            <span className="text-gray-700 text-xs">{t('ca.no_stats')}</span>
                           )}
                         </td>
                         <td className="px-4 py-3">
@@ -750,7 +749,7 @@ export default function ClanAnalytics() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-gray-700 text-xs">분석 불가</span>
+                            <span className="text-gray-700 text-xs">{t('ca.no_analysis')}</span>
                           )}
                         </td>
                       </tr>
@@ -767,7 +766,7 @@ export default function ClanAnalytics() {
                   {renderPagination()}
                 </div>
                 <div className="text-xs text-gray-600">
-                  {currentPage} / {totalPages} 페이지 (전체 {allClans.length}개)
+                  {currentPage} / {totalPages}
                 </div>
               </div>
             )}
@@ -780,7 +779,7 @@ export default function ClanAnalytics() {
                 onClick={fetchAnalytics}
                 className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-sm font-semibold text-gray-300 transition-colors"
               >
-                🔄 데이터 새로고침
+                {t('ca.refresh')}
               </button>
             </div>
           )}

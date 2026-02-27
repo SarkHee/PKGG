@@ -57,6 +57,15 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `playerStatsUtils.js` | 플레이어 통계 유틸 |
 | `pubgBatchApi.js` | 배치 API 처리 |
 | `clanRegionAnalyzer.js` | 클랜 지역 분석 |
+| `i18n.js` | 다국어 지원 (ko/en/ja/zh). `LanguageProvider` + `useT()` hook. localStorage `pkgg_lang`에 언어 저장. flat dot-notation 키 |
+
+### locales/
+| 파일 | 설명 |
+|------|------|
+| `ko.json` | 한국어 번역 (기본값) |
+| `en.json` | 영어 번역 |
+| `ja.json` | 일본어 번역 |
+| `zh.json` | 중국어(간체) 번역 |
 
 ---
 
@@ -76,8 +85,17 @@ damage = (StatsTotal.DamageDealt||0) + (OfficialStatsTotal.DamageDealt||0) + (Co
 ### WeaponSlider (weapon-test)
 - `weapon-test/index.js`와 `result/[id].js` 양쪽에 동일하게 인라인 정의
 - `WEAPON_IMG` 맵: 무기명 → `/public/weapons/` PNG 파일명
-- `RANK_META`: 1순위(금), 2순위(은), 3순위(동) 스타일
+- `RANK_META_STYLE`: 1순위(금), 2순위(은), 3순위(동) 스타일. `rankKey` 필드로 i18n 키 참조 (`t(meta.rankKey)`)
 - 위치: 성향 타입 카드 하단, 레이더 차트 상단
+
+### i18n 패턴
+- `pages/_app.js`: `<LanguageProvider>` 로 전체 래핑
+- `components/layout/Header.jsx`: 헤더 우측 언어 토글 버튼 (`KO|EN|JA|ZH`)
+- 각 페이지/컴포넌트: `const { t } = useT()` 후 `t('키')` 사용
+- 번역 키 네임스페이스: `nav.*`, `search.*`, `clan.*`, `player.*`, `wt.*` (weapon-test)
+- **주의**: `useT()`에서 반환되는 `t`와 같은 이름 변수 충돌 방지
+  - `setInterval` 반환값 → `const timer = setInterval(...)` (t 아님)
+  - Array `.find()` 콜백 → `find((tp) => ...)` (t 아님)
 
 ### weaponsummaries 키 (대소문자 처리)
 ```js
@@ -90,6 +108,9 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - `PUBG_API_KEY` — PUBG API 키
 - `DATABASE_URL` — PostgreSQL 연결 문자열
 - `ADMIN_PASSWORD` — 관리자 패스워드 (admin/auth.js)
+- `CRON_SECRET` — Vercel cron 작업 인증
+
+> **중요**: `.env.local`은 로컬 전용. Vercel 배포 시 위 변수를 반드시 **Vercel 대시보드 → Settings → Environment Variables** 에 등록해야 함. 미등록 시 PUBG API 및 배치 업데이트 실패.
 
 ---
 
@@ -97,3 +118,5 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - WeaponMasteryCard: 헤드샷 기능 제거 (PUBG Headshots 필드 = 킬이 아닌 히트 수)
 - weapon-test: WeaponSlider 컴포넌트 추가 (PNG 이미지 + 탭 네비게이션)
 - PUBG API: 세 소스 합산으로 무기 킬/데미지 통계 정확도 개선
+- **i18n 다국어 지원 추가** (ko/en/ja/zh): `utils/i18n.js`, `locales/*.json`, `pages/_app.js` LanguageProvider, Header 언어 토글, 주요 페이지/컴포넌트 전체 적용 완료
+  - 적용 완료: Header, Footer, index.js, clan-analytics.js, clan/[clanName].js, weapon-test/index.js, weapon-test/result/[id].js
