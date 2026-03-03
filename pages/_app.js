@@ -8,6 +8,7 @@ import CookieBanner from '../components/CookieBanner';
 import Footer from '../components/layout/Footer';
 import { LanguageProvider } from '../utils/i18n';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/next';
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -71,6 +72,7 @@ function MyApp({ Component, pageProps }) {
         {showFooter && <Footer />}
       </div>
       <SpeedInsights />
+      <Analytics />
     </LanguageProvider>
   );
 }
