@@ -114,8 +114,10 @@ export default function PostDetail() {
 
   const handleSubmitReply = async (e) => {
     e.preventDefault();
-    if (!replyForm.content.trim()) { setReplyError('내용을 입력해주세요.'); return; }
     if (!replyForm.author.trim()) { setReplyError('닉네임을 입력해주세요.'); return; }
+    if (!replyForm.password.trim()) { setReplyError('삭제 비밀번호를 입력해주세요.'); return; }
+    if (replyForm.password.length < 4) { setReplyError('비밀번호는 4자 이상 입력해주세요.'); return; }
+    if (!replyForm.content.trim()) { setReplyError('내용을 입력해주세요.'); return; }
     setSubmittingReply(true);
     setReplyError('');
     try {
@@ -126,7 +128,7 @@ export default function PostDetail() {
           postId: parseInt(postId),
           content: replyForm.content,
           author: replyForm.author,
-          password: replyForm.password || undefined,
+          password: replyForm.password,
         }),
       });
       const data = await res.json();
@@ -320,28 +322,41 @@ export default function PostDetail() {
               <h3 className="text-sm font-semibold text-gray-700 mb-3">댓글 작성</h3>
               {replyError && (
                 <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-                  {replyError}
+                  ⚠️ {replyError}
                 </div>
               )}
               <form onSubmit={handleSubmitReply} className="space-y-3">
+                {/* 닉네임 + 비밀번호 */}
                 <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={replyForm.author}
-                    onChange={(e) => setReplyForm((p) => ({ ...p, author: e.target.value }))}
-                    placeholder="닉네임 *"
-                    maxLength={20}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
-                  />
-                  <input
-                    type="password"
-                    value={replyForm.password}
-                    onChange={(e) => setReplyForm((p) => ({ ...p, password: e.target.value }))}
-                    placeholder="삭제 비밀번호 (선택)"
-                    maxLength={30}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
-                  />
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      닉네임 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={replyForm.author}
+                      onChange={(e) => setReplyForm((p) => ({ ...p, author: e.target.value }))}
+                      placeholder="닉네임"
+                      maxLength={20}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      삭제 비밀번호 <span className="text-red-500">*</span>
+                      <span className="font-normal text-gray-400 ml-1">(4자 이상)</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={replyForm.password}
+                      onChange={(e) => setReplyForm((p) => ({ ...p, password: e.target.value }))}
+                      placeholder="댓글 삭제 시 사용됩니다"
+                      maxLength={30}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                    />
+                  </div>
                 </div>
+                {/* 내용 + 작성 버튼 */}
                 <div className="flex gap-3">
                   <textarea
                     value={replyForm.content}

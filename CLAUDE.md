@@ -30,6 +30,9 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `admin/moderation.js` | 관리자: 신고 처리 |
 | `admin/notices.js` | 관리자: 공지 관리 |
 | `admin/index.js` | 관리자 대시보드 |
+| `about.js` | PK.GG 소개 (주요 기능, 데이터 출처, 면책 고지) |
+| `terms.js` | 이용약관 |
+| `contact.js` | 문의 페이지 (이메일 복사/전송, 문의 유형별 안내) |
 
 ### pages/api/
 | 경로 | 설명 |
@@ -131,4 +134,15 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
   - 게시글 목록 (category, 최근 목록): 미리보기 텍스트 제거 → 제목만 표시
   - 게시글 상세: 이미지 `-mx-6 w-full` 풀-와이드 렌더링
   - 글 작성: 이미지 드래그 앤 드롭 업로드 (`onDrop` → `uploadFile()`)
-- **무기 데미지 표 추가** (`pages/weapon-damage.js`): battlegrounds.party 데이터 기반, Update 40.1 패치 반영 (Mk12 44→43 너프 등). 타입 필터·정렬·DPS 자동 계산·패치 변경 ⚡ 강조
+- **무기 데미지 표** (`pages/weapon-damage.js`): 공식 패치노트 기반, Update 40.1 기준. 타입 필터·정렬·DPS·방어구 시뮬레이터. ⚡(최신 패치 변경) / ℹ(이전 패치 이력) 툴팁 뱃지
+  - 패치 이력 반영: U34.1(Mk12 추가), U36.1(VSS 43→45, AUG 41→40), U37.1(DMR 전체 피해량 ~12%·발사속도 ~45% 감소), U38.1(MP5K 34→32), U39.1(SLR·SKS·AUG·M416·VSS 반동 조정), U40.1(Mk12·SLR 변경)
+  - `historyNote` 필드: 이전 패치 이력 기록 → ℹ 뱃지 툴팁으로 표시
+  - RPM/DPS 컬럼 헤더 마우스오버 툴팁 설명 추가 (`Tooltip` 컴포넌트 인라인 정의)
+- **포럼 댓글 비밀번호 필수화**: 댓글 작성 시 삭제 비밀번호 4자 이상 필수 (게시글 동일)
+- **정보 페이지 추가**: `pages/about.js`, `pages/terms.js`, `pages/contact.js` 생성
+  - Footer에 About/개인정보/이용약관/문의 링크 4개 pill 버튼 표시 (`footer.*` i18n 키)
+  - Contact 페이지: 문의 유형 선택 토글 + 유형별 안내 메시지
+- **Footer 전역화 + variant 분기**: `pages/_app.js`에서 모든 페이지에 자동 노출. `Footer` 컴포넌트 `variant` prop (`dark`/`light`)
+  - dark 페이지: `/`, `/weapon-damage`, `/clan-analytics`, `/player/*`, `/clan/*`, `/weapon-test/*`
+  - `/admin/*` 페이지는 Footer 제외
+- **무기 데미지표 패치노트 이력 버튼 컬러 개선**: 닫힌 상태 비-최신 항목을 gray 계열로 가시성 향상

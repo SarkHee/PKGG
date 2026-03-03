@@ -43,8 +43,11 @@ export default async function handler(req, res) {
     } else if (req.method === 'POST') {
       const { postId, content, author, password, parentId } = req.body;
 
-      if (!postId || !content || !author) {
-        return res.status(400).json({ error: '필수 필드가 누락되었습니다.' });
+      if (!postId || !content || !author || !password) {
+        return res.status(400).json({ error: '닉네임, 내용, 삭제 비밀번호는 필수입니다.' });
+      }
+      if (password.length < 4) {
+        return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다.' });
       }
 
       if (checkProfanity(content)) {

@@ -2,11 +2,16 @@
 
 import '../styles/globals.css';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import Script from 'next/script';
 import CookieBanner from '../components/CookieBanner';
+import Footer from '../components/layout/Footer';
 import { LanguageProvider } from '../utils/i18n';
 
 function MyApp({ Component, pageProps }) {
+  const router = useRouter();
+  const { pathname } = router;
+
   // null = 아직 결정 안 함(배너 표시), true = 동의, false = 거부
   const [cookieConsent, setCookieConsent] = useState(null);
 
@@ -38,6 +43,9 @@ function MyApp({ Component, pageProps }) {
     setCookieConsent(false);
   };
 
+  // 관리자 페이지는 Footer 제외
+  const showFooter = !pathname.startsWith('/admin');
+
   return (
     <LanguageProvider>
       {/* 쿠키 동의 후에만 AdSense 로드 */}
@@ -55,8 +63,11 @@ function MyApp({ Component, pageProps }) {
         <CookieBanner onAccept={handleAccept} onReject={handleReject} />
       )}
 
-      <div className="min-h-screen bg-white text-gray-900">
-        <Component {...pageProps} />
+      <div className="min-h-screen bg-white text-gray-900 flex flex-col">
+        <div className="flex-1">
+          <Component {...pageProps} />
+        </div>
+        {showFooter && <Footer />}
       </div>
     </LanguageProvider>
   );

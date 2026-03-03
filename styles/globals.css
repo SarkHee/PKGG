@@ -384,26 +384,6 @@ a:hover {
   color: #1e40af;
 }
 
-/* 버튼 스타일 */
-button,
-.btn {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 10px 20px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.2s,
-    box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
-}
-button:hover,
-.btn:hover {
-  background: #1e40af;
-}
 
 /* 카드 스타일 */
 .card,
@@ -491,14 +471,10 @@ textarea:focus {
 .main-footer {
   width: 100%;
   padding: 24px 0 18px 0;
-  background: rgba(17, 24, 39, 0.6); /* gray-900 with 60% opacity */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(75, 85, 99, 0.3); /* gray-600 with 30% opacity */
-  color: #d1d5db; /* gray-300 */
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb; /* gray-200 */
   text-align: center;
   margin-top: auto;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
   font-size: 1.05em;
 }
 

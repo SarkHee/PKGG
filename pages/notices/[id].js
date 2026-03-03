@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Header from '../../components/layout/Header';
-import Footer from '../../components/layout/Footer';
 
 export default function NoticeDetailPage() {
   const [notice, setNotice] = useState(null);
@@ -87,7 +86,6 @@ export default function NoticeDetailPage() {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -113,7 +111,6 @@ export default function NoticeDetailPage() {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -257,7 +254,6 @@ export default function NoticeDetailPage() {
         </div>
       </main>
 
-      <Footer />
     </div>
   );
 }

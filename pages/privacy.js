@@ -208,10 +208,6 @@ export default function PrivacyPage() {
           </div>
         </div>
 
-        {/* 푸터 */}
-        <div className="border-t border-gray-200 py-6 text-center text-sm text-gray-400">
-          &copy; 2026 PK.GG · 본 방침은 2026년 2월 24일부터 적용됩니다.
-        </div>
       </div>
     </>
   );

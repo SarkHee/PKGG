@@ -5,7 +5,6 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '../components/layout/Header';
-import Footer from '../components/layout/Footer';
 import { useT } from '../utils/i18n';
 
 export default function Home() {
@@ -352,7 +351,6 @@ export default function Home() {
           </div>
         </main>
 
-        <Footer />
       </div>
     </>
   );

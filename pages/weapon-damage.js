@@ -2,15 +2,15 @@
 import { useState, useMemo } from 'react';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
-import Footer from '../components/layout/Footer';
 
 // ─── 최신 패치 기준 정보 ─────────────────────────────────
 const LATEST_PATCH = 'Update 40.1';
 const LATEST_PATCH_DATE = '2026.02.04 PC 적용';
-const DATA_SOURCE = 'battlegrounds.party 기반';
+const DATA_SOURCE = '공식 패치노트 기반';
 
 // ─── 무기 데이터 ────────────────────────────────────────
-// changed: true → 최신 패치에서 변경된 항목 (강조 표시)
+// changed: true     → 최신 패치(40.1)에서 변경된 항목 (노란 강조)
+// historyNote       → 이전 패치에서의 변경 이력 (ℹ 툴팁으로 표시)
 const WEAPON_DATA = [
   // ── 돌격소총 (AR) ──
   { name: 'Mk47 Mutant',  type: 'AR',  damage: 49, rpm: 360,  magBase: 20, magExt: 30,  modes: 'Semi / 2점사', caliber: '7.62mm', dataFrom: 'Update 28.1' },
@@ -21,20 +21,25 @@ const WEAPON_DATA = [
   { name: 'M16A4',        type: 'AR',  damage: 43, rpm: 750,  magBase: 30, magExt: 40,  modes: '단발 / 3점사',  caliber: '5.56mm', dataFrom: 'Update 28.1' },
   { name: 'QBZ',          type: 'AR',  damage: 42, rpm: 750,  magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1' },
   { name: 'SCAR-L',       type: 'AR',  damage: 42, rpm: 600,  magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1' },
-  { name: 'AUG A3',       type: 'AR',  damage: 41, rpm: 730,  magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1' },
+  // AUG A3: U36.1에서 피해량 41→40 너프, U39.1에서 수평 반동 4% 증가
+  { name: 'AUG A3',       type: 'AR',  damage: 40, rpm: 730,  magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 36.1', historyNote: 'U36.1: 피해량 41→40 너프 · U39.1: 수평 반동 4% 증가' },
   { name: 'G36C',         type: 'AR',  damage: 41, rpm: 730,  magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1' },
   { name: 'K2',           type: 'AR',  damage: 41, rpm: 720,  magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 32.1' },
-  { name: 'M416',         type: 'AR',  damage: 40, rpm: 800,  magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1' },
+  // M416: U39.1에서 수평 반동 5% 감소 (데미지/RPM 변동 없음)
+  { name: 'M416',         type: 'AR',  damage: 40, rpm: 800,  magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1', historyNote: 'U39.1: 수평 반동 5% 감소' },
   { name: 'FAMAS',        type: 'AR',  damage: 39, rpm: 900,  magBase: 25, magExt: 30,  modes: '3점사',         caliber: '5.56mm', dataFrom: 'Update 28.1' },
 
   // ── 지정사수소총 (DMR) ──
-  { name: 'Mk14 EBR',     type: 'DMR', damage: 61, rpm: 450,  magBase: 10, magExt: 20,  modes: 'Semi / 완전자동', caliber: '7.62mm', dataFrom: 'Update 28.1' },
-  { name: 'SLR',          type: 'DMR', damage: 56, rpm: 400,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '7.62mm', dataFrom: 'Update 40.1', changed: true, changeNote: '수평 반동 약 4% 감소' },
-  { name: 'SKS',          type: 'DMR', damage: 53, rpm: 400,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '7.62mm', dataFrom: 'Update 28.1' },
-  { name: 'Mini14',       type: 'DMR', damage: 48, rpm: 600,  magBase: 20, magExt: 30,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 28.1' },
-  { name: 'QBU',          type: 'DMR', damage: 48, rpm: 600,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 28.1' },
-  { name: 'Mk12',         type: 'DMR', damage: 43, rpm: 600,  magBase: 20, magExt: 30,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 40.1', changed: true, changeNote: '데미지 44 → 43 너프, 수평 반동 약 8% 증가' },
-  { name: 'VSS',          type: 'DMR', damage: 43, rpm: 700,  magBase: 10, magExt: 20,  modes: 'Semi / 완전자동', caliber: '9mm',    dataFrom: 'Update 28.1' },
+  // U37.1 DMR 전체 너프: 피해량 ~12% 감소, 발사 속도 ~45% 감소 (Mk14 제외 33% 감소)
+  // U37.1에서 VSS는 제외되어 피해량·발사 속도 유지
+  { name: 'Mk14 EBR',     type: 'DMR', damage: 61, rpm: 450,  magBase: 10, magExt: 20,  modes: 'Semi / 완전자동', caliber: '7.62mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~33% 감소' },
+  { name: 'SLR',          type: 'DMR', damage: 56, rpm: 400,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '7.62mm', dataFrom: 'Update 40.1', changed: true, changeNote: '수평 반동 약 4% 추가 감소', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수직·수평 반동 각 5% 감소' },
+  { name: 'SKS',          type: 'DMR', damage: 53, rpm: 400,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '7.62mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수평 반동 10% 감소' },
+  { name: 'Mini14',       type: 'DMR', damage: 48, rpm: 600,  magBase: 20, magExt: 30,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
+  { name: 'QBU',          type: 'DMR', damage: 48, rpm: 600,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
+  { name: 'Mk12',         type: 'DMR', damage: 43, rpm: 600,  magBase: 20, magExt: 30,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 40.1', changed: true, changeNote: '피해량 44→43, 수평 반동 8% 증가', historyNote: 'U34.1: 신규 추가 · U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
+  // VSS: U36.1에서 피해량 43→45 버프, U37.1 DMR 너프 제외, U39.1 반동 조정
+  { name: 'VSS',          type: 'DMR', damage: 45, rpm: 700,  magBase: 10, magExt: 20,  modes: 'Semi / 완전자동', caliber: '9mm',    dataFrom: 'Update 36.1', historyNote: 'U36.1: 피해량 43→45 버프 (U37.1 DMR 너프 제외) · U39.1: 수직 반동 10%, 수평 반동 5% 증가' },
 
   // ── 저격소총 (SR) ──
   { name: 'Lynx AMR',     type: 'SR',  damage: 118, rpm: 35,  magBase: 5,  magExt: null, modes: '볼트액션', caliber: '.50 BMG',    dataFrom: 'Update 28.1' },
@@ -50,32 +55,33 @@ const WEAPON_DATA = [
   { name: 'Tommy Gun',    type: 'SMG', damage: 40, rpm: 750,  magBase: 30, magExt: 50,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1' },
   { name: 'PP-19 Bizon',  type: 'SMG', damage: 36, rpm: 800,  magBase: 53, magExt: null, modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1' },
   { name: 'P90',          type: 'SMG', damage: 35, rpm: 900,  magBase: 40, magExt: 50,  modes: '완전자동', caliber: '5.7mm',   dataFrom: 'Update 28.1' },
-  { name: 'MP5K',         type: 'SMG', damage: 33, rpm: 900,  magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1' },
+  // MP5K: U38.1에서 피해량 34→32 너프
+  { name: 'MP5K',         type: 'SMG', damage: 32, rpm: 900,  magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 38.1', historyNote: 'U38.1: 피해량 34→32 너프' },
   { name: 'MP9',          type: 'SMG', damage: 31, rpm: 1100, magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1' },
   { name: 'Vector',       type: 'SMG', damage: 31, rpm: 1200, magBase: 13, magExt: 33,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1' },
   { name: 'Micro UZI',    type: 'SMG', damage: 26, rpm: 1200, magBase: 25, magExt: 35,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1' },
 
   // ── 경기관총 (LMG) ──
-  { name: 'DP-28',        type: 'LMG', damage: 52, rpm: 550,  magBase: 47, magExt: null, modes: '완전자동',       caliber: '7.62mm', dataFrom: 'Update 28.1' },
+  { name: 'DP-28',        type: 'LMG', damage: 52, rpm: 550,  magBase: 47, magExt: null, modes: '완전자동',          caliber: '7.62mm', dataFrom: 'Update 28.1' },
   { name: 'MG3',          type: 'LMG', damage: 42, rpm: 660,  magBase: 75, magExt: null, modes: '완전자동 (660/990)', caliber: '7.62mm', dataFrom: 'Update 28.1' },
-  { name: 'M249',         type: 'LMG', damage: 41, rpm: 750,  magBase: 75, magExt: 100, modes: '완전자동',       caliber: '5.56mm', dataFrom: 'Update 28.1' },
+  { name: 'M249',         type: 'LMG', damage: 41, rpm: 750,  magBase: 75, magExt: 100,  modes: '완전자동',          caliber: '5.56mm', dataFrom: 'Update 28.1' },
 
   // ── 산탄총 (SGN) — 데미지는 발당 ──
-  { name: 'O12',          type: 'SGN', damage: 26, rpm: 180, magBase: 5,  magExt: null, modes: '반자동', caliber: '12게이지 ×12발', dataFrom: 'Update 28.1' },
+  { name: 'O12',          type: 'SGN', damage: 26, rpm: 180, magBase: 5,  magExt: null, modes: '반자동',     caliber: '12게이지 ×12발', dataFrom: 'Update 28.1' },
   { name: 'DBS',          type: 'SGN', damage: 26, rpm: 90,  magBase: 14, magExt: null, modes: '펌프/반자동', caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
-  { name: 'S1897',        type: 'SGN', damage: 26, rpm: 90,  magBase: 5,  magExt: null, modes: '펌프액션', caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
-  { name: 'S686',         type: 'SGN', damage: 26, rpm: 150, magBase: 2,  magExt: null, modes: '이중 총신', caliber: '12게이지 ×9발', dataFrom: 'Update 28.1' },
-  { name: 'S12K',         type: 'SGN', damage: 24, rpm: 200, magBase: 5,  magExt: 8,   modes: '반자동', caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
-  { name: 'Sawed-Off',    type: 'SGN', damage: 21, rpm: 150, magBase: 2,  magExt: null, modes: '이중 총신', caliber: '12게이지 ×9발', dataFrom: 'Update 28.1' },
+  { name: 'S1897',        type: 'SGN', damage: 26, rpm: 90,  magBase: 5,  magExt: null, modes: '펌프액션',   caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
+  { name: 'S686',         type: 'SGN', damage: 26, rpm: 150, magBase: 2,  magExt: null, modes: '이중 총신',  caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
+  { name: 'S12K',         type: 'SGN', damage: 24, rpm: 200, magBase: 5,  magExt: 8,   modes: '반자동',     caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
+  { name: 'Sawed-Off',    type: 'SGN', damage: 21, rpm: 150, magBase: 2,  magExt: null, modes: '이중 총신',  caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
 
   // ── 권총 (PST) ──
-  { name: 'R45',          type: 'PST', damage: 65, rpm: 180,  magBase: 6,  magExt: null, modes: '단발', caliber: '.45 ACP',    dataFrom: 'Update 28.1' },
-  { name: 'R1895',        type: 'PST', damage: 64, rpm: 150,  magBase: 7,  magExt: null, modes: '단발', caliber: '7.62mm',     dataFrom: 'Update 28.1' },
-  { name: 'Desert Eagle', type: 'PST', damage: 62, rpm: 300,  magBase: 7,  magExt: null, modes: '단발', caliber: '.357 Mag',   dataFrom: 'Update 28.1' },
-  { name: 'P1911',        type: 'PST', damage: 42, rpm: 450,  magBase: 7,  magExt: 13,  modes: '단발', caliber: '.45 ACP',    dataFrom: 'Update 28.1' },
-  { name: 'P92',          type: 'PST', damage: 34, rpm: 450,  magBase: 15, magExt: 20,  modes: '단발', caliber: '9mm',        dataFrom: 'Update 28.1' },
-  { name: 'P18C',         type: 'PST', damage: 23, rpm: 1100, magBase: 17, magExt: 25,  modes: '완전자동', caliber: '9mm',    dataFrom: 'Update 28.1' },
-  { name: 'Skorpion',     type: 'PST', damage: 22, rpm: 1100, magBase: 20, magExt: 35,  modes: '완전자동', caliber: '.32 ACP', dataFrom: 'Update 28.1' },
+  { name: 'R45',          type: 'PST', damage: 65, rpm: 180,  magBase: 6,  magExt: null, modes: '단발',     caliber: '.45 ACP',   dataFrom: 'Update 28.1' },
+  { name: 'R1895',        type: 'PST', damage: 64, rpm: 150,  magBase: 7,  magExt: null, modes: '단발',     caliber: '7.62mm',    dataFrom: 'Update 28.1' },
+  { name: 'Desert Eagle', type: 'PST', damage: 62, rpm: 300,  magBase: 7,  magExt: null, modes: '단발',     caliber: '.357 Mag',  dataFrom: 'Update 28.1' },
+  { name: 'P1911',        type: 'PST', damage: 42, rpm: 450,  magBase: 7,  magExt: 13,  modes: '단발',     caliber: '.45 ACP',   dataFrom: 'Update 28.1' },
+  { name: 'P92',          type: 'PST', damage: 34, rpm: 450,  magBase: 15, magExt: 20,  modes: '단발',     caliber: '9mm',       dataFrom: 'Update 28.1' },
+  { name: 'P18C',         type: 'PST', damage: 23, rpm: 1100, magBase: 17, magExt: 25,  modes: '완전자동', caliber: '9mm',       dataFrom: 'Update 28.1' },
+  { name: 'Skorpion',     type: 'PST', damage: 22, rpm: 1100, magBase: 20, magExt: 35,  modes: '완전자동', caliber: '.32 ACP',   dataFrom: 'Update 28.1' },
 ];
 
 const TYPE_TABS = [
@@ -161,6 +167,118 @@ function ArmorSelector({ label, value, onChange, color }) {
   );
 }
 
+// ─── 패치 노트 이력 ──────────────────────────────────────
+const PATCH_NOTES = [
+  {
+    version: 'Update 40.1',
+    date: '2026.02.04',
+    isLatest: true,
+    sections: [
+      {
+        title: '무기 밸런스',
+        items: [
+          { weapon: 'Mk12',  changes: ['피해량 44 → 43', '수평 반동 약 8% 증가'] },
+          { weapon: 'SLR',   changes: ['수평 반동 약 4% 감소'] },
+        ],
+      },
+    ],
+  },
+  {
+    version: 'Update 39.1',
+    date: null,
+    sections: [
+      {
+        title: '무기 밸런스',
+        items: [
+          { weapon: 'VSS',  changes: ['수직 반동 10% 증가', '수평 반동 5% 증가', '격발음 증가, 더 멀리서도 들을 수 있게 변경'] },
+          { weapon: 'SLR',  changes: ['수직 반동 5% 감소', '수평 반동 5% 감소'] },
+          { weapon: 'SKS',  changes: ['수평 반동 10% 감소', '거리별 탄속 감소율 완화'] },
+          { weapon: 'AUG',  changes: ['수평 반동 4% 증가'] },
+          { weapon: 'M416', changes: ['수평 반동 5% 감소'] },
+        ],
+      },
+    ],
+  },
+  {
+    version: 'Update 38.1',
+    date: null,
+    sections: [
+      {
+        title: '비조준 사격 조정 (SMG — P90 제외)',
+        items: [
+          { weapon: '전체 SMG (P90 제외)', changes: ['비조준 사격 정확도 57% 감소', '사격 지속 시 정확도 51.5% 감소'] },
+          { weapon: 'P90',   changes: ['비조준 사격 정확도 28.5% 감소', '사격 지속 시 정확도 25.75% 감소'] },
+        ],
+      },
+      {
+        title: '무기 밸런스',
+        items: [
+          { weapon: 'MP5K', changes: ['피해량 34 → 32'] },
+        ],
+      },
+    ],
+  },
+  {
+    version: 'Update 37.1',
+    date: null,
+    sections: [
+      {
+        title: 'DMR 전체 밸런스 조정',
+        items: [
+          { weapon: 'DMR 전체', changes: ['피해량 약 12% 감소', '발사 속도 약 45% 감소 (드라구노프, Mk14 제외)', 'Mk14: 발사 속도 약 33% 감소', 'VSS: 피해량·발사 속도 변동 없음'] },
+        ],
+      },
+    ],
+  },
+  {
+    version: 'Update 36.1',
+    date: null,
+    sections: [
+      {
+        title: '무기 밸런스',
+        items: [
+          { weapon: 'AUG',  changes: ['피해량 41 → 40', '저지력 50% 감소'] },
+          { weapon: 'VSS',  changes: ['피해량 43 → 45', '탄속 330m/s → 430m/s', '피해량 감소 시작 거리 0m → 50m', '영점 조준 간격 25m → 100m, 최대 영점 거리 300m'] },
+        ],
+      },
+      {
+        title: '부착물',
+        items: [
+          { weapon: '제동기', changes: ['수직 반동 제어 +8% → +10%'] },
+        ],
+      },
+    ],
+  },
+  {
+    version: 'Update 35.1',
+    date: null,
+    sections: [
+      {
+        title: '저지력 시스템 신규 도입',
+        items: [
+          { weapon: 'SR (저격소총)',  changes: ['가장 강력한 저지력 적용'] },
+          { weapon: 'SG (산탄총)',    changes: ['강한 저지력 적용'] },
+          { weapon: 'SMG (기관단총)', changes: ['산탄총보다 소폭 약한 강한 저지력 · VSS는 SMG와 동일'] },
+          { weapon: 'AR / LMG / DMR', changes: ['낮은 저지력 적용', '7.62mm > 5.56mm 저지력'] },
+          { weapon: '권총 · 석궁 등', changes: ['매우 낮은 기본 저지력 적용'] },
+        ],
+      },
+    ],
+  },
+  {
+    version: 'Update 34.1',
+    date: null,
+    sections: [
+      {
+        title: '신규 무기',
+        items: [
+          { weapon: 'Mk12', changes: ['DMR 신규 추가 · 5.56mm · 반자동'] },
+        ],
+      },
+    ],
+  },
+];
+
 export default function WeaponDamage() {
   const [activeType, setActiveType] = useState('ALL');
   const [sortCol, setSortCol] = useState('damage');
@@ -168,6 +286,12 @@ export default function WeaponDamage() {
   const [search, setSearch] = useState('');
   const [armorLevel, setArmorLevel] = useState(0);
   const [helmetLevel, setHelmetLevel] = useState(0);
+  const [openPatches, setOpenPatches] = useState(['Update 40.1']);
+
+  const togglePatch = (v) =>
+    setOpenPatches((prev) =>
+      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]
+    );
 
   const handleSort = (col) => {
     if (sortCol === col) {
@@ -203,7 +327,7 @@ export default function WeaponDamage() {
       </Head>
       <Header />
 
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="min-h-screen bg-neutral-950 text-white">
         <div className="max-w-6xl mx-auto px-4 py-8">
 
           {/* 헤더 */}
@@ -222,7 +346,7 @@ export default function WeaponDamage() {
               📅 {LATEST_PATCH_DATE}
             </span>
             <span className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-full text-xs text-gray-400">
-              📊 {DATA_SOURCE}
+              📋 {DATA_SOURCE}
             </span>
             {changedCount > 0 && (
               <span className="px-3 py-1.5 bg-yellow-900/50 border border-yellow-700/50 rounded-full text-xs text-yellow-300 font-semibold">
@@ -352,12 +476,21 @@ export default function WeaponDamage() {
                       >
                         {/* 무기명 */}
                         <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-white text-sm">{w.name}</span>
                             {w.changed && (
-                              <span className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 rounded text-yellow-400 text-xs font-bold flex-shrink-0">
-                                ⚡
-                              </span>
+                              <Tooltip text={`${LATEST_PATCH}: ${w.changeNote || ''}`}>
+                                <span className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 rounded text-yellow-400 text-xs font-bold flex-shrink-0 cursor-help">
+                                  ⚡
+                                </span>
+                              </Tooltip>
+                            )}
+                            {w.historyNote && (
+                              <Tooltip text={w.historyNote}>
+                                <span className="px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/30 rounded text-blue-400/60 text-xs flex-shrink-0 cursor-help select-none">
+                                  ℹ
+                                </span>
+                              </Tooltip>
                             )}
                           </div>
                         </td>
@@ -449,7 +582,8 @@ export default function WeaponDamage() {
                 <span>• 방어구 감소율: Lv.1 30% · Lv.2 40% · Lv.3 55%</span>
                 <span>• 산탄총: 펠릿 1발 기준 (탄약란에 발수 표기)</span>
                 <span>• DPS = (데미지 × RPM) ÷ 60 / 이동·반동 미적용</span>
-                <span className="text-yellow-500">• ⚡: {LATEST_PATCH} 패치 변경 항목</span>
+                <span className="text-yellow-500">• ⚡: {LATEST_PATCH} 패치 변경 항목 (마우스 올리면 상세 확인)</span>
+                <span className="text-blue-400/60">• ℹ: 이전 패치 이력 (마우스 올리면 확인)</span>
               </div>
             </div>
           </div>
@@ -472,15 +606,126 @@ export default function WeaponDamage() {
             </div>
           )}
 
+          {/* ── 패치 노트 히스토리 아코디언 ── */}
+          <div className="mt-8">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-lg">📜</span>
+              <h2 className="text-base font-bold text-white">건플레이 패치 노트 이력</h2>
+              <span className="text-xs text-neutral-500 px-2.5 py-1">
+                공식 패치 중 건플레이 관련 내용만 발췌
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {PATCH_NOTES.map((patch) => {
+                const isOpen = openPatches.includes(patch.version);
+                return (
+                  <div
+                    key={patch.version}
+                    className={`rounded-xl overflow-hidden border transition-all ${
+                      patch.isLatest
+                        ? isOpen ? 'border-yellow-700/50 bg-yellow-950/40' : 'border-yellow-800/40'
+                        : isOpen ? 'border-neutral-600 bg-neutral-800' : 'border-neutral-700'
+                    }`}
+                  >
+                    {/* 헤더 */}
+                    <button
+                      onClick={() => togglePatch(patch.version)}
+                      className="w-full flex items-center justify-between px-5 py-3.5 text-left"
+                    >
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {/* 버전 번호 */}
+                        <span className={`font-semibold text-sm ${
+                          patch.isLatest ? 'text-yellow-300' : isOpen ? 'text-white' : 'text-gray-300'
+                        }`}>
+                          {patch.version}
+                        </span>
+                        {/* 최신 뱃지 */}
+                        {patch.isLatest && (
+                          <span className="px-2 py-0.5 bg-yellow-500/20 border border-yellow-600/40 rounded-md text-yellow-400 text-xs font-semibold">
+                            LATEST
+                          </span>
+                        )}
+                        {/* 날짜 */}
+                        {patch.date && (
+                          <span className="text-xs text-neutral-500">{patch.date}</span>
+                        )}
+                        {/* 항목 수 */}
+                        <span className={`text-xs ${
+                          patch.isLatest ? 'text-yellow-600' : isOpen ? 'text-gray-400' : 'text-gray-500'
+                        }`}>
+                          {patch.sections.reduce((acc, s) => acc + s.items.length, 0)}개 항목
+                        </span>
+                      </div>
+                      {/* 펼침 화살표 */}
+                      <svg
+                        className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
+                          isOpen
+                            ? (patch.isLatest ? 'text-yellow-500 rotate-180' : 'text-gray-400 rotate-180')
+                            : (patch.isLatest ? 'text-yellow-700' : 'text-gray-500')
+                        }`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {/* 내용 */}
+                    {isOpen && (
+                      <div className={`px-5 pb-5 space-y-4 border-t ${
+                        patch.isLatest ? 'border-yellow-800/30' : 'border-neutral-600'
+                      }`}>
+                        {patch.sections.map((section, si) => (
+                          <div key={si} className="pt-4">
+                            {/* 섹션 타이틀 */}
+                            <p className={`text-xs font-semibold mb-3 uppercase tracking-wider ${
+                              patch.isLatest ? 'text-yellow-600' : 'text-gray-400'
+                            }`}>
+                              {section.title}
+                            </p>
+                            {/* 무기별 변경 항목 */}
+                            <div className="space-y-2">
+                              {section.items.map((item, ii) => (
+                                <div key={ii} className={`flex gap-4 px-3 py-2.5 rounded-lg ${
+                                  patch.isLatest
+                                    ? 'bg-yellow-950/40 border border-yellow-900/40'
+                                    : 'bg-neutral-700 border border-neutral-600'
+                                }`}>
+                                  <span className={`text-sm font-semibold w-36 flex-shrink-0 ${
+                                    patch.isLatest ? 'text-yellow-200' : 'text-gray-200'
+                                  }`}>
+                                    {item.weapon}
+                                  </span>
+                                  <ul className="space-y-1 flex-1">
+                                    {item.changes.map((c, ci) => (
+                                      <li key={ci} className="text-sm text-gray-400 flex items-start gap-2">
+                                        <span className={`mt-[5px] w-1 h-1 rounded-full flex-shrink-0 ${
+                                          patch.isLatest ? 'bg-yellow-500' : 'bg-gray-500'
+                                        }`} />
+                                        {c}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* 출처 */}
           <p className="mt-4 text-xs text-gray-600 text-center">
-            데이터 출처: battlegrounds.party · PUBG 공식 패치노트 (pubg.com)
+            데이터 출처: PUBG 공식 패치노트 (pubg.com)
           </p>
 
         </div>
       </div>
 
-      <Footer />
     </>
   );
 }
