@@ -351,7 +351,5 @@ export default async function handler(req, res) {
       message: 'PUBG 뉴스를 가져오는 중 오류가 발생했습니다.',
       error: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

@@ -190,8 +190,6 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('DB 업데이트 오류:', error);
     res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

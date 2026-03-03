@@ -123,6 +123,15 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 ---
 
 ## 최근 주요 변경 이력
+- **클랜 상세 페이지 커스텀 탭 추가**: `pages/clan/[clanName].js` 하단 `SquadCustomTab` + 알고리즘 함수들 (normalize, classifyRole, calcBalanceScore, recommendAllSquads, teamBalanceScore)
+  - 스쿼드 추천: `recommendAllSquads(members)` → `{ squads: [[...4명], ...], unassigned: [...] }` 구조로 전체 클랜원을 4인 스쿼드로 분배
+  - 역할 분배 로직: Phase1(각 역할별 상위 N명을 스쿼드에 1명씩), Phase2(나머지를 스코어순으로 채움)
+  - 미배정 멤버: `members.length % 4` 나머지 → 하단에 별도 표시
+  - state: `allSquads` (부모) → `setAllSquads` props로 전달
+  - 역할 분류: dealer/fragger/survivor/support (정규화 기반)
+  - 수동 교체: 슬롯 클릭 → 벤치 멤버 선택으로 swap
+- **PlayerDashboard 클랜원 목록 섹션 제거**: 클랜 접근 제어 설계와 충돌 방지
+- **시너지 딜량 명칭 변경**: `SynergyHeatmap.jsx` "평균 딜량" → "파티 시 나의 평균 딜량" / `PlayerDashboard.jsx` "클랜원과 딜량" → "파티 시 내 평균 딜량"
 - WeaponMasteryCard: 헤드샷 기능 제거 (PUBG Headshots 필드 = 킬이 아닌 히트 수)
 - weapon-test: WeaponSlider 컴포넌트 추가 (PNG 이미지 + 탭 네비게이션)
 - PUBG API: 세 소스 합산으로 무기 킬/데미지 통계 정확도 개선

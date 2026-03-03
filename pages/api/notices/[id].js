@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -85,7 +83,5 @@ export default async function handler(req, res) {
       error: '서버 오류가 발생했습니다.',
       details: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

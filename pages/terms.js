@@ -14,18 +14,44 @@ const sections = [
   },
   {
     id: 2,
-    title: '서비스 이용',
+    title: 'Steam 계정 기반 인증',
     content: (
-      <ul className="list-disc list-inside space-y-1.5 text-gray-600">
-        <li>본 서비스는 개인의 비상업적 이용 목적으로만 사용 가능합니다.</li>
-        <li>자동화 스크립트, 크롤러, 봇 등을 이용한 대량 요청을 금지합니다.</li>
-        <li>서비스를 통해 획득한 데이터를 재배포하거나 상업적으로 이용하는 것을 금지합니다.</li>
-        <li>사이트 시스템에 대한 해킹, 침해 시도를 금지합니다.</li>
-      </ul>
+      <>
+        <p className="text-gray-600 mb-3">
+          PK.GG는 Steam OpenID 2.0을 통한 로그인 기능을 제공합니다. 이와 관련하여 아래 사항을 준수해야 합니다.
+        </p>
+        <ul className="list-disc list-inside space-y-1.5 text-gray-600 mb-3">
+          <li>로그인은 이용자 본인 소유의 Steam 계정을 사용해야 합니다.</li>
+          <li>타인의 Steam 계정을 이용하거나 계정을 도용하는 행위를 엄격히 금지합니다.</li>
+          <li>PUBG 닉네임 연동 시 실제 본인이 사용하는 인게임 계정을 등록해야 합니다.</li>
+          <li>계정 삭제(탈퇴)를 원하는 경우 문의 이메일로 요청할 수 있습니다.</li>
+        </ul>
+        <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
+          ※ PK.GG는 Steam 비밀번호를 저장하지 않습니다. 인증은 Valve Corporation의 Steam OpenID 서버를 통해 처리됩니다.
+          PK.GG는 Valve Corporation 또는 KRAFTON, Inc.와 공식 제휴 관계가 없습니다.
+        </p>
+      </>
     ),
   },
   {
     id: 3,
+    title: '서비스 이용',
+    content: (
+      <>
+        <ul className="list-disc list-inside space-y-1.5 text-gray-600 mb-3">
+          <li>본 서비스는 개인의 비상업적 이용 목적으로만 사용 가능합니다.</li>
+          <li>자동화 스크립트, 크롤러, 봇 등을 이용한 대량 요청을 금지합니다.</li>
+          <li>서비스를 통해 획득한 데이터를 재배포하거나 상업적으로 이용하는 것을 금지합니다.</li>
+          <li>사이트 시스템에 대한 해킹, 침해 시도를 금지합니다.</li>
+        </ul>
+        <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
+          ※ 사이트에 표시되는 PUBG 전적·통계 데이터는 KRAFTON 공식 API 기반의 참고 정보로, 공식 수치와 차이가 있을 수 있습니다.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 4,
     title: '커뮤니티 포럼 이용 규칙',
     content: (
       <>
@@ -44,7 +70,7 @@ const sections = [
     ),
   },
   {
-    id: 4,
+    id: 5,
     title: '지식재산권',
     content: (
       <p className="text-gray-600 leading-relaxed">
@@ -56,7 +82,7 @@ const sections = [
     ),
   },
   {
-    id: 5,
+    id: 6,
     title: '면책 조항',
     content: (
       <ul className="list-disc list-inside space-y-1.5 text-gray-600">
@@ -68,7 +94,7 @@ const sections = [
     ),
   },
   {
-    id: 6,
+    id: 7,
     title: '약관 변경',
     content: (
       <p className="text-gray-600 leading-relaxed">
@@ -96,7 +122,7 @@ export default function TermsPage() {
               ← PK.GG 홈으로
             </Link>
             <h1 className="text-2xl font-bold text-gray-900">이용약관</h1>
-            <p className="text-sm text-gray-500 mt-1">시행일: 2026년 2월 24일</p>
+            <p className="text-sm text-gray-500 mt-1">시행일: 2026년 3월 3일</p>
           </div>
         </div>
 

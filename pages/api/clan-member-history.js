@@ -1,9 +1,7 @@
 // pages/api/clan-member-history.js
 // 클랜 멤버 이동 히스토리 및 추적 API
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../utils/prisma.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -148,7 +146,5 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('클랜 히스토리 조회 오류:', error);
     return res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    await prisma.$disconnect();
   }
 }

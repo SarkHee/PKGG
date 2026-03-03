@@ -1,7 +1,5 @@
 // pages/api/debug/check-player.js - 특정 플레이어 데이터 확인
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   const { nickname } = req.query;
@@ -79,7 +77,5 @@ export default async function handler(req, res) {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

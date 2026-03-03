@@ -1,10 +1,9 @@
 // pages/api/clans/index.js (모든 클랜 목록을 반환하는 API)
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    const prisma = new PrismaClient();
     try {
       const clans = await prisma.clan.findMany({
         include: { members: true },

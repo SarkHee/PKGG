@@ -112,9 +112,9 @@ export default function PlayerDashboard({
               accent="purple"
             />
             <StatCard
-              title="클랜원과 딜량"
+              title="파티 시 내 평균 딜량"
               value={clanAverageValue > 0 ? clanAverageValue : '데이터 없음'}
-              sub={clanAverageValue > 0 ? '함께할 때 평균' : undefined}
+              sub={clanAverageValue > 0 ? '클랜원과 함께한 경기' : undefined}
               accent="green"
             />
             <StatCard
@@ -158,33 +158,6 @@ export default function PlayerDashboard({
             </div>
           )}
 
-          {/* 클랜원 목록 (데이터 있을 경우) */}
-          {hasClanMembers && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-                클랜원 목록
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {clanMembers.slice(0, 15).map((m) => (
-                  <Link key={m.id || m.nickname} href={`/player/steam/${encodeURIComponent(m.nickname)}`}>
-                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer transition-all border ${
-                      m.nickname === profile?.nickname
-                        ? 'bg-blue-100 text-blue-700 border-blue-200 font-bold'
-                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
-                    }`}>
-                      {m.nickname === profile?.nickname && <span className="mr-1">👤</span>}
-                      {m.nickname}
-                    </span>
-                  </Link>
-                ))}
-                {clanMembers.length > 15 && (
-                  <span className="inline-block px-2.5 py-1 rounded-full text-xs text-gray-400 border border-dashed border-gray-300">
-                    +{clanMembers.length - 15}명
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       ) : hasValidClan ? (
         <div className="flex flex-col items-center justify-center py-10 px-6 bg-amber-50 border border-amber-200 rounded-xl text-center">

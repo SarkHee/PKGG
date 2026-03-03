@@ -1,9 +1,7 @@
 // pages/api/clan/update-rankings.js
 // 클랜 랭킹 수동 업데이트 API
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../utils/prisma.js';
 
 // 클랜 랭킹 업데이트 함수 (API 버전)
 async function updateClanRankings() {
@@ -179,7 +177,5 @@ export default async function handler(req, res) {
       message: '서버 오류가 발생했습니다.',
       error: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

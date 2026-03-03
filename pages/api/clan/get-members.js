@@ -1,9 +1,7 @@
 // pages/api/clan/get-members.js
 // 클랜 ID로 해당 클랜의 모든 멤버 닉네임을 가져오는 API
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -117,7 +115,5 @@ export default async function handler(req, res) {
       error: 'Internal server error',
       details: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

@@ -1,9 +1,7 @@
 // pages/api/clan/ranking-status.js
 // 클랜 랭킹 업데이트 상태 조회 API
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -104,7 +102,5 @@ export default async function handler(req, res) {
       message: '서버 오류가 발생했습니다.',
       error: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

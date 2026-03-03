@@ -213,8 +213,6 @@ export default async function handler(req, res) {
           errors: errorCount,
         },
       });
-    } finally {
-      await prisma.$disconnect();
     }
   } catch (error) {
     console.error('배치 업데이트 실패:', error);

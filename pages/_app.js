@@ -7,6 +7,7 @@ import Script from 'next/script';
 import CookieBanner from '../components/CookieBanner';
 import Footer from '../components/layout/Footer';
 import { LanguageProvider } from '../utils/i18n';
+import { AuthProvider } from '../utils/useAuth';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
 function MyApp({ Component, pageProps }) {
@@ -48,6 +49,7 @@ function MyApp({ Component, pageProps }) {
   const showFooter = !pathname.startsWith('/admin');
 
   return (
+    <AuthProvider>
     <LanguageProvider>
       {/* 쿠키 동의 후에만 AdSense 로드 */}
       {cookieConsent === true && (
@@ -72,6 +74,7 @@ function MyApp({ Component, pageProps }) {
       </div>
       <SpeedInsights />
     </LanguageProvider>
+    </AuthProvider>
   );
 }
 

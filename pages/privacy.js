@@ -7,21 +7,26 @@ const sections = [
     title: '수집하는 정보',
     content: (
       <>
-        <p className="font-semibold text-gray-700 mb-2">① 현재 수집 정보</p>
+        <p className="font-semibold text-gray-700 mb-2">① 비로그인 이용자</p>
         <ul className="list-disc list-inside space-y-1 text-gray-600 mb-4">
           <li>이용자가 입력한 게임 닉네임</li>
           <li>접속 로그 (IP 주소, 브라우저 정보, 접속 시간 등)</li>
           <li>쿠키 정보</li>
         </ul>
-        <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
+        <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-2 border border-gray-200 mb-4">
           ※ 닉네임은 공개된 게임 데이터 조회 목적으로만 사용됩니다.
         </p>
-        <p className="font-semibold text-gray-700 mt-5 mb-2">② 향후 로그인 기능 도입 시 수집 예정 정보</p>
-        <ul className="list-disc list-inside space-y-1 text-gray-600">
-          <li>이메일 주소</li>
-          <li>계정 식별 정보</li>
-          <li>서비스 이용 기록</li>
+        <p className="font-semibold text-gray-700 mb-2">② Steam 로그인 이용자</p>
+        <ul className="list-disc list-inside space-y-1 text-gray-600 mb-3">
+          <li>Steam ID (Steam OpenID 인증을 통해 자동 수신)</li>
+          <li>Steam 프로필 닉네임</li>
+          <li>Steam 프로필 이미지 URL</li>
+          <li>연동된 PUBG 닉네임 (이용자가 직접 입력·연동한 경우)</li>
+          <li>세션 쿠키 (로그인 상태 유지 목적, HMAC 서명된 HTTP-only 쿠키)</li>
         </ul>
+        <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
+          ※ Steam 비밀번호, 결제 정보 등 민감 정보는 수집하지 않습니다. 인증은 Valve Corporation의 Steam OpenID 2.0을 통해 처리됩니다.
+        </p>
       </>
     ),
   },
@@ -31,6 +36,8 @@ const sections = [
     content: (
       <ul className="list-disc list-inside space-y-1 text-gray-600">
         <li>플레이어 전적 검색 서비스 제공</li>
+        <li>Steam 로그인을 통한 회원 식별 및 세션 관리</li>
+        <li>PUBG 계정 연동 및 개인화 서비스 제공</li>
         <li>AI 플레이 분석 제공</li>
         <li>서비스 개선 및 통계 분석</li>
         <li>부정 이용 방지</li>
@@ -46,7 +53,8 @@ const sections = [
         <ul className="list-disc list-inside space-y-1 text-gray-600 mb-3">
           <li>닉네임 검색 기록: 최대 12개월</li>
           <li>접속 로그: 최대 6개월</li>
-          <li>회원 가입 정보(향후 도입 시): 탈퇴 시 즉시 삭제</li>
+          <li>Steam 로그인 계정 정보: 계정 삭제(탈퇴) 요청 시 즉시 삭제</li>
+          <li>세션 쿠키: 브라우저 종료 또는 로그아웃 시 만료</li>
         </ul>
         <p className="text-sm text-gray-500">
           법령에 따라 보관이 필요한 경우 해당 기간 동안 보관할 수 있습니다.
@@ -79,10 +87,15 @@ const sections = [
         <p className="text-gray-600 mb-3">
           본 사이트는 원칙적으로 개인정보를 외부에 제공하지 않습니다. 단, 아래의 경우 예외로 합니다.
         </p>
-        <ul className="list-disc list-inside space-y-1 text-gray-600">
+        <ul className="list-disc list-inside space-y-1 text-gray-600 mb-3">
           <li>Google AdSense 광고 제공</li>
+          <li>Valve Corporation — Steam OpenID 2.0 인증 처리 (Steam ID, 프로필 정보 수신)</li>
+          <li>KRAFTON, Inc. — PUBG 공식 API를 통한 게임 데이터 조회</li>
           <li>법령에 의거한 요청</li>
         </ul>
+        <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
+          ※ Steam 인증은 이용자가 직접 Steam 로그인 버튼을 클릭함으로써 동의한 경우에만 처리됩니다.
+        </p>
       </>
     ),
   },
@@ -110,6 +123,14 @@ const sections = [
             <tr>
               <td className="px-4 py-2 text-gray-600">Google AdSense</td>
               <td className="px-4 py-2 text-gray-600">광고 서비스 제공</td>
+            </tr>
+            <tr>
+              <td className="px-4 py-2 text-gray-600">Valve Corporation (Steam)</td>
+              <td className="px-4 py-2 text-gray-600">Steam OpenID 2.0 인증 처리</td>
+            </tr>
+            <tr>
+              <td className="px-4 py-2 text-gray-600">KRAFTON, Inc.</td>
+              <td className="px-4 py-2 text-gray-600">PUBG 공식 API 게임 데이터 제공</td>
             </tr>
           </tbody>
         </table>
@@ -152,7 +173,7 @@ export default function PrivacyPage() {
               ← PK.GG 홈으로
             </Link>
             <h1 className="text-2xl font-bold text-gray-900">개인정보처리방침</h1>
-            <p className="text-sm text-gray-500 mt-1">시행일: 2026년 2월 24일</p>
+            <p className="text-sm text-gray-500 mt-1">시행일: 2026년 3월 3일</p>
           </div>
         </div>
 

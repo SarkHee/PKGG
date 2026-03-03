@@ -35,8 +35,6 @@ export default async function handler(req, res) {
       if (member?.pubgPlayerId) {
         return res.status(200).json({ playerId: member.pubgPlayerId });
       }
-    } finally {
-      await prisma.$disconnect();
     }
   } catch (dbErr) {
     console.warn('[player-id] DB 조회 실패, PUBG API 폴백:', dbErr.message);
@@ -80,8 +78,6 @@ export default async function handler(req, res) {
           },
           data: { pubgPlayerId: playerId, pubgShardId: shard },
         });
-      } finally {
-        await prisma.$disconnect();
       }
     } catch (saveErr) {
       console.warn('[player-id] DB 저장 실패 (무시):', saveErr.message);

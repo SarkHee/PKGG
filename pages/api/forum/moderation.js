@@ -1,9 +1,7 @@
 // API 엔드포인트: 포럼 사용자 제재 관리
 // pages/api/forum/moderation.js
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   try {
@@ -179,7 +177,5 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Moderation API error:', error);
     res.status(500).json({ error: '서버 오류가 발생했습니다.' });
-  } finally {
-    await prisma.$disconnect();
   }
 }

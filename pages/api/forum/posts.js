@@ -160,7 +160,5 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Forum posts API error:', error);
     return res.status(500).json({ error: '서버 오류가 발생했습니다.', details: error.message });
-  } finally {
-    await prisma.$disconnect();
   }
 }

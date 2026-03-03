@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useT } from '../../utils/i18n';
+import { useAuth } from '../../utils/useAuth';
 
 const LANG_OPTIONS = [
   { code: 'ko', label: '한국어', flag: '🇰🇷' },
@@ -20,6 +21,7 @@ export default function Header() {
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const router = useRouter();
   const { lang, t, switchLang } = useT();
+  const { user, logout } = useAuth() || {};
 
   const handleInquiryClick = (e) => {
     e.preventDefault();
@@ -141,6 +143,34 @@ export default function Header() {
                   </button>
                 </div>
               </form>
+
+              {/* Steam 로그인 / 유저 정보 */}
+              {user === undefined ? null : user ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-green-50 border border-green-200">
+                    <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                    <span className="text-xs font-semibold text-green-700 max-w-[100px] truncate">
+                      {user.pubgNickname || 'Steam 유저'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-600 hover:bg-gray-100 transition-all font-medium"
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              ) : (
+                <a
+                  href="/api/auth/steam-login"
+                  className="h-9 flex items-center gap-2 px-3 rounded-lg bg-[#1b2838] hover:bg-[#2a475e] text-white text-xs font-semibold transition-colors border border-[#1b2838]"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 5.623 3.872 10.328 9.092 11.63L9.086 12H12v-1.5c0-.828.672-1.5 1.5-1.5S15 9.672 15 10.5V12h1.5c.828 0 1.5.672 1.5 1.5 0 .796-.622 1.45-1.406 1.496L18 24c3.534-1.257 6-4.649 6-8.5C24 10.745 18.627 0 12 0z"/>
+                  </svg>
+                  Steam 로그인
+                </a>
+              )}
 
               {/* 언어 드롭다운 */}
               <div className="relative">

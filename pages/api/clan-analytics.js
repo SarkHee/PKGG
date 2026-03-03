@@ -1,11 +1,9 @@
 // pages/api/clan-analytics.js
 // 클랜 종합 통계 및 분석 API
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/prisma.js';
 import { analyzeClanRegion } from '../../utils/clanRegionAnalyzer.js';
 import { calculateMMR } from '../../utils/mmrCalculator.js';
-
-const prisma = new PrismaClient();
 
 // 개인 플레이어 분석 로직을 클랜에 적용한 향상된 플레이 스타일 분석 함수
 function analyzeIndividualPlayStyle(memberStats) {
@@ -582,7 +580,5 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('클랜 분석 오류:', error);
     return res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    await prisma.$disconnect();
   }
 }

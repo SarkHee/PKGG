@@ -7,6 +7,7 @@ import Head from 'next/head';
 import Header from '../components/layout/Header';
 import { getMMRTier, MMR_DISCLAIMER } from '../utils/mmrCalculator';
 import { useT } from '../utils/i18n';
+import { useAuth } from '../utils/useAuth';
 
 // 랭킹 업데이트 상태 컴포넌트
 function RankingUpdateStatus() {
@@ -203,6 +204,11 @@ export default function ClanAnalytics() {
   const [isAdmin, setIsAdmin] = useState(false);
   const itemsPerPage = 10;
   const { t } = useT();
+  const { user } = useAuth() || {};
+  const canViewFull = user?.role === 'admin' || !!user;
+  const isSteamAdmin = user?.role === 'admin';
+  const myClanId = user?.clanId ?? null;
+  const effectiveMyClanId = (isSteamAdmin || isAdmin) ? null : myClanId;
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -370,7 +376,33 @@ export default function ClanAnalytics() {
       </Head>
       <Header />
 
-      <div className="min-h-screen bg-gray-950 px-4 py-8">
+      {/* 비로그인 팝업 오버레이 */}
+      {user === null && !isAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-[#1b2838] flex items-center justify-center mx-auto mb-5">
+              <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 5.623 3.872 10.328 9.092 11.63L9.086 12H12v-1.5c0-.828.672-1.5 1.5-1.5S15 9.672 15 10.5V12h1.5c.828 0 1.5.672 1.5 1.5 0 .796-.622 1.45-1.406 1.496L18 24c3.534-1.257 6-4.649 6-8.5C24 10.745 18.627 0 12 0z"/>
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-white mb-2">로그인이 필요합니다</h2>
+            <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+              Steam 로그인 후 내 클랜의 상세 데이터를<br />전체 열람할 수 있습니다.
+            </p>
+            <a
+              href="/api/auth/steam-login"
+              className="flex items-center justify-center gap-2.5 w-full px-5 py-3 bg-[#1b2838] hover:bg-[#2a475e] text-white text-sm font-semibold rounded-xl transition-colors border border-[#2a475e]"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 5.623 3.872 10.328 9.092 11.63L9.086 12H12v-1.5c0-.828.672-1.5 1.5-1.5S15 9.672 15 10.5V12h1.5c.828 0 1.5.672 1.5 1.5 0 .796-.622 1.45-1.406 1.496L18 24c3.534-1.257 6-4.649 6-8.5C24 10.745 18.627 0 12 0z"/>
+              </svg>
+              Steam으로 로그인
+            </a>
+          </div>
+        </div>
+      )}
+
+      <div className={`min-h-screen bg-gray-950 px-4 py-8 ${user === null && !isAdmin ? 'blur-sm pointer-events-none select-none' : ''}`}>
         <div className="max-w-6xl mx-auto">
 
           {/* 헤더 */}
@@ -378,6 +410,29 @@ export default function ClanAnalytics() {
             <h1 className="text-3xl font-black text-white mb-1">{t('ca.title')}</h1>
             <p className="text-gray-500 text-sm">{t('ca.subtitle')}</p>
           </div>
+
+          {/* 클랜 미가입 안내 배너 */}
+          {user && !myClanId && !isSteamAdmin && !isAdmin && (
+            <div className="mb-6 bg-gray-900 border border-yellow-500/30 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-yellow-300 mb-0.5">클랜이 확인되지 않습니다</p>
+                <p className="text-xs text-gray-400">가입된 클랜 정보가 없습니다. 클랜을 찾고 있다면 포럼 클랜 모집 게시판을 확인해보세요.</p>
+              </div>
+              <Link href="/forum/category/recruitment" passHref>
+                <span className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  클랜 홍보 확인하기
+                </span>
+              </Link>
+            </div>
+          )}
 
           {/* 필터 & 검색 */}
           <div className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-5">
@@ -554,15 +609,32 @@ export default function ClanAnalytics() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/50">
-                    {rankings.topClansByScore.map((clan, index) => (
-                      <tr key={clan.id} className="hover:bg-gray-800/40 transition-colors">
+                    {rankings.topClansByScore.map((clan, index) => {
+                      const isMyClan = myClanId && clan.id === myClanId;
+                      return (
+                      <tr key={clan.id} className={`transition-all duration-200 ${
+                        effectiveMyClanId
+                          ? isMyClan
+                            ? 'bg-blue-950/50 ring-1 ring-inset ring-blue-500/50 hover:bg-blue-950/70'
+                            : 'opacity-10'
+                          : 'hover:bg-gray-800/40'
+                      }`}>
                         <td className="px-4 py-3">
                           <span className={`text-lg font-black ${rankColor(index)}`}>#{index + 1}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-bold text-white hover:text-blue-400 transition-colors">
-                            {clan.name}
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            {isMyClan || !effectiveMyClanId ? (
+                              <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-bold text-white hover:text-blue-400 transition-colors">
+                                {clan.name}
+                              </Link>
+                            ) : (
+                              <span className="font-bold text-gray-500 cursor-not-allowed select-none">{clan.name}</span>
+                            )}
+                            {isMyClan && (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">내 클랜</span>
+                            )}
+                          </div>
                           {clan.tag && <div className="text-xs text-gray-500">{clan.tag}</div>}
                         </td>
                         <td className="px-4 py-3"><RegionBadge region={clan.region} /></td>
@@ -599,7 +671,8 @@ export default function ClanAnalytics() {
                           )}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -691,8 +764,16 @@ export default function ClanAnalytics() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/50">
-                    {currentClans.map((clan, index) => (
-                      <tr key={clan.id} className="hover:bg-gray-800/40 transition-colors">
+                    {currentClans.map((clan, index) => {
+                      const isMyClan = myClanId && clan.id === myClanId;
+                      return (
+                      <tr key={clan.id} className={`transition-all duration-200 ${
+                        effectiveMyClanId
+                          ? isMyClan
+                            ? 'bg-blue-950/50 ring-1 ring-inset ring-blue-500/50 hover:bg-blue-950/70'
+                            : 'opacity-10'
+                          : 'hover:bg-gray-800/40'
+                      }`}>
                         <td className="px-4 py-3">
                           <span className={`text-sm font-bold ${rankColor(startIndex + index)}`}>
                             #{startIndex + index + 1}
@@ -700,9 +781,16 @@ export default function ClanAnalytics() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-semibold text-white hover:text-blue-400 transition-colors text-sm">
-                              {clan.name}
-                            </Link>
+                            {isMyClan || !effectiveMyClanId ? (
+                              <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-semibold text-white hover:text-blue-400 transition-colors text-sm">
+                                {clan.name}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-gray-500 cursor-not-allowed select-none text-sm">{clan.name}</span>
+                            )}
+                            {isMyClan && (
+                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">내 클랜</span>
+                            )}
                             {clan.staleMemberCount > 0 && (
                               <Tooltip content={`${clan.staleMemberCount}${t('ca.stale_tooltip_post')}`}>
                                 <span className="text-xs bg-yellow-900/50 text-yellow-400 border border-yellow-700/50 px-1.5 py-0.5 rounded cursor-help">
@@ -753,7 +841,8 @@ export default function ClanAnalytics() {
                           )}
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

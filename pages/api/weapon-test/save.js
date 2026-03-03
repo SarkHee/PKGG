@@ -2,11 +2,7 @@
 // POST  → 결과 저장, { sessionId, nickname, platform, pubgPlayerId, resultType, resultName, similarityScore, surveyVector }
 // GET   → ?id=<sessionId> 로 결과 조회
 
-import { PrismaClient } from '@prisma/client';
-
-let prisma;
-if (!globalThis.__prisma) globalThis.__prisma = new PrismaClient();
-prisma = globalThis.__prisma;
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {

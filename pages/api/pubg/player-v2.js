@@ -1,13 +1,6 @@
 // pages/api/pubg/player-v2.js - 개선된 플레이어/클랜 검색 API
 import axios from 'axios';
-import { PrismaClient } from '@prisma/client';
-
-// Prisma 클라이언트 싱글톤 패턴
-let prisma;
-if (!globalThis.__prismaPlayerV2) {
-  globalThis.__prismaPlayerV2 = new PrismaClient();
-}
-prisma = globalThis.__prismaPlayerV2;
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   const { nickname, initUBD } = req.query;

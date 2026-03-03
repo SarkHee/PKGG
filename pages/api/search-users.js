@@ -1,7 +1,5 @@
 // pages/api/search-users.js
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../utils/prisma.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -38,7 +36,5 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('사용자 검색 오류:', error);
     return res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    await prisma.$disconnect();
   }
 }

@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../utils/prisma.js';
 
 const VALID_CATEGORIES = [
   { id: 'strategy', name: '전략 & 팁', description: '게임 전략, 팁, 가이드를 공유하세요', icon: '🧠', color: '#3B82F6', order: 1 },
@@ -46,7 +44,5 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('포럼 초기화 실패:', error);
     return res.status(500).json({ error: '초기화 실패', details: error.message });
-  } finally {
-    await prisma.$disconnect();
   }
 }

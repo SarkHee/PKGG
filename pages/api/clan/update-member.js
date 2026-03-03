@@ -1,10 +1,8 @@
 // pages/api/clan/update-member.js
 // 특정 클랜 멤버의 PUBG 통계를 DB에 수동 업데이트
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../utils/prisma.js';
 import { calculateMMR } from '../../../utils/mmrCalculator';
-
-const prisma = new PrismaClient();
 const PUBG_API_KEY = process.env.PUBG_API_KEY;
 const PUBG_BASE_URL = 'https://api.pubg.com/shards';
 const PUBG_SHARD = 'steam';

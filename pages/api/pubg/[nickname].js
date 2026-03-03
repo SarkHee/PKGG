@@ -727,8 +727,6 @@ export default async function handler(req, res) {
           clanInfo = null;
         }
       }
-
-      await prisma.$disconnect();
     } catch (dbError) {
       console.warn(
         `[DB CLAN ERROR] DB 동기화 실패:`,

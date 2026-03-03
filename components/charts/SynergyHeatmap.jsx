@@ -224,7 +224,7 @@ export default function SynergyHeatmap({
 
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 12, color: '#888', marginBottom: 2 }}>
-                    평균 딜량
+                    파티 시 나의 평균 딜량
                   </div>
                   <div
                     style={{ fontSize: 16, fontWeight: 'bold', color: '#222' }}

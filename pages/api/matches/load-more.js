@@ -152,8 +152,6 @@ export default async function handler(req, res) {
           }
         }
       }
-
-      await prisma.$disconnect();
     } catch (dbErr) {
       console.warn('[load-more] teammate 클랜 조회 실패:', dbErr.message);
     }

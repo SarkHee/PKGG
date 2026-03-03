@@ -87,7 +87,5 @@ export default async function handler(req, res) {
       error: '서버 오류가 발생했습니다.',
       details: error.message,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

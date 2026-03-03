@@ -1,7 +1,5 @@
 // pages/api/debug/check-ubd-clan.js - UBD 클랜 데이터 확인 및 초기화
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   const { action } = req.query; // 'check' 또는 'clear'
@@ -97,7 +95,5 @@ export default async function handler(req, res) {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
