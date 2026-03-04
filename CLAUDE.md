@@ -17,6 +17,8 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | 경로 | 설명 |
 |------|------|
 | `index.js` | 메인 홈 (오로라 CSS 그라디언트 배경) |
+| `compare.js` | 플레이어 비교 (`/compare?a=A&b=B&shard=steam`). 스탯 비교 바 + Chart.js 레이더 차트. 공유 URL 지원. |
+| `clans.js` | 공개 클랜 디렉토리 (`/clans`). MMR 랭킹 순, 지역·클랜명 필터, 페이지네이션 (20개씩). |
 | `player/[server]/[nickname].js` | 플레이어 상세 (무기, 시즌, 랭크 등) |
 | `clan/[clanName].js` | 클랜 상세 |
 | `clan-analytics.js` | 클랜 분석 |
@@ -40,6 +42,7 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `pubg/[nickname].js` | 플레이어 기본 정보 |
 | `pubg/stats/[...params].js` | 시즌/랭크/무기/생존 통계 |
 | `pubg/player-id.js` | accountId 조회 |
+| `pubg/compare.js` | 두 플레이어 시즌 스탯 비교 (`GET ?a=A&b=B&shard=steam`). DB캐시→PUBG API 순으로 playerId 조회, 시즌 스탯 병렬 fetch. |
 | `pubg/playstyle.js` | 플레이스타일 분석 |
 | `clan/batch-update.js` | 클랜 멤버 일괄 업데이트 |
 | `clan/update-rankings.js` | 클랜 랭킹 업데이트 |
@@ -51,6 +54,7 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | 경로 | 설명 |
 |------|------|
 | `player/WeaponMasteryCard.jsx` | 무기 숙련도 카드 (force prop으로 캐시 우회) |
+| `player/GrowthChart.jsx` | 성장 추적 차트 (Line chart). `nickname` + `shard` props. 클랜 배치업데이트 시 스냅샷 저장, 5개 지표 탭(MMR/딜/킬/승률/Top10) |
 | `player/PlayerDashboard.jsx` | 플레이어 대시보드 |
 | `player/PlayerHeader.jsx` | 플레이어 헤더 |
 | `player/EnhancedPlayerStats.jsx` | 향상된 플레이어 통계 |
@@ -123,6 +127,9 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 ---
 
 ## 최근 주요 변경 이력
+- **공개 클랜 디렉토리 추가** (`/clans`): `pages/clans.js` + `pages/api/clans/directory.js`. MMR 내림차순 랭킹, 지역·클랜명 필터, 20개씩 페이지네이션. 티어 뱃지(`getMMRTier`). 헤더 nav 링크 추가. i18n 4개 언어 `clans.*` 키 추가
+- **플레이어 비교 페이지 추가** (`/compare?a=A&b=B`): `pages/compare.js` + `pages/api/pubg/compare.js`. Chart.js 레이더 차트(실제수치 툴팁·축별 실제값 테이블), 스탯 비교 바, 공유 URL. 헤더 nav 추가
+- **성장 추적 기능 추가**: `PlayerStatSnapshot` DB 모델, `components/player/GrowthChart.jsx`, `pages/api/pubg/growth.js`. 클랜 배치업데이트(`batch-update.js`) 시 hasData=true인 경우 스냅샷 자동 저장. 플레이어 상세 페이지에 `GrowthChart` 컴포넌트 삽입. **DB 마이그레이션 필요**: Supabase SQL Editor에서 `player_stat_snapshots` 테이블 생성
 - **클랜 상세 페이지 커스텀 탭 추가**: `pages/clan/[clanName].js` 하단 `SquadCustomTab` + 알고리즘 함수들 (normalize, classifyRole, calcBalanceScore, recommendAllSquads, teamBalanceScore)
   - 스쿼드 추천: `recommendAllSquads(members)` → `{ squads: [[...4명], ...], unassigned: [...] }` 구조로 전체 클랜원을 4인 스쿼드로 분배
   - 역할 분배 로직: Phase1(각 역할별 상위 N명을 스쿼드에 1명씩), Phase2(나머지를 스코어순으로 채움)

@@ -53,7 +53,7 @@ export default function InquiryPage() {
   return (
     <>
       <Head>
-        <title>문의하기 | PK.GG</title>
+        <title>문의하기 | PKGG</title>
         <meta name="description" content="사이트 관련 문의 및 건의사항" />
       </Head>
 

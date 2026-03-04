@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Bash(npx prisma migrate dev --name add_player_stat_snapshots)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.xwwnkcijnjefkcniinjw:qkrdltkr1387!@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1\" npx prisma db push)",
+      "Bash(source /Users/mac/Desktop/PKGG/.env.local)",
+      "Bash(export DATABASE_URL=\"postgresql://postgres.xwwnkcijnjefkcniinjw:qkrdltkr1387!@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1\")",
+      "Bash(export DATABASE_URL=\"postgresql://postgres:qkrdltkr1387!@db.xwwnkcijnjefkcniinjw.supabase.co:5432/postgres\")",
+      "Bash(xargs sed -i '' 's/PK\\\\.GG/PKGG/g')"
     ]
   }
 }

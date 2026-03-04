@@ -167,7 +167,7 @@ export default function Home() {
             <h1 className="mb-6">
               <Image
                 src="/logo.png"
-                alt="PK.GG"
+                alt="PKGG"
                 width={518}
                 height={295}
                 className="w-52 sm:w-80 md:w-[460px] h-auto mx-auto"

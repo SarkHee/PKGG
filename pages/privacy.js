@@ -160,8 +160,8 @@ export default function PrivacyPage() {
   return (
     <>
       <Head>
-        <title>개인정보처리방침 | PK.GG</title>
-        <meta name="description" content="PK.GG 개인정보처리방침 — 수집 정보, 쿠키, 광고, 이용자 권리 안내" />
+        <title>개인정보처리방침 | PKGG</title>
+        <meta name="description" content="PKGG 개인정보처리방침 — 수집 정보, 쿠키, 광고, 이용자 권리 안내" />
         <meta name="robots" content="noindex" />
       </Head>
 
@@ -170,7 +170,7 @@ export default function PrivacyPage() {
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-3xl mx-auto px-4 py-6">
             <Link href="/" className="text-sm text-blue-600 hover:underline mb-3 inline-block">
-              ← PK.GG 홈으로
+              ← PKGG 홈으로
             </Link>
             <h1 className="text-2xl font-bold text-gray-900">개인정보처리방침</h1>
             <p className="text-sm text-gray-500 mt-1">시행일: 2026년 3월 3일</p>
@@ -182,7 +182,7 @@ export default function PrivacyPage() {
           {/* 소개 */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <p className="text-gray-600 leading-relaxed">
-              <strong>PK.GG</strong>(이하 "사이트")는 이용자의 개인정보를 중요하게 생각하며, 개인정보 보호법 및
+              <strong>PKGG</strong>(이하 "사이트")는 이용자의 개인정보를 중요하게 생각하며, 개인정보 보호법 및
               관련 법령을 준수합니다. 본 방침은 사이트가 어떠한 정보를 수집하고, 어떻게 이용·보관·보호하는지를
               설명합니다.
             </p>

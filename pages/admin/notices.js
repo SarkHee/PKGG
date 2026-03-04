@@ -158,7 +158,7 @@ export default function AdminNoticesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Head>
-        <title>공지 관리 | PK.GG</title>
+        <title>공지 관리 | PKGG</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
       <Header />

@@ -39,8 +39,8 @@ export default function AboutPage() {
   return (
     <>
       <Head>
-        <title>About PK.GG | PUBG 전적 분석 플랫폼</title>
-        <meta name="description" content="PK.GG는 PUBG 플레이어 전적 조회, 클랜 분석, 무기 성향 테스트를 제공하는 무료 커뮤니티 플랫폼입니다." />
+        <title>About PKGG | PUBG 전적 분석 플랫폼</title>
+        <meta name="description" content="PKGG는 PUBG 플레이어 전적 조회, 클랜 분석, 무기 성향 테스트를 제공하는 무료 커뮤니티 플랫폼입니다." />
       </Head>
       <Header />
 
@@ -48,7 +48,7 @@ export default function AboutPage() {
         {/* 히어로 */}
         <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
           <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-            <h1 className="text-4xl font-black tracking-tight mb-4">PK.GG</h1>
+            <h1 className="text-4xl font-black tracking-tight mb-4">PKGG</h1>
             <p className="text-lg text-gray-300 leading-relaxed">
               PUBG 플레이어를 위한 무료 전적 분석 & 커뮤니티 플랫폼
             </p>
@@ -59,9 +59,9 @@ export default function AboutPage() {
 
           {/* 소개 */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-3">PK.GG란?</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">PKGG란?</h2>
             <p className="text-gray-600 leading-relaxed">
-              PK.GG는 PUBG(배틀그라운드) 플레이어들을 위해 만들어진 무료 분석 플랫폼입니다.
+              PKGG는 PUBG(배틀그라운드) 플레이어들을 위해 만들어진 무료 분석 플랫폼입니다.
               PUBG 공식 API를 활용해 실시간 전적 데이터를 제공하며, 클랜 분석·무기 성향 테스트·데미지 표 등
               게임 실력 향상에 도움이 되는 다양한 도구를 제공합니다.
             </p>
@@ -98,7 +98,7 @@ export default function AboutPage() {
           <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6">
             <h2 className="text-sm font-bold text-amber-800 mb-2">면책 고지</h2>
             <p className="text-sm text-amber-700 leading-relaxed">
-              PK.GG는 Krafton(크래프톤) 또는 PUBG Corp와 공식적으로 제휴된 서비스가 아닙니다.
+              PKGG는 Krafton(크래프톤) 또는 PUBG Corp와 공식적으로 제휴된 서비스가 아닙니다.
               PUBG® 및 BATTLEGROUNDS®는 KRAFTON, Inc.의 등록 상표입니다.
               본 사이트는 팬 제작 비공식 서비스이며, 게임 데이터는 공개 API를 통해 제공됩니다.
             </p>

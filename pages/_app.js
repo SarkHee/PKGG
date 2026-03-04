@@ -6,9 +6,58 @@ import { useRouter } from 'next/router';
 import Script from 'next/script';
 import CookieBanner from '../components/CookieBanner';
 import Footer from '../components/layout/Footer';
-import { LanguageProvider } from '../utils/i18n';
+import { LanguageProvider, useT } from '../utils/i18n';
 import { AuthProvider } from '../utils/useAuth';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/next';
+
+function FloatingSearch() {
+  const [nick, setNick] = useState('');
+  const [srv, setSrv] = useState('steam');
+  const router = useRouter();
+  const { t } = useT();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (nick.trim()) {
+      router.push(`/player/${srv}/${encodeURIComponent(nick.trim())}`);
+      setNick('');
+    }
+  };
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-5 px-4 pointer-events-none">
+      <form
+        onSubmit={handleSubmit}
+        className="pointer-events-auto flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-2 shadow-lg w-full max-w-md"
+      >
+        <select
+          value={srv}
+          onChange={(e) => setSrv(e.target.value)}
+          className="bg-transparent text-gray-600 text-xs font-bold border-none outline-none cursor-pointer"
+        >
+          <option value="steam">Steam</option>
+          <option value="kakao">Kakao</option>
+          <option value="console">Console</option>
+        </select>
+        <div className="w-px h-4 bg-gray-200" />
+        <input
+          type="text"
+          placeholder={t('search.placeholder')}
+          value={nick}
+          onChange={(e) => setNick(e.target.value)}
+          className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 text-sm outline-none min-w-0"
+        />
+        <button
+          type="submit"
+          className="flex-shrink-0 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-sm transition-colors"
+        >
+          {t('search.button')}
+        </button>
+      </form>
+    </div>
+  );
+}
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
@@ -45,8 +94,9 @@ function MyApp({ Component, pageProps }) {
     setCookieConsent(false);
   };
 
-  // 관리자 페이지는 Footer 제외
+  // 관리자 페이지는 Footer/검색 제외
   const showFooter = !pathname.startsWith('/admin');
+  const showSearch = !pathname.startsWith('/admin') && pathname !== '/';
 
   return (
     <AuthProvider>
@@ -72,7 +122,9 @@ function MyApp({ Component, pageProps }) {
         </div>
         {showFooter && <Footer />}
       </div>
+      {showSearch && <FloatingSearch />}
       <SpeedInsights />
+      <Analytics />
     </LanguageProvider>
     </AuthProvider>
   );

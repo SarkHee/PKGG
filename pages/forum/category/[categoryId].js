@@ -165,7 +165,7 @@ export default function ForumCategory() {
   return (
     <>
       <Head>
-        <title>{categoryInfo.name} | 커뮤니티 포럼 | PK.GG</title>
+        <title>{categoryInfo.name} | 커뮤니티 포럼 | PKGG</title>
         <meta
           name="description"
           content={`${categoryInfo.name} - PUBG 커뮤니티 포럼`}

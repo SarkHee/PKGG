@@ -15,46 +15,23 @@ const LANG_OPTIONS = [
 ];
 
 export default function Header() {
-  const [nickname, setNickname] = useState('');
-  const [server, setServer] = useState('steam');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const router = useRouter();
   const { lang, t, switchLang } = useT();
   const { user, logout } = useAuth() || {};
 
-  const handleInquiryClick = (e) => {
-    e.preventDefault();
-    const mailtoLink = `mailto:sssyck123@naver.com?subject=${encodeURIComponent(t('nav.email_subject'))}&body=${encodeURIComponent(t('nav.email_body'))}`;
-    window.location.href = mailtoLink;
-  };
-
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!nickname.trim()) return;
-    try {
-      await fetch('/api/clan/update-member', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clanName: '', nickname }),
-      });
-    } catch (err) {
-      // ignore
-    }
-    router.push(`/player/${server}/${encodeURIComponent(nickname)}`);
-    setNickname('');
-    setMobileMenuOpen(false);
-  };
-
   const isActive = (path) => router.pathname === path || router.pathname.startsWith(path + '/');
 
   const navLinks = [
-    { href: '/clan-analytics', labelKey: 'nav.clan_analytics', icon: '📊' },
-    { href: '/weapon-test', labelKey: 'nav.weapon_test', icon: '🔫', highlight: true },
-    { href: '/weapon-damage', labelKey: 'nav.weapon_damage', icon: '📋' },
-    { href: '/forum', labelKey: 'nav.forum', icon: '💬' },
-    { href: '/notices', labelKey: 'nav.notices', icon: '📋' },
-    { href: '/pubg-news', labelKey: 'nav.news', icon: '📢' },
+    { href: '/compare', labelKey: 'nav.compare' },
+    { href: '/clans', labelKey: 'nav.clans' },
+    { href: '/clan-analytics', labelKey: 'nav.clan_analytics' },
+    { href: '/weapon-test', labelKey: 'nav.weapon_test', highlight: true },
+    { href: '/weapon-damage', labelKey: 'nav.weapon_damage' },
+    { href: '/forum', labelKey: 'nav.forum' },
+    { href: '/notices', labelKey: 'nav.notices' },
+    { href: '/pubg-news', labelKey: 'nav.news' },
   ];
 
   const currentLang = LANG_OPTIONS.find((l) => l.code === lang) || LANG_OPTIONS[0];
@@ -74,7 +51,7 @@ export default function Header() {
                 <span className="cursor-pointer mr-5 flex items-center flex-shrink-0">
                   <Image
                     src="/logo.png"
-                    alt="PK.GG"
+                    alt="PKGG"
                     width={518}
                     height={295}
                     className="h-8 w-auto object-contain"
@@ -87,14 +64,13 @@ export default function Header() {
               <nav className="hidden md:flex items-center gap-1">
                 {navLinks.map((link) => (
                   <Link key={link.href} href={link.href} passHref>
-                    <span className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
+                    <span className={`relative flex items-center px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
                       isActive(link.href)
                         ? 'bg-blue-50 text-blue-700'
                         : link.highlight
                         ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}>
-                      <span className="text-base leading-none">{link.icon}</span>
                       {t(link.labelKey)}
                       {link.highlight && !isActive(link.href) && (
                         <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
@@ -102,48 +78,11 @@ export default function Header() {
                     </span>
                   </Link>
                 ))}
-                <button
-                  onClick={handleInquiryClick}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all bg-transparent border-none cursor-pointer"
-                >
-                  <span className="text-base leading-none">📧</span>
-                  {t('nav.contact')}
-                </button>
               </nav>
             </div>
 
-            {/* 오른쪽: 검색 + 언어 */}
+            {/* 오른쪽: 언어 + 로그인 */}
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-              {/* 검색 폼 */}
-              <form onSubmit={handleSearch} className="flex items-center gap-2">
-                <select
-                  value={server}
-                  onChange={(e) => setServer(e.target.value)}
-                  className="h-9 border border-gray-200 rounded-lg px-2 text-sm text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all"
-                >
-                  <option value="steam">Steam</option>
-                  <option value="kakao">Kakao</option>
-                </select>
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    placeholder={t('search.placeholder')}
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    className="h-9 border border-gray-200 rounded-l-lg pl-3 pr-2 text-sm text-gray-800 bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all w-40"
-                  />
-                  <button
-                    type="submit"
-                    className="h-9 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-r-lg text-sm font-semibold transition-colors flex items-center gap-1"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    {t('search.button')}
-                  </button>
-                </div>
-              </form>
-
               {/* Steam 로그인 / 유저 정보 */}
               {user === undefined ? null : user ? (
                 <div className="flex items-center gap-2">
@@ -233,7 +172,7 @@ export default function Header() {
                   }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {link.icon} {t(link.labelKey)}
+                  {t(link.labelKey)}
                 </span>
               </Link>
             ))}
@@ -255,29 +194,6 @@ export default function Header() {
                   </button>
                 ))}
               </div>
-            </div>
-
-            <div className="pt-1 border-t border-gray-100">
-              <form onSubmit={handleSearch} className="flex gap-2">
-                <select
-                  value={server}
-                  onChange={(e) => setServer(e.target.value)}
-                  className="border border-gray-200 rounded-lg px-2 py-2 text-sm bg-gray-50 flex-shrink-0"
-                >
-                  <option value="steam">Steam</option>
-                  <option value="kakao">Kakao</option>
-                </select>
-                <input
-                  type="text"
-                  placeholder={t('search.placeholder')}
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                  className="flex-1 border border-gray-200 rounded-l-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-r-lg text-sm font-semibold">
-                  {t('search.button')}
-                </button>
-              </form>
             </div>
           </div>
         )}

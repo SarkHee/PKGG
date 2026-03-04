@@ -608,9 +608,9 @@ export default function WeaponTestPage() {
   return (
     <>
       <Head>
-        <title>{t('wt.title')} | PK.GG</title>
+        <title>{t('wt.title')} | PKGG</title>
         <meta name="description" content="10문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
-        <meta property="og:title" content="PUBG 무기 성향 테스트 | PK.GG" />
+        <meta property="og:title" content="PUBG 무기 성향 테스트 | PKGG" />
         <meta property="og:description" content="10문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
       </Head>
 

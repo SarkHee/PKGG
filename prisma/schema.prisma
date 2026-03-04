@@ -298,3 +298,21 @@ model TrainingSession {
 
   @@map("training_sessions")
 }
+
+// 플레이어 스탯 스냅샷 — 성장 추적용 히스토리
+model PlayerStatSnapshot {
+  id             Int      @id @default(autoincrement())
+  nickname       String
+  pubgShardId    String   @default("steam")
+  score          Int      @default(0)
+  avgDamage      Float    @default(0)
+  avgKills       Float    @default(0)
+  avgAssists     Float    @default(0)
+  avgSurviveTime Float    @default(0)
+  winRate        Float    @default(0)
+  top10Rate      Float    @default(0)
+  capturedAt     DateTime @default(now())
+
+  @@index([nickname, pubgShardId, capturedAt])
+  @@map("player_stat_snapshots")
+}

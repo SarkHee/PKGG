@@ -7,6 +7,7 @@ import {
 } from '../../../utils/pubgBatchApi.js';
 import prisma from '../../../utils/prisma.js';
 import { calculateMMR } from '../../../utils/mmrCalculator';
+import { cachedPubgFetch, TTL } from '../../../utils/pubgApiCache.js';
 
 const rateLimitManager = new RateLimitManager(10); // 분당 10회 제한
 
@@ -33,22 +34,11 @@ export default async function handler(req, res) {
     // Rate limit 확인
     await rateLimitManager.waitIfNeeded();
 
-    // 현재 시즌 ID 조회
-    const seasonResponse = await fetch(
+    // 현재 시즌 ID 조회 (60분 캐시)
+    const seasonData = await cachedPubgFetch(
       `https://api.pubg.com/shards/${shard}/seasons`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.PUBG_API_KEY}`,
-          Accept: 'application/vnd.api+json',
-        },
-      }
+      { ttl: TTL.SEASON }
     );
-
-    if (!seasonResponse.ok) {
-      throw new Error('시즌 정보 조회 실패');
-    }
-
-    const seasonData = await seasonResponse.json();
     const currentSeason = seasonData.data.find(
       (season) => season.attributes.isCurrentSeason
     );
@@ -77,6 +67,17 @@ export default async function handler(req, res) {
       throw new Error(`클랜 '${clanName}'을 찾을 수 없습니다.`);
     }
 
+    // 모든 멤버 DB 일괄 조회 (N+1 방지)
+    const allExistingMembers = await prisma.clanMember.findMany({
+      where: { nickname: { in: memberNames, mode: 'insensitive' } },
+    });
+    const membersByNickname = new Map();
+    for (const m of allExistingMembers) {
+      const key = m.nickname.toLowerCase();
+      if (!membersByNickname.has(key)) membersByNickname.set(key, []);
+      membersByNickname.get(key).push(m);
+    }
+
     let updatedCount = 0;
     let errorCount = 0;
 
@@ -88,10 +89,7 @@ export default async function handler(req, res) {
           continue;
         }
 
-        // 닉네임으로 전역 검색 (clanId 무관)
-        const existingMembers = await prisma.clanMember.findMany({
-          where: { nickname: { equals: nickname, mode: 'insensitive' } },
-        });
+        const existingMembers = membersByNickname.get(nickname.toLowerCase()) || [];
 
         let member;
         if (existingMembers.length > 1) {
@@ -99,9 +97,11 @@ export default async function handler(req, res) {
           const withId = existingMembers.find((m) => m.pubgPlayerId);
           const keepRecord = withId || existingMembers[0];
           const deleteIds = existingMembers.filter((m) => m.id !== keepRecord.id).map((m) => m.id);
-          await prisma.playerMatch.deleteMany({ where: { clanMemberId: { in: deleteIds } } });
-          await prisma.playerModeStats.deleteMany({ where: { clanMemberId: { in: deleteIds } } });
-          await prisma.clanMember.deleteMany({ where: { id: { in: deleteIds } } });
+          await Promise.all([
+            prisma.playerMatch.deleteMany({ where: { clanMemberId: { in: deleteIds } } }),
+            prisma.playerModeStats.deleteMany({ where: { clanMemberId: { in: deleteIds } } }),
+            prisma.clanMember.deleteMany({ where: { id: { in: deleteIds } } }),
+          ]);
           if (keepRecord.clanId !== clan.id) {
             await prisma.clanMember.update({ where: { id: keepRecord.id }, data: { clanId: clan.id } });
           }
@@ -185,6 +185,23 @@ export default async function handler(req, res) {
             lastUpdated: new Date(),
           },
         });
+
+        // 성장 추적 스냅샷 저장 (hasData일 때만)
+        if (hasData) {
+          await prisma.playerStatSnapshot.create({
+            data: {
+              nickname,
+              pubgShardId: shard,
+              score,
+              avgDamage:      Math.round(avgDamage),
+              avgKills:       parseFloat(avgKills.toFixed(2)),
+              avgAssists:     parseFloat(avgAssists.toFixed(2)),
+              avgSurviveTime: Math.round(avgSurviveTime),
+              winRate:        parseFloat(winRate.toFixed(1)),
+              top10Rate:      parseFloat(top10Rate.toFixed(1)),
+            },
+          }).catch((e) => console.warn(`${nickname} 스냅샷 저장 실패(무시):`, e.message));
+        }
 
         updatedCount++;
         console.log(

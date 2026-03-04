@@ -1,4 +1,4 @@
-// PK.GG/pages/api/pubg/[nickname].js
+// PKGG/pages/api/pubg/[nickname].js
 
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -783,7 +783,7 @@ export default async function handler(req, res) {
                     ? parseFloat((s.kills / deaths).toFixed(1))
                     : s.kills;
 
-                // 기존 PK.GG 계산식 유지, 누락 항목 추가
+                // 기존 PKGG 계산식 유지, 누락 항목 추가
                 modeStats[mode] = {
                   rounds: s.roundsPlayed,
                   wins: s.wins,
@@ -836,7 +836,7 @@ export default async function handler(req, res) {
               (totalDamageDealt / totalRoundsPlayed).toFixed(1)
             );
 
-            // PK.GG 점수 계산 수정: 경기당 평균 성과 기반 점수
+            // PKGG 점수 계산 수정: 경기당 평균 성과 기반 점수
             const kills = relevantSquadStats.kills || 0;
             const damage = relevantSquadStats.damageDealt || 0;
             const survival = relevantSquadStats.timeSurvived || 0;
@@ -850,7 +850,7 @@ export default async function handler(req, res) {
             const winRate = (wins / totalRoundsPlayed) * 100;
             const top10Rate = (top10s / totalRoundsPlayed) * 100;
 
-            // PK.GG 점수 — calculateMMR 통일 공식 사용
+            // PKGG 점수 — calculateMMR 통일 공식 사용
             averageScore = calculateMMR({
               avgDamage,
               avgKills,
@@ -863,10 +863,10 @@ export default async function handler(req, res) {
             averageScore = 1000; // 기본 점수
           }
           console.log(
-            `[API INFO] 시즌 평균 딜량 (스쿼드): ${seasonAvgDamage}, PK.GG 점수: ${averageScore}`
+            `[API INFO] 시즌 평균 딜량 (스쿼드): ${seasonAvgDamage}, PKGG 점수: ${averageScore}`
           );
           console.log(
-            `[PK.GG SCORE] 점수 계산 상세:`,
+            `[PKGG SCORE] 점수 계산 상세:`,
             `킬: ${relevantSquadStats?.kills || 0}/${relevantSquadStats?.roundsPlayed || 1} = ${((relevantSquadStats?.kills || 0) / (relevantSquadStats?.roundsPlayed || 1)).toFixed(1)}`,
             `딜량: ${((relevantSquadStats?.damageDealt || 0) / (relevantSquadStats?.roundsPlayed || 1)).toFixed(0)}`,
             `승률: ${(((relevantSquadStats?.wins || 0) / (relevantSquadStats?.roundsPlayed || 1)) * 100).toFixed(1)}%`
@@ -1465,9 +1465,9 @@ export default async function handler(req, res) {
 
       const totalSquads = rostersMap.size;
 
-      // 팀 전체 MMR 계산 (개선된 PK.GG 점수 기반)
+      // 팀 전체 MMR 계산 (개선된 PKGG 점수 기반)
       const teamTotalScore = teammatesDetail.reduce((sum, p) => {
-        // 개선된 PK.GG 점수 공식 적용
+        // 개선된 PKGG 점수 공식 적용
         const isTeamWin = myRank === 1;
         const isTeamTop10 = myRank > 0 && myRank <= 10;
         const score =

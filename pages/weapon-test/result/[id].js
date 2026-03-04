@@ -189,9 +189,9 @@ export default function SharedResultPage({ rowData, error }) {
   return (
     <>
       <Head>
-        <title>{`${type.name} | PUBG 무기 성향 테스트 | PK.GG`}</title>
+        <title>{`${type.name} | PUBG 무기 성향 테스트 | PKGG`}</title>
         <meta name="description" content={`${nickname ? nickname + '님의 ' : ''}PUBG 무기 성향: ${type.name} — ${type.description.slice(0, 60)}...`} />
-        <meta property="og:title" content={`${type.emoji} ${type.name} | PK.GG 무기 성향 테스트`} />
+        <meta property="og:title" content={`${type.emoji} ${type.name} | PKGG 무기 성향 테스트`} />
         <meta property="og:description" content={type.description} />
       </Head>
 

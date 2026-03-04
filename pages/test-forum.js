@@ -47,7 +47,7 @@ export default function TestForum() {
   return (
     <>
       <Head>
-        <title>포럼 테스트 | PK.GG</title>
+        <title>포럼 테스트 | PKGG</title>
       </Head>
       <Header />
 

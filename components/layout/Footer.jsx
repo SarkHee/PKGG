@@ -13,7 +13,7 @@ export default function Footer() {
         <Link href="/contact" className="px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 text-xs font-medium transition-all border border-gray-200 whitespace-nowrap">{t('footer.contact')}</Link>
       </div>
       <p className="text-xs mt-3 text-gray-400">
-        &copy; 2026 PK.GG. All rights reserved.
+        &copy; 2026 PKGG. All rights reserved.
       </p>
       {/* 숨겨진 관리자 링크 — 텍스트 드래그(선택) 시 노출 */}
       <div className="mt-2 select-all">

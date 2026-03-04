@@ -79,7 +79,7 @@ export default function DebugForum() {
   return (
     <>
       <Head>
-        <title>포럼 디버그 | PK.GG</title>
+        <title>포럼 디버그 | PKGG</title>
       </Head>
 
       <div className="min-h-screen bg-gray-100 p-8">

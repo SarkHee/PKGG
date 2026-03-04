@@ -337,8 +337,8 @@ const PlayerHeader = ({
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-gray-400 mb-1">
-                      <Tooltip content="PK.GG 자체 산출 점수 (시즌 전체 기준)&#10;딜량·킬·승률·TOP10을 가중 합산합니다.&#10;배그 공식 RP와 무관합니다.">
-                        PK.GG 점수 ℹ️
+                      <Tooltip content="PKGG 자체 산출 점수 (시즌 전체 기준)&#10;딜량·킬·승률·TOP10을 가중 합산합니다.&#10;배그 공식 RP와 무관합니다.">
+                        PKGG 점수 ℹ️
                       </Tooltip>
                     </div>
                     <div className="text-xl font-black text-blue-600">{seasonStat.score}</div>
@@ -405,7 +405,7 @@ const PlayerHeader = ({
               <div className="text-center">
                 <div className="text-xs text-gray-400 mb-1">
                   <Tooltip content="킬 + 딜량 + 생존 시간을 가중치 기반으로 조합한 경기 성과 기반 내부 점수입니다. (공식 랭킹 RP가 아님)">
-                    PK.GG 점수 ℹ️
+                    PKGG 점수 ℹ️
                   </Tooltip>
                 </div>
                 <div className="text-xl font-black text-blue-600">

@@ -211,7 +211,7 @@ export default function PostDetail() {
   return (
     <>
       <Head>
-        <title>{post.title} | PK.GG 커뮤니티</title>
+        <title>{post.title} | PKGG 커뮤니티</title>
         <meta name="description" content={post.content?.substring(0, 160)} />
       </Head>
       <Header />

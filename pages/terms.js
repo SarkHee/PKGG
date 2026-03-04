@@ -7,7 +7,7 @@ const sections = [
     title: '서비스 개요',
     content: (
       <p className="text-gray-600 leading-relaxed">
-        PK.GG(이하 "사이트")는 PUBG 플레이어 전적 조회, 클랜 분석, 무기 성향 테스트, 커뮤니티 포럼 등을
+        PKGG(이하 "사이트")는 PUBG 플레이어 전적 조회, 클랜 분석, 무기 성향 테스트, 커뮤니티 포럼 등을
         제공하는 무료 비공식 팬 서비스입니다. 본 약관은 사이트 이용 시 적용되는 조건을 규정합니다.
       </p>
     ),
@@ -18,7 +18,7 @@ const sections = [
     content: (
       <>
         <p className="text-gray-600 mb-3">
-          PK.GG는 Steam OpenID 2.0을 통한 로그인 기능을 제공합니다. 이와 관련하여 아래 사항을 준수해야 합니다.
+          PKGG는 Steam OpenID 2.0을 통한 로그인 기능을 제공합니다. 이와 관련하여 아래 사항을 준수해야 합니다.
         </p>
         <ul className="list-disc list-inside space-y-1.5 text-gray-600 mb-3">
           <li>로그인은 이용자 본인 소유의 Steam 계정을 사용해야 합니다.</li>
@@ -27,8 +27,8 @@ const sections = [
           <li>계정 삭제(탈퇴)를 원하는 경우 문의 이메일로 요청할 수 있습니다.</li>
         </ul>
         <p className="text-sm text-gray-500 bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
-          ※ PK.GG는 Steam 비밀번호를 저장하지 않습니다. 인증은 Valve Corporation의 Steam OpenID 서버를 통해 처리됩니다.
-          PK.GG는 Valve Corporation 또는 KRAFTON, Inc.와 공식 제휴 관계가 없습니다.
+          ※ PKGG는 Steam 비밀번호를 저장하지 않습니다. 인증은 Valve Corporation의 Steam OpenID 서버를 통해 처리됩니다.
+          PKGG는 Valve Corporation 또는 KRAFTON, Inc.와 공식 제휴 관계가 없습니다.
         </p>
       </>
     ),
@@ -75,9 +75,9 @@ const sections = [
     content: (
       <p className="text-gray-600 leading-relaxed">
         PUBG® 및 BATTLEGROUNDS®는 KRAFTON, Inc.의 등록 상표이며, 게임 관련 모든 이미지·데이터의 저작권은
-        해당 권리자에게 있습니다. PK.GG는 공개된 공식 API를 통해 데이터를 표시할 뿐이며,
+        해당 권리자에게 있습니다. PKGG는 공개된 공식 API를 통해 데이터를 표시할 뿐이며,
         Krafton 또는 PUBG Corp와 공식 제휴 관계가 없습니다.
-        사이트 자체 콘텐츠(디자인, 코드, 분석 로직 등)의 저작권은 PK.GG에 귀속됩니다.
+        사이트 자체 콘텐츠(디자인, 코드, 분석 로직 등)의 저작권은 PKGG에 귀속됩니다.
       </p>
     ),
   },
@@ -88,8 +88,8 @@ const sections = [
       <ul className="list-disc list-inside space-y-1.5 text-gray-600">
         <li>본 서비스는 "있는 그대로(AS-IS)" 제공되며, 데이터의 정확성·완전성을 보증하지 않습니다.</li>
         <li>PUBG API 변경, 서버 점검 등으로 서비스가 일시 중단될 수 있습니다.</li>
-        <li>서비스 이용으로 인한 손해에 대해 PK.GG는 책임을 지지 않습니다.</li>
-        <li>포럼 사용자가 작성한 게시물의 내용에 대해 PK.GG는 책임을 지지 않습니다.</li>
+        <li>서비스 이용으로 인한 손해에 대해 PKGG는 책임을 지지 않습니다.</li>
+        <li>포럼 사용자가 작성한 게시물의 내용에 대해 PKGG는 책임을 지지 않습니다.</li>
       </ul>
     ),
   },
@@ -109,8 +109,8 @@ export default function TermsPage() {
   return (
     <>
       <Head>
-        <title>이용약관 | PK.GG</title>
-        <meta name="description" content="PK.GG 이용약관 — 서비스 이용 조건, 커뮤니티 규칙, 면책 조항" />
+        <title>이용약관 | PKGG</title>
+        <meta name="description" content="PKGG 이용약관 — 서비스 이용 조건, 커뮤니티 규칙, 면책 조항" />
         <meta name="robots" content="noindex" />
       </Head>
 
@@ -119,7 +119,7 @@ export default function TermsPage() {
         <div className="bg-white border-b border-gray-200">
           <div className="max-w-3xl mx-auto px-4 py-6">
             <Link href="/" className="text-sm text-blue-600 hover:underline mb-3 inline-block">
-              ← PK.GG 홈으로
+              ← PKGG 홈으로
             </Link>
             <h1 className="text-2xl font-bold text-gray-900">이용약관</h1>
             <p className="text-sm text-gray-500 mt-1">시행일: 2026년 3월 3일</p>
@@ -131,7 +131,7 @@ export default function TermsPage() {
           {/* 소개 */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <p className="text-gray-600 leading-relaxed">
-              PK.GG 서비스를 이용하시기 전에 아래 이용약관을 주의 깊게 읽어주시기 바랍니다.
+              PKGG 서비스를 이용하시기 전에 아래 이용약관을 주의 깊게 읽어주시기 바랍니다.
               사이트를 이용함으로써 본 약관에 동의한 것으로 간주됩니다.
             </p>
           </div>

@@ -27,8 +27,8 @@ export default function ContactPage() {
   return (
     <>
       <Head>
-        <title>문의 | PK.GG</title>
-        <meta name="description" content="PK.GG에 버그 제보, 기능 제안, 기타 문의를 보내주세요." />
+        <title>문의 | PKGG</title>
+        <meta name="description" content="PKGG에 버그 제보, 기능 제안, 기타 문의를 보내주세요." />
         <meta name="robots" content="noindex" />
       </Head>
       <Header />
@@ -39,7 +39,7 @@ export default function ContactPage() {
           {/* 타이틀 */}
           <div>
             <Link href="/" className="text-sm text-blue-600 hover:underline mb-3 inline-block">
-              ← PK.GG 홈으로
+              ← PKGG 홈으로
             </Link>
             <h1 className="text-2xl font-bold text-gray-900">문의하기</h1>
             <p className="text-gray-500 text-sm mt-1">버그 제보, 기능 제안, 기타 문의는 언제든지 환영합니다.</p>

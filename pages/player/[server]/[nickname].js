@@ -16,6 +16,7 @@ import PlayerHeader from '../../../components/player/PlayerHeader';
 import MatchDetailExpandable from '../../../components/match/MatchDetailExpandable';
 import AICoachingCard from '../../../components/player/AICoachingCard';
 import WeaponMasteryCard from '../../../components/player/WeaponMasteryCard';
+import GrowthChart from '../../../components/player/GrowthChart';
 import AdUnit from '../../../components/AdUnit';
 
 // 반드시 export default 함수 바깥에 위치!
@@ -460,7 +461,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
                   플레이어를 찾을 수 없습니다
                 </h1>
                 <p className="text-lg text-gray-600 mb-4">
-                  PK.GG에 등록되어있지않은 플레이어입니다.
+                  PKGG에 등록되어있지않은 플레이어입니다.
                 </p>
                 <p className="text-base text-gray-500">
                   닉네임확인 후 다시 검색해주세요.
@@ -910,15 +911,15 @@ export default function PlayerPage({ playerData, error, dataSource }) {
       <div className="bg-gray-50 min-h-screen text-gray-900">
         <div className="max-w-screen-xl mx-auto px-4 py-6">
         <Head>
-          <title>{`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`}</title>
+          <title>{`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`}</title>
           <meta name="description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 및 클랜 시너지 분석 정보.`} />
           <meta property="og:type" content="profile" />
           <meta property="og:url" content={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
-          <meta property="og:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`} />
+          <meta property="og:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`} />
           <meta property="og:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
           <meta property="og:image" content="https://pk.gg/og.png" />
           <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PK.GG`} />
+          <meta name="twitter:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`} />
           <meta name="twitter:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
           <meta name="twitter:image" content="https://pk.gg/og.png" />
           <link rel="canonical" href={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
@@ -1129,6 +1130,14 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             </div>
           </div>
         )}
+
+        {/* 성장 추적 섹션 */}
+        <div className="mb-8">
+          <GrowthChart
+            nickname={profile.nickname}
+            shard={profile.shardId || router.query.server || 'steam'}
+          />
+        </div>
 
         {/* 광고 3: 무기 통계 아래 */}
         <AdUnit slot="2646189375" format="auto" className="mb-6" />

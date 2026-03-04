@@ -77,7 +77,7 @@ export default function EmergencyFix() {
   return (
     <>
       <Head>
-        <title>긴급 포럼 복구 | PK.GG</title>
+        <title>긴급 포럼 복구 | PKGG</title>
       </Head>
 
       <div className="min-h-screen bg-gray-100 p-8">

@@ -194,58 +194,36 @@ export default async function handler(req, res) {
 
 // 클랜 통계 재계산 (백그라운드)
 async function updateClanStatsInBackground(clanId) {
-
   try {
-    // 클랜 멤버들의 평균 통계 계산
-    const members = await prisma.clanMember.findMany({
+    const agg = await prisma.clanMember.aggregate({
       where: { clanId },
+      _avg: {
+        avgDamage: true,
+        avgKills: true,
+        avgAssists: true,
+        avgSurviveTime: true,
+        winRate: true,
+        top10Rate: true,
+        score: true,
+      },
+      _count: { id: true },
     });
 
-    if (members.length === 0) return;
+    const count = agg._count.id;
+    if (count === 0) return;
 
-    const avgStats = {
-      avgDamage: Math.round(
-        members.reduce((sum, m) => sum + (m.avgDamage || 0), 0) / members.length
-      ),
-      avgKills:
-        Math.round(
-          (members.reduce((sum, m) => sum + (m.avgKills || 0), 0) /
-            members.length) *
-            10
-        ) / 10,
-      avgAssists:
-        Math.round(
-          (members.reduce((sum, m) => sum + (m.avgAssists || 0), 0) /
-            members.length) *
-            10
-        ) / 10,
-      avgSurviveTime: Math.round(
-        members.reduce((sum, m) => sum + (m.avgSurviveTime || 0), 0) /
-          members.length
-      ),
-      avgWinRate:
-        Math.round(
-          (members.reduce((sum, m) => sum + (m.winRate || 0), 0) /
-            members.length) *
-            10
-        ) / 10,
-      avgTop10Rate:
-        Math.round(
-          (members.reduce((sum, m) => sum + (m.top10Rate || 0), 0) /
-            members.length) *
-            10
-        ) / 10,
-      avgScore: Math.round(
-        members.reduce((sum, m) => sum + (m.score || 0), 0) / members.length
-      ),
-    };
-
-    // 클랜 통계 업데이트
+    const avg = agg._avg;
     await prisma.clan.update({
       where: { id: clanId },
       data: {
-        ...avgStats,
-        memberCount: members.length,
+        avgDamage: Math.round(avg.avgDamage || 0),
+        avgKills: Math.round((avg.avgKills || 0) * 10) / 10,
+        avgAssists: Math.round((avg.avgAssists || 0) * 10) / 10,
+        avgSurviveTime: Math.round(avg.avgSurviveTime || 0),
+        avgWinRate: Math.round((avg.winRate || 0) * 10) / 10,
+        avgTop10Rate: Math.round((avg.top10Rate || 0) * 10) / 10,
+        avgScore: Math.round(avg.score || 0),
+        memberCount: count,
         lastUpdated: new Date(),
       },
     });
@@ -253,7 +231,5 @@ async function updateClanStatsInBackground(clanId) {
     console.log(`클랜 ID ${clanId} 통계 재계산 완료`);
   } catch (error) {
     console.error('클랜 통계 재계산 실패:', error);
-  } finally {
-    await prisma.$disconnect();
   }
 }

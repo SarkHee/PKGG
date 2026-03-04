@@ -1,4 +1,4 @@
-// PK.GG/components/MatchDetailCard.jsx
+// PKGG/components/MatchDetailCard.jsx
 
 import React from 'react';
 

@@ -39,14 +39,14 @@ export default function LinkPubg() {
   return (
     <>
       <Head>
-        <title>PUBG 계정 연결 | PK.GG</title>
+        <title>PUBG 계정 연결 | PKGG</title>
         <meta name="robots" content="noindex" />
       </Head>
       <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
         <div className="w-full max-w-md">
           {/* 로고 */}
           <div className="text-center mb-8">
-            <Image src="/logo.png" alt="PK.GG" width={120} height={68} className="mx-auto mb-4" />
+            <Image src="/logo.png" alt="PKGG" width={120} height={68} className="mx-auto mb-4" />
             <h1 className="text-2xl font-black text-white">PUBG 계정 연결</h1>
             <p className="text-gray-400 text-sm mt-2">Steam 로그인이 완료되었습니다.<br/>PUBG 닉네임을 입력해 클랜 데이터를 연결하세요.</p>
           </div>

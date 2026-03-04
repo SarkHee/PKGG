@@ -210,7 +210,7 @@ export default function ForumIndex() {
   return (
     <>
       <Head>
-        <title>커뮤니티 포럼 | PK.GG</title>
+        <title>커뮤니티 포럼 | PKGG</title>
         <meta
           name="description"
           content="PUBG 플레이어들의 커뮤니티 포럼 - 전략, 팁, 질문을 공유하세요"

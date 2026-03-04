@@ -176,7 +176,7 @@ export default function ModerationPanel() {
   return (
     <>
       <Head>
-        <title>포럼 관리자 패널 | PK.GG</title>
+        <title>포럼 관리자 패널 | PKGG</title>
         <meta name="description" content="포럼 사용자 제재 관리" />
         <meta name="robots" content="noindex,nofollow" />
       </Head>

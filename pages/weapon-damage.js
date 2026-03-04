@@ -322,7 +322,7 @@ export default function WeaponDamage() {
   return (
     <>
       <Head>
-        <title>무기 데미지 표 | PK.GG</title>
+        <title>무기 데미지 표 | PKGG</title>
         <meta name="description" content="PUBG 무기별 기본 데미지, 연사속도, 탄창 수치 비교표. 최신 패치 기준으로 업데이트됩니다." />
       </Head>
       <Header />

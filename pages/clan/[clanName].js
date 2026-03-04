@@ -187,7 +187,7 @@ export default function ClanDetail() {
     return (
       <Layout>
         <Head>
-          <title>클랜 정보 로딩 중... | PK.GG</title>
+          <title>클랜 정보 로딩 중... | PKGG</title>
           <meta name="robots" content="noindex" />
         </Head>
         <div className="min-h-screen bg-gray-900 text-white" style={{ marginTop: '-5rem' }}>
@@ -204,7 +204,7 @@ export default function ClanDetail() {
     return (
       <Layout>
         <Head>
-          <title>클랜을 찾을 수 없습니다 | PK.GG</title>
+          <title>클랜을 찾을 수 없습니다 | PKGG</title>
           <meta name="robots" content="noindex" />
         </Head>
         <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center gap-4" style={{ marginTop: '-5rem' }}>
@@ -247,7 +247,7 @@ export default function ClanDetail() {
     { id: 'custom', name: '커스텀', icon: '⚡' },
   ];
 
-  const clanTitle = clan?.name ? `${clan.name} | PK.GG` : '클랜 정보 | PK.GG';
+  const clanTitle = clan?.name ? `${clan.name} | PKGG` : '클랜 정보 | PKGG';
   const clanDesc = clan?.name
     ? `${clan.name} 클랜의 멤버 통계, MMR 랭킹, 플레이스타일 분석 정보를 확인하세요.`
     : 'PUBG 클랜 통계 및 분석 정보.';

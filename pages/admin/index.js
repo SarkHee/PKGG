@@ -159,13 +159,13 @@ export default function AdminDashboard() {
     return (
       <>
         <Head>
-          <title>관리자 로그인 | PK.GG</title>
+          <title>관리자 로그인 | PKGG</title>
           <meta name="robots" content="noindex,nofollow" />
         </Head>
         <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
           <form onSubmit={handleLogin} className="bg-gray-900 rounded-2xl border border-gray-700 p-8 w-full max-w-sm space-y-5">
             <div className="text-center">
-              <div className="text-2xl font-black text-white">PK.GG</div>
+              <div className="text-2xl font-black text-white">PKGG</div>
               <div className="text-sm text-gray-400 mt-1">관리자 전용</div>
             </div>
             <div>
@@ -196,7 +196,7 @@ export default function AdminDashboard() {
   return (
     <>
       <Head>
-        <title>관리자 대시보드 | PK.GG</title>
+        <title>관리자 대시보드 | PKGG</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
 
@@ -204,7 +204,7 @@ export default function AdminDashboard() {
         {/* 헤더 */}
         <div className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
           <div>
-            <span className="font-black text-lg">PK.GG 관리자</span>
+            <span className="font-black text-lg">PKGG 관리자</span>
             <span className="ml-3 text-xs text-gray-500">대시보드</span>
           </div>
           <div className="flex items-center gap-3">

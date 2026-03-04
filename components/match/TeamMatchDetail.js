@@ -1,4 +1,4 @@
-// PK.GG/components/TeamMatchDetail.js
+// PKGG/components/TeamMatchDetail.js
 
 import React from 'react';
 import Link from 'next/link';

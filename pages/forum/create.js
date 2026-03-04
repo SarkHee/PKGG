@@ -158,7 +158,7 @@ export default function CreatePost() {
   return (
     <>
       <Head>
-        <title>새 글 작성 | PK.GG 커뮤니티</title>
+        <title>새 글 작성 | PKGG 커뮤니티</title>
       </Head>
       <Header />
       <div className="min-h-screen bg-gray-50">

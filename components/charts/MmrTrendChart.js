@@ -1,4 +1,4 @@
-// PK.GG/components/MmrTrendChart.js
+// PKGG/components/MmrTrendChart.js
 
 import React from 'react';
 import {
@@ -39,7 +39,7 @@ const MmrTrendChart = ({ matches }) => {
     );
   }
 
-  // PK.GG 내부 점수 기반으로 정렬 및 시각화
+  // PKGG 내부 점수 기반으로 정렬 및 시각화
   const sortedMatches = [...matches].sort((a, b) => {
     const dateA = new Date(a.matchTimestamp);
     const dateB = new Date(b.matchTimestamp);
