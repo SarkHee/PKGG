@@ -3,6 +3,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { calculateMMR } from '../../../utils/mmrCalculator';
+import prisma from '../../../utils/prisma.js';
 
 // PUBG API 설정
 // 중요: .env.local 파일에 PUBG_API_KEY=YOUR_ACTUAL_API_KEY_HERE 형태로 저장해야 합니다.
@@ -557,8 +558,6 @@ export default async function handler(req, res) {
     let dbClan = null;
     
     try {
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
 
       // 기존 플레이어의 DB 멤버 정보 조회
       const existingMember = await prisma.clanMember.findFirst({

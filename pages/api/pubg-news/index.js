@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../utils/prisma.js';
 import * as cheerio from 'cheerio';
 
-const prisma = new PrismaClient();
 
 // PUBG 이벤트 페이지 크롤링 함수
 async function crawlPubgEvents() {

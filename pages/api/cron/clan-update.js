@@ -1,7 +1,7 @@
 // pages/api/cron/clan-update.js
 // Vercel Cron 전용 엔드포인트 - 클랜 랭킹 자동 업데이트 (12:00, 18:00 KST)
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
   // Vercel Cron 인증 확인
@@ -14,7 +14,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const prisma = new PrismaClient();
   const startTime = Date.now();
 
   try {

@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../utils/prisma.js';
 import { calculateMMR } from '../../../utils/mmrCalculator';
 
-const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -195,11 +194,10 @@ export default async function handler(req, res) {
 
 // 클랜 통계 재계산 (백그라운드)
 async function updateClanStatsInBackground(clanId) {
-  const backgroundPrisma = new PrismaClient();
 
   try {
     // 클랜 멤버들의 평균 통계 계산
-    const members = await backgroundPrisma.clanMember.findMany({
+    const members = await prisma.clanMember.findMany({
       where: { clanId },
     });
 
@@ -243,7 +241,7 @@ async function updateClanStatsInBackground(clanId) {
     };
 
     // 클랜 통계 업데이트
-    await backgroundPrisma.clan.update({
+    await prisma.clan.update({
       where: { id: clanId },
       data: {
         ...avgStats,
@@ -256,6 +254,6 @@ async function updateClanStatsInBackground(clanId) {
   } catch (error) {
     console.error('클랜 통계 재계산 실패:', error);
   } finally {
-    await backgroundPrisma.$disconnect();
+    await prisma.$disconnect();
   }
 }

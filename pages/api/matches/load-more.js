@@ -6,6 +6,7 @@
 //   - 개별 매치 상세:    30분
 
 import { cachedPubgFetch, TTL, PubgApiError } from '../../../utils/pubgApiCache';
+import prisma from '../../../utils/prisma.js';
 
 const PUBG_BASE = 'https://api.pubg.com/shards';
 
@@ -112,9 +113,6 @@ export default async function handler(req, res) {
 
     // ── 3. teammate 클랜 정보 DB 조회 (추가 PUBG API 호출 없음) ──────────
     try {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
-
       const allTeammateNames = [
         ...new Set(
           matches.flatMap((m) =>

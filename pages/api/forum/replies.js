@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../utils/prisma.js';
 import crypto from 'crypto';
 
-const prisma = new PrismaClient();
 
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password).digest('hex');

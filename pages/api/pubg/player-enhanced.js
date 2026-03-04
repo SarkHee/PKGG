@@ -2,10 +2,9 @@
 // 캐싱과 폴백을 활용한 개선된 플레이어 API
 
 import axios from 'axios';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../utils/prisma.js';
 import { cache } from '../../../utils/cacheManager.js';
 
-const prisma = new PrismaClient();
 const API_KEY =
   'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o';
 const shards = ['steam', 'kakao', 'psn', 'xbox'];

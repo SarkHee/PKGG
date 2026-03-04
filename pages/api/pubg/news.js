@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../utils/prisma.js';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-const prisma = new PrismaClient();
 
 // PUBG 뉴스 데이터 생성 함수 (여러 소스 크롤링)
 async function generatePubgNews() {

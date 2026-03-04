@@ -1,10 +1,9 @@
 // pages/api/clan/[clanName].js
 // 클랜 상세 정보 API
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../utils/prisma.js';
 import { calculateMMR } from '../../../utils/mmrCalculator';
 
-const prisma = new PrismaClient();
 
 // pubgPlayerId 기준 중복 멤버 제거 (점수 높은 쪽 유지)
 function dedupMembers(memberList) {
