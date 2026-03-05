@@ -286,7 +286,23 @@ export default function WeaponDamage() {
   const [search, setSearch] = useState('');
   const [armorLevel, setArmorLevel] = useState(0);
   const [helmetLevel, setHelmetLevel] = useState(0);
-  const [openPatches, setOpenPatches] = useState(['Update 40.1']);
+  const [openPatches, setOpenPatches]   = useState(['Update 40.1']);
+  const [compareMode, setCompareMode]   = useState(false);
+  const [compareSet, setCompareSet]     = useState(new Set());
+
+  const toggleCompare = (name) => {
+    setCompareSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) { next.delete(name); }
+      else if (next.size < 3) { next.add(name); }
+      return next;
+    });
+  };
+
+  // 비교 모드 해제 시 선택 초기화
+  const exitCompare = () => { setCompareMode(false); setCompareSet(new Set()); };
+
+  const compareWeapons = WEAPON_DATA.filter((w) => compareSet.has(w.name));
 
   const togglePatch = (v) =>
     setOpenPatches((prev) =>
@@ -355,8 +371,8 @@ export default function WeaponDamage() {
             )}
           </div>
 
-          {/* 검색 */}
-          <div className="mb-4">
+          {/* 검색 + 비교 모드 버튼 */}
+          <div className="mb-4 flex flex-wrap gap-2 items-center">
             <input
               type="text"
               placeholder="무기명 검색..."
@@ -364,6 +380,24 @@ export default function WeaponDamage() {
               onChange={(e) => setSearch(e.target.value)}
               className="w-full max-w-sm px-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <button
+              onClick={() => compareMode ? exitCompare() : setCompareMode(true)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                compareMode
+                  ? 'bg-emerald-600 border-emerald-500 text-white'
+                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'
+              }`}
+            >
+              🆚 {compareMode ? `비교 모드 (${compareSet.size}/3)` : '비교 모드'}
+            </button>
+            {compareMode && compareSet.size > 0 && (
+              <button
+                onClick={() => setCompareSet(new Set())}
+                className="text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1"
+              >
+                선택 초기화
+              </button>
+            )}
           </div>
 
           {/* 타입 필터 탭 */}
@@ -403,6 +437,7 @@ export default function WeaponDamage() {
                 <thead>
                   {/* 그룹 헤더 */}
                   <tr className="bg-gray-800/40 border-b border-gray-700/50">
+                    {compareMode && <th className="px-3 py-1 w-10" />}
                     <th colSpan={2} className="px-4 py-1" />
                     <th colSpan={3} className="px-4 py-1 text-center text-xs text-gray-500 font-medium border-l border-gray-700/50">기본</th>
                     <th colSpan={2} className="px-4 py-1 text-center text-xs text-blue-400 font-semibold border-l border-gray-700/50">
@@ -414,6 +449,7 @@ export default function WeaponDamage() {
                     <th colSpan={2} className="px-4 py-1 hidden md:table-cell" />
                   </tr>
                   <tr className="border-b border-gray-700 bg-gray-800/60">
+                    {compareMode && <th className="px-3 py-2.5 w-10" />}
                     <th className="text-left px-4 py-2.5 text-gray-400 font-semibold w-36">무기명</th>
                     <th className="text-left px-3 py-2.5 text-gray-400 font-semibold">분류</th>
                     {/* 기본 */}
@@ -467,13 +503,27 @@ export default function WeaponDamage() {
                       <tr
                         key={w.name}
                         className={`border-b border-gray-800/80 transition-colors ${
-                          w.changed
+                          compareSet.has(w.name)
+                            ? 'bg-emerald-950/20 hover:bg-emerald-950/30'
+                            : w.changed
                             ? 'bg-yellow-950/20 hover:bg-yellow-950/30'
                             : i % 2 === 0
                             ? 'hover:bg-gray-800/40'
                             : 'bg-gray-900/40 hover:bg-gray-800/40'
                         }`}
                       >
+                        {/* 비교 체크박스 */}
+                        {compareMode && (
+                          <td className="px-3 py-2.5 text-center">
+                            <input
+                              type="checkbox"
+                              checked={compareSet.has(w.name)}
+                              onChange={() => toggleCompare(w.name)}
+                              disabled={!compareSet.has(w.name) && compareSet.size >= 3}
+                              className="w-4 h-4 accent-emerald-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+                            />
+                          </td>
+                        )}
                         {/* 무기명 */}
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -587,6 +637,93 @@ export default function WeaponDamage() {
               </div>
             </div>
           </div>
+
+          {/* ── 무기 비교 패널 ── */}
+          {compareMode && compareWeapons.length >= 2 && (() => {
+            const maxDmg = Math.max(...compareWeapons.map((w) => w.damage));
+            const maxRpm = Math.max(...compareWeapons.map((w) => w.rpm));
+            const maxDps = Math.max(...compareWeapons.map((w) => Math.round((w.damage * w.rpm) / 60)));
+            const maxBody = Math.max(...compareWeapons.map((w) => calcBodyDmg(w.damage, armorLevel)));
+            const maxHead = Math.max(...compareWeapons.map((w) => calcHeadDmg(w.damage, helmetLevel)));
+
+            const COLORS = ['text-emerald-400', 'text-blue-400', 'text-purple-400'];
+            const BAR_COLORS = ['bg-emerald-500', 'bg-blue-500', 'bg-purple-500'];
+
+            const StatRow = ({ label, values, maxV, unit = '' }) => (
+              <div className="mb-3">
+                <div className="text-xs text-gray-500 mb-1.5 font-semibold">{label}</div>
+                {values.map((val, i) => {
+                  const pct = maxV > 0 ? (val / maxV) * 100 : 0;
+                  const isMax = val === Math.max(...values);
+                  return (
+                    <div key={i} className="flex items-center gap-2 mb-1">
+                      <span className={`text-[11px] w-28 truncate flex-shrink-0 ${COLORS[i]}`}>
+                        {compareWeapons[i].name}
+                      </span>
+                      <div className="flex-1 h-3 bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${BAR_COLORS[i]} rounded-full transition-all duration-500`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className={`text-xs font-bold w-12 text-right ${isMax ? COLORS[i] : 'text-gray-400'}`}>
+                        {val}{unit}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+
+            return (
+              <div className="mt-4 bg-gray-900 border border-emerald-500/30 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                    🆚 무기 비교 — {compareWeapons.map((w) => w.name).join(' vs ')}
+                  </h3>
+                  <button onClick={() => setCompareSet(new Set())} className="text-xs text-gray-600 hover:text-gray-400">
+                    비우기
+                  </button>
+                </div>
+
+                {/* 비교 범례 */}
+                <div className="flex gap-4 mb-4 flex-wrap">
+                  {compareWeapons.map((w, i) => (
+                    <div key={w.name} className="flex items-center gap-1.5">
+                      <div className={`w-3 h-3 rounded-full ${BAR_COLORS[i]}`} />
+                      <span className={`text-xs font-semibold ${COLORS[i]}`}>{w.name}</span>
+                      <span className="text-[10px] text-gray-600">{w.type} · {w.caliber}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                  <div>
+                    <StatRow label="기본 데미지" values={compareWeapons.map((w) => w.damage)} maxV={maxDmg} />
+                    <StatRow label="연사속도 (RPM)" values={compareWeapons.map((w) => w.rpm)} maxV={maxRpm} />
+                    <StatRow label="DPS (이론값)" values={compareWeapons.map((w) => Math.round((w.damage * w.rpm) / 60))} maxV={maxDps} />
+                  </div>
+                  <div>
+                    <StatRow label={`몸통 데미지 (방어구 ${ARMOR_LABELS[armorLevel]})`} values={compareWeapons.map((w) => calcBodyDmg(w.damage, armorLevel))} maxV={maxBody} />
+                    <StatRow label={`헤드 데미지 (헬멧 ${ARMOR_LABELS[helmetLevel]})`} values={compareWeapons.map((w) => calcHeadDmg(w.damage, helmetLevel))} maxV={maxHead} />
+                    <div className="mb-3">
+                      <div className="text-xs text-gray-500 mb-1.5 font-semibold">몸통 킬샷 수</div>
+                      {compareWeapons.map((w, i) => {
+                        const stk = calcSTK(100, calcBodyDmg(w.damage, armorLevel));
+                        const isMin = stk === Math.min(...compareWeapons.map((x) => calcSTK(100, calcBodyDmg(x.damage, armorLevel))));
+                        return (
+                          <div key={i} className="flex items-center gap-2 mb-1">
+                            <span className={`text-[11px] w-28 truncate ${COLORS[i]}`}>{w.name}</span>
+                            <span className={`text-sm font-black ${isMin ? 'text-red-400' : 'text-gray-300'}`}>{stk}발</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* 패치 변경 요약 */}
           {WEAPON_DATA.filter((w) => w.changed).length > 0 && (

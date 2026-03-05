@@ -6,12 +6,8 @@
   },
   "crons": [
     {
-      "path": "/api/cron/clan-update",
+      "path": "/api/cron/full-batch-update",
       "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/clan-update",
-      "schedule": "0 9 * * *"
     }
   ]
 }

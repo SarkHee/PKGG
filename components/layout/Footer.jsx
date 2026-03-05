@@ -15,6 +15,10 @@ export default function Footer() {
       <p className="text-xs mt-3 text-gray-400">
         &copy; 2026 PKGG. All rights reserved.
       </p>
+      <p className="text-[11px] mt-1.5 text-gray-400 px-4 max-w-xl mx-auto leading-relaxed">
+        Steam 및 Steam 로고는 Valve Corporation의 상표입니다. 본 사이트는 Valve와 공식적으로 연계되어 있지 않습니다.
+        PUBG® 및 BATTLEGROUNDS®는 KRAFTON, Inc.의 등록 상표입니다.
+      </p>
       {/* 숨겨진 관리자 링크 — 텍스트 드래그(선택) 시 노출 */}
       <div className="mt-2 select-all">
         <Link

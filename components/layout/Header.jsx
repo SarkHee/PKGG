@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useT } from '../../utils/i18n';
 import { useAuth } from '../../utils/useAuth';
@@ -17,9 +17,22 @@ const LANG_OPTIONS = [
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const router = useRouter();
   const { lang, t, switchLang } = useT();
   const { user, logout } = useAuth() || {};
+
+  // 초기 테마 읽기
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('pkgg_theme', next ? 'dark' : 'light');
+  };
 
   const isActive = (path) => router.pathname === path || router.pathname.startsWith(path + '/');
 
@@ -29,6 +42,8 @@ export default function Header() {
     { href: '/clan-analytics', labelKey: 'nav.clan_analytics' },
     { href: '/weapon-test', labelKey: 'nav.weapon_test', highlight: true },
     { href: '/weapon-damage', labelKey: 'nav.weapon_damage' },
+    { href: '/party', labelKey: 'nav.party' },
+    { href: '/playstyle-matchup', labelKey: 'nav.playstyle_matchup' },
     { href: '/forum', labelKey: 'nav.forum' },
     { href: '/notices', labelKey: 'nav.notices' },
     { href: '/pubg-news', labelKey: 'nav.news' },
@@ -110,6 +125,15 @@ export default function Header() {
                   Steam 로그인
                 </a>
               )}
+
+              {/* 다크/라이트 테마 토글 */}
+              <button
+                onClick={toggleTheme}
+                className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all"
+                title={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              >
+                {isDark ? '☀️' : '🌙'}
+              </button>
 
               {/* 언어 드롭다운 */}
               <div className="relative">

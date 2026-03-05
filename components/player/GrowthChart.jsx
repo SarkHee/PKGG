@@ -1,7 +1,7 @@
 // components/player/GrowthChart.jsx
 // 플레이어 성장 추적 차트 (Line chart — chart.js)
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Chart,
   LineController,
@@ -29,11 +29,18 @@ function fmtDate(iso) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+const PERIOD_OPTIONS = [
+  { key: '7d',  label: '7일' },
+  { key: '30d', label: '30일' },
+  { key: 'all', label: '전체' },
+];
+
 export default function GrowthChart({ nickname, shard = 'steam' }) {
   const canvasRef  = useRef(null);
   const chartRef   = useRef(null);
   const [snapshots, setSnapshots] = useState([]);
   const [active,    setActive]    = useState('score');
+  const [period,    setPeriod]    = useState('all');
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState('');
 
@@ -50,13 +57,21 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
       .finally(() => setLoading(false));
   }, [nickname, shard]);
 
+  const filteredSnaps = useMemo(() => {
+    if (period === 'all') return snapshots;
+    const days = period === '7d' ? 7 : 30;
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const f = snapshots.filter((s) => new Date(s.capturedAt).getTime() >= cutoff);
+    return f.length >= 2 ? f : snapshots.slice(-Math.min(snapshots.length, days));
+  }, [snapshots, period]);
+
   useEffect(() => {
-    if (!canvasRef.current || snapshots.length < 2) return;
+    if (!canvasRef.current || filteredSnaps.length < 2) return;
     if (chartRef.current) chartRef.current.destroy();
 
     const metric = METRICS.find((m) => m.key === active) || METRICS[0];
-    const labels  = snapshots.map((s) => fmtDate(s.capturedAt));
-    const values  = snapshots.map((s) => s[metric.key]);
+    const labels  = filteredSnaps.map((s) => fmtDate(s.capturedAt));
+    const values  = filteredSnaps.map((s) => s[metric.key]);
     const minVal  = Math.min(...values);
     const maxVal  = Math.max(...values);
     const padding = (maxVal - minVal) * 0.15 || 10;
@@ -117,8 +132,8 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
               afterLabel: (ctx) => {
                 const idx = ctx.dataIndex;
                 if (idx === 0) return '';
-                const prev  = snapshots[idx - 1][metric.key];
-                const curr  = snapshots[idx][metric.key];
+                const prev  = filteredSnaps[idx - 1][metric.key];
+                const curr  = filteredSnaps[idx][metric.key];
                 const delta = curr - prev;
                 const sign  = delta >= 0 ? '▲' : '▼';
                 const abs   = Math.abs(Math.round(delta * 100) / 100);
@@ -131,7 +146,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
     });
 
     return () => chartRef.current?.destroy();
-  }, [snapshots, active]);
+  }, [filteredSnaps, active]);
 
   if (loading) {
     return (
@@ -152,8 +167,9 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
   }
 
   const metric = METRICS.find((m) => m.key === active) || METRICS[0];
-  const latest = snapshots[snapshots.length - 1];
-  const first  = snapshots[0];
+
+  const latest = filteredSnaps[filteredSnaps.length - 1];
+  const first  = filteredSnaps[0];
   const delta  = latest[active] - first[active];
   const sign   = delta >= 0 ? '+' : '';
   const pct    = first[active] !== 0
@@ -162,22 +178,72 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
 
   return (
     <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6">
+      {/* 헤더 */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h3 className="font-bold text-gray-200 text-lg">📈 성장 추적</h3>
 
-        {/* 변화량 요약 */}
-        <div className="text-right">
-          <div className="text-xs text-gray-500">
-            {fmtDate(first.capturedAt)} → {fmtDate(latest.capturedAt)}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* 기간 필터 */}
+          <div className="flex gap-1">
+            {PERIOD_OPTIONS.map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  period === p.key
+                    ? 'bg-gray-600 text-white'
+                    : 'bg-gray-800 text-gray-500 hover:text-gray-300 border border-gray-700'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
-          <div
-            className="text-sm font-bold"
-            style={{ color: delta >= 0 ? '#34D399' : '#F87171' }}
-          >
-            {sign}{Math.round(delta * 100) / 100}{metric.unit}
-            <span className="text-xs text-gray-400 ml-1">({sign}{pct}%)</span>
+
+          {/* 변화량 요약 */}
+          <div className="text-right">
+            <div className="text-xs text-gray-500">
+              {fmtDate(first.capturedAt)} → {fmtDate(latest.capturedAt)}
+            </div>
+            <div
+              className="text-sm font-bold"
+              style={{ color: delta >= 0 ? '#34D399' : '#F87171' }}
+            >
+              {sign}{Math.round(delta * 100) / 100}{metric.unit}
+              <span className="text-xs text-gray-400 ml-1">({sign}{pct}%)</span>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* 5지표 요약 카드 */}
+      <div className="grid grid-cols-5 gap-2 mb-4">
+        {METRICS.map((m) => {
+          const lv = latest[m.key];
+          const fv = first[m.key];
+          const d  = lv - fv;
+          const s  = d >= 0 ? '+' : '';
+          return (
+            <button
+              key={m.key}
+              onClick={() => setActive(m.key)}
+              className={`rounded-xl p-2 text-center transition-all border ${
+                active === m.key
+                  ? 'border-opacity-60 bg-opacity-20'
+                  : 'border-gray-700 bg-gray-900/40 hover:border-gray-600'
+              }`}
+              style={active === m.key ? { borderColor: m.color + '80', backgroundColor: m.color + '15' } : {}}
+            >
+              <div className="text-[10px] text-gray-500 mb-0.5">{m.label}</div>
+              <div className="text-sm font-bold text-gray-100">{typeof lv === 'number' ? Math.round(lv * 10) / 10 : '–'}{m.unit}</div>
+              {d !== 0 && (
+                <div className="text-[10px] font-semibold" style={{ color: d >= 0 ? '#34D399' : '#F87171' }}>
+                  {s}{Math.round(d * 10) / 10}{m.unit}
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* 지표 탭 */}
@@ -204,7 +270,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
       </div>
 
       <p className="text-xs text-gray-600 mt-3 text-right">
-        총 {snapshots.length}회 스냅샷 · 클랜 배치 업데이트마다 기록
+        총 {snapshots.length}회 스냅샷 ({filteredSnaps.length}개 표시) · 클랜 배치 업데이트마다 기록
       </p>
     </div>
   );

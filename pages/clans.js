@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
+import Header from '../components/layout/Header';
 import { getMMRTier } from '../utils/mmrCalculator';
 import { useT } from '../utils/i18n';
 
@@ -158,6 +159,7 @@ export default function ClansDirectory() {
         <meta name="description" content="PKGG에 등록된 PUBG 클랜 목록을 MMR 랭킹 순으로 확인하세요." />
       </Head>
 
+      <Header />
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-5xl mx-auto px-4 py-8">
 

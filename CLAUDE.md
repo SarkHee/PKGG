@@ -24,7 +24,10 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `clan-analytics.js` | 클랜 분석 |
 | `weapon-test/index.js` | 무기 성향 테스트 (결과 포함) |
 | `weapon-test/result/[id].js` | 무기 테스트 공유 결과 페이지 |
-| `weapon-damage.js` | 무기 데미지 표 (57종, 타입 필터·정렬·DPS·방어구/헬멧 시뮬레이터·킬샷 계산) |
+| `weapon-damage.js` | 무기 데미지 표 (57종, 타입 필터·정렬·DPS·방어구/헬멧 시뮬레이터·킬샷 계산·비교 모드) |
+| `party.js` | 파티 찾기 게시판. 포럼 `party` 카테고리 사용. 모드/서버/마이크 필터 |
+| `party/create.js` | 파티 모집 글 작성 폼 (JSON 구조화 데이터를 forum content에 저장) |
+| `playstyle-matchup.js` | 14가지 플레이스타일 상성 매트릭스 (1-5점 척도, 클릭으로 행/열 강조) |
 | `forum/index.js` | 포럼 메인 (카테고리 + 최근 게시글 목록 — 제목만 표시) |
 | `forum/category/[categoryId].js` | 카테고리별 게시글 목록 (제목만 표시) |
 | `forum/post/[postId].js` | 게시글 상세 (이미지 풀-와이드 렌더링) |
@@ -54,6 +57,7 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | 경로 | 설명 |
 |------|------|
 | `player/WeaponMasteryCard.jsx` | 무기 숙련도 카드 (force prop으로 캐시 우회) |
+| `player/PlayerShareCard.jsx` | 플레이어 전적 공유 카드 (PNG 저장용, html-to-image 캡처). PlayerHeader에서 `cardRef` prop으로 연결 |
 | `player/GrowthChart.jsx` | 성장 추적 차트 (Line chart). `nickname` + `shard` props. 클랜 배치업데이트 시 스냅샷 저장, 5개 지표 탭(MMR/딜/킬/승률/Top10) |
 | `player/PlayerDashboard.jsx` | 플레이어 대시보드 |
 | `player/PlayerHeader.jsx` | 플레이어 헤더 |
@@ -65,11 +69,14 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | 파일 | 설명 |
 |------|------|
 | `pubgApiCache.js` | PUBG API 인메모리 캐시 (TTL: PLAYER 10분, MATCH 30분, CLAN 15분, SEASON 60분). `cachedPubgFetch(url, {ttl, force})` |
-| `weaponTestData.js` | 무기 성향 테스트 데이터 (12가지 타입, 각 type.weapons 3개) |
+| `weaponTestData.js` | 무기 성향 테스트 데이터 (v2). 12가지 타입, 각 타입에 `weaknesses`·`situationalGuide(3단계)`·`teamSynergy`·`counterType` 추가. 12문항(Q11 스코프배율·Q12 억울한상황 추가). `findTopTypes(vector, n)` — 유사도 상위 N개 반환 |
 | `playerStatsUtils.js` | 플레이어 통계 유틸 |
 | `pubgBatchApi.js` | 배치 API 처리 |
 | `clanRegionAnalyzer.js` | 클랜 지역 분석 |
 | `i18n.js` | 다국어 지원 (ko/en/ja/zh). `LanguageProvider` + `useT()` hook. localStorage `pkgg_lang`에 언어 저장. flat dot-notation 키 |
+| `playstyleClassifier.js` | **통합 플레이스타일 분류기 (v3)**. `classifyPlaystyle(stats)` → `{ label, code, desc, color, bg, border, primary }`. 14가지 타입 (HYPER_CARRY~UNKNOWN). v3 신규: PRECISION_SNIPER(정밀 사수형)·EARLY_RUSHER(초반 러셔)·TACTICAL_LEADER(전술 리더형) 추가, `headshotRate` 입력 지원. `playstyle.js` / `aiCoaching.js` / `clan-analytics.js` 3곳에서 공용 사용 |
+| `mmrCalculator.js` | PKGG 커스텀 MMR 계산. `calculateMMR(summary)` → number. `getMMRTier(mmr)` → 티어 정보 객체 |
+| `aiCoaching.js` | AI 코칭 유틸. `analyzePlayStyle(stats)` — 내부적으로 `playstyleClassifier` 사용. `playStyle`(영문코드) + `playstyleLabel`(한국어) 반환 |
 
 ### locales/
 | 파일 | 설명 |
@@ -127,8 +134,14 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 ---
 
 ## 최근 주요 변경 이력
+- **PlayerHeader 스탯 카드 UI 통일 + 상세통계 버튼 추가**: 시즌 성과(blue)·최근 N경기(cyan)·경쟁전(amber) 3섹션 디자인 공통화. 각 섹션에 `▼ 상세 통계 보기` 버튼 추가. 시즌 성과 → 모드별(squad-fpp/squad/duo 등) 분리 통계, 최근 N경기 → 최고딜·K/D·총딜·평균생존 추가. `showSeasonDetails`, `showRecentDetails` state 추가
+- **MMR 계산 v3 (정규화 복합지수)**: `utils/mmrCalculator.js` 완전 재작성. 6개 지표 정규화(0-1) 후 가중합산 × 15 + 1000. 범위 1000-2500, 7단계 티어(Bronze~Legend). `PlayerHeader` 인라인 공식 제거 → `calculateMMR()` 통일. `clan-analytics.js` avgAssists·avgSurviveTime 누락 버그 수정
+- **즐겨찾기 기능**: `PlayerHeader` ☆/★ 버튼(localStorage `pkgg_favorites`). 홈 인라인 목록 + `FloatingFavorites` 사이드 패널(`_app.js`, 우측 하단 고정, 非홈·非어드민 전역 노출)
+- **전적 공유 카드 PNG 저장**: `components/player/PlayerShareCard.jsx` + `PlayerHeader` 📷 버튼. `html-to-image` 캡처 (outer wrapper 오프스크린, ref는 inner 카드). `compare.js` BattleShareCard 동일 버그 수정
 - **공개 클랜 디렉토리 추가** (`/clans`): `pages/clans.js` + `pages/api/clans/directory.js`. MMR 내림차순 랭킹, 지역·클랜명 필터, 20개씩 페이지네이션. 티어 뱃지(`getMMRTier`). 헤더 nav 링크 추가. i18n 4개 언어 `clans.*` 키 추가
-- **플레이어 비교 페이지 추가** (`/compare?a=A&b=B`): `pages/compare.js` + `pages/api/pubg/compare.js`. Chart.js 레이더 차트(실제수치 툴팁·축별 실제값 테이블), 스탯 비교 바, 공유 URL. 헤더 nav 추가
+- **플레이어 비교 페이지 추가** (`/compare?a=A&b=B`): `pages/compare.js` + `pages/api/pubg/compare.js`. Chart.js 레이더 차트(실제수치 툴팁·축별 실제값 테이블), 스탯 비교 바, 공유 URL. 헤더 nav 추가. `BattleShareCard` 컴포넌트 + `html-to-image` 라이브러리로 PNG 카드 저장 기능 추가 (`position: fixed, left: -9999px`로 캡처)
+- **클랜 내부 랭킹 탭 추가** (`/clan/[clanName]` → 🏆 랭킹 탭): `pages/api/clan/[clanName]/ranking.js` + `ClanRankingTab` 컴포넌트. 3가지 서브탭: 전체 리더보드(정렬 기준 선택), 이번 주 MVP(PlayerMatch 7일 집계), 성장왕(PlayerStatSnapshot 비교). 1위 하이라이트 카드 UI
+- **플레이스타일 분류기 v3**: 11종 → 14종으로 확장. 신규: 정밀 사수형(headshotRate≥40%), 초반 러셔(킬높음+생존짧음), 전술 리더형(승률+어시스트+Top10). `playstyle.js` API에서 `headshotKills` 집계 및 `headshotRate` 계산 후 분류기에 전달
 - **성장 추적 기능 추가**: `PlayerStatSnapshot` DB 모델, `components/player/GrowthChart.jsx`, `pages/api/pubg/growth.js`. 클랜 배치업데이트(`batch-update.js`) 시 hasData=true인 경우 스냅샷 자동 저장. 플레이어 상세 페이지에 `GrowthChart` 컴포넌트 삽입. **DB 마이그레이션 필요**: Supabase SQL Editor에서 `player_stat_snapshots` 테이블 생성
 - **클랜 상세 페이지 커스텀 탭 추가**: `pages/clan/[clanName].js` 하단 `SquadCustomTab` + 알고리즘 함수들 (normalize, classifyRole, calcBalanceScore, recommendAllSquads, teamBalanceScore)
   - 스쿼드 추천: `recommendAllSquads(members)` → `{ squads: [[...4명], ...], unassigned: [...] }` 구조로 전체 클랜원을 4인 스쿼드로 분배
@@ -162,3 +175,9 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
   - dark 페이지: `/`, `/weapon-damage`, `/clan-analytics`, `/player/*`, `/clan/*`, `/weapon-test/*`
   - `/admin/*` 페이지는 Footer 제외
 - **무기 데미지표 패치노트 이력 버튼 컬러 개선**: 닫힌 상태 비-최신 항목을 gray 계열로 가시성 향상
+- **파티 찾기 게시판 추가** (`pages/party.js`, `pages/party/create.js`): 포럼 `party` 카테고리 활용. 게시글 content에 `{ __party: true, mode, server, slotsNeeded, playtime, mic, mmrMin, mmrMax, description }` JSON 저장. 모드/서버/마이크 필터, PartyCard 컴포넌트. `pages/api/forum/init.js`에 party 카테고리 추가
+- **플레이스타일 상성표 추가** (`pages/playstyle-matchup.js`): 14×14 매트릭스, 행=내 타입/열=상대 타입, 1-5점 척도. 클릭으로 행/열 강조, 호버 툴팁. `utils/playstyleClassifier.js`의 `TYPES` 사용
+- **무기 데미지 표 비교 모드 추가**: `compareMode` toggle → `compareSet`(Set, 최대 3개) → `ComparePanel` 슬라이드 바 비교 (damage/RPM/DPS/body/head)
+- **홈 검색 자동완성**: localStorage `pkgg_recent_searches` (최대 8개). 검색창 포커스 시 드롭다운, 닉네임 필터링. `removeRecentSearch` + `clearAllRecent` 지원
+- **GrowthChart 개선**: 7일/30일/전체 기간 필터 (`period` state + `filteredSnaps`). 5개 지표 요약 카드 (클릭으로 활성 탭 변경, 첫 스냅샷 대비 델타 표시)
+- **다크/라이트 테마 토글**: Header 🌙/☀️ 버튼. `pkgg_theme` localStorage 저장. `_app.js`에서 초기화 (저장값 → OS 설정 순). `tailwind.config.cjs` `darkMode: 'class'` 활용. `nav.playstyle_matchup` i18n 키 4개 언어 추가

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Header from '../components/layout/Header';
 import { useT } from '../utils/i18n';
 import { getMMRTier } from '../utils/mmrCalculator';
+import { toPng } from 'html-to-image';
 
 // ── Chart.js 레이더 차트 ─────────────────────────────────────────────────────
 import {
@@ -271,6 +272,88 @@ function PlayerCard({ player, side }) {
   );
 }
 
+// ── 배틀 공유 카드 (이미지 캡처용, 화면 밖 렌더링) ─────────────────────────
+function BattleShareCard({ playerA, playerB, cardRef }) {
+  const tierA = getMMRTier(playerA.mmr);
+  const tierB = getMMRTier(playerB.mmr);
+  const winner = playerA.mmr > playerB.mmr ? playerA.nickname
+               : playerB.mmr > playerA.mmr ? playerB.nickname
+               : null;
+
+  const stats = [
+    { label: '평균딜', dispA: Math.round(playerA.avgDamage).toLocaleString(), dispB: Math.round(playerB.avgDamage).toLocaleString(), rawA: playerA.avgDamage, rawB: playerB.avgDamage },
+    { label: '평균킬', dispA: playerA.avgKills?.toFixed(2), dispB: playerB.avgKills?.toFixed(2), rawA: playerA.avgKills, rawB: playerB.avgKills },
+    { label: '승률',   dispA: playerA.winRate?.toFixed(1) + '%', dispB: playerB.winRate?.toFixed(1) + '%', rawA: playerA.winRate, rawB: playerB.winRate },
+    { label: 'Top10',  dispA: playerA.top10Rate?.toFixed(1) + '%', dispB: playerB.top10Rate?.toFixed(1) + '%', rawA: playerA.top10Rate, rawB: playerB.top10Rate },
+  ];
+
+  const s = (obj) => obj; // inline style helper
+
+  return (
+    <div style={{ position: 'absolute', top: 0, left: '-9999px', overflow: 'hidden', pointerEvents: 'none' }}>
+    <div ref={cardRef} style={s({ width: '480px', backgroundColor: '#0f172a', borderRadius: '12px', overflow: 'hidden', fontFamily: 'Arial, sans-serif' })}>
+      {/* 헤더 */}
+      <div style={s({ background: 'linear-gradient(135deg,#1e3a5f,#1e1b4b)', padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' })}>
+        <span style={s({ color: '#60a5fa', fontWeight: 800, fontSize: '14px' })}>⚔️ PKGG BATTLE RESULT</span>
+        <span style={s({ color: '#475569', fontSize: '11px' })}>pk.gg</span>
+      </div>
+
+      {/* 플레이어 카드 */}
+      <div style={s({ display: 'flex', padding: '14px 16px', gap: '10px', alignItems: 'center' })}>
+        <div style={s({ flex: 1, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.35)', borderRadius: '10px', padding: '12px', textAlign: 'center' })}>
+          <div style={s({ color: '#60a5fa', fontWeight: 700, fontSize: '15px', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>{playerA.nickname}</div>
+          <div style={s({ color: tierA.color, fontSize: '11px', fontWeight: 600 })}>{tierA.emoji} {tierA.label}</div>
+          <div style={s({ color: tierA.color, fontSize: '20px', fontWeight: 900 })}>{playerA.mmr.toLocaleString()}</div>
+        </div>
+        <div style={s({ color: '#475569', fontWeight: 900, fontSize: '18px' })}>VS</div>
+        <div style={s({ flex: 1, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '10px', padding: '12px', textAlign: 'center' })}>
+          <div style={s({ color: '#f87171', fontWeight: 700, fontSize: '15px', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>{playerB.nickname}</div>
+          <div style={s({ color: tierB.color, fontSize: '11px', fontWeight: 600 })}>{tierB.emoji} {tierB.label}</div>
+          <div style={s({ color: tierB.color, fontSize: '20px', fontWeight: 900 })}>{playerB.mmr.toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* 스탯 바 */}
+      <div style={s({ padding: '0 16px 14px' })}>
+        {stats.map(({ label, dispA, dispB, rawA, rawB }) => {
+          const max = Math.max(rawA || 0, rawB || 0, 0.001);
+          const wA = ((rawA || 0) / max) * 100;
+          const wB = ((rawB || 0) / max) * 100;
+          const aWins = (rawA || 0) >= (rawB || 0);
+          return (
+            <div key={label} style={s({ marginBottom: '8px' })}>
+              <div style={s({ color: '#64748b', fontSize: '10px', textAlign: 'center', marginBottom: '3px' })}>{label}</div>
+              <div style={s({ display: 'flex', alignItems: 'center', gap: '8px' })}>
+                <div style={s({ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '6px' })}>
+                  <span style={s({ color: aWins ? '#60a5fa' : '#475569', fontSize: '12px', fontWeight: 700 })}>{dispA}</span>
+                  <div style={s({ width: '80px', height: '4px', background: '#1e293b', borderRadius: '2px' })}>
+                    <div style={s({ width: `${wA}%`, height: '100%', background: aWins ? '#3b82f6' : '#1e40af', borderRadius: '2px', marginLeft: 'auto' })} />
+                  </div>
+                </div>
+                <div style={s({ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' })}>
+                  <div style={s({ width: '80px', height: '4px', background: '#1e293b', borderRadius: '2px' })}>
+                    <div style={s({ width: `${wB}%`, height: '100%', background: !aWins ? '#ef4444' : '#7f1d1d', borderRadius: '2px' })} />
+                  </div>
+                  <span style={s({ color: !aWins ? '#f87171' : '#475569', fontSize: '12px', fontWeight: 700 })}>{dispB}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 승자 */}
+      <div style={s({ background: winner ? 'rgba(234,179,8,0.1)' : 'rgba(148,163,184,0.08)', borderTop: '1px solid rgba(234,179,8,0.2)', padding: '10px 16px', textAlign: 'center' })}>
+        {winner
+          ? <span style={s({ color: '#eab308', fontWeight: 800, fontSize: '14px' })}>🏆 WINNER: {winner}</span>
+          : <span style={s({ color: '#94a3b8', fontWeight: 700, fontSize: '13px' })}>🤝 DRAW</span>
+        }
+      </div>
+    </div>
+    </div>
+  );
+}
+
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
 export default function ComparePage() {
   const router       = useRouter();
@@ -281,6 +364,8 @@ export default function ComparePage() {
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
+  const [saving, setSaving]   = useState(false);
+  const cardRef = useRef(null);
 
   // URL 파라미터에서 초기값 세팅
   useEffect(() => {
@@ -322,6 +407,22 @@ export default function ComparePage() {
   };
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+
+  async function handleDownloadCard() {
+    if (!cardRef.current || !data) return;
+    setSaving(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = `pkgg-${data.playerA.nickname}-vs-${data.playerB.nickname}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (e) {
+      alert('카드 저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <>
@@ -530,6 +631,13 @@ export default function ComparePage() {
                 <p className="text-gray-400 text-sm mb-3">이 비교를 공유하세요</p>
                 <div className="flex gap-3 justify-center flex-wrap">
                   <button
+                    onClick={handleDownloadCard}
+                    disabled={saving}
+                    className="bg-violet-700 hover:bg-violet-600 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm transition-colors font-semibold"
+                  >
+                    {saving ? '저장 중…' : '🖼️ 카드 저장'}
+                  </button>
+                  <button
                     onClick={() => {
                       navigator.clipboard?.writeText(shareUrl);
                       alert('링크가 복사되었습니다!');
@@ -549,6 +657,9 @@ export default function ComparePage() {
                   </button>
                 </div>
               </div>
+
+              {/* 이미지 캡처용 카드 (화면 밖) */}
+              <BattleShareCard playerA={data.playerA} playerB={data.playerB} cardRef={cardRef} />
             </>
           )}
         </div>

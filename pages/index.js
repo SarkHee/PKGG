@@ -1,5 +1,5 @@
 // pages/index.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -7,14 +7,63 @@ import Image from 'next/image';
 import Header from '../components/layout/Header';
 import { useT } from '../utils/i18n';
 
+const FAV_KEY    = 'pkgg_favorites';
+const SEARCH_KEY = 'pkgg_recent_searches';
+const MAX_RECENT = 8;
+
+function loadFavs() {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch { return []; }
+}
+
+function loadRecentSearches() {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(SEARCH_KEY) || '[]'); } catch { return []; }
+}
+
+function saveRecentSearch(nickname, shard) {
+  const list = loadRecentSearches().filter(
+    (s) => !(s.nickname.toLowerCase() === nickname.toLowerCase() && s.shard === shard)
+  );
+  list.unshift({ nickname, shard, ts: Date.now() });
+  localStorage.setItem(SEARCH_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
+}
+
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [server, setServer] = useState('steam');
   const [searchMessage, setSearchMessage] = useState('');
   const [recentNews, setRecentNews] = useState([]);
   const [newsLoading, setNewsLoading] = useState(false);
+  const [favorites, setFavorites]           = useState([]);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [showDropdown, setShowDropdown]     = useState(false);
+  const searchBoxRef = useRef(null);
   const router = useRouter();
   const { t } = useT();
+
+  // 즐겨찾기 + 최근 검색 로드 (클라이언트 전용)
+  useEffect(() => {
+    setFavorites(loadFavs());
+    setRecentSearches(loadRecentSearches());
+  }, []);
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handler = (e) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const removeFavorite = (nickname, shard) => {
+    const next = loadFavs().filter(f => !(f.nickname === nickname && f.shard === shard));
+    localStorage.setItem(FAV_KEY, JSON.stringify(next));
+    setFavorites(next);
+  };
 
   // URL 파라미터에서 검색 실패 메시지 확인
   useEffect(() => {
@@ -52,16 +101,33 @@ export default function Home() {
     loadRecentNews();
   }, []);
 
-  const handleSearch = () => {
-    if (searchTerm.trim()) {
-      router.push(`/player/${server}/${encodeURIComponent(searchTerm.trim())}`);
-    }
+  const handleSearch = (nick = searchTerm, shard = server) => {
+    const name = nick.trim();
+    if (!name) return;
+    saveRecentSearch(name, shard);
+    setRecentSearches(loadRecentSearches());
+    setShowDropdown(false);
+    router.push(`/player/${shard}/${encodeURIComponent(name)}`);
+  };
+
+  const removeRecentSearch = (nickname, shard, e) => {
+    e.stopPropagation();
+    const list = loadRecentSearches().filter(
+      (s) => !(s.nickname.toLowerCase() === nickname.toLowerCase() && s.shard === shard)
+    );
+    localStorage.setItem(SEARCH_KEY, JSON.stringify(list));
+    setRecentSearches(list);
+  };
+
+  const clearAllRecent = (e) => {
+    e.stopPropagation();
+    localStorage.setItem(SEARCH_KEY, '[]');
+    setRecentSearches([]);
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+    if (e.key === 'Enter') handleSearch();
+    if (e.key === 'Escape') setShowDropdown(false);
   };
 
   return (
@@ -197,7 +263,7 @@ export default function Home() {
             )}
 
             {/* 검색 섹션 */}
-            <div className="max-w-xl mx-auto px-4 mb-4">
+            <div className="max-w-xl mx-auto px-4 mb-4" ref={searchBoxRef}>
               <div className="bg-white/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-4 shadow-2xl shadow-blue-900/30">
                 {/* 서버 선택 탭 */}
                 <div className="flex gap-2 mb-3">
@@ -221,12 +287,13 @@ export default function Home() {
                     type="text"
                     placeholder={t('search.player_placeholder')}
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onChange={(e) => { setSearchTerm(e.target.value); setShowDropdown(true); }}
+                    onFocus={() => setShowDropdown(true)}
+                    onKeyDown={handleKeyPress}
                     className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
                   />
                   <button
-                    onClick={handleSearch}
+                    onClick={() => handleSearch()}
                     className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/30 hover:shadow-blue-500/40 flex items-center gap-2 text-sm"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,9 +302,75 @@ export default function Home() {
                     {t('search.button')}
                   </button>
                 </div>
+
+                {/* 최근 검색 드롭다운 */}
+                {showDropdown && recentSearches.length > 0 && (
+                  <div className="mt-2 border-t border-white/10 pt-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">🕐 최근 검색</span>
+                      <button
+                        onClick={clearAllRecent}
+                        className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+                      >
+                        전체 삭제
+                      </button>
+                    </div>
+                    <div className="space-y-0.5">
+                      {recentSearches
+                        .filter((s) => !searchTerm || s.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .map((s) => (
+                          <div
+                            key={`${s.shard}-${s.nickname}`}
+                            onClick={() => { setSearchTerm(s.nickname); setServer(s.shard); handleSearch(s.nickname, s.shard); }}
+                            className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer group transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-gray-500 text-xs flex-shrink-0">🔍</span>
+                              <span className="text-sm text-gray-300 truncate">{s.nickname}</span>
+                              <span className="text-[10px] text-gray-600 flex-shrink-0">{s.shard}</span>
+                            </div>
+                            <button
+                              onClick={(e) => removeRecentSearch(s.nickname, s.shard, e)}
+                              className="text-gray-700 hover:text-gray-400 text-xs opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 ml-2"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <p className="text-gray-600 text-xs mt-2.5">{t('search.hint')}</p>
             </div>
+
+            {/* 즐겨찾기 섹션 */}
+            {favorites.length > 0 && (
+              <div className="max-w-xl mx-auto px-4 mb-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-gray-500 font-semibold tracking-wide">★ 즐겨찾기</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {favorites.map((fav) => (
+                    <div key={`${fav.shard}-${fav.nickname}`} className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-3 py-1 group">
+                      <button
+                        onClick={() => router.push(`/player/${fav.shard}/${encodeURIComponent(fav.nickname)}`)}
+                        className="text-xs text-gray-300 hover:text-white transition-colors font-medium"
+                      >
+                        {fav.nickname}
+                        <span className="ml-1 text-gray-600 text-[10px]">{fav.shard}</span>
+                      </button>
+                      <button
+                        onClick={() => removeFavorite(fav.nickname, fav.shard)}
+                        className="text-gray-600 hover:text-red-400 transition-colors text-xs ml-0.5 opacity-0 group-hover:opacity-100"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* PUBG 뉴스 섹션 */}

@@ -4,113 +4,12 @@
 import prisma from '../../utils/prisma.js';
 import { analyzeClanRegion } from '../../utils/clanRegionAnalyzer.js';
 import { calculateMMR } from '../../utils/mmrCalculator.js';
+import { classifyPlaystyle } from '../../utils/playstyleClassifier.js';
 
-// 개인 플레이어 분석 로직을 클랜에 적용한 향상된 플레이 스타일 분석 함수
+// 통합 분류기 사용 — label(이모지 포함 한국어)만 반환
 function analyzeIndividualPlayStyle(memberStats) {
   if (!memberStats || Object.keys(memberStats).length === 0) return '분석 불가';
-
-  const {
-    avgDamage = 0,
-    avgKills = 0,
-    avgAssists = 0,
-    avgSurviveTime = 0,
-    winRate = 0,
-    top10Rate = 0,
-  } = memberStats;
-
-  // 개인 플레이어와 동일한 14가지 유형 분석 (조건을 클랜 멤버 평균 스탯에 맞게 조정)
-
-  // 극단적 공격형: 높은 딜량, 짧은 생존시간, 높은 킬
-  if (avgDamage >= 400 && avgSurviveTime <= 600 && avgKills >= 3)
-    return '☠️ 극단적 공격형';
-
-  // 핫드롭 마스터: 극초반 높은 킬수와 딜량
-  if (avgSurviveTime <= 90 && avgKills >= 2 && avgDamage >= 200)
-    return '🌋 핫드롭 마스터';
-
-  // 스피드 파이터: 짧은 시간 내 높은 킬수
-  if (avgSurviveTime <= 120 && avgKills >= 2.5) return '⚡ 스피드 파이터';
-
-  // 초반 어그로꾼: 매우 짧은 생존시간에도 높은 딜량
-  if (avgSurviveTime <= 100 && avgDamage >= 180) return '🔥 초반 어그로꾼';
-
-  // 빠른 청소부: 초반 낮은 킬이지만 적당한 딜량
-  if (
-    avgSurviveTime <= 120 &&
-    avgKills >= 1 &&
-    avgKills < 2 &&
-    avgDamage >= 120
-  )
-    return '🧹 빠른 청소부';
-
-  // 초반 돌격형: 매우 짧은 생존시간에도 킬/딜 확보 (기본형)
-  if (avgSurviveTime <= 120 && (avgKills >= 1 || avgDamage >= 100))
-    return '🚀 초반 돌격형';
-
-  // 극단적 수비형: 낮은 딜량, 긴 생존시간
-  if (avgDamage <= 100 && avgSurviveTime >= 1200) return '🛡️ 극단적 수비형';
-
-  // 후반 존버형: 낮은 딜량과 킬, 긴 생존시간
-  if (avgDamage <= 150 && avgSurviveTime >= 1200 && avgKills <= 1)
-    return '🏕️ 후반 존버형';
-
-  // 장거리 정찰러: 낮은 교전, 긴 생존
-  if (avgKills <= 1 && avgDamage <= 150 && avgSurviveTime >= 800)
-    return '🏃 장거리 정찰러';
-
-  // 저격 위주: 낮은 딜량이지만 긴 생존과 킬 확보
-  if (avgDamage <= 150 && avgSurviveTime >= 1000 && avgKills >= 1)
-    return '🎯 저격 위주';
-
-  // 중거리 안정형: 중간 딜량과 적당한 생존시간
-  if (
-    avgDamage > 150 &&
-    avgDamage <= 250 &&
-    avgSurviveTime > 800 &&
-    avgSurviveTime <= 1200
-  )
-    return '⚖️ 중거리 안정형';
-
-  // 지속 전투형: 높은 딜량, 긴 생존, 높은 킬
-  if (avgDamage >= 250 && avgSurviveTime >= 800 && avgKills >= 2)
-    return '🔥 지속 전투형';
-
-  // 유령 생존자: 킬/어시스트 없이 높은 순위 달성
-  if (
-    avgKills === 0 &&
-    avgAssists === 0 &&
-    avgSurviveTime >= 1000 &&
-    top10Rate >= 40
-  )
-    return '👻 유령 생존자';
-
-  // 도박형 파밍러: 매우 짧은 생존시간, 최소 활동
-  if (avgSurviveTime <= 120 && avgDamage <= 50 && avgKills === 0)
-    return '🪂 도박형 파밍러';
-
-  // 순간광폭형: 높은 딜량, 짧은 생존, 높은 킬
-  if (avgDamage >= 300 && avgSurviveTime <= 400 && avgKills >= 2)
-    return '📸 순간광폭형';
-
-  // 치명적 저격수: 높은 딜량과 킬
-  if (avgDamage >= 200 && avgKills >= 2) return '🦉 치명적 저격수';
-
-  // 전략적 어시스트러: 높은 어시스트, 낮은 킬, 높은 딜량, 긴 생존
-  if (
-    avgAssists >= 3 &&
-    avgKills <= 1 &&
-    avgDamage >= 200 &&
-    avgSurviveTime >= 800
-  )
-    return '🧠 전략적 어시스트러';
-
-  // 고효율 승부사: 높은 킬, 상대적으로 낮은 딜량
-  if (avgKills >= 3 && avgDamage <= 200) return '📊 고효율 승부사';
-
-  // 최종 안전망 - 딜량 기준으로 분류
-  if (avgDamage >= 200) return '🔥 공격형';
-  if (avgSurviveTime >= 600) return '🛡️ 생존형';
-  return '🏃 이동형';
+  return classifyPlaystyle(memberStats).label;
 }
 
 // 향상된 클랜 플레이 스타일 분석 함수
@@ -482,10 +381,12 @@ export default async function handler(req, res) {
         };
       }
 
-      const avgDamage  = members.reduce((sum, m) => sum + m.avgDamage, 0) / memberCount;
-      const avgKills   = members.reduce((sum, m) => sum + m.avgKills, 0) / memberCount;
-      const avgWinRate = members.reduce((sum, m) => sum + m.winRate, 0) / memberCount;
-      const avgTop10   = members.reduce((sum, m) => sum + m.top10Rate, 0) / memberCount;
+      const avgDamage      = members.reduce((sum, m) => sum + (m.avgDamage      || 0), 0) / memberCount;
+      const avgKills       = members.reduce((sum, m) => sum + (m.avgKills       || 0), 0) / memberCount;
+      const avgWinRate     = members.reduce((sum, m) => sum + (m.winRate        || 0), 0) / memberCount;
+      const avgTop10       = members.reduce((sum, m) => sum + (m.top10Rate      || 0), 0) / memberCount;
+      const avgAssists     = members.reduce((sum, m) => sum + (m.avgAssists     || 0), 0) / memberCount;
+      const avgSurviveTime = members.reduce((sum, m) => sum + (m.avgSurviveTime || 0), 0) / memberCount;
 
       const avgStats = {
         score: Math.round(
@@ -496,10 +397,12 @@ export default async function handler(req, res) {
         winRate: avgWinRate.toFixed(1),
         top10Rate: avgTop10.toFixed(1),
         avgMMR: calculateMMR({
-          avgDamage:  avgDamage,
-          avgKills:   avgKills,
-          winRate:    avgWinRate,
-          top10Rate:  avgTop10,
+          avgDamage,
+          avgKills,
+          winRate:        avgWinRate,
+          top10Rate:      avgTop10,
+          avgAssists,
+          avgSurviveTime,
         }),
       };
 

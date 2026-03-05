@@ -11,6 +11,41 @@ import { AuthProvider } from '../utils/useAuth';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 
+function FloatingFavorites() {
+  const [favs, setFavs] = useState([]);
+  const router = useRouter();
+  const { pathname } = router;
+
+  useEffect(() => {
+    const load = () => {
+      try { setFavs(JSON.parse(localStorage.getItem('pkgg_favorites') || '[]')); }
+      catch { setFavs([]); }
+    };
+    load();
+  }, [pathname]); // 페이지 이동 시마다 새로 로드
+
+  // 홈·어드민은 제외 (홈은 인라인으로 이미 표시)
+  if (pathname === '/' || pathname.startsWith('/admin') || favs.length === 0) return null;
+
+  return (
+    <div className="fixed right-3 bottom-10 z-40 pointer-events-none">
+      <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-white/90 backdrop-blur border border-gray-200 rounded-2xl px-2 py-3 shadow-lg">
+        <span className="text-gray-500 text-xs font-bold mb-0.5 whitespace-nowrap">즐겨찾기 유저</span>
+        {favs.map((fav) => (
+          <button
+            key={`${fav.shard}-${fav.nickname}`}
+            onClick={() => router.push(`/player/${fav.shard}/${encodeURIComponent(fav.nickname)}`)}
+            className="px-2.5 py-1.5 bg-gray-100 hover:bg-blue-100 hover:text-blue-700 text-gray-700 rounded-xl text-sm font-semibold transition-colors text-center max-w-[90px] truncate"
+            title={fav.nickname}
+          >
+            {fav.nickname}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FloatingSearch() {
   const [nick, setNick] = useState('');
   const [srv, setSrv] = useState('steam');
@@ -26,7 +61,7 @@ function FloatingSearch() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-5 px-4 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-10 px-4 pointer-events-none">
       <form
         onSubmit={handleSubmit}
         className="pointer-events-auto flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-2 shadow-lg w-full max-w-md"
@@ -82,6 +117,12 @@ function MyApp({ Component, pageProps }) {
     if (saved === 'accepted') setCookieConsent(true);
     else if (saved === 'rejected') setCookieConsent(false);
     // else: null 유지 → 배너 표시
+
+    // 테마 초기화 (시스템 선호 또는 저장값)
+    const savedTheme = localStorage.getItem('pkgg_theme');
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    const isDark = savedTheme ? savedTheme === 'dark' : prefersDark;
+    document.documentElement.classList.toggle('dark', isDark);
   }, []);
 
   const handleAccept = () => {
@@ -116,12 +157,13 @@ function MyApp({ Component, pageProps }) {
         <CookieBanner onAccept={handleAccept} onReject={handleReject} />
       )}
 
-      <div className="min-h-screen bg-white text-gray-900 flex flex-col">
+      <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col">
         <div className="flex-1">
           <Component {...pageProps} />
         </div>
         {showFooter && <Footer />}
       </div>
+      <FloatingFavorites />
       {showSearch && <FloatingSearch />}
       <SpeedInsights />
       <Analytics />

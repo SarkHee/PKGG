@@ -145,6 +145,8 @@ export default function ClanDetail() {
   const [activeTab, setActiveTab] = useState('overview');
   const [memberSort, setMemberSort] = useState('mmr');
   const [allSquads, setAllSquads] = useState(null); // { squads: [...], unassigned: [...] }
+  const [rankingData, setRankingData] = useState(null);
+  const [rankingLoading, setRankingLoading] = useState(false);
 
   // i18n 유틸
   const fmtTime = (sec) => {
@@ -182,6 +184,20 @@ export default function ClanDetail() {
       }
     })();
   }, [clanName]);
+
+  // 랭킹 탭 진입 시 데이터 로드
+  useEffect(() => {
+    if (activeTab !== 'ranking' || !clanName || rankingData) return;
+    (async () => {
+      try {
+        setRankingLoading(true);
+        const res = await fetch(`/api/clan/${encodeURIComponent(clanName)}/ranking`);
+        if (res.ok) setRankingData(await res.json());
+      } catch (_) {} finally {
+        setRankingLoading(false);
+      }
+    })();
+  }, [activeTab, clanName]);
 
   if (loading) {
     return (
@@ -244,6 +260,7 @@ export default function ClanDetail() {
     { id: 'members', name: t('cd.tab_members'), icon: '👥' },
     { id: 'stats', name: t('cd.tab_stats'), icon: '📈' },
     { id: 'analysis', name: t('cd.tab_analysis'), icon: '🔍' },
+    { id: 'ranking', name: '랭킹', icon: '🏆' },
     { id: 'custom', name: '커스텀', icon: '⚡' },
   ];
 
@@ -864,6 +881,11 @@ export default function ClanDetail() {
             </>
           )}
 
+          {/* ────────── 랭킹 탭 ────────── */}
+          {activeTab === 'ranking' && (
+            <ClanRankingTab data={rankingData} loading={rankingLoading} />
+          )}
+
           {/* ────────── 커스텀 탭 ────────── */}
           {activeTab === 'custom' && (
             <SquadCustomTab members={members} allSquads={allSquads} setAllSquads={setAllSquads} />
@@ -871,6 +893,293 @@ export default function ClanDetail() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+// ─── 클랜 내부 랭킹 탭 컴포넌트 ─────────────────────────────────────────────
+
+function ClanRankingTab({ data, loading }) {
+  const [lbSort, setLbSort] = useState('mmr');
+  const [lbTab, setLbTab] = useState('leaderboard'); // 'leaderboard' | 'weekly' | 'growth'
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-gray-400">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          랭킹 데이터 로드 중...
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="text-center py-16 text-gray-500">랭킹 데이터를 불러올 수 없습니다.</div>
+    );
+  }
+
+  const { leaderboard = [], weeklyMvp = [], growthKing = [] } = data;
+
+  const sortedLeaderboard = [...leaderboard].sort((a, b) => {
+    if (lbSort === 'mmr') return b.mmr - a.mmr;
+    if (lbSort === 'damage') return b.avgDamage - a.avgDamage;
+    if (lbSort === 'kills') return parseFloat(b.avgKills) - parseFloat(a.avgKills);
+    if (lbSort === 'winRate') return parseFloat(b.winRate) - parseFloat(a.winRate);
+    if (lbSort === 'top10') return parseFloat(b.top10Rate) - parseFloat(a.top10Rate);
+    return 0;
+  });
+
+  const rankMedal = (i) => {
+    if (i === 0) return '🥇';
+    if (i === 1) return '🥈';
+    if (i === 2) return '🥉';
+    return `#${i + 1}`;
+  };
+
+  const deltaColor = (v) => (v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400');
+  const deltaSign = (v) => (v > 0 ? '+' : '');
+
+  return (
+    <div className="space-y-6">
+      {/* 탭 네비 */}
+      <div className="flex gap-2">
+        {[
+          { id: 'leaderboard', label: '📋 전체 리더보드' },
+          { id: 'weekly', label: `⚡ 이번 주 MVP${weeklyMvp.length ? ` (${weeklyMvp.length}명)` : ''}` },
+          { id: 'growth', label: `📈 성장왕${growthKing.length ? ` (${growthKing.length}명)` : ''}` },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setLbTab(tab.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              lbTab === tab.id ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 전체 리더보드 */}
+      {lbTab === 'leaderboard' && (
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+          {/* 정렬 버튼 */}
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 flex-wrap">
+            <span className="text-xs text-gray-400 mr-1">정렬:</span>
+            {[
+              { key: 'mmr', label: 'MMR' },
+              { key: 'damage', label: '딜량' },
+              { key: 'kills', label: '킬' },
+              { key: 'winRate', label: '승률' },
+              { key: 'top10', label: 'Top10' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setLbSort(key)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  lbSort === key ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-gray-400 border-b border-gray-700">
+                  <th className="text-left px-4 py-2 w-10">순위</th>
+                  <th className="text-left px-4 py-2">닉네임</th>
+                  <th className="text-right px-3 py-2">MMR</th>
+                  <th className="text-right px-3 py-2">딜량</th>
+                  <th className="text-right px-3 py-2">킬</th>
+                  <th className="text-right px-3 py-2">승률</th>
+                  <th className="text-right px-3 py-2">Top10</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedLeaderboard.map((m, i) => (
+                  <tr key={m.id} className={`border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors ${i < 3 ? 'bg-gray-700/20' : ''}`}>
+                    <td className="px-4 py-2.5 text-sm font-bold">{rankMedal(i)}</td>
+                    <td className="px-4 py-2.5">
+                      <Link
+                        href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.nickname)}`}
+                        className="hover:text-blue-400 transition-colors font-medium"
+                      >
+                        {m.nickname}
+                      </Link>
+                    </td>
+                    {m.hasData ? (
+                      <>
+                        <td className="px-3 py-2.5 text-right font-bold text-blue-400">{m.mmr.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-300">{m.avgDamage.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-300">{m.avgKills}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-300">{m.winRate}%</td>
+                        <td className="px-3 py-2.5 text-right text-gray-300">{m.top10Rate}%</td>
+                      </>
+                    ) : (
+                      <td colSpan={5} className="px-3 py-2.5 text-right text-gray-600 text-xs">데이터 없음</td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 이번 주 MVP */}
+      {lbTab === 'weekly' && (
+        <div>
+          {/* MVP 점수 산출 기준 안내 */}
+          <div className="mb-4 px-4 py-3 bg-gray-800/60 border border-gray-700 rounded-xl text-xs text-gray-400 leading-relaxed">
+            <span className="text-yellow-400 font-semibold">MVP 점수</span>는 최근 7일간의 매치 기록을 바탕으로 딜·킬·승리를 종합해 산출된 활약 지수입니다.
+          </div>
+          {weeklyMvp.length === 0 ? (
+            <div className="text-center py-16 bg-gray-800 rounded-xl border border-gray-700 text-gray-500">
+              <p className="text-2xl mb-3">📭</p>
+              최근 7일간 기록된 매치 데이터가 없습니다.
+              <p className="text-xs mt-2 text-gray-600">클랜 배치 업데이트 시 자동으로 갱신됩니다.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* 1위 하이라이트 */}
+              {weeklyMvp[0] && (
+                <div className="bg-gradient-to-r from-yellow-900/30 to-orange-900/20 border border-yellow-600/40 rounded-xl p-5 flex items-center gap-5">
+                  <div className="text-4xl">🏆</div>
+                  <div className="flex-1">
+                    <div className="text-xs text-yellow-400 font-semibold mb-0.5">이번 주 MVP</div>
+                    <Link
+                      href={`/player/${encodeURIComponent(weeklyMvp[0].server)}/${encodeURIComponent(weeklyMvp[0].nickname)}`}
+                      className="text-xl font-bold text-white hover:text-yellow-400 transition-colors"
+                    >
+                      {weeklyMvp[0].nickname}
+                    </Link>
+                    <div className="flex gap-4 mt-2 text-sm">
+                      <span className="text-gray-400">{weeklyMvp[0].matches}게임</span>
+                      <span className="text-orange-400">딜 {weeklyMvp[0].avgDamage.toLocaleString()}</span>
+                      <span className="text-blue-400">킬 {weeklyMvp[0].avgKills}</span>
+                      <span className="text-green-400">승 {weeklyMvp[0].wins}회</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500">MVP 점수</div>
+                    <div className="text-2xl font-black text-yellow-400">{weeklyMvp[0].mvpScore.toLocaleString()}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 2위~ */}
+              <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-400 border-b border-gray-700">
+                      <th className="text-left px-4 py-2">순위</th>
+                      <th className="text-left px-4 py-2">닉네임</th>
+                      <th className="text-right px-3 py-2">게임 수</th>
+                      <th className="text-right px-3 py-2">평균딜</th>
+                      <th className="text-right px-3 py-2">평균킬</th>
+                      <th className="text-right px-3 py-2">승</th>
+                      <th className="text-right px-3 py-2">MVP점수</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {weeklyMvp.map((m, i) => (
+                      <tr key={m.id} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
+                        <td className="px-4 py-2.5 font-bold">{rankMedal(i)}</td>
+                        <td className="px-4 py-2.5">
+                          <Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">
+                            {m.nickname}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2.5 text-right text-gray-400">{m.matches}</td>
+                        <td className="px-3 py-2.5 text-right">{m.avgDamage.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right">{m.avgKills}</td>
+                        <td className="px-3 py-2.5 text-right text-green-400">{m.wins}</td>
+                        <td className="px-3 py-2.5 text-right font-bold text-yellow-400">{m.mvpScore.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 성장왕 */}
+      {lbTab === 'growth' && (
+        <div>
+          {growthKing.length === 0 ? (
+            <div className="text-center py-16 bg-gray-800 rounded-xl border border-gray-700 text-gray-500">
+              <p className="text-2xl mb-3">📊</p>
+              비교할 수 있는 성장 데이터가 없습니다.
+              <p className="text-xs mt-2 text-gray-600">클랜 배치 업데이트가 2회 이상 실행되면 자동으로 집계됩니다.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* 1위 하이라이트 */}
+              {growthKing[0] && (
+                <div className="bg-gradient-to-r from-green-900/30 to-teal-900/20 border border-green-600/40 rounded-xl p-5 flex items-center gap-5">
+                  <div className="text-4xl">📈</div>
+                  <div className="flex-1">
+                    <div className="text-xs text-green-400 font-semibold mb-0.5">이번 주 성장왕</div>
+                    <Link
+                      href={`/player/${encodeURIComponent(growthKing[0].server)}/${encodeURIComponent(growthKing[0].nickname)}`}
+                      className="text-xl font-bold text-white hover:text-green-400 transition-colors"
+                    >
+                      {growthKing[0].nickname}
+                    </Link>
+                    <div className="flex gap-4 mt-2 text-sm">
+                      <span className={`font-bold ${deltaColor(growthKing[0].mmrDelta)}`}>MMR {deltaSign(growthKing[0].mmrDelta)}{growthKing[0].mmrDelta}</span>
+                      <span className={deltaColor(growthKing[0].dmgDelta)}>딜 {deltaSign(growthKing[0].dmgDelta)}{growthKing[0].dmgDelta}</span>
+                      <span className={deltaColor(parseFloat(growthKing[0].killDelta))}>킬 {deltaSign(parseFloat(growthKing[0].killDelta))}{growthKing[0].killDelta}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500">현재 MMR</div>
+                    <div className="text-2xl font-black text-blue-400">{growthKing[0].currentMmr.toLocaleString()}</div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-400 border-b border-gray-700">
+                      <th className="text-left px-4 py-2">순위</th>
+                      <th className="text-left px-4 py-2">닉네임</th>
+                      <th className="text-right px-3 py-2">현재 MMR</th>
+                      <th className="text-right px-3 py-2">MMR 변화</th>
+                      <th className="text-right px-3 py-2">딜 변화</th>
+                      <th className="text-right px-3 py-2">킬 변화</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {growthKing.map((m, i) => (
+                      <tr key={m.nickname} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
+                        <td className="px-4 py-2.5 font-bold">{rankMedal(i)}</td>
+                        <td className="px-4 py-2.5">
+                          <Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">
+                            {m.nickname}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-bold text-blue-400">{m.currentMmr.toLocaleString()}</td>
+                        <td className={`px-3 py-2.5 text-right font-bold ${deltaColor(m.mmrDelta)}`}>{deltaSign(m.mmrDelta)}{m.mmrDelta}</td>
+                        <td className={`px-3 py-2.5 text-right ${deltaColor(m.dmgDelta)}`}>{deltaSign(m.dmgDelta)}{m.dmgDelta}</td>
+                        <td className={`px-3 py-2.5 text-right ${deltaColor(parseFloat(m.killDelta))}`}>{deltaSign(parseFloat(m.killDelta))}{m.killDelta}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

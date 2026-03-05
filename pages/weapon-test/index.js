@@ -20,6 +20,7 @@ import {
   VECTOR_LABELS,
   computeVector,
   findBestType,
+  findTopTypes,
   generateSessionId,
 } from '../../utils/weaponTestData';
 
@@ -419,6 +420,9 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
     .sort((a, b) => b.value - a.value)
     .slice(0, 3);
 
+  // 유사 타입 상위 3개 (1위 = 현재 결과)
+  const topTypes = findTopTypes(vector, 3);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 px-4 py-8">
       <div className="max-w-2xl mx-auto">
@@ -521,6 +525,81 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
           </div>
         </div>
 
+        {/* 약점 & 주의사항 */}
+        {type.weaknesses && (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">⚠️ 약점 & 주의사항</h3>
+            <div className="flex flex-wrap gap-2">
+              {type.weaknesses.map((w) => (
+                <span key={w} className="px-3 py-1 rounded-full text-xs font-semibold bg-red-950/50 text-red-400 border border-red-900/50">
+                  ✗ {w}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 상황별 플레이 가이드 */}
+        {type.situationalGuide && (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📋 상황별 플레이 가이드</h3>
+            <div className="space-y-3">
+              {type.situationalGuide.map((guide, i) => (
+                <div key={i} className="flex gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/50">
+                  <span className="text-xl flex-shrink-0 mt-0.5">{guide.icon}</span>
+                  <div>
+                    <div className="text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">{guide.phase}</div>
+                    <p className="text-sm text-gray-300 leading-relaxed">{guide.guide}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 팀 시너지 파트너 */}
+        {type.teamSynergy && (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🤝 팀 시너지 파트너</h3>
+            <div className="flex gap-3">
+              {type.teamSynergy.map((id) => {
+                const partner = PERSONALITY_TYPES.find((tp) => tp.id === id);
+                if (!partner) return null;
+                return (
+                  <div key={id} className="flex-1 bg-gray-800/60 rounded-xl p-4 text-center border border-gray-700/50">
+                    <div className="text-3xl mb-2">{partner.emoji}</div>
+                    <div className="text-sm font-bold text-gray-200">{partner.name}</div>
+                    <div className="text-[10px] text-gray-500 mt-1">{partner.primaryWeapon} TYPE</div>
+                    <div className="text-[10px] text-gray-600 mt-1 leading-snug">{partner.strengths[0]}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 유사 타입 (2위·3위) */}
+        {topTypes.length > 1 && (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🔍 유사 성향 타입</h3>
+            <div className="space-y-2">
+              {topTypes.slice(1).map((item, i) => (
+                <div key={item.type.id} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/40">
+                  <span className="text-2xl">{item.type.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-gray-300">{item.type.name}</div>
+                    <div className="text-xs text-gray-500 truncate">{item.type.nameEn} · {item.type.primaryWeapon} TYPE</div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-sm font-black" style={{ color: item.type.color }}>{Math.round(item.score * 100)}%</div>
+                    <div className="text-[10px] text-gray-600">유사도</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 액션 버튼 */}
         <div className="flex flex-col sm:flex-row gap-3">
           <button
@@ -609,9 +688,9 @@ export default function WeaponTestPage() {
     <>
       <Head>
         <title>{t('wt.title')} | PKGG</title>
-        <meta name="description" content="10문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
+        <meta name="description" content="12문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
         <meta property="og:title" content="PUBG 무기 성향 테스트 | PKGG" />
-        <meta property="og:description" content="10문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
+        <meta property="og:description" content="12문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
       </Head>
 
       {phase !== 'survey' && <Header />}

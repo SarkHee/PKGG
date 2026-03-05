@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-03-04T02:40:23.979Z",
+  "timestamp": "2026-03-04T07:43:17.036Z",
   "reason": "compaction",
   "status": {
     "version": "2.0",
-    "lastUpdated": "2026-03-04T02:24:10.050Z",
+    "lastUpdated": "2026-03-04T07:23:23.044Z",
     "activeFeatures": [
       "PKGG",
       "clan",
@@ -20,7 +20,8 @@
       "api",
       "pubg",
       "matches",
-      "[server]"
+      "[server]",
+      "clans"
     ],
     "primaryFeature": "PKGG",
     "features": {
@@ -33,7 +34,7 @@
         "documents": {},
         "timestamps": {
           "started": "2026-02-26T06:15:14.704Z",
-          "lastUpdated": "2026-03-04T01:46:33.730Z"
+          "lastUpdated": "2026-03-04T07:23:23.044Z"
         },
         "lastFile": "/Users/mac/Desktop/PKGG/pages/compare.js"
       },
@@ -59,7 +60,7 @@
         "documents": {},
         "timestamps": {
           "started": "2026-02-26T06:49:35.047Z",
-          "lastUpdated": "2026-03-04T01:39:57.370Z"
+          "lastUpdated": "2026-03-04T04:19:03.958Z"
         },
         "lastFile": "/Users/mac/Desktop/PKGG/components/layout/Header.jsx"
       },
@@ -231,6 +232,19 @@
           "lastUpdated": "2026-03-04T02:24:10.050Z"
         },
         "lastFile": "/Users/mac/Desktop/PKGG/pages/player/[server]/[nickname].js"
+      },
+      "clans": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-03-04T02:43:00.315Z",
+          "lastUpdated": "2026-03-04T06:09:29.156Z"
+        },
+        "lastFile": "/Users/mac/Desktop/PKGG/pages/api/clans/directory.js"
       }
     },
     "pipeline": {
@@ -241,7 +255,7 @@
     "session": {
       "startedAt": "2026-02-26T02:34:01.887Z",
       "onboardingCompleted": false,
-      "lastActivity": "2026-03-04T02:24:10.050Z"
+      "lastActivity": "2026-03-04T07:23:23.044Z"
     },
     "history": [
       {
@@ -1993,6 +2007,276 @@
       {
         "timestamp": "2026-03-04T02:24:10.050Z",
         "feature": "[server]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T02:43:00.315Z",
+        "feature": "clans",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T02:44:03.141Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T02:44:25.017Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T02:44:30.161Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T02:44:38.375Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T02:44:43.786Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T02:44:49.132Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:04:32.448Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:04:37.117Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:04:41.165Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:04:47.542Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:04:52.925Z",
+        "feature": "clans",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:05:12.411Z",
+        "feature": "clans",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:09:21.080Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:11:03.457Z",
+        "feature": "clans",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:11:09.361Z",
+        "feature": "clans",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:13:34.667Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:13:43.872Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:13:49.641Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:13:58.475Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:17:21.361Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:17:28.902Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:17:35.623Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:17:54.572Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:18:14.040Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:19:03.958Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:19:27.987Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:19:54.711Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:21:51.946Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:21:57.751Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:45:51.341Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:46:01.598Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:46:15.895Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:46:23.711Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:46:40.917Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:48:06.175Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T04:58:34.000Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T06:08:24.556Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T06:08:46.128Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T06:08:54.463Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T06:09:29.156Z",
+        "feature": "clans",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T07:21:49.440Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T07:23:02.600Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T07:23:09.528Z",
+        "feature": "PKGG",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-04T07:23:23.044Z",
+        "feature": "PKGG",
         "phase": "do",
         "action": "updated"
       }

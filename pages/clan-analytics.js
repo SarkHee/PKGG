@@ -616,7 +616,7 @@ export default function ClanAnalytics() {
                         effectiveMyClanId
                           ? isMyClan
                             ? 'bg-blue-950/50 ring-1 ring-inset ring-blue-500/50 hover:bg-blue-950/70'
-                            : 'opacity-10'
+                            : 'opacity-20 blur-[1.5px] select-none pointer-events-none'
                           : 'hover:bg-gray-800/40'
                       }`}>
                         <td className="px-4 py-3">
@@ -771,7 +771,7 @@ export default function ClanAnalytics() {
                         effectiveMyClanId
                           ? isMyClan
                             ? 'bg-blue-950/50 ring-1 ring-inset ring-blue-500/50 hover:bg-blue-950/70'
-                            : 'opacity-10'
+                            : 'opacity-20 blur-[1.5px] select-none pointer-events-none'
                           : 'hover:bg-gray-800/40'
                       }`}>
                         <td className="px-4 py-3">

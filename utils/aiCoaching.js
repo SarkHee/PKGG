@@ -1,4 +1,6 @@
 // AI 코칭 시스템 유틸리티 (순수 계산 함수 — 클라이언트/서버 공용)
+import { classifyPlaystyle } from './playstyleClassifier.js';
+
 /**
  * 플레이어의 플레이 스타일을 분석하는 함수 (전체 시즌 기준)
  */
@@ -7,6 +9,7 @@ export function analyzePlayStyle(playerStats, seasonStats = null) {
     avgKills = 0,
     avgDamage = 0,
     avgSurvivalTime = 0,
+    avgSurviveTime = 0,
     winRate = 0,
     top10Rate = 0,
     avgAssists = 0,
@@ -15,58 +18,44 @@ export function analyzePlayStyle(playerStats, seasonStats = null) {
     headshotRate = 0,
   } = playerStats || {};
 
-  // 시즌 전체 통계 분석 (더 이상 최근 매치가 아닌 전체 시즌)
-  console.log('🎯 AI 코칭 - 전체 시즌 기준 분석 시작:', {
-    avgKills,
-    avgDamage,
-    avgSurvivalTime,
-    winRate,
-    top10Rate,
-    totalMatches,
-  });
+  const survTime = avgSurvivalTime || avgSurviveTime || 0;
 
-  const matchCount = totalMatches || 1; // 0으로 나누는 것 방지
-
-  // 공격성 지수 계산 (0-100) - 시즌 평균 기준
+  // 공격성 지수 (0-100)
   const aggressionIndex = Math.min(
     100,
-    avgKills * 15 + avgDamage / 10 + kd * 10 - avgSurvivalTime / 100
+    avgKills * 15 + avgDamage / 10 + kd * 10 - survTime / 100
   );
 
-  // 생존성 지수 계산 (0-100) - 시즌 평균 기준
+  // 생존성 지수 (0-100)
   const survivalIndex = Math.min(
     100,
-    avgSurvivalTime / 20 + top10Rate * 2 + winRate * 3
+    survTime / 20 + top10Rate * 2 + winRate * 3
   );
 
-  // 일관성 지수 계산 - 시즌 전체 통계 기반
-  // 헤드샷 비율과 K/D 비율을 통해 일관성 측정
+  // 일관성 지수 (0-100)
   const consistencyIndex = Math.min(
     100,
     headshotRate * 2 + kd * 15 + (totalMatches >= 10 ? 20 : totalMatches * 2)
   );
 
-  // 플레이 스타일 결정
-  let playStyle = 'BALANCED';
-  let playstyleScore = 60;
+  // 통합 분류기로 플레이스타일 결정
+  const result = classifyPlaystyle({
+    avgDamage,
+    avgKills,
+    avgAssists,
+    avgSurviveTime: survTime,
+    winRate,
+    top10Rate,
+  });
 
-  if (aggressionIndex >= 70 && avgKills >= 2.5) {
-    playStyle = 'AGGRESSIVE';
-    playstyleScore = aggressionIndex;
-  } else if (survivalIndex >= 75 && avgSurvivalTime >= 1200) {
-    playStyle = 'PASSIVE';
-    playstyleScore = survivalIndex;
-  } else if (avgDamage >= 300 && avgKills >= 1.5) {
-    playStyle = 'SNIPER';
-    playstyleScore = avgDamage / 5 + avgKills * 10;
-  } else if (avgAssists >= 1.0 && top10Rate >= 20) {
-    playStyle = 'SUPPORT';
-    playstyleScore = avgAssists * 20 + top10Rate;
-  }
+  const playStyle      = result.code;           // aiCoaching 하위호환 영문 코드
+  const playstyleScore = Math.min(100, aggressionIndex * 0.5 + survivalIndex * 0.5);
 
   return {
     playStyle,
-    playstyleScore: Math.min(100, playstyleScore),
+    playstyleLabel:  result.label,              // 한국어 이름 (이모지 포함)
+    playstyleDesc:   result.desc,
+    playstyleScore,
     aggressionIndex,
     survivalIndex,
     consistencyIndex,
