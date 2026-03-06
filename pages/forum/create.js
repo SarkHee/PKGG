@@ -9,6 +9,7 @@ const CATEGORY_OPTIONS = [
   { id: 'general', name: '자유 게시판', icon: '💬' },
   { id: 'questions', name: '질문 & 답변', icon: '❓' },
   { id: 'recruitment', name: '클랜 모집', icon: '👥' },
+  { id: 'party', name: '파티 찾기', icon: '🎮' },
 ];
 
 export default function CreatePost() {

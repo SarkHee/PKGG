@@ -2298,6 +2298,15 @@ export default async function handler(req, res) {
             : null,
         clanTier: clanTier,
         lastUpdated: new Date().toISOString(),
+        lastCachedAt: await (async () => {
+          try {
+            const cache = await prisma.playerCache.findUnique({
+              where: { nickname_pubgShardId: { nickname, pubgShardId: shard } },
+              select: { lastUpdated: true },
+            });
+            return cache?.lastUpdated?.toISOString() || null;
+          } catch { return null; }
+        })(),
       },
 
       // 2. 개인 요약 통계

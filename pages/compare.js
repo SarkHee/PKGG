@@ -436,6 +436,9 @@ export default function ComparePage() {
           name="description"
           content="두 PUBG 플레이어의 시즌 통계를 나란히 비교해보세요. MMR, 평균딜량, 승률, Top10% 등을 한눈에."
         />
+        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://pk.gg/og.png" />
       </Head>
 
       <div className="min-h-screen bg-gray-900 text-white">

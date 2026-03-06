@@ -1,6 +1,45 @@
 import { useState, useEffect, useRef } from 'react';
 import { analyzePlayStyle } from '../../utils/aiCoaching';
 
+// 무기 카테고리 분류 (WeaponMasteryCard와 동일 기준)
+const WEAPON_CAT = {
+  Item_Weapon_HK416_C: { name: 'M416', cat: 'AR' },
+  Item_Weapon_AK47_C: { name: 'AKM', cat: 'AR' },
+  Item_Weapon_SCAR_L_C: { name: 'SCAR-L', cat: 'AR' },
+  Item_Weapon_M16A4_C: { name: 'M16A4', cat: 'AR' },
+  Item_Weapon_Groza_C: { name: 'Groza', cat: 'AR' },
+  Item_Weapon_G36C_C: { name: 'G36C', cat: 'AR' },
+  Item_Weapon_QBZ95_C: { name: 'QBZ-95', cat: 'AR' },
+  Item_Weapon_Mk47Mutant_C: { name: 'Mk47 Mutant', cat: 'AR' },
+  Item_Weapon_ACE32_C: { name: 'ACE32', cat: 'AR' },
+  Item_Weapon_BerylM762_C: { name: 'Beryl M762', cat: 'AR' },
+  Item_Weapon_AUG_C: { name: 'AUG A3', cat: 'AR' },
+  Item_Weapon_K2_C: { name: 'K2', cat: 'AR' },
+  Item_Weapon_FAMASG2_C: { name: 'FAMAS G2', cat: 'AR' },
+  Item_Weapon_Mini14_C: { name: 'Mini 14', cat: 'DMR' },
+  Item_Weapon_SKS_C: { name: 'SKS', cat: 'DMR' },
+  Item_Weapon_VSS_C: { name: 'VSS', cat: 'DMR' },
+  Item_Weapon_Mk14_C: { name: 'Mk14 EBR', cat: 'DMR' },
+  Item_Weapon_FNFal_C: { name: 'SLR', cat: 'DMR' },
+  Item_Weapon_QBU88_C: { name: 'QBU', cat: 'DMR' },
+  Item_Weapon_Mk12_C: { name: 'Mk12', cat: 'DMR' },
+  Item_Weapon_Dragunov_C: { name: 'Dragunov', cat: 'DMR' },
+  Item_Weapon_Kar98k_C: { name: 'Kar98k', cat: 'SR' },
+  Item_Weapon_M24_C: { name: 'M24', cat: 'SR' },
+  Item_Weapon_AWM_C: { name: 'AWM', cat: 'SR' },
+  Item_Weapon_Mosin_C: { name: 'Mosin', cat: 'SR' },
+  Item_Weapon_Win1894_C: { name: 'Win94', cat: 'SR' },
+  Item_Weapon_L6_C: { name: 'Lynx AMR', cat: 'SR' },
+  Item_Weapon_UMP_C: { name: 'UMP45', cat: 'SMG' },
+  Item_Weapon_Vector_C: { name: 'Vector', cat: 'SMG' },
+  Item_Weapon_UZI_C: { name: 'Micro UZI', cat: 'SMG' },
+  Item_Weapon_BizonPP19_C: { name: 'PP-19 Bizon', cat: 'SMG' },
+  Item_Weapon_MP5K_C: { name: 'MP5K', cat: 'SMG' },
+  Item_Weapon_MP9_C: { name: 'MP9', cat: 'SMG' },
+  Item_Weapon_Thompson_C: { name: 'Tommy Gun', cat: 'SMG' },
+  Item_Weapon_P90_C: { name: 'P90', cat: 'SMG' },
+};
+
 const STYLE_NAMES = {
   AGGRESSIVE: '공격형',
   PASSIVE: '생존형',
@@ -169,36 +208,39 @@ function getPUBGStrengths(stats, analysis) {
 function getPUBGImprovements(stats, analysis) {
   const list = [];
 
-  if (stats.avgDamage < 180)
-    list.push({ title: '딜량 향상 시급', desc: `평균 ${Math.round(stats.avgDamage)} — 배그 평균(200) 미달. 반동 제어 연습과 교전 거리 조정 필요` });
-  else if (stats.avgDamage < 280)
-    list.push({ title: '중거리 딜링 개선', desc: `평균 ${Math.round(stats.avgDamage)} → 300+ 목표. 100-200m 스코프(4배율) 점사 교전을 늘리세요` });
+  if (stats.avgDamage < 180) {
+    const nextTarget = Math.round(stats.avgDamage / 10) * 10 + 30;
+    list.push({ title: '딜량 향상 (1단계)', desc: `현재 평균 ${Math.round(stats.avgDamage)} → 우선 ${nextTarget} 목표. Training Grounds에서 AR 반동 제어 10분씩 연습하세요` });
+  } else if (stats.avgDamage < 280) {
+    const nextTarget = Math.min(280, Math.round(stats.avgDamage / 10) * 10 + 40);
+    list.push({ title: '중거리 딜링 개선', desc: `현재 ${Math.round(stats.avgDamage)} → ${nextTarget} 목표. 4배율 스코프로 100-150m 거리에서 점사(2~3발) 습관을 들이세요` });
+  }
 
   if (stats.avgKills < 1.0)
-    list.push({ title: '교전 참여 부족', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 — 블루존 밖 이동하는 적이나 교전 중인 팀을 써드파티하는 타이밍을 노리세요` });
+    list.push({ title: '교전 참여 늘리기', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 우선 1킬 목표. 블루존으로 이동하는 적을 미리 대기하는 것부터 시작하세요` });
   else if (stats.avgKills < 1.5)
-    list.push({ title: '교전 기회 확대 필요', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 1.5+ 목표. 안전지대 안쪽 포지션에서 진입하는 적을 기다리세요` });
+    list.push({ title: '킬 기회 포착 개선', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 1.5킬 목표. 교전 중인 두 팀 중 이기는 팀 뒤를 써드파티하는 타이밍을 노리세요` });
 
   if (stats.winRate < 3)
-    list.push({ title: '최종 안전지대 운영', desc: `승률 ${stats.winRate.toFixed(1)}% — Top5 이후 무리한 킬보다 고지대 포지션 확보 우선 필요` });
+    list.push({ title: 'Top15 생존 습관 만들기', desc: `승률 ${stats.winRate.toFixed(1)}% — 치킨보다 Top15 진입 목표로 잡으세요. 먼저 총 쏘지 않고 상대가 나올 때까지 기다리는 연습이 우선입니다` });
   else if (stats.winRate < 6)
-    list.push({ title: '엔드게임 결정력', desc: `승률 ${stats.winRate.toFixed(1)}% — 최종 안전지대 축소 시 1:1 교전 자신감과 포지션 싸움 개선 필요` });
+    list.push({ title: 'Top5 포지션 싸움 개선', desc: `승률 ${stats.winRate.toFixed(1)}% — 마지막 원에서 언덕/바위 뒤 고지대 선점이 핵심. 연막탄 1개로 이동 경로를 만드는 연습을 하세요` });
 
   if (stats.top10Rate < 15)
-    list.push({ title: '블루존 피해 과다 의심', desc: `Top10 ${stats.top10Rate.toFixed(0)}% — 미니맵 안전지대 확인을 습관화하고 이동 타이밍을 앞당기세요` });
+    list.push({ title: '안전지대 이동 타이밍', desc: `Top10 ${stats.top10Rate.toFixed(0)}% — 블루존이 줄어들기 30초 전에 이동 시작하는 습관. 미니맵을 5초마다 확인하세요` });
   else if (stats.top10Rate < 25)
-    list.push({ title: '중반 포지셔닝 개선', desc: `Top10 ${stats.top10Rate.toFixed(0)}% → 30%+ 목표. 안전지대 축소 직전 이동으로 블루존 데미지를 줄이세요` });
+    list.push({ title: '중반 포지셔닝 개선', desc: `Top10 ${stats.top10Rate.toFixed(0)}% → 30% 목표. 1차 원 축소 전 미리 이동해 건물 안쪽 포지션을 선점하세요` });
 
   if (stats.avgSurvivalTime < 480)
-    list.push({ title: '초반 생존 전략 재검토', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 핫드랍 후 루팅 경쟁에서 패배할 가능성. 착지 지점 분산 또는 변경 고려` });
+    list.push({ title: '초반 착지 전략 변경', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 핫드랍 착지 인원이 3명 이상이면 바로 다음 건물로 이동하세요. 루팅 경쟁 회피가 우선입니다` });
   else if (stats.avgSurvivalTime < 800)
-    list.push({ title: '중반 생존율 개선', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 1차 안전지대 축소 시 이동 타이밍을 더 빠르게 잡으세요` });
+    list.push({ title: '중반 생존 개선', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 1차 원 축소 시 에너지 드링크 2개를 마시며 이동하면 블루존 피해를 버틸 수 있습니다` });
 
   if (analysis?.consistencyIndex < 40)
-    list.push({ title: '퍼포먼스 기복 심함', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 매 게임 루팅 루트와 포지션을 정형화하여 안정성을 높이세요` });
+    list.push({ title: '매 게임 루틴 만들기', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 착지 지점 2~3곳을 고정하고 루팅 순서를 패턴화하세요. 변수를 줄이면 평균 성과가 올라갑니다` });
 
   if (list.length === 0)
-    list.push({ title: '고급 전술 습득', desc: '현재 지표 양호 — 그레네이드 활용, 차량 기동전, 팀 콜링 등 고급 스킬 도전을 추천합니다' });
+    list.push({ title: '고급 전술 단계', desc: '현재 지표 모두 양호 — 그레네이드 투척 루틴, 연막탄 커버, 팀 콜링 등 고급 스킬에 도전하세요' });
 
   return list;
 }
@@ -207,6 +249,47 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const savedKeyRef = useRef('');
+
+  // Groq AI 심층 분석 state
+  const [aiAdvice, setAiAdvice]   = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError]     = useState('');
+  const [aiCached, setAiCached]   = useState(false);
+
+  // 유저 실제 무기 데이터 (AR·SR·DMR 최다 킬 무기)
+  const [userWeaponRec, setUserWeaponRec] = useState(null);
+
+  const fetchAiAdvice = async (currentStats, currentAnalysis) => {
+    if (aiLoading || !playerInfo?.nickname) return;
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const res = await fetch('/api/pubg/ai-coaching', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nickname: playerInfo.nickname,
+          shard: playerInfo.server || 'steam',
+          stats: {
+            avgDamage: currentStats.avgDamage,
+            avgKills: currentStats.avgKills,
+            winRate: currentStats.winRate,
+            top10Rate: currentStats.top10Rate,
+            avgSurvivalTime: currentStats.avgSurvivalTime,
+            playstyle: currentAnalysis?.playStyle || '',
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.error) { setAiError(data.error); return; }
+      setAiAdvice(data.advice);
+      setAiCached(data.cached);
+    } catch {
+      setAiError('네트워크 오류. 다시 시도해주세요.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const getValue = (v) => {
     if (v == null) return 0;
@@ -235,6 +318,57 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     totalMatches: getValue(playerStats?.totalMatches ?? playerStats?.roundsPlayed),
     kd: getValue(playerStats?.kd),
   };
+
+  // 유저 실제 무기 사용 통계 조회 → 최다 킬 AR / SR·DMR 추출
+  useEffect(() => {
+    if (!playerInfo?.nickname) return;
+    const shard = playerInfo.server || 'steam';
+    let cancelled = false;
+
+    const resolveId = playerInfo.playerId
+      ? Promise.resolve(playerInfo.playerId)
+      : fetch(`/api/pubg/player-id?nickname=${encodeURIComponent(playerInfo.nickname)}&shard=${shard}`)
+          .then((r) => r.json())
+          .then((d) => d.playerId || null)
+          .catch(() => null);
+
+    resolveId.then((pid) => {
+      if (!pid || cancelled) return;
+      return fetch(`/api/pubg/stats/mastery/${shard}/${pid}/weapon`)
+        .then((r) => r.json())
+        .then((json) => {
+          if (cancelled || !json?.success) return;
+          const attrs = json.data?.attributes || {};
+          const summaries = attrs.weaponsummaries || attrs.WeaponSummaries || attrs.weaponSummaries || {};
+          const parsed = Object.entries(summaries)
+            .map(([id, v]) => {
+              const info = WEAPON_CAT[id];
+              if (!info) return null;
+              const s = v.StatsTotal || {};
+              const o = v.OfficialStatsTotal || {};
+              const c = v.CompetitiveStatsTotal || {};
+              const kills = (s.Kills || 0) + (o.Kills || 0) + (c.Kills || 0);
+              return kills > 0 ? { name: info.name, cat: info.cat, kills } : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.kills - a.kills);
+
+          const bestAR    = parsed.find((w) => w.cat === 'AR');
+          const bestSMG   = parsed.find((w) => w.cat === 'SMG');
+          const bestSRDMR = parsed.find((w) => w.cat === 'SR' || w.cat === 'DMR');
+          // AR·SMG 중 킬수 1등
+          const bestARorSMG = (!bestAR && !bestSMG)
+            ? null
+            : (!bestSMG || (bestAR && bestAR.kills >= bestSMG.kills))
+              ? bestAR
+              : bestSMG;
+          if (bestARorSMG || bestSRDMR) setUserWeaponRec({ bestARorSMG, bestSRDMR });
+        })
+        .catch(() => {});
+    });
+
+    return () => { cancelled = true; };
+  }, [playerInfo?.nickname, playerInfo?.server, playerInfo?.playerId]);
 
   useEffect(() => {
     if (!statsKey) return;
@@ -302,7 +436,20 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
   const strengths = getPUBGStrengths(stats, analysis);
   const improvements = getPUBGImprovements(stats, analysis);
   const actions = getPUBGActions(stats, analysis.playStyle);
-  const weapons = WEAPON_RECOMMENDATIONS[analysis.playStyle] || WEAPON_RECOMMENDATIONS.BALANCED;
+  const staticWeapons = WEAPON_RECOMMENDATIONS[analysis.playStyle] || WEAPON_RECOMMENDATIONS.BALANCED;
+
+  // 유저 실제 사용 무기가 있으면 덮어씌움
+  const dynPrimary = userWeaponRec?.bestARorSMG;
+  const dynSecondary = userWeaponRec?.bestSRDMR;
+  const weapons = {
+    ...staticWeapons,
+    primary: dynPrimary
+      ? { name: dynPrimary.name, note: `${dynPrimary.cat === 'SMG' ? 'SMG' : 'AR'} 중 ${dynPrimary.kills}킬 1위 — 이미 가장 잘 쓰는 주무기`, attach: staticWeapons.primary.attach }
+      : staticWeapons.primary,
+    secondary: dynSecondary
+      ? { name: dynSecondary.name, note: `SR/DMR 중 ${dynSecondary.kills}킬 1위 — 실전에서 검증된 보조무기`, attach: staticWeapons.secondary.attach }
+      : staticWeapons.secondary,
+  };
 
   const styleColor = {
     AGGRESSIVE: 'from-red-600 to-orange-600',
@@ -551,6 +698,49 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Groq AI 심층 분석 섹션 */}
+        <div className="border border-violet-200 rounded-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-50 to-indigo-50 px-4 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">✨</span>
+              <div>
+                <div className="text-xs font-bold text-violet-800">AI 심층 코칭</div>
+                <div className="text-[10px] text-violet-500">Groq Llama 3.1 · {aiCached ? '7일 캐시' : '실시간 생성'}</div>
+              </div>
+            </div>
+            {!aiAdvice && (
+              <button
+                onClick={() => fetchAiAdvice(stats, analysis)}
+                disabled={aiLoading}
+                className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
+              >
+                {aiLoading ? (
+                  <>
+                    <span className="inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    분석 중…
+                  </>
+                ) : '분석 받기'}
+              </button>
+            )}
+          </div>
+          {aiError && (
+            <div className="px-4 py-3 text-xs text-red-600 bg-red-50">{aiError}</div>
+          )}
+          {aiAdvice && (
+            <div className="px-4 py-3 space-y-1.5">
+              {aiAdvice.split('\n').filter(l => l.trim()).map((line, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-gray-700 leading-relaxed">
+                  <span className="text-violet-500 flex-shrink-0 mt-0.5">•</span>
+                  <span>{line.replace(/^[•\-]\s*/, '')}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {!aiAdvice && !aiLoading && !aiError && (
+            <div className="px-4 py-3 text-xs text-gray-400">버튼을 눌러 AI 맞춤 조언을 받아보세요</div>
+          )}
         </div>
 
         <div className="text-center text-xs text-gray-400">

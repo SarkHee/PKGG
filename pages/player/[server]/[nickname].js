@@ -189,6 +189,34 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
     } catch (cacheErr) {
       console.warn('PlayerCache upsert 실패:', cacheErr.message);
     }
+
+    // 성장 스냅샷 저장 (7일 1회, 데이터가 있는 경우만 — 주간 성장 추이 추적)
+    try {
+      if (summary?.avgDamage > 0 || summary?.avgKills > 0) {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const existingSnap = await prisma.playerStatSnapshot.findFirst({
+          where: { nickname, pubgShardId: shard, capturedAt: { gte: sevenDaysAgo } },
+        });
+        if (!existingSnap) {
+          await prisma.playerStatSnapshot.create({
+            data: {
+              nickname,
+              pubgShardId: shard,
+              score: Math.round(summary.score || 0),
+              avgDamage: summary.avgDamage || 0,
+              avgKills: summary.avgKills || 0,
+              avgAssists: summary.avgAssists || 0,
+              avgSurviveTime: summary.avgSurviveTime || 0,
+              winRate: summary.winRate || 0,
+              top10Rate: summary.top10Rate || 0,
+            },
+          });
+          console.log(`✅ 성장 스냅샷 저장: ${nickname}`);
+        }
+      }
+    } catch (snapErr) {
+      console.warn('성장 스냅샷 저장 실패:', snapErr.message);
+    }
   } catch (e) {
     console.error('savePlayerToDatabase 오류:', e.message);
   } finally {
@@ -926,13 +954,6 @@ export default function PlayerPage({ playerData, error, dataSource }) {
         </Head>
 
         {/* 데이터 소스 알림 - 간결하게 */}
-        {dataSource === 'database' && (
-          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl text-sm">
-            <span className="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0"></span>
-            <span className="font-medium">캐시 데이터 표시 중</span>
-            <span className="text-amber-500">— 최신화 버튼으로 실시간 데이터를 불러올 수 있습니다</span>
-          </div>
-        )}
         {(dataSource === 'db_with_api_enhancement' || dataSource === 'enhanced') && (
           <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm">
             <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></span>
@@ -1104,6 +1125,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
               playerInfo={{
                 nickname: profile?.nickname || router.query.nickname,
                 server: router.query.server || 'steam',
+                playerId: profile?.playerId || null,
               }}
             />
           </div>
@@ -1483,6 +1505,7 @@ async function getPlayerFromDB(nickname, server) {
               playerId: cached.pubgPlayerId,
               clanName: null,
               clanTag: null,
+              lastCachedAt: cached.lastUpdated ? cached.lastUpdated.toISOString() : null,
             },
             summary,
             mmr,
@@ -1575,6 +1598,7 @@ async function getPlayerFromDB(nickname, server) {
         playerId: member.pubgPlayerId,
         shardId: member.pubgShardId || server,
         lastUpdated: member.lastUpdated.toISOString(),
+        lastCachedAt: member.lastUpdated ? member.lastUpdated.toISOString() : null,
         clan: member.clan
           ? {
               name: member.clan.name,
@@ -1996,6 +2020,7 @@ export async function getServerSideProps({ params, query }) {
         playerId: pubgPlayer.id,
         shardId: pubgShard,
         lastUpdated: new Date().toISOString(),
+        lastCachedAt: new Date().toISOString(),
         clan: pubgClan
           ? {
               name: pubgClan.attributes.clanName,

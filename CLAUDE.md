@@ -27,7 +27,13 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `weapon-damage.js` | 무기 데미지 표 (57종, 타입 필터·정렬·DPS·방어구/헬멧 시뮬레이터·킬샷 계산·비교 모드) |
 | `party.js` | 파티 찾기 게시판. 포럼 `party` 카테고리 사용. 모드/서버/마이크 필터 |
 | `party/create.js` | 파티 모집 글 작성 폼 (JSON 구조화 데이터를 forum content에 저장) |
+| `aim-trainer.js` | 에임 트레이너 미니게임. 3모드: 반응속도(5라운드·DOM), 플리커 에임(Canvas 30초), 이동 타겟(Canvas 30초). 결과 클립보드 공유 |
+| `recoil-pattern.js` | 반동 패턴 시뮬레이터. 8종 무기 20발 정규화 패턴. Canvas 애니메이션(RPM 기반). 부착물 토글(보정기/수직그립/앵글드그립). 보정 가이드·방향 화살표. **연습 모드** 탭: DPI 설정(100-16000, 프리셋)/스코프 모드(기본~6배)/3·2·1 카운트다운/Canvas 오버레이 버튼/착탄 정확도 채점 |
+| `drop-calculator.js` | 낙하 지점 최적화 계산기. 7개 맵 선택. Canvas 3단계 클릭(경로시작→끝→목표). 낙하 범위 부채꼴 표시. 점프 타이밍·낙하 시간 계산 |
 | `playstyle-matchup.js` | 14가지 플레이스타일 상성 매트릭스 (1-5점 척도, 클릭으로 행/열 강조) |
+| `peek-trainer.js` | 피킹 트레이너 미니게임. Canvas 기반. SPACE/Q/E 피킹(200ms 딜레이 노출) → 마우스 클릭 사격. 헤드샷/바디샷/미스/피격 판정. 20초 게임, 점수·반응속도·헤드샷률 결과 |
+| `battle-sim.js` | 능선 전략 시뮬레이터. 12×8 그리드 턴제 전술 게임 (현재 WIP, nav 숨김) |
+| `pubg-survivors.js` | PUBG 테마 뱀파이어 서바이벌. Canvas 800×560. WASD 이동·자동 사격. 8종 무기+6종 부착물+7가지 진화 조합(EVOS). 블루존 축소·20분 생존. 레벨업/진화 선택 화면. Header 훈련 메뉴에 추가 |
 | `forum/index.js` | 포럼 메인 (카테고리 + 최근 게시글 목록 — 제목만 표시) |
 | `forum/category/[categoryId].js` | 카테고리별 게시글 목록 (제목만 표시) |
 | `forum/post/[postId].js` | 게시글 상세 (이미지 풀-와이드 렌더링) |
@@ -155,6 +161,8 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - WeaponMasteryCard: 헤드샷 기능 제거 (PUBG Headshots 필드 = 킬이 아닌 히트 수)
 - weapon-test: WeaponSlider 컴포넌트 추가 (PNG 이미지 + 탭 네비게이션)
 - PUBG API: 세 소스 합산으로 무기 킬/데미지 통계 정확도 개선
+- **AICoachingCard 개선**: 다시 생성하기 버튼 제거. 개선 우선순위를 단계별 현실적 목표로 수정(현재 수치 → +30~40 다음 단계 목표). 무기 추천 동적화: `playerInfo.playerId`로 `/api/pubg/stats/mastery` 조회 → AR 최다킬·SR/DMR 최다킬 무기를 자동 추천(`WEAPON_CAT` 룩업테이블), 데이터 없으면 정적 추천 유지
+- **성장 스냅샷 자동 저장**: `savePlayerToDatabase()`에 스냅샷 저장 로직 추가. 플레이어 상세 페이지 방문 시 하루 1회 `PlayerStatSnapshot` 자동 생성 (avgDamage/avgKills > 0 인 경우만). 이제 클랜 배치 업데이트 없이도 성장 추적 가능
 - **i18n 다국어 지원 추가** (ko/en/ja/zh): `utils/i18n.js`, `pages/_app.js` LanguageProvider, Header 언어 토글
   - 적용 완료: Header, Footer, index.js, clan-analytics.js, clan/[clanName].js, weapon-test/index.js, weapon-test/result/[id].js
 - **로고/파비콘/OG 이미지 적용**: `/public/logo.png`, `/public/favicon.png`, `/public/og.png`. `pages/_document.js` 에서 전역 파비콘·OG 설정
@@ -180,4 +188,6 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - **무기 데미지 표 비교 모드 추가**: `compareMode` toggle → `compareSet`(Set, 최대 3개) → `ComparePanel` 슬라이드 바 비교 (damage/RPM/DPS/body/head)
 - **홈 검색 자동완성**: localStorage `pkgg_recent_searches` (최대 8개). 검색창 포커스 시 드롭다운, 닉네임 필터링. `removeRecentSearch` + `clearAllRecent` 지원
 - **GrowthChart 개선**: 7일/30일/전체 기간 필터 (`period` state + `filteredSnaps`). 5개 지표 요약 카드 (클릭으로 활성 탭 변경, 첫 스냅샷 대비 델타 표시)
+- **피킹 트레이너 추가** (`pages/peek-trainer.js`): Canvas 기반 피킹 연습 게임. SPACE/Q/E → 200ms 딜레이 후 노출 → 클릭 사격. 헤드샷 +150~200점, 바디샷 +80~130점, 피격 -50점. 20초 타이머, 점수·반응속도·헤드샷률 결과 화면. Header 훈련 메뉴에 추가
+- **능선 전략 시뮬레이터 추가** (`pages/battle-sim.js`): 12×8 그리드 턴제 전술 게임. setup(배치) → combat(전투) → result(분석) 화면 전환. 지형: 능선(▲ +25% 공격), 엄폐(🪨 -35% 피해). 이동/사격 액션, AI 자동 턴. Header 훈련 메뉴에 추가
 - **다크/라이트 테마 토글**: Header 🌙/☀️ 버튼. `pkgg_theme` localStorage 저장. `_app.js`에서 초기화 (저장값 → OS 설정 순). `tailwind.config.cjs` `darkMode: 'class'` 활용. `nav.playstyle_matchup` i18n 키 4개 언어 추가

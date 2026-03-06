@@ -157,6 +157,9 @@ export default function ClansDirectory() {
       <Head>
         <title>클랜 디렉토리 · PKGG</title>
         <meta name="description" content="PKGG에 등록된 PUBG 클랜 목록을 MMR 랭킹 순으로 확인하세요." />
+        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://pk.gg/og.png" />
       </Head>
 
       <Header />

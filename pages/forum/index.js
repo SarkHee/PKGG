@@ -32,6 +32,13 @@ const FORUM_CATEGORIES = [
     icon: '👥',
     color: 'purple',
   },
+  {
+    id: 'party',
+    name: '파티 찾기',
+    description: '함께 플레이할 파티원을 모집하거나 찾아보세요',
+    icon: '🎮',
+    color: 'cyan',
+  },
 ];
 
 function ForumCategoryCard({ category, postCount = 0, latestPost = null }) {

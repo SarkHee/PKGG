@@ -146,6 +146,21 @@ export default function Home() {
         <meta name="twitter:description" content={t('home.meta_desc')} />
         <meta name="twitter:image" content="https://pk.gg/og.png" />
         <link rel="canonical" href="https://pk.gg/" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "PKGG",
+            "url": "https://pk.gg",
+            "description": "PUBG 플레이어 전적 검색, 클랜 분석, 무기 성향 테스트",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": { "@type": "EntryPoint", "urlTemplate": "https://pk.gg/?q={search_term_string}" },
+              "query-input": "required name=search_term_string"
+            }
+          })}}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

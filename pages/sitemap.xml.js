@@ -7,11 +7,21 @@ function generateSiteMap(clans) {
   const now = new Date().toISOString().split('T')[0];
 
   const staticPages = [
-    { url: '/', changefreq: 'daily', priority: '1.0' },
-    { url: '/clan-analytics', changefreq: 'daily', priority: '0.9' },
-    { url: '/weapon-test', changefreq: 'weekly', priority: '0.7' },
-    { url: '/forum', changefreq: 'daily', priority: '0.8' },
-    { url: '/privacy', changefreq: 'monthly', priority: '0.3' },
+    { url: '/',                    changefreq: 'daily',   priority: '1.0' },
+    { url: '/clan-analytics',      changefreq: 'daily',   priority: '0.9' },
+    { url: '/clans',               changefreq: 'daily',   priority: '0.8' },
+    { url: '/compare',             changefreq: 'weekly',  priority: '0.8' },
+    { url: '/weapon-test',         changefreq: 'weekly',  priority: '0.8' },
+    { url: '/weapon-damage',       changefreq: 'monthly', priority: '0.7' },
+    { url: '/playstyle-matchup',   changefreq: 'monthly', priority: '0.6' },
+    { url: '/sensitivity',         changefreq: 'monthly', priority: '0.7' },
+    { url: '/aim-trainer',         changefreq: 'monthly', priority: '0.7' },
+    { url: '/recoil-pattern',      changefreq: 'monthly', priority: '0.7' },
+    { url: '/forum',               changefreq: 'daily',   priority: '0.8' },
+    { url: '/pubg-news',           changefreq: 'daily',   priority: '0.7' },
+    { url: '/about',               changefreq: 'monthly', priority: '0.4' },
+    { url: '/terms',               changefreq: 'monthly', priority: '0.3' },
+    { url: '/contact',             changefreq: 'monthly', priority: '0.3' },
   ];
 
   const staticEntries = staticPages

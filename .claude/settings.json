@@ -7,7 +7,8 @@
       "Bash(source /Users/mac/Desktop/PKGG/.env.local)",
       "Bash(export DATABASE_URL=\"postgresql://postgres.xwwnkcijnjefkcniinjw:qkrdltkr1387!@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1\")",
       "Bash(export DATABASE_URL=\"postgresql://postgres:qkrdltkr1387!@db.xwwnkcijnjefkcniinjw.supabase.co:5432/postgres\")",
-      "Bash(xargs sed -i '' 's/PK\\\\.GG/PKGG/g')"
+      "Bash(xargs sed -i '' 's/PK\\\\.GG/PKGG/g')",
+      "WebFetch(domain:www.youtube.com)"
     ]
   }
 }

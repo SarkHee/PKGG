@@ -9,6 +9,7 @@ const CATEGORY_INFO = {
   general: { name: '자유 게시판', icon: '💬', color: 'green', description: '자유롭게 이야기를 나누세요' },
   questions: { name: '질문 & 답변', icon: '❓', color: 'orange', description: '궁금한 점을 물어보고 답변해주세요' },
   recruitment: { name: '클랜 모집', icon: '👥', color: 'purple', description: '클랜원을 모집하거나 클랜을 찾아보세요' },
+  party: { name: '파티 찾기', icon: '🎮', color: 'cyan', description: '함께 플레이할 파티원을 모집하거나 찾아보세요' },
 };
 
 function PostCard({ post }) {

@@ -4,6 +4,16 @@ import Tooltip from '../ui/Tooltip';
 import { calculateMMR, getMMRTier, MMR_DISCLAIMER } from '../../utils/mmrCalculator';
 import PlayerShareCard from './PlayerShareCard';
 
+// DB 캐시 업데이트 시간 → 상대 표시
+function timeAgo(isoString) {
+  if (!isoString) return null;
+  const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+  if (diff < 60) return '방금 전';
+  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+  return `${Math.floor(diff / 86400)}일 전`;
+}
+
 // localStorage 즐겨찾기 헬퍼 (최대 10개)
 const FAV_KEY = 'pkgg_favorites';
 function loadFavorites() {
@@ -306,10 +316,17 @@ const PlayerHeader = ({
               {(profile?.nickname || 'P').charAt(0).toUpperCase()}
             </div>
             <div>
-              {/* 닉네임 */}
-              <h1 className="text-3xl font-black text-white tracking-tight">
-                {profile?.nickname || '-'}
-              </h1>
+              {/* 닉네임 + DB 캐시 시간 */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-3xl font-black text-white tracking-tight">
+                  {profile?.nickname || '-'}
+                </h1>
+                {timeAgo(profile?.lastCachedAt) && (
+                  <span className="px-2 py-0.5 bg-gray-700/70 border border-gray-600/50 rounded-full text-[11px] text-gray-400 font-medium">
+                    {timeAgo(profile.lastCachedAt)} 업데이트
+                  </span>
+                )}
+              </div>
               {/* 클랜 + 플레이스타일 */}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 {clanInfo && (
@@ -348,6 +365,17 @@ const PlayerHeader = ({
                   }`}
                 >
                   {isFav ? '★' : '☆'}
+                </button>
+              </Tooltip>
+            )}
+            {/* 친구 비교 버튼 */}
+            {nickname && (
+              <Tooltip content="이 플레이어와 비교하기">
+                <button
+                  onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
+                  className="px-3 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
+                >
+                  ⚔️ 비교
                 </button>
               </Tooltip>
             )}
