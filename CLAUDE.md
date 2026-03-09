@@ -33,7 +33,7 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `playstyle-matchup.js` | 14가지 플레이스타일 상성 매트릭스 (1-5점 척도, 클릭으로 행/열 강조) |
 | `peek-trainer.js` | 피킹 트레이너 미니게임. Canvas 기반. SPACE/Q/E 피킹(200ms 딜레이 노출) → 마우스 클릭 사격. 헤드샷/바디샷/미스/피격 판정. 20초 게임, 점수·반응속도·헤드샷률 결과 |
 | `battle-sim.js` | 능선 전략 시뮬레이터. 12×8 그리드 턴제 전술 게임 (현재 WIP, nav 숨김) |
-| `pubg-survivors.js` | PUBG 테마 뱀파이어 서바이벌. Canvas 800×560. WASD 이동·자동 사격. 8종 무기+6종 부착물+7가지 진화 조합(EVOS). 블루존 축소·20분 생존. 레벨업/진화 선택 화면. Header 훈련 메뉴에 추가 |
+| `pubg-survivors.js` | PUBG 테마 뱀파이어 서바이벌. Canvas 800×560. WASD 이동·자동 사격. **8캐릭터 선택 시스템**. **5단계 무기 강화** (Lv4:+발사체, Lv5:전설효과). **보급품 시스템** (50~80초 랜덤 투하, 낙하산 애니메이션, 전설무기 5종+사기급 아이템 5종, 전설진화 7종). **페이즈 기반 적 강화** (`getPhase()` 0~3단계: HP×8/DMG×2.8/SPD×1.38, eliteBoss/megaBoss 타입 추가, 스폰속도 phase별 가속). **카드뉴스 알림** (보스출현·보급품 투하 시 우측 상단 미니맵 하단 비차단 카드, `state.notifications[]` 배열+자동 소멸). `AIRDROP_WEAPONS/ITEMS/EVOS` 상수. 미니맵 금색 마커. 전설 진화 발광 연출 |
 | `forum/index.js` | 포럼 메인 (카테고리 + 최근 게시글 목록 — 제목만 표시) |
 | `forum/category/[categoryId].js` | 카테고리별 게시글 목록 (제목만 표시) |
 | `forum/post/[postId].js` | 게시글 상세 (이미지 풀-와이드 렌더링) |

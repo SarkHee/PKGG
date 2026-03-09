@@ -8,7 +8,20 @@
       "Bash(export DATABASE_URL=\"postgresql://postgres.xwwnkcijnjefkcniinjw:qkrdltkr1387!@aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1\")",
       "Bash(export DATABASE_URL=\"postgresql://postgres:qkrdltkr1387!@db.xwwnkcijnjefkcniinjw.supabase.co:5432/postgres\")",
       "Bash(xargs sed -i '' 's/PK\\\\.GG/PKGG/g')",
-      "WebFetch(domain:www.youtube.com)"
+      "WebFetch(domain:www.youtube.com)",
+      "Bash(DEST=\"/Users/mac/Desktop/PKGG/public/characters\")",
+      "Bash(__NEW_LINE_fa4d5174f14da716__ cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Operator \\(오퍼레이터\\) — M416, 균형형 ⚔️/Operator \\(오퍼레이터\\) — M416, 균형형 ⚔️.png\" \"$DEST/operator.png\")",
+      "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Berserker \\(버서커\\) — AKM, HP 50% 이하 분노 🔥/Berserker \\(버서커\\) — AKM, HP 50% 이하 분노 🔥.png\" \"$DEST/berserker.png\")",
+      "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Runner \\(러너\\) — UMP45, 고속 기동 ⚡/Runner \\(러너\\) — UMP45, 고속 기동 ⚡.png\" \"$DEST/runner.png\")",
+      "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Marksman \\(마크스맨\\) — DP-28, 크리티컬+사거리 🎯/Marksman \\(마크스맨\\) — DP-28, 크리티컬+사거리 🎯.png\" \"$DEST/marksman.png\")",
+      "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Sniper \\(스나이퍼\\) — Kar98k, 관통 저격 🔭/Sniper \\(스나이퍼\\) — Kar98k, 관통 저격 🔭.png\" \"$DEST/sniper.png\")",
+      "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Breacher \\(브리처\\) — S686, 샷건 근접 특화 💣/Breacher \\(브리처\\) — S686, 샷건 근접 특화 💣.png\" \"$DEST/breacher.png\")",
+      "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Ghost \\(고스트\\) — 석궁, 독 피해 2배 👻/Ghost \\(고스트\\) — 석궁, 독 피해 2배 👻.png\" \"$DEST/ghost.png\")",
+      "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Gunner \\(건너\\) — DP-28, 연사+발사체 +1 🏰 /Gunner \\(건너\\) — DP-28, 연사+발사체 +1 🏰_.png\" \"$DEST/gunner.png\")",
+      "Bash(__NEW_LINE_fa4d5174f14da716__ ls $DEST)"
+    ],
+    "additionalDirectories": [
+      "/Users/mac/Desktop/PKGG/PUBG 서바이버/Berserker (버서커) — AKM, HP 50% 이하 분노 🔥"
     ]
   }
 }
