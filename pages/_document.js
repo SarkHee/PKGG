@@ -4,6 +4,8 @@ export default function Document() {
   return (
     <Html lang="ko">
       <Head>
+        {/* 모바일 뷰포트 */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         {/* 파비콘 */}
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="shortcut icon" href="/favicon.png" />

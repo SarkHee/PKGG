@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
 
@@ -104,6 +104,7 @@ const WDEFS = {
   s686:  { name:'S686',    icon:'💥', dmg:22,  rof:900,  range:135, spread:0.45, spd:9,  proj:6, color:'#505050', desc:'더블배럴 샷건' },
   xbow:  { name:'석궁',    icon:'🏹', dmg:120, rof:1400, range:440, spread:0.02, spd:8,  proj:1, color:'#604020', desc:'조용하고 치명적', poison:true },
   pan:   { name:'프라이팬',icon:'🍳', dmg:90,  rof:700,  range:58,  spread:0,    spd:0,  proj:1, color:'#888888', desc:'근접 마지막 수단', melee:true },
+  frag:  { name:'수류탄',  icon:'💣', dmg:110, rof:4000, range:320, spread:0.10, spd:5,  proj:1, color:'#40b040', desc:'4초마다 폭발 범위 피해', explosive:true, isGrenade:true },
 };
 
 // ── Airdrop Weapons (전설급) ─────────────────────────────────────
@@ -220,6 +221,10 @@ function upgradeLabelSub(w) {
 // ── Character image cache ────────────────────────────────────────
 const CHAR_IMGS = {};
 let MAP_CANVAS = null; // 절차적 생성 맵 캐시
+// ── 건물 충돌 그리드 ──────────────────────────────────────────
+const COLL_CELL = 16; // 16px 격자
+let _collisionGrid = null;
+let _collGridW = 0, _collGridH = 0;
 function getImg(charId, type) {
   const key = `${charId}_${type}`;
   if (!CHAR_IMGS[key]) {
@@ -470,12 +475,64 @@ function generateProceduralMap() {
   return canvas;
 }
 
+// ── 건물 충돌 그리드 생성 (이미지 밝기 기반) ────────────────────
+function buildCollisionGrid(imgEl) {
+  const iw = imgEl.naturalWidth, ih = imgEl.naturalHeight;
+  if (!iw || !ih) return null;
+  const cols = Math.ceil(WW / COLL_CELL);
+  const rows = Math.ceil(WH / COLL_CELL);
+  _collGridW = cols; _collGridH = rows;
+  const oc = new OffscreenCanvas(iw, ih);
+  const oc2d = oc.getContext('2d');
+  oc2d.drawImage(imgEl, 0, 0);
+  const imgData = oc2d.getImageData(0, 0, iw, ih).data;
+  const scaleX = iw / WW, scaleY = ih / WH;
+  const grid = new Uint8Array(cols * rows);
+
+  // 3×3 다중 샘플 — 9개 중 5개 이상 어두워야 건물로 판정
+  // 임계값 45: 건물 벽(매우 어두움)만 차단, 도로/바닥/그림자 제외
+  const THRESHOLD = 45;
+  const SAMPLE_STEP = Math.max(1, Math.floor(COLL_CELL / 3));
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const baseX = Math.floor(col * COLL_CELL * scaleX);
+      const baseY = Math.floor(row * COLL_CELL * scaleY);
+      let darkCount = 0;
+      for (let sy = 0; sy < 3; sy++) {
+        for (let sx = 0; sx < 3; sx++) {
+          const px = Math.min(iw - 1, baseX + sx * SAMPLE_STEP);
+          const py = Math.min(ih - 1, baseY + sy * SAMPLE_STEP);
+          const idx = (py * iw + px) * 4;
+          const r = imgData[idx], g = imgData[idx+1], b = imgData[idx+2];
+          // 건물 벽: 모든 채널이 낮고(어두움) + 녹색 채널이 지배적이지 않음(풀 제외)
+          const brightness = r * 0.299 + g * 0.587 + b * 0.114;
+          const isWall = brightness < THRESHOLD && g < r * 1.4; // 녹색 계열(풀/나무) 제외
+          if (isWall) darkCount++;
+        }
+      }
+      // 5/9 이상 어두운 샘플 → 건물 벽
+      grid[row * cols + col] = darkCount >= 5 ? 1 : 0;
+    }
+  }
+  return grid;
+}
+
+function isBlocked(x, y) {
+  if (!_collisionGrid) return false;
+  const col = (x / COLL_CELL) | 0;
+  const row = (y / COLL_CELL) | 0;
+  if (col < 0 || col >= _collGridW || row < 0 || row >= _collGridH) return false;
+  return _collisionGrid[row * _collGridW + col] === 1;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // DRAWING
 // ═══════════════════════════════════════════════════════════════
 function drawWorld(ctx, cam, world) {
   const mapImg = getSpriteImg('map2_jpg');
   if (imgReady(mapImg)) {
+    // 충돌 그리드 최초 1회 빌드
+    if (!_collisionGrid) _collisionGrid = buildCollisionGrid(mapImg);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     const scaleX = mapImg.naturalWidth / WW;
@@ -500,16 +557,19 @@ function drawWorld(ctx, cam, world) {
 
 function drawZone(ctx, cam, zone) {
   const zx = zone.cx - cam.x, zy = zone.cy - cam.y;
+  // 블루존 외부: 은은한 푸른 오버레이 (outside only)
   ctx.save();
-  ctx.fillStyle = 'rgba(0,80,200,0.18)';
-  ctx.fillRect(0, 0, CW, CH);
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.beginPath(); ctx.arc(zx, zy, zone.r, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath();
+  ctx.rect(0, 0, CW, CH);
+  ctx.arc(zx, zy, zone.r, 0, Math.PI * 2, true); // 원 안쪽을 제외 (even-odd)
+  ctx.fillStyle = 'rgba(0,60,180,0.28)';
+  ctx.fill('evenodd');
   ctx.restore();
+  // 블루존 경계선 글로우
   ctx.save();
-  ctx.shadowColor = 'rgba(60,160,255,0.8)'; ctx.shadowBlur = 12;
+  ctx.shadowColor = 'rgba(80,160,255,0.9)'; ctx.shadowBlur = 14;
   ctx.beginPath(); ctx.arc(zx, zy, zone.r, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(60,160,255,0.9)'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.strokeStyle = 'rgba(80,180,255,0.95)'; ctx.lineWidth = 3; ctx.stroke();
   ctx.restore();
 }
 
@@ -636,8 +696,20 @@ function drawBullet(ctx, b, cam) {
   if (x < -20 || x > CW + 20 || y < -20 || y > CH + 20) return;
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(Math.atan2(b.dy, b.dx));
 
+  if (b.isGrenade) {
+    // 수류탄: 회전하는 초록 원형
+    ctx.rotate(b.traveled * 0.12);
+    ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#3a9a3a'; ctx.fill();
+    ctx.strokeStyle = '#80ff60'; ctx.lineWidth = 2; ctx.stroke();
+    // 핀 표시
+    ctx.fillStyle = '#ffdd44';
+    ctx.fillRect(-2, -9, 4, 5);
+    ctx.restore(); return;
+  }
+
+  ctx.rotate(Math.atan2(b.dy, b.dx));
   const level = Math.min(5, Math.max(1, b.weaponLevel || 1));
   const bulletImg = b.charId ? getImg(b.charId, `bullet${level}`) : null;
   if (imgReady(bulletImg)) {
@@ -870,6 +942,7 @@ function initGame(charId = 'operator') {
       healRegen: charId === 'runner' ? 1.5 : 0,
       dmgReduce: 0,
       bzImmune: false,         // bluezone immune flag
+      skipCount: 2,            // 레벨업 건너뛰기 횟수
       invulnTime: 0, aimAngle: 0, _aimDisplay: 0,
       charId,
       charColor: char.color,
@@ -909,8 +982,9 @@ function spawnEnemy(state, etype) {
   const lvl   = state.player.level;
   const phase = getPhase(state.elapsed);
 
-  // 기본 시간+레벨 스케일
-  const baseHp  = 1 + state.elapsed / 280 + lvl * 0.15;
+  // 10분 이후: 수 고정 대신 HP 급상승
+  const lateHpBoost = state.elapsed >= 600 ? 1 + (state.elapsed - 600) / 60 * 0.35 : 1;
+  const baseHp  = (1 + state.elapsed / 280 + lvl * 0.15) * lateHpBoost;
   const baseDmg = 1 + state.elapsed / 420 + lvl * 0.09;
   const baseSpd = 1 + Math.min(lvl * 0.05, 0.8);
 
@@ -983,15 +1057,29 @@ function getSpawnType(elapsed) {
   return 'basic';
 }
 
-function shootWeapon(state, w) {
+let _cachedNearest = null; // 프레임당 1회 캐싱
+let _cachedNearestFrame = -1;
+function getNearest(state) {
+  if (_cachedNearestFrame === state.time) return _cachedNearest;
   const p = state.player;
-  if (state.enemies.length === 0) return;
-  const critBonus = p.charId === 'marksman' ? (p.extraRange || 0) : 0;
-  let nearest = null, nd2 = (w.range + (w.extraRange || 0) + critBonus) ** 2;
+  let nearest = null, nd2 = Infinity;
   for (const e of state.enemies) {
     const d2 = dist2(p, e);
     if (d2 < nd2) { nd2 = d2; nearest = e; }
   }
+  _cachedNearest = nearest;
+  _cachedNearestFrame = state.time;
+  return nearest;
+}
+
+function shootWeapon(state, w) {
+  const p = state.player;
+  if (state.enemies.length === 0) return;
+  const critBonus = p.charId === 'marksman' ? (p.extraRange || 0) : 0;
+  const maxRange = (w.range + (w.extraRange || 0) + critBonus);
+  // 캐싱된 nearest 사용, 사거리 초과면 null
+  const candidate = getNearest(state);
+  const nearest = (candidate && dist2(p, candidate) <= maxRange * maxRange) ? candidate : null;
   if (!nearest) return;
   p.aimAngle = Math.atan2(nearest.y - p.y, nearest.x - p.x);
   p._aimDisplay = lerpAngle(p._aimDisplay, p.aimAngle, 0.18);
@@ -1039,6 +1127,7 @@ function shootWeapon(state, w) {
       homing: w.homing ? nearest : null,
       poison: isPoison,
       explosive: w.explosive || false,
+      isGrenade: w.isGrenade || false,
       ghostPoison: p.charId === 'ghost',
       legendary: isLegendary,
       charId: p.charId,
@@ -1206,8 +1295,20 @@ function updateGame(state) {
   if (state.keys.down)  dy += 1;
   if (dx !== 0 || dy !== 0) {
     const len = Math.hypot(dx, dy);
-    p.x = clamp(p.x + dx / len * p.speed, 20, WW - 20);
-    p.y = clamp(p.y + dy / len * p.speed, 20, WH - 20);
+    const mx = dx / len * p.speed, my = dy / len * p.speed;
+    const PR = 14; // 플레이어 충돌 반경
+    const nx = clamp(p.x + mx, 20, WW - 20);
+    const ny = clamp(p.y + my, 20, WH - 20);
+    // 충돌 슬라이딩: XY 동시 → X만 → Y만 순으로 시도
+    const cXY = isBlocked(nx, ny-PR)||isBlocked(nx, ny+PR)||isBlocked(nx-PR, ny)||isBlocked(nx+PR, ny);
+    if (!cXY) {
+      p.x = nx; p.y = ny;
+    } else {
+      const cX = isBlocked(nx, p.y-PR)||isBlocked(nx, p.y+PR)||isBlocked(nx-PR, p.y)||isBlocked(nx+PR, p.y);
+      if (!cX) p.x = nx;
+      const cY = isBlocked(p.x, ny-PR)||isBlocked(p.x, ny+PR)||isBlocked(p.x-PR, ny)||isBlocked(p.x+PR, ny);
+      if (!cY) p.y = ny;
+    }
   }
 
   state.camera.x = clamp(p.x - CW / 2, 0, WW - CW);
@@ -1258,17 +1359,27 @@ function updateGame(state) {
     }
     if (drop.collected || drop.age >= AIRDROP_EXPIRE) state.airdrops.splice(i, 1);
   }
-  state.pickupLog = state.pickupLog.filter(l => state.time - l.time < 300);
+  for (let i = state.pickupLog.length - 1; i >= 0; i--) { if (state.time - state.pickupLog[i].time >= 300) state.pickupLog.splice(i, 1); }
 
-  // ── Spawn enemies (phase-scaled) ──
+  // ── Spawn enemies ──
+  // 10분 이후: 적 수 고정 + HP만 상승 (렉 방지)
+  const ENEMY_CAP = state.elapsed < 600 ? 120 : 100;
   state.spawnTimer++;
   const phase = getPhase(state.elapsed);
-  const phaseSpawnMult = [1.0, 1.4, 1.9, 2.6][phase];
-  const spawnInterval = Math.max(12, Math.round((150 - state.elapsed * 0.2 - p.level * 3) / phaseSpawnMult));
-  const batchSize = Math.round((2 + Math.floor(state.elapsed / 35) + Math.floor(p.level / 3)) * (1 + phase * 0.4));
-  if (state.spawnTimer >= spawnInterval) {
+  let spawnInterval, batchSize;
+  if (state.elapsed >= 600) {
+    // 10분+: 스폰 속도/수 고정, 빠진 만큼만 보충
+    spawnInterval = 40;
+    batchSize = 3;
+  } else {
+    const phaseSpawnMult = [1.0, 1.4][Math.min(1, phase)];
+    spawnInterval = Math.max(22, Math.round((150 - state.elapsed * 0.16 - p.level * 2) / phaseSpawnMult));
+    batchSize = Math.min(6, 1 + Math.floor(state.elapsed / 80) + Math.floor(p.level / 5));
+  }
+  if (state.spawnTimer >= spawnInterval && state.enemies.length < ENEMY_CAP) {
     state.spawnTimer = 0;
-    for (let i = 0; i < batchSize; i++) spawnEnemy(state, getSpawnType(state.elapsed));
+    const canSpawn = ENEMY_CAP - state.enemies.length;
+    for (let i = 0; i < Math.min(batchSize, canSpawn); i++) spawnEnemy(state, getSpawnType(state.elapsed));
   }
 
   // ── Boss spawns ──
@@ -1305,11 +1416,16 @@ function updateGame(state) {
   for (let i = state.enemies.length - 1; i >= 0; i--) {
     const e = state.enemies[i];
     if (e.hp <= 0) {
-      for (let k = 0; k < Math.ceil(e.xp / 10); k++)
-        state.xpOrbs.push({ x: e.x + rand(-18, 18), y: e.y + rand(-18, 18), value: 10 });
-      for (let k = 0; k < 6; k++) {
+      // XP오브: 최대 2개 (보스 3개)
+      const orbCount = e.boss ? 3 : Math.min(2, Math.ceil(e.xp / 20));
+      const orbVal = Math.ceil(e.xp / orbCount);
+      for (let k = 0; k < orbCount; k++)
+        state.xpOrbs.push({ x: e.x + rand(-14, 14), y: e.y + rand(-14, 14), value: orbVal });
+      // 파티클: 보스 4개, 일반 2개
+      const ptCount = e.boss ? 4 : 2;
+      for (let k = 0; k < ptCount; k++) {
         const a = Math.random() * Math.PI * 2;
-        state.particles.push({ x: e.x, y: e.y, dx: Math.cos(a) * rand(1, 3), dy: Math.sin(a) * rand(1, 3), life: 18, maxLife: 18, color: e.boss ? '#ff4444' : '#ff9944', sz: rand(3, 8) | 0 });
+        state.particles.push({ x: e.x, y: e.y, dx: Math.cos(a) * rand(1.5, 3.5), dy: Math.sin(a) * rand(1.5, 3.5), life: 14, maxLife: 14, color: e.boss ? '#ff4444' : '#ff9944', sz: (rand(3, 7) | 0) });
       }
       state.kills++; state.score += e.xp;
       state.enemies[i] = state.enemies[state.enemies.length - 1]; state.enemies.pop(); continue;
@@ -1352,6 +1468,15 @@ function updateGame(state) {
     }
     b.x += b.dx; b.y += b.dy; b.traveled += Math.hypot(b.dx, b.dy);
     if (b.traveled > b.range || b.x < 0 || b.x > WW || b.y < 0 || b.y > WH) {
+      if (b.isGrenade) {
+        // 수류탄 사거리 도달 → grid 기반 폭발
+        const gbcx=(b.x/GRID_CELL)|0,gbcy=(b.y/GRID_CELL)|0;
+        for (let gcx=gbcx-2;gcx<=gbcx+2;gcx++) for (let gcy=gbcy-2;gcy<=gbcy+2;gcy++) {
+          const gcell=_enemyGrid.get(gcx*10000+gcy); if (!gcell) continue;
+          for (const e2 of gcell) { const edx=b.x-e2.x,edy=b.y-e2.y; if (edx*edx+edy*edy<7225) e2.hp-=b.dmg; }
+        }
+        for (let k = 0; k < 8; k++) { const a = Math.random()*Math.PI*2, spd = rand(2,5); state.particles.push({ x:b.x, y:b.y, dx:Math.cos(a)*spd, dy:Math.sin(a)*spd, life:18, maxLife:18, color: k%2===0?'#ff8800':'#ffdd00', sz: rand(3,6) }); }
+      }
       state.bullets[i] = state.bullets[state.bullets.length - 1]; state.bullets.pop(); continue;
     }
     const bcx = (b.x / GRID_CELL) | 0, bcy = (b.y / GRID_CELL) | 0;
@@ -1365,7 +1490,18 @@ function updateGame(state) {
           if (bdx * bdx + bdy * bdy < r * r) {
             e.hp -= b.dmg;
             if (b.poison) e.poisoned = b.ghostPoison ? 360 : 180;
-            if (b.explosive) { for (const e2 of state.enemies) { const edx = b.x-e2.x, edy = b.y-e2.y; if (edx*edx+edy*edy < 7225) e2.hp -= b.dmg * 0.45; } }
+            if (b.explosive) {
+              const blastR2 = 7225; // 85px 반경
+              // 공간 분할 그리드로 AOE 탐색 (O(n) → O(근방))
+              const ebcx = (b.x / GRID_CELL) | 0, ebcy = (b.y / GRID_CELL) | 0;
+              for (let ecx2 = ebcx-2; ecx2 <= ebcx+2; ecx2++) for (let ecy2 = ebcy-2; ecy2 <= ebcy+2; ecy2++) {
+                const ecell = _enemyGrid.get(ecx2*10000+ecy2); if (!ecell) continue;
+                for (const e2 of ecell) { const edx=b.x-e2.x,edy=b.y-e2.y; if (edx*edx+edy*edy<blastR2) e2.hp-=b.dmg*0.45; }
+              }
+              if (b.isGrenade) {
+                for (let k = 0; k < 18; k++) { const a = Math.random()*Math.PI*2, spd = rand(2,6); state.particles.push({ x:b.x, y:b.y, dx:Math.cos(a)*spd, dy:Math.sin(a)*spd, life:22, maxLife:22, color: k%3===0?'#ff8800':k%3===1?'#ffdd00':'#ff4400', sz: rand(3,7) }); }
+              }
+            }
             if (!b.pierce) { dead = true; break outer; }
           }
         }
@@ -1373,7 +1509,7 @@ function updateGame(state) {
     }
     if (dead) { state.bullets[i] = state.bullets[state.bullets.length - 1]; state.bullets.pop(); }
   }
-  if (state.bullets.length > 300) state.bullets.length = 300;
+  if (state.bullets.length > 180) state.bullets.length = 180;
 
   for (const w of p.weapons) {
     w.shootTimer = (w.shootTimer || 0) + 1;
@@ -1390,14 +1526,14 @@ function updateGame(state) {
       state.xpOrbs[i] = state.xpOrbs[state.xpOrbs.length - 1]; state.xpOrbs.pop();
     }
   }
-  if (state.xpOrbs.length > 400) state.xpOrbs.length = 400;
+  if (state.xpOrbs.length > 220) state.xpOrbs.length = 220;
 
   // ── 파티클 (swap-remove) ──
   for (let i = state.particles.length - 1; i >= 0; i--) {
     const pt = state.particles[i]; pt.x += pt.dx; pt.y += pt.dy;
     if (--pt.life <= 0) { state.particles[i] = state.particles[state.particles.length - 1]; state.particles.pop(); }
   }
-  if (state.particles.length > 180) state.particles.length = 180;
+  if (state.particles.length > 100) state.particles.length = 100;
 
   if (p.xp >= p.xpNext) {
     p.xp -= p.xpNext; p.xpNext = Math.floor(p.xpNext * 1.28);
@@ -1411,9 +1547,12 @@ function updateGame(state) {
 // REACT COMPONENT
 // ═══════════════════════════════════════════════════════════════
 export default function PubgSurvivors() {
-  const canvasRef = useRef(null);
-  const stateRef  = useRef(null);
-  const rafRef    = useRef(null);
+  const canvasRef  = useRef(null);
+  const stateRef   = useRef(null);
+  const rafRef     = useRef(null);
+  const joystickRef = useRef({ active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0 });
+  const [joyPos, setJoyPos] = useState(null); // {sx,sy,cx,cy} for visual
+  const [scale, setScale]   = useState(1);
   const [selectedChar, setSelectedChar] = useState(null);
   const [showSysGuide, setShowSysGuide] = useState(false);
   const [sysGuideTab, setSysGuideTab] = useState('evo');
@@ -1437,6 +1576,7 @@ export default function PubgSurvivors() {
 
   const handleRestart = () => {
     stateRef.current = null;
+    _collisionGrid = null; // 재시작 시 충돌 그리드 재빌드
     setSelectedChar(null);
     setUiState({ phase: 'charSelect', levelupChoices: [], evoKey: null, evoLegendary: false, player: null, elapsed: 0, score: 0, kills: 0, won: false, notifications: [], pickupLog: [] });
   };
@@ -1464,6 +1604,81 @@ export default function PubgSurvivors() {
     state.phase = 'playing';
     setUiState(s => ({ ...s, phase: 'playing', evoKey: null }));
   };
+
+  const handleSkip = () => {
+    const state = stateRef.current;
+    if (!state || state.player.skipCount <= 0) return;
+    state.player.skipCount--;
+    state.phase = 'playing';
+    setUiState(s => ({ ...s, phase: 'playing' }));
+  };
+
+  // ── 모바일 scale (화면 크기에 맞게 canvas 축소) ──────────────
+  useEffect(() => {
+    const compute = () => {
+      const vw = window.innerWidth - 16;
+      const vh = window.innerHeight - 130; // 헤더/여백
+      const s = Math.min(1, vw / CW, vh / CH);
+      setScale(Math.round(s * 100) / 100);
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
+
+  // ── 터치 조이스틱 ──────────────────────────────────────────
+  const handleTouchStart = useCallback((e) => {
+    const state = stateRef.current;
+    if (!state || state.phase !== 'playing') return;
+    for (const t of e.changedTouches) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const tx = (t.clientX - rect.left) / scale;
+      const ty = (t.clientY - rect.top)  / scale;
+      if (tx < CW / 2 && !joystickRef.current.active) {
+        joystickRef.current = { active: true, id: t.identifier, sx: tx, sy: ty, cx: tx, cy: ty };
+        setJoyPos({ sx: tx, sy: ty, cx: tx, cy: ty });
+      }
+    }
+  }, [scale]);
+
+  const handleTouchMove = useCallback((e) => {
+    e.preventDefault();
+    const state = stateRef.current;
+    if (!state || state.phase !== 'playing') return;
+    const jk = joystickRef.current;
+    for (const t of e.changedTouches) {
+      if (t.identifier !== jk.id) continue;
+      const rect = e.currentTarget.getBoundingClientRect();
+      jk.cx = (t.clientX - rect.left) / scale;
+      jk.cy = (t.clientY - rect.top)  / scale;
+      const ddx = jk.cx - jk.sx, ddy = jk.cy - jk.sy;
+      const DEAD = 10;
+      state.keys.left  = ddx < -DEAD;
+      state.keys.right = ddx >  DEAD;
+      state.keys.up    = ddy < -DEAD;
+      state.keys.down  = ddy >  DEAD;
+      setJoyPos({ sx: jk.sx, sy: jk.sy, cx: jk.cx, cy: jk.cy });
+    }
+  }, [scale]);
+
+  const handleTouchEnd = useCallback((e) => {
+    const jk = joystickRef.current;
+    for (const t of e.changedTouches) {
+      if (t.identifier !== jk.id) continue;
+      joystickRef.current = { active: false, id: null, sx: 0, sy: 0, cx: 0, cy: 0 };
+      setJoyPos(null);
+      const state = stateRef.current;
+      if (state) state.keys.left = state.keys.right = state.keys.up = state.keys.down = false;
+    }
+  }, []);
+
+  // 키보드에서 접근하기 위한 stable ref
+  const handleChoiceRef = useRef(null);
+  const handleEvoRef = useRef(null);
+  const handleSkipRef = useRef(null);
+  handleChoiceRef.current = handleChoice;
+  handleEvoRef.current = handleEvoConfirm;
+  handleSkipRef.current = handleSkip;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1536,6 +1751,20 @@ export default function PubgSurvivors() {
       if (k === 'arrowright' || k === 'd') state.keys.right = down;
       if (k === 'arrowup'    || k === 'w') state.keys.up    = down;
       if (k === 'arrowdown'  || k === 's') state.keys.down  = down;
+      // 레벨업 키보드 선택
+      if (down && state.phase === 'levelup') {
+        e.preventDefault();
+        const choices = state.levelupChoices || [];
+        if (k === '1' && choices[0]) handleChoiceRef.current(choices[0]);
+        if (k === '2' && choices[1]) handleChoiceRef.current(choices[1]);
+        if (k === '3' && choices[2]) handleChoiceRef.current(choices[2]);
+        if (k === 'z' && state.player.skipCount > 0) handleSkipRef.current();
+      }
+      // 진화 확인
+      if (down && state.phase === 'evo' && (k === 'enter' || k === ' ')) {
+        e.preventDefault();
+        handleEvoRef.current();
+      }
     };
     const kd = (e) => onKey(e, true);
     const ku = (e) => onKey(e, false);
@@ -1572,17 +1801,38 @@ export default function PubgSurvivors() {
           <h1 className="text-2xl font-bold mb-1 text-yellow-400">PUBG 서바이버</h1>
           <p className="text-gray-400 text-sm mb-4">PUBG 무기로 20분 생존하라</p>
 
-          <div className="relative" style={{ width: CW, height: CH }}>
+          {/* 모바일 scale 래퍼 */}
+          <div style={{ width: CW * scale, height: CH * scale, overflow: 'hidden' }}>
+          <div style={{ width: CW, height: CH, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+          <div className="relative" style={{ width: CW, height: CH }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}>
             <canvas ref={canvasRef} width={CW} height={CH}
               className="block rounded-lg border border-gray-700"
-              style={{ imageRendering: 'pixelated' }} />
+              style={{ imageRendering: 'pixelated', touchAction: 'none' }} />
+
+            {/* 터치 조이스틱 오버레이 */}
+            {joyPos && uiState.phase === 'playing' && (
+              <svg className="absolute inset-0 pointer-events-none" width={CW} height={CH}>
+                {/* 외곽 원 */}
+                <circle cx={joyPos.sx} cy={joyPos.sy} r={52}
+                  fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.25)" strokeWidth="2"/>
+                {/* 내부 dot */}
+                <circle
+                  cx={Math.min(joyPos.sx+52, Math.max(joyPos.sx-52, joyPos.cx))}
+                  cy={Math.min(joyPos.sy+52, Math.max(joyPos.sy-52, joyPos.cy))}
+                  r={22} fill="rgba(255,255,255,0.35)" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5"/>
+              </svg>
+            )}
 
             {/* ── Character Select ── */}
             {uiState.phase === 'charSelect' && (
               <div className="absolute inset-0 flex flex-col items-center bg-gray-950/97 rounded-lg overflow-y-auto py-5">
                 <div className="text-yellow-400 text-2xl font-black tracking-wider mb-1">⚔ 캐릭터 선택</div>
                 <p className="text-gray-400 text-sm mb-4">플레이 스타일에 맞는 캐릭터를 선택하세요</p>
-                <div className="grid grid-cols-4 gap-2.5 px-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 px-4">
                   {Object.entries(CHARS).map(([id, ch]) => (
                     <button key={id} onClick={() => handleCharSelect(id)}
                       className="flex flex-col items-start p-3 rounded-xl border-2 border-gray-700 hover:border-yellow-400 bg-gray-800/60 hover:bg-gray-700/60 transition-all hover:scale-105">
@@ -1734,8 +1984,8 @@ export default function PubgSurvivors() {
             {uiState.phase === 'levelup' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-950/90 rounded-lg">
                 <div className="text-yellow-400 text-2xl font-bold mb-1">⬆️ 레벨 업!</div>
-                <p className="text-gray-400 text-sm mb-5">업그레이드를 선택하세요</p>
-                <div className="flex gap-4">
+                <p className="text-gray-400 text-sm mb-5">업그레이드를 선택하세요 <span className="text-gray-600 text-xs">(키보드 1 / 2 / 3)</span></p>
+                <div className="flex flex-col sm:flex-row gap-3">
                   {uiState.levelupChoices.map((ch, i) => (
                     <button key={i} onClick={() => handleChoice(ch)}
                       className={`w-48 p-4 rounded-xl border-2 text-left transition-all hover:scale-105 ${
@@ -1743,13 +1993,29 @@ export default function PubgSurvivors() {
                         : ch.rare ? 'border-purple-400 bg-purple-900/40 hover:bg-purple-800/60'
                         : 'border-gray-500 bg-gray-800/80 hover:bg-gray-700/80'
                       }`}>
-                      <div className="text-2xl mb-2">{ch.icon}</div>
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="text-2xl">{ch.icon}</span>
+                        <span className="text-xs font-bold bg-gray-700 text-gray-300 rounded px-1.5 py-0.5">{i + 1}</span>
+                      </div>
                       <div className={`font-bold text-sm mb-1 ${ch.rare && ch.type === 'upgrade' ? 'text-orange-300' : ch.rare ? 'text-purple-300' : 'text-white'}`}>{ch.label}</div>
                       <div className="text-gray-400 text-xs leading-snug">{ch.sub}</div>
                       {ch.rare && ch.type !== 'upgrade' && <div className="text-purple-400 text-xs mt-1">✨ 부착물</div>}
                       {ch.rare && ch.type === 'upgrade' && <div className="text-orange-400 text-xs mt-1">🔥 강화</div>}
                     </button>
                   ))}
+                </div>
+                {/* 건너뛰기 */}
+                <div className="mt-5 flex flex-col items-center gap-1">
+                  <button
+                    onClick={handleSkip}
+                    disabled={!uiState.player || uiState.player.skipCount <= 0}
+                    className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      uiState.player?.skipCount > 0
+                        ? 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                        : 'bg-gray-800 text-gray-600 cursor-not-allowed opacity-50'
+                    }`}>
+                    건너뛰기 <span className="text-xs ml-1 text-gray-400">[Z] — 남은 횟수: {uiState.player?.skipCount ?? 2}</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -2010,7 +2276,9 @@ export default function PubgSurvivors() {
                 </div>
               </div>
             )}
-          </div>
+          </div>{/* relative */}
+          </div>{/* scale inner */}
+          </div>{/* scale outer */}
         </div>
       </div>
     </>

@@ -146,9 +146,9 @@ export default function PlayerDashboard({
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm font-medium text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all cursor-pointer shadow-sm">
                       <span className="text-gray-400 text-xs">{index + 1}.</span>
                       {p.name}
-                      {p.togetherCount > 0 && (
+                      {(p.count ?? p.togetherCount ?? 0) > 0 && (
                         <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
-                          {p.togetherCount}회
+                          {p.count ?? p.togetherCount}회
                         </span>
                       )}
                     </span>

@@ -455,56 +455,44 @@ export default function ComparePage() {
 
           {/* ── 검색 폼 ── */}
           <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Player A */}
-              <div className="flex-1 min-w-[120px]">
-                <input
-                  value={inputA}
-                  onChange={(e) => setInputA(e.target.value)}
-                  placeholder="플레이어 A"
-                  className="w-full bg-gray-700 border border-blue-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-                />
-              </div>
-
-              {/* 교환 버튼 */}
+            {/* 모바일: 세로 스택 / 데스크탑: 가로 한줄 */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                value={inputA}
+                onChange={(e) => setInputA(e.target.value)}
+                placeholder="플레이어 A"
+                className="flex-1 bg-gray-700 border border-blue-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+              />
               <button
                 type="button"
                 onClick={swapPlayers}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
+                className="self-center px-3 py-2 text-gray-400 hover:text-white transition-colors text-lg"
                 title="플레이어 교환"
-              >
-                ⇄
-              </button>
-
-              {/* Player B */}
-              <div className="flex-1 min-w-[120px]">
-                <input
-                  value={inputB}
-                  onChange={(e) => setInputB(e.target.value)}
-                  placeholder="플레이어 B"
-                  className="w-full bg-gray-700 border border-red-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400"
-                />
+              >⇄</button>
+              <input
+                value={inputB}
+                onChange={(e) => setInputB(e.target.value)}
+                placeholder="플레이어 B"
+                className="flex-1 bg-gray-700 border border-red-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400"
+              />
+              <div className="flex gap-2">
+                <select
+                  value={shard}
+                  onChange={(e) => setShard(e.target.value)}
+                  className="flex-1 sm:flex-none bg-gray-700 border border-gray-600 rounded-lg px-3 py-3 text-white focus:outline-none focus:border-blue-400"
+                >
+                  <option value="steam">Steam</option>
+                  <option value="kakao">Kakao</option>
+                  <option value="console">Console</option>
+                </select>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+                >
+                  {loading ? '조회 중…' : '비교하기'}
+                </button>
               </div>
-
-              {/* 서버 선택 */}
-              <select
-                value={shard}
-                onChange={(e) => setShard(e.target.value)}
-                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-3 text-white focus:outline-none focus:border-blue-400"
-              >
-                <option value="steam">Steam</option>
-                <option value="kakao">Kakao</option>
-                <option value="console">Console</option>
-              </select>
-
-              {/* 비교 버튼 */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-              >
-                {loading ? '조회 중…' : '비교하기'}
-              </button>
             </div>
           </form>
         </div>

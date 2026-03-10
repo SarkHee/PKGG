@@ -1142,7 +1142,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
               <h2 className="text-lg font-bold text-gray-800">주사용 무기 통계</h2>
               <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">weapon mastery</span>
             </div>
-            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
               <WeaponMasteryCard
                 playerId={profile.playerId || null}
                 nickname={profile.nickname}
@@ -1171,7 +1171,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             <h2 className="text-lg font-bold text-gray-800">클랜 및 팀플레이 분석</h2>
             <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">클랜 시너지</span>
           </div>
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
             <PlayerDashboard
               profile={profile}
               summary={summary}
@@ -1245,7 +1245,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
                 <h2 className="text-lg font-bold text-gray-800">시즌 플레이 현황</h2>
                 <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">최근 {total}경기 기준</span>
               </div>
-              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
                 <ModeDistributionChart modeDistribution={matchModeDistribution} />
               </div>
             </div>
@@ -1260,7 +1260,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">성과 트렌드</span>
           </div>
 
-          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-base">💪</span>
               <h4 className="text-sm font-bold text-gray-700">딜량 추이</h4>
@@ -1373,7 +1373,7 @@ export default function PlayerPage({ playerData, error, dataSource }) {
               <h4 className="text-lg font-bold text-gray-800">경기 상세 정보</h4>
               <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
             </div>
-            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
               <MatchDetailExpandable matchId={selectedMatchId} />
             </div>
           </div>

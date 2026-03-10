@@ -30,8 +30,9 @@ export default function SynergyHeatmap({
     if (!Array.isArray(match.teammatesDetail)) return;
     hasTeammateData = true;
 
-    // 승리 여부 판단 (rank가 1이면 승리)
-    const isWin = match.rank === 1;
+    // 승리 여부 판단 (win 플래그 또는 rank/placement가 1이면 승리)
+    const myRank = match.rank || match.placement || match.winPlace || 0;
+    const isWin = match.win === true || match.win === 1 || myRank === 1;
 
     match.teammatesDetail.forEach((teammate) => {
       if (teammate.name === myNickname) return;
@@ -52,12 +53,13 @@ export default function SynergyHeatmap({
         };
       }
       synergyMap[teammate.name].games += 1;
-      synergyMap[teammate.name].totalDamage += teammate.damage ?? 0;
+      // 파티 시 나의 딜량 (match.damage = 내 딜량)
+      synergyMap[teammate.name].totalDamage += match.damage ?? 0;
       synergyMap[teammate.name].totalWins += isWin ? 1 : 0;
 
       // 순위 정보가 있으면 평균 등수 계산용으로 사용
-      if (typeof match.rank === 'number' && match.rank > 0) {
-        synergyMap[teammate.name].totalRank += match.rank;
+      if (myRank > 0) {
+        synergyMap[teammate.name].totalRank += myRank;
         synergyMap[teammate.name].rankCount += 1;
       }
     });

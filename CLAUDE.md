@@ -191,3 +191,4 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - **피킹 트레이너 추가** (`pages/peek-trainer.js`): Canvas 기반 피킹 연습 게임. SPACE/Q/E → 200ms 딜레이 후 노출 → 클릭 사격. 헤드샷 +150~200점, 바디샷 +80~130점, 피격 -50점. 20초 타이머, 점수·반응속도·헤드샷률 결과 화면. Header 훈련 메뉴에 추가
 - **능선 전략 시뮬레이터 추가** (`pages/battle-sim.js`): 12×8 그리드 턴제 전술 게임. setup(배치) → combat(전투) → result(분석) 화면 전환. 지형: 능선(▲ +25% 공격), 엄폐(🪨 -35% 피해). 이동/사격 액션, AI 자동 턴. Header 훈련 메뉴에 추가
 - **다크/라이트 테마 토글**: Header 🌙/☀️ 버튼. `pkgg_theme` localStorage 저장. `_app.js`에서 초기화 (저장값 → OS 설정 순). `tailwind.config.cjs` `darkMode: 'class'` 활용. `nav.playstyle_matchup` i18n 키 4개 언어 추가
+- **전체 페이지 모바일 최적화**: `_document.js` viewport meta 태그 추가(전체 사이트 핵심 수정). `PlayerHeader`: 패딩 `px-4 sm:px-8`, 아바타 `w-12 sm:w-16`, 닉네임 `text-xl sm:text-3xl`, 액션버튼 아이콘전용(모바일)/텍스트(sm+), 시즌선택 `hidden sm:block`, 스탯 그리드 `md:grid-cols-3`. `GrowthChart`: 지표카드 `min-w-[60px]`, 요약배너 flex-wrap, 차트 패딩 반응형. `compare.js`: 검색폼 `flex-col sm:flex-row`

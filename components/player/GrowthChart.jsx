@@ -208,7 +208,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
       </div>
 
       {/* ── 지표 카드 ── */}
-      <div className="grid grid-cols-5 gap-0 border-b border-gray-100">
+      <div className="grid grid-cols-5 gap-0 border-b border-gray-100 overflow-x-auto">
         {METRICS.map((m, i) => {
           const lv    = latest[m.key];
           const fv    = first[m.key];
@@ -219,7 +219,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
             <button
               key={m.key}
               onClick={() => setActive(m.key)}
-              className={`relative flex flex-col items-center py-3 px-2 text-center transition-all
+              className={`relative flex flex-col items-center py-3 px-1.5 sm:px-2 text-center transition-all min-w-[60px]
                 ${i > 0 ? 'border-l border-gray-100' : ''}
                 ${isAct ? '' : 'hover:bg-gray-50'}`}
               style={isAct ? { backgroundColor: m.bg } : {}}
@@ -245,7 +245,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
 
       {/* ── 선택 지표 요약 배너 ── */}
       <div
-        className="px-5 py-3 flex items-center justify-between border-b border-gray-100"
+        className="px-4 sm:px-5 py-3 flex items-center justify-between flex-wrap gap-2 border-b border-gray-100"
         style={{ backgroundColor: metric.bg + 'aa' }}
       >
         <div className="flex items-center gap-2">
@@ -273,7 +273,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
       </div>
 
       {/* ── 차트 ── */}
-      <div className="px-5 pt-4 pb-2">
+      <div className="px-3 sm:px-5 pt-4 pb-2">
         {filteredSnaps.length < 2 ? (
           <div className="h-56 flex flex-col items-center justify-center gap-2 text-gray-400">
             <span className="text-2xl">📊</span>

@@ -307,18 +307,18 @@ const PlayerHeader = ({
     />
     <div className="mb-8 rounded-2xl overflow-hidden shadow-xl">
       {/* 상단 헤더 영역 - 다크 블루 배경 */}
-      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 px-8 py-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 px-4 py-4 sm:px-8 sm:py-6">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           {/* 플레이어 기본 정보 */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
             {/* 아바타 */}
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-lg flex-shrink-0">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-white shadow-lg flex-shrink-0">
               {(profile?.nickname || 'P').charAt(0).toUpperCase()}
             </div>
-            <div>
+            <div className="min-w-0">
               {/* 닉네임 + DB 캐시 시간 */}
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-3xl font-black text-white tracking-tight">
+                <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight truncate">
                   {profile?.nickname || '-'}
                 </h1>
                 {timeAgo(profile?.lastCachedAt) && (
@@ -352,7 +352,7 @@ const PlayerHeader = ({
           </div>
 
           {/* 우측 액션 버튼 */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {/* 즐겨찾기 버튼 */}
             {nickname && (
               <Tooltip content={isFav ? '즐겨찾기에서 제거' : '즐겨찾기에 추가'}>
@@ -373,9 +373,9 @@ const PlayerHeader = ({
               <Tooltip content="이 플레이어와 비교하기">
                 <button
                   onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
-                  className="px-3 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
+                  className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
                 >
-                  ⚔️ 비교
+                  ⚔️<span className="hidden sm:inline"> 비교</span>
                 </button>
               </Tooltip>
             )}
@@ -385,9 +385,9 @@ const PlayerHeader = ({
                 <button
                   onClick={handleSaveCard}
                   disabled={saving}
-                  className="px-3 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white text-sm font-bold transition-all select-none disabled:opacity-50"
+                  className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white text-sm font-bold transition-all select-none disabled:opacity-50"
                 >
-                  {saving ? '저장 중...' : '📷 카드 저장'}
+                  {saving ? <span className="hidden sm:inline">저장 중...</span> : <>📷<span className="hidden sm:inline"> 카드</span></>}
                 </button>
               </Tooltip>
             )}
@@ -396,7 +396,7 @@ const PlayerHeader = ({
               const tier = getMMRTier(mmr);
               return (
                 <Tooltip content={MMR_DISCLAIMER}>
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
                     <span className="text-base leading-none">{tier.emoji}</span>
                     <div className="flex flex-col leading-none">
                       <span className={`text-xs font-black ${tier.textColor}`}>{mmr.toLocaleString()}</span>
@@ -408,7 +408,7 @@ const PlayerHeader = ({
               );
             })()}
             <select
-              className="px-3 py-2 bg-blue-800/60 border border-blue-600/50 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-700/60 transition-colors backdrop-blur-sm"
+              className="hidden sm:block px-3 py-2 bg-blue-800/60 border border-blue-600/50 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-700/60 transition-colors backdrop-blur-sm"
               defaultValue="current"
             >
               <option value="current">현재 시즌</option>
@@ -420,7 +420,7 @@ const PlayerHeader = ({
             <button
               onClick={onRefresh}
               disabled={refreshing || cooldown > 0}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-2 ${
+              className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-1.5 ${
                 refreshing || cooldown > 0
                   ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
                   : 'bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:shadow-lg'
@@ -429,14 +429,14 @@ const PlayerHeader = ({
               {refreshing ? (
                 <>
                   <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
-                  <span>최신화 중</span>
+                  <span className="hidden sm:inline">최신화 중</span>
                 </>
               ) : cooldown > 0 ? (
-                `${cooldown}초 대기`
+                `${cooldown}s`
               ) : (
                 <>
                   <span>🔄</span>
-                  <span>최신화</span>
+                  <span className="hidden sm:inline">최신화</span>
                 </>
               )}
             </button>
@@ -446,10 +446,10 @@ const PlayerHeader = ({
 
       {/* 스탯 카드 영역 */}
       <div className="bg-white border-x border-b border-gray-200">
-        <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-gray-100 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100 items-stretch">
 
           {/* ── 1. 시즌 성과 ── */}
-          <div className="p-5 flex flex-col">
+          <div className="p-4 sm:p-5 flex flex-col">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
@@ -552,7 +552,7 @@ const PlayerHeader = ({
           </div>
 
           {/* ── 2. 최근 N경기 ── */}
-          <div className="p-5 flex flex-col">
+          <div className="p-4 sm:p-5 flex flex-col">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-cyan-500 rounded-full"></div>
@@ -659,7 +659,7 @@ const PlayerHeader = ({
           </div>
 
           {/* ── 3. 경쟁전 ── */}
-          <div className="p-5 flex flex-col">
+          <div className="p-4 sm:p-5 flex flex-col">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
