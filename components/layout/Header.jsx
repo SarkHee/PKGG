@@ -50,10 +50,11 @@ export default function Header() {
   ];
 
   const trainingLinks = [
-    { href: '/sensitivity',     labelKey: 'nav.sensitivity',     icon: '🎯' },
-    { href: '/aim-trainer',     labelKey: 'nav.aim_trainer',     icon: '⚡' },
-    { href: '/recoil-pattern',  labelKey: 'nav.recoil_pattern',  icon: '🔫' },
-    { href: '/pubg-survivors',  labelKey: 'nav.pubg_survivors',  icon: '🎮' },
+    { href: '/sensitivity',           labelKey: 'nav.sensitivity',          icon: '🎯' },
+    { href: '/sensitivity-analyzer',  labelKey: 'nav.sensitivity_analyzer', icon: '📹' },
+    { href: '/aim-trainer',           labelKey: 'nav.aim_trainer',          icon: '⚡' },
+    { href: '/recoil-pattern',        labelKey: 'nav.recoil_pattern',       icon: '🔫' },
+    { href: '/pubg-survivors',        labelKey: 'nav.pubg_survivors',       icon: '🎮' },
     // { href: '/peek-trainer',   labelKey: 'nav.peek_trainer',   icon: '👁️' },  // WIP
     // { href: '/battle-sim',     labelKey: 'nav.battle_sim',     icon: '⚔️' },  // WIP
   ];

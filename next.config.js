@@ -14,6 +14,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://www.google.com https://www.gstatic.com",
+              "media-src 'self' blob:",
               "connect-src 'self' https://pagead2.googlesyndication.com https://www.google.com https://googleads.g.doubleclick.net https://adservice.google.com",
               "frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
               "worker-src 'self' blob:",

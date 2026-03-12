@@ -16,3 +16,17 @@ node_modules/
 
 # log files
 *.log
+
+# ML 모델 (용량 큼)
+public/models/
+desktop-app/venv/
+desktop-app/*.onnx
+
+# 영상 파일
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# 테스트 파일
+public/video-test.html
