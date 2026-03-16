@@ -50,7 +50,6 @@ export default function Header() {
   ];
 
   const trainingLinks = [
-    { href: '/sensitivity',           labelKey: 'nav.sensitivity',          icon: '🎯' },
     { href: '/sensitivity-analyzer',  labelKey: 'nav.sensitivity_analyzer', icon: '📹' },
     { href: '/aim-trainer',           labelKey: 'nav.aim_trainer',          icon: '⚡' },
     { href: '/recoil-pattern',        labelKey: 'nav.recoil_pattern',       icon: '🔫' },
@@ -235,7 +234,8 @@ export default function Header() {
         {/* 모바일 메뉴 */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-gray-100 bg-white">
-            {/* 빠른 닉네임 검색 */}
+            {/* 빠른 닉네임 검색 (훈련 도구 페이지에서는 숨김) */}
+            {!['/sensitivity-analyzer', '/sensitivity', '/aim-trainer', '/recoil-pattern', '/peek-trainer', '/pubg-survivors'].includes(router.pathname) && (
             <form
               className="px-4 pt-3 pb-2"
               onSubmit={(e) => {
@@ -253,6 +253,7 @@ export default function Header() {
                 <button type="submit" className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition-colors">검색</button>
               </div>
             </form>
+            )}
 
             <div className="px-4 pb-3 space-y-4">
               {/* 분석 도구 */}

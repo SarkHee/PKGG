@@ -18,7 +18,23 @@
       "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Breacher \\(브리처\\) — S686, 샷건 근접 특화 💣/Breacher \\(브리처\\) — S686, 샷건 근접 특화 💣.png\" \"$DEST/breacher.png\")",
       "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Ghost \\(고스트\\) — 석궁, 독 피해 2배 👻/Ghost \\(고스트\\) — 석궁, 독 피해 2배 👻.png\" \"$DEST/ghost.png\")",
       "Bash(cp \"/Users/mac/Desktop/PKGG/PUBG 서바이버/Gunner \\(건너\\) — DP-28, 연사+발사체 +1 🏰 /Gunner \\(건너\\) — DP-28, 연사+발사체 +1 🏰_.png\" \"$DEST/gunner.png\")",
-      "Bash(__NEW_LINE_fa4d5174f14da716__ ls $DEST)"
+      "Bash(__NEW_LINE_fa4d5174f14da716__ ls $DEST)",
+      "WebFetch(domain:www.ftree.pro)",
+      "Bash(node -e \"require\\(''''./pages/sensitivity-analyzer.js''''\\)\")",
+      "Bash(ffprobe -v quiet -print_format json -show_streams /Users/mac/Desktop/PKGG/0312.mp4)",
+      "Bash(mdls /Users/mac/Desktop/PKGG/0312.mp4)",
+      "Bash(pip3 install:*)",
+      "Bash(pip3 uninstall:*)",
+      "Bash(pip3 show:*)",
+      "Bash(sw_vers)",
+      "Bash(source venv/bin/activate)",
+      "Bash(pip install:*)",
+      "Bash(mkdir -p /Users/mac/Desktop/PKGG/public/models)",
+      "Bash(cp /Users/mac/Desktop/PKGG/desktop-app/yolov8n.onnx /Users/mac/Desktop/PKGG/public/models/yolov8n.onnx)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(node --input-type=module --eval \"import\\(''/dev/null''\\)\")",
+      "Bash(npx --no-install next build --no-lint)"
     ],
     "additionalDirectories": [
       "/Users/mac/Desktop/PKGG/PUBG 서바이버/Berserker (버서커) — AKM, HP 50% 이하 분노 🔥"
