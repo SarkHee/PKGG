@@ -43,7 +43,10 @@ export default function Header() {
     { href: '/clan-analytics',   labelKey: 'nav.clan_analytics',   icon: '📊' },
     { href: '/weapon-test',      labelKey: 'nav.weapon_test',      icon: '🔫', highlight: true },
     { href: '/weapon-damage',    labelKey: 'nav.weapon_damage',    icon: '💥' },
+    { href: '/weapon-meta',      labelKey: 'nav.weapon_meta',      icon: '📊' },
     { href: '/playstyle-matchup',labelKey: 'nav.playstyle_matchup',icon: '🗺️' },
+    { href: '/clan-war',         labelKey: 'nav.clan_war',         icon: '⚔️' },
+    { href: '/match-heatmap',    labelKey: 'nav.match_heatmap',    icon: '🗺️' },
     { href: '/forum',            labelKey: 'nav.forum',            icon: '💬' },
     { href: '/notices',          labelKey: 'nav.notices',          icon: '📢' },
     { href: '/pubg-news',        labelKey: 'nav.news',             icon: '📰' },
@@ -53,8 +56,12 @@ export default function Header() {
     { href: '/sensitivity-analyzer',  labelKey: 'nav.sensitivity_analyzer', icon: '📹' },
     { href: '/aim-trainer',           labelKey: 'nav.aim_trainer',          icon: '⚡' },
     { href: '/recoil-pattern',        labelKey: 'nav.recoil_pattern',       icon: '🔫' },
+    { href: '/recoil-quiz',           labelKey: 'nav.recoil_quiz',          icon: '🎯' },
+    { href: '/crosshair-trainer',     labelKey: 'nav.crosshair_trainer',    icon: '🏹' },
+    { href: '/peek-trainer',          labelKey: 'nav.peek_trainer',         icon: '👁️' },
+    { href: '/daily-goals',           labelKey: 'nav.daily_goals',          icon: '📅' },
+    { href: '/sens-preset',           labelKey: 'nav.sens_preset',          icon: '⚙️' },
     { href: '/pubg-survivors',        labelKey: 'nav.pubg_survivors',       icon: '🎮' },
-    // { href: '/peek-trainer',   labelKey: 'nav.peek_trainer',   icon: '👁️' },  // WIP
     // { href: '/battle-sim',     labelKey: 'nav.battle_sim',     icon: '⚔️' },  // WIP
   ];
 

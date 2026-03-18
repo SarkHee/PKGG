@@ -29,6 +29,13 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `party/create.js` | 파티 모집 글 작성 폼 (JSON 구조화 데이터를 forum content에 저장) |
 | `aim-trainer.js` | 에임 트레이너 미니게임. 3모드: 반응속도(5라운드·DOM), 플리커 에임(Canvas 30초), 이동 타겟(Canvas 30초). 결과 클립보드 공유 |
 | `sensitivity-analyzer.js` | 연습실 영상 업로드 → 브라우저 내 Canvas API로 크로스헤어 이동 패턴 분석 → eDPI 역산 + 감도 추천. 서버 전송 없음. 크로스헤어 색상 5종 선택, DPI/인게임 감도 입력, 과보정/안정성 판정, 현재 vs 추천 eDPI 비교 |
+| `recoil-quiz.js` | 반동 패턴 퀴즈. 8종 무기 패턴을 Canvas로 표시 → 4지선다 맞추기. 8라운드, 연속 정답(스트릭) 추적 |
+| `crosshair-trainer.js` | 크로스헤어 배치 트레이너. 문·창문·코너 등 5가지 상황 Canvas. 클릭 → 정답 존과 거리 측정 → 0~3점 채점 |
+| `daily-goals.js` | 일일 목표 트래커. K/D·데미지·킬·치킨 등 8종 목표 선택, 타겟 수치 설정. localStorage 저장, 날짜별 리셋 |
+| `sens-preset.js` | 감도 프리셋 저장/공유. DPI·일반감도·수직감도·스코프감도 5종 저장. URL 공유(btoa). localStorage 최대 20개 |
+| `weapon-meta.js` | 무기 메타 표. Update 40.1 기준 23종 픽률·승률·평균킬 정적 데이터. 테이블/티어 뷰 전환, 종류 필터, 컬럼 정렬 |
+| `clan-war.js` | 클랜 내전 기록. 두 클랜 스코어·맵·모드·선수별 킬/딜/생존 입력. DB 저장(ClanWar + ClanWarPlayer). 클랜명 검색 |
+| `match-heatmap.js` | 매치 히트맵. 닉네임 검색 → PUBG API 매치 데이터 → Canvas 히트맵/점 표시. 맵별 킬·데스 위치 시각화 |
 | `recoil-pattern.js` | 반동 패턴 시뮬레이터. 8종 무기 20발 정규화 패턴. Canvas 애니메이션(RPM 기반). 부착물 토글(보정기/수직그립/앵글드그립). 보정 가이드·방향 화살표. **연습 모드** 탭: DPI 설정(100-16000, 프리셋)/스코프 모드(기본~6배)/3·2·1 카운트다운/Canvas 오버레이 버튼/착탄 정확도 채점 |
 | `drop-calculator.js` | 낙하 지점 최적화 계산기. 7개 맵 선택. Canvas 3단계 클릭(경로시작→끝→목표). 낙하 범위 부채꼴 표시. 점프 타이밍·낙하 시간 계산 |
 | `playstyle-matchup.js` | 14가지 플레이스타일 상성 매트릭스 (1-5점 척도, 클릭으로 행/열 강조) |
@@ -141,6 +148,11 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 ---
 
 ## 최근 주요 변경 이력
+- **신규 페이지 8종 추가**: 반동퀴즈·크로스헤어트레이너·일일목표·감도프리셋·무기메타·클랜내전·플레이어리뷰·매치히트맵. Header 훈련/nav 메뉴에 링크 추가. i18n 4개 언어 키 추가
+- **DB 스키마 추가**: `ClanWar`, `ClanWarPlayer`, `PlayerReview` 모델 (Supabase SQL Editor에서 `prisma migrate` 필요)
+- **API 추가**: `/api/clan-war` (GET/POST), `/api/clan-war/[id]` (GET/DELETE), `/api/player-review` (GET/POST/DELETE)
+- **PlayerHeader 플레이어 리뷰 섹션**: 하단 토글 패널. 종합/팀플레이/소통 별점(1-5), 코멘트, 하루 1회 제한, 페이지네이션
+- **감도 분석기 개선**: 반동 경로 → 배경 광학 흐름(Background Optical Flow) 기반으로 변경. `crossSensHint` 상태에 따라 현재 감도 기준 수직감도·스코프감도 추천 표시
 - **PlayerHeader 스탯 카드 UI 통일 + 상세통계 버튼 추가**: 시즌 성과(blue)·최근 N경기(cyan)·경쟁전(amber) 3섹션 디자인 공통화. 각 섹션에 `▼ 상세 통계 보기` 버튼 추가. 시즌 성과 → 모드별(squad-fpp/squad/duo 등) 분리 통계, 최근 N경기 → 최고딜·K/D·총딜·평균생존 추가. `showSeasonDetails`, `showRecentDetails` state 추가
 - **MMR 계산 v3 (정규화 복합지수)**: `utils/mmrCalculator.js` 완전 재작성. 6개 지표 정규화(0-1) 후 가중합산 × 15 + 1000. 범위 1000-2500, 7단계 티어(Bronze~Legend). `PlayerHeader` 인라인 공식 제거 → `calculateMMR()` 통일. `clan-analytics.js` avgAssists·avgSurviveTime 누락 버그 수정
 - **즐겨찾기 기능**: `PlayerHeader` ☆/★ 버튼(localStorage `pkgg_favorites`). 홈 인라인 목록 + `FloatingFavorites` 사이드 패널(`_app.js`, 우측 하단 고정, 非홈·非어드민 전역 노출)

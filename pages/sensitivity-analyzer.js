@@ -222,21 +222,6 @@ function calcViewspeedSens(baseSens, baseFov, scopeFov) {
   return Math.round(baseSens * ratio * 100) / 100;
 }
 
-// 킬피드 ROI(우상단) 흰 픽셀 밀도로 사망/기절 텍스트 감지
-// PUBG 킬피드: 우측 45%, 상단 18% 영역 / 흰 텍스트+아이콘 → 12% 초과 시 감지
-function checkKillFeed(video, tc) {
-  const ctx = tc.getContext('2d');
-  const W = tc.width, H = tc.height;
-  ctx.drawImage(video, 0, 0, W, H);
-  const rx = Math.round(W * 0.55), rw = Math.round(W * 0.45);
-  const ry = 0,                    rh = Math.round(H * 0.18);
-  const data = ctx.getImageData(rx, ry, rw, rh).data;
-  let white = 0;
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i] > 210 && data[i + 1] > 210 && data[i + 2] > 210) white++;
-  }
-  return (white / (rw * rh)) > 0.12;
-}
 
 export default function SensitivityAnalyzer() {
   // ── 설정 입력 ──────────────────────────────────────────────────────────────
@@ -249,6 +234,9 @@ export default function SensitivityAnalyzer() {
 
   // ── 무기 선택 ──────────────────────────────────────────────────────────────
   const [selectedWeapon, setSelectedWeapon] = useState('none');
+  // ── 반동 분석 탭: 사용한 스코프 ─────────────────────────────────────────────
+  const [recoilScopeKey, setRecoilScopeKey] = useState('x2'); // 'red' | 'x2' | 'x3'
+  // ── 반동 분석 탭: 사용한 스코프 ─────────────────────────────────────────────
 
   // ── 체감 질문 ──────────────────────────────────────────────────────────────
   const [feel, setFeel] = useState({ overshoot: null, tracking: null, scope: null });
@@ -275,11 +263,12 @@ export default function SensitivityAnalyzer() {
   const analysisMode = analysisTab === 'recoil' ? 'scope' : 'hip'; // derived (하위 호환)
   const analysisModeRef = useRef('hip');
   useEffect(() => { analysisModeRef.current = analysisMode; }, [analysisMode]);
-  // 킬피드 감지 상태
-  const [killDetected, setKillDetected] = useState(false);
-  const [killFrameTime, setKillFrameTime] = useState(null);
-  const killDetectedRef = useRef(false);
+  // 킬 프레임 수동 마크 (recoil 탭 전용)
+  const [killMarkTime, setKillMarkTime] = useState(null);  // 유저가 직접 설정한 킬 타이밍
+  const killMarkTimeRef = useRef(null);
+  useEffect(() => { killMarkTimeRef.current = killMarkTime; }, [killMarkTime]);
   const [showClipDetail, setShowClipDetail] = useState(false);
+  const [bgFlowTrack, setBgFlowTrack] = useState([]); // 배경 흐름 누적 [{bgX,bgY,time}] → 반동 경로
   // 크로스헤어 위치 (기본: 화면 중앙)
   const [crosshairPos, setCrosshairPos] = useState({ x: 0.5, y: 0.5 });
   const [crosshairSet, setCrosshairSet] = useState(false);
@@ -288,16 +277,19 @@ export default function SensitivityAnalyzer() {
   const templateRef          = useRef(null);  // ZNCC용 Float32Array (크로스헤어 추적 전용)
   const crosshairTemplateRef = useRef(null);  // 크로스헤어 월드패치 템플릿
   const hueHistRef           = useRef(null);  // CAMShift용 Hue 히스토그램
-  const trackCanvasRef       = useRef(null);  // hidden canvas for frame extraction
+  const trackCanvasRef       = useRef(null);  // hidden canvas for frame extraction (소형 패치 전용)
   const [tracking, setTracking]         = useState(false);
   const [trackProgress, setTrackProgress] = useState(0);
   const [trackFrames, setTrackFrames]   = useState(20);
   const [crosshairTrack, setCrosshairTrack] = useState([]);
 
-  // LK Optical Flow 추적
+  // LK Optical Flow 추적 (적 추적용)
   const lkAbsPtsRef   = useRef([]);   // 추적 특징점 (image-absolute px)
   const lkPrevGrayRef = useRef(null); // 이전 프레임 grayscale (Float32Array)
   const lkPrevRegRef  = useRef(null); // 이전 프레임 추출 영역 {sx,sy,sw,sh}
+  // LK 배경 흐름 (반동 경로용 — 순수 뷰 방향 변화)
+  const bgLkPtsRef    = useRef([]);   // 배경 특징점 (다운스케일 좌표)
+  const bgLkGrayRef   = useRef(null); // 배경 이전 프레임 grayscale
 
   // COCO-SSD 자동 감지
   const tfModelRef          = useRef(null);   // 모델 인스턴스
@@ -542,6 +534,59 @@ export default function SensitivityAnalyzer() {
     lkPrevRegRef.current  = { sx, sy, sw, sh };
   }, []);
 
+  // ── 배경 LK 초기화: 적 박스 제외 전체 프레임 다운스케일 코너 샘플링 ──────────
+  // bgDy > 0 → 배경이 아래로 이동 → 크로스헤어(뷰)가 위로 올라감 = 미보정 반동
+  const BG_DS = 0.25; // 다운스케일 비율 (속도 우선)
+  const initBgLKPoints = useCallback((normX1, normY1, normX2, normY2) => {
+    const video = videoRef.current, tc = trackCanvasRef.current;
+    if (!video || !tc) return;
+    const vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
+    const dw = Math.round(vw * BG_DS), dh = Math.round(vh * BG_DS);
+    tc.width = dw; tc.height = dh;
+    const ctx = tc.getContext('2d');
+    ctx.drawImage(video, 0, 0, vw, vh, 0, 0, dw, dh);
+    const gray = rgbaToGray(ctx.getImageData(0, 0, dw, dh).data, dw, dh);
+    // 적 박스를 다운스케일 좌표로 변환 (마진 5% 추가)
+    const margin = 0.05;
+    const ex1 = Math.round((normX1 - margin) * dw);
+    const ey1 = Math.round((normY1 - margin) * dh);
+    const ex2 = Math.round((normX2 + margin) * dw);
+    const ey2 = Math.round((normY2 + margin) * dh);
+    // 전체 프레임 코너 검출 → 적 박스 영역 제외
+    const all = detectCorners(gray, dw, dh, 0, 0, dw, dh, LK_MAX_PTS * 3, 2, 5);
+    const bg  = all.filter(p => p.x < ex1 || p.x > ex2 || p.y < ey1 || p.y > ey2)
+                   .slice(0, LK_MAX_PTS);
+    bgLkPtsRef.current  = bg;
+    bgLkGrayRef.current = gray;
+  }, [BG_DS]);
+
+  // ── 배경 LK 한 프레임 → (dx, dy) normalized 반환 ─────────────────────────
+  const bgLkFind = useCallback(() => {
+    const pts = bgLkPtsRef.current;
+    const prevGray = bgLkGrayRef.current;
+    if (!pts.length || !prevGray) return null;
+    const video = videoRef.current, tc = trackCanvasRef.current;
+    if (!video || !tc) return null;
+    const vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
+    const dw = Math.round(vw * BG_DS), dh = Math.round(vh * BG_DS);
+    tc.width = dw; tc.height = dh;
+    const ctx = tc.getContext('2d');
+    ctx.drawImage(video, 0, 0, vw, vh, 0, 0, dw, dh);
+    const currGray = rgbaToGray(ctx.getImageData(0, 0, dw, dh).data, dw, dh);
+    const results = lkTrackPts(prevGray, currGray, dw, dh, pts);
+    const found = results.filter(r => r.found);
+    // 점 업데이트 + 화면 밖 제거
+    bgLkPtsRef.current = pts
+      .map((p, i) => results[i]?.found ? { x: p.x + results[i].dx, y: p.y + results[i].dy } : p)
+      .filter(p => p.x >= 0 && p.x < dw && p.y >= 0 && p.y < dh);
+    bgLkGrayRef.current = currGray;
+    if (found.length < 2) return null;
+    // 중앙값 displacement → normalized
+    const mdx = medianArr(found.map(r => r.dx)) / dw;
+    const mdy = medianArr(found.map(r => r.dy)) / dh;
+    return { dx: mdx, dy: mdy };
+  }, [BG_DS]);
+
   // ── LK 한 프레임 추적 → 새 normalized 위치 반환 ────────────────────────
   const lkFind = useCallback((normLastX, normLastY) => {
     const pts     = lkAbsPtsRef.current;
@@ -664,7 +709,8 @@ export default function SensitivityAnalyzer() {
       const firstMark = [{ x: cx, y: cy, time: video.currentTime, box: { x1: p.x1, y1: p.y1, x2: p.x2, y2: p.y2 } }];
       setMarks(firstMark);
       setAutoDetections([]);
-      autoTrackRef.current?.(firstMark, crosshairPos);
+      // recoil 탭: 킬 프레임 마크 후 분석 시작 버튼으로 실행
+      if (analysisModeRef.current !== 'scope') autoTrackRef.current?.(firstMark, crosshairPos);
     }
   }, [loadTFModel, captureTemplate, captureHueHistogram, initLKPoints, captureGrayTemplate, crosshairPos]);
 
@@ -738,10 +784,9 @@ export default function SensitivityAnalyzer() {
     if (!hasLK && !hasHist && !hasZncc) return;
     setTracking(true);
     setTrackProgress(0);
-    setKillDetected(false);
-    setKillFrameTime(null);
     setShowClipDetail(false);
-    killDetectedRef.current = false;
+    setBgFlowTrack([]);
+    bgLkPtsRef.current = []; bgLkGrayRef.current = null;
     const video = videoRef.current;
     const frameStep = 1 / 30;
     let lastEnemyX = startMarks[startMarks.length - 1].x;
@@ -759,8 +804,21 @@ export default function SensitivityAnalyzer() {
     const newCrossTrack = (hasCrosshairTmpl || isScopeMode)
       ? [{ x: lastCrossX, y: lastCrossY, time: startMarks[0].time }]
       : [];
+    // 배경 LK 초기화 (스코프 모드: 배경 이동 = 순수 뷰 방향 = 반동 경로)
+    if (isScopeMode) {
+      const ib = startMarks[0].box ?? { x1: lastEnemyX - 0.05, y1: lastEnemyY - 0.08, x2: lastEnemyX + 0.05, y2: lastEnemyY + 0.08 };
+      initBgLKPoints(ib.x1, ib.y1, ib.x2, ib.y2);
+    }
+    let cumBgX = 0, cumBgY = 0;
+    const newBgTrack = [{ bgX: 0, bgY: 0, time: startMarks[0].time }];
 
-    for (let i = 0; i < trackFrames; i++) {
+    // recoil 탭: killMarkTime(수동 마크)까지 — search 탭: trackFrames 프레임
+    const endTime = isScopeMode && killMarkTimeRef.current
+      ? killMarkTimeRef.current
+      : isScopeMode ? video.duration : startMarks[0].time + trackFrames / 30;
+    const maxFrames = Math.ceil((endTime - startMarks[0].time) * 30);
+
+    for (let i = 0; i < maxFrames; i++) {
       const nextTime = startMarks[0].time + frameStep * (i + 1);
       if (nextTime >= video.duration) break;
       await new Promise(res => {
@@ -823,21 +881,19 @@ export default function SensitivityAnalyzer() {
           setCrosshairTrack([...newCrossTrack]);
         }
       }
+      // 배경 광학 흐름 누적 (스코프 모드: 배경 이동 = 크로스헤어 이동 역방향)
+      // bgDy > 0 → 배경 아래로 → 크로스헤어(뷰)가 위로 = 미보정 반동
+      if (analysisModeRef.current === 'scope' && bgLkPtsRef.current.length >= 2) {
+        const bgDelta = bgLkFind();
+        if (bgDelta) { cumBgX += bgDelta.dx; cumBgY += bgDelta.dy; }
+        newBgTrack.push({ bgX: cumBgX, bgY: cumBgY, time: nextTime });
+        setBgFlowTrack([...newBgTrack]);
+      }
       setTrackProgress(i + 1);
 
-      // 반동 분석 탭: 킬피드 ROI에서 사망/기절 감지 → 자동 종료
-      if (analysisModeRef.current === 'scope' && !killDetectedRef.current) {
-        if (checkKillFeed(video, trackCanvasRef.current)) {
-          killDetectedRef.current = true;
-          setKillDetected(true);
-          setKillFrameTime(nextTime);
-          break;
-        }
-      }
     }
     setTracking(false);
-  }, [trackFrames, lkFind, initLKPoints, camShiftFind, findBestMatchWith, captureHueHistogram, captureGrayTemplate,
-      setKillDetected, setKillFrameTime, setShowClipDetail]);
+  }, [trackFrames, lkFind, initLKPoints, initBgLKPoints, bgLkFind, camShiftFind, findBestMatchWith, captureHueHistogram, captureGrayTemplate]);
   autoTrackRef.current = autoTrack;
 
   const handleCanvasMouseMove = useCallback((e) => {
@@ -865,7 +921,7 @@ export default function SensitivityAnalyzer() {
         const firstMark = [{ x: cx, y: cy, time: videoRef.current?.currentTime ?? 0, box: hit }];
         setMarks(firstMark);
         setAutoDetections([]);
-        autoTrackRef.current?.(firstMark, crosshairPos);
+        if (analysisModeRef.current !== 'scope') autoTrackRef.current?.(firstMark, crosshairPos);
         return;
       }
     }
@@ -905,7 +961,7 @@ export default function SensitivityAnalyzer() {
       const firstMark = [{ x: cx, y: cy, time, box }];
       setMarks(firstMark);
       setMarkMode(null);
-      autoTrackRef.current?.(firstMark, crosshairPos);
+      if (analysisModeRef.current !== 'scope') autoTrackRef.current?.(firstMark, crosshairPos);
     }
   }, [markMode, dragStart, tracking, toNorm, captureTemplate, captureHueHistogram, initLKPoints, captureGrayTemplate, crosshairPos, setCrosshairPos, setCrosshairSet]);
 
@@ -1059,27 +1115,38 @@ export default function SensitivityAnalyzer() {
       }
     }
 
-    // ── 감도 연동 분석 (기존 적 추적 기반) ─────────────────────────────────
-    // 반동 px → 보정에 필요한 마우스 이동량 계산
-    const recoilPxPerFrame = Math.abs(avgDy) * H;   // px/frame (수직 반동만)
+    // ── 감도 연동 분석 (적 추적 기반) ─────────────────────────────────────────
+    const recoilPxPerFrame = Math.abs(avgDy) * H;   // px/frame (수직 반동)
     const currentEdpi = dpi * (hipSens / 100);
-    // 1px 보정 = 25.4 / eDPI mm 이동 필요
     const mmPerFrame = recoilPxPerFrame * 25.4 / Math.max(currentEdpi, 1);
-    const cmPerSec   = mmPerFrame * 30 / 10;  // 30fps 기준 cm/sec
-    // 이상 범위: 1~4 cm/sec 의 마우스 이동이 반동 보정에 최적
+    const cmPerSec   = mmPerFrame * 30 / 10;
     let sensEval = 'good';
     if (recoilPxPerFrame < 1) {
-      sensEval = 'stable';    // 반동 거의 없음 — 분석 불필요
+      sensEval = 'stable';
     } else if (cmPerSec < 0.8) {
-      sensEval = 'too_high';  // 감도 너무 높음 — 조금만 움직여도 큰 이동 → 정밀 보정 어려움
+      sensEval = 'too_high';
     } else if (cmPerSec <= 4) {
-      sensEval = 'good';      // 적절
+      sensEval = 'good';
     } else {
-      sensEval = 'too_low';   // 감도 너무 낮음 — 보정에 손목을 많이 써야 함
+      sensEval = 'too_low';
     }
-    // 이상적 eDPI: cmPerSec ≈ 2 (중간값) 기준 역산
     const idealEdpi = recoilPxPerFrame > 1 ? Math.round(recoilPxPerFrame * 25.4 * 30 / (2 * 10)) : currentEdpi;
     const idealHipSens = Math.round(idealEdpi / dpi * 100 * 10) / 10;
+
+    // ── 현재 감도 기반 추천 ──────────────────────────────────────────────────────
+    const scopeSensVal = currentScopes[recoilScopeKey] ?? 40;
+    // crossSensHint 상태에 따라 현재 설정값 기준으로 ±조정
+    // 'perfect'/'good' → 현재값 그대로 추천
+    // 'too_high' → 과보정 진동, 수직감도·스코프감도 약 10~12% 낮추기
+    // 'need_more_correction' → 반동 아래로 밀림, 수직감도 약 10% 높이기
+    let recVertSens = vertSens;
+    let recScopeSens = scopeSensVal;
+    if (crossSensHint === 'too_high') {
+      recVertSens  = Math.round(Math.max(0.5, vertSens * 0.88) * 100) / 100;
+      recScopeSens = Math.max(15, Math.round(scopeSensVal * 0.90));
+    } else if (crossSensHint === 'need_more_correction') {
+      recVertSens  = Math.round(Math.min(2.0, vertSens * 1.10) * 100) / 100;
+    }
 
     return {
       avgDx, avgDy, vectors, consistency, totalDist, shots,
@@ -1092,6 +1159,8 @@ export default function SensitivityAnalyzer() {
       crossAvgDriftPx, crossCompRate, crossSensHint, crossIdealEdpi, crossIdealHip,
       // 써치 분석 지표
       initialOffsetPx, initialOffsetPct, aimCompletionFrame, aimMs,
+      // 현재 감도 기반 추천
+      scopeSensVal, recVertSens, recScopeSens,
     };
   };
 
@@ -1200,12 +1269,21 @@ export default function SensitivityAnalyzer() {
           {videoUrl && videoOpen && (() => {
             const r = marks.length >= 2 ? analyzeRecoil() : null;
             const PW = 200, PH = 360;
-            let pathPoints = [];
             let scatterScale = 50;
-            if (r) {
+            // 반동 경로: 배경 흐름 기반(bgFlowTrack) 우선, 없으면 적 드리프트 fallback
+            const hasBgFlow = analysisTab === 'recoil' && bgFlowTrack.length >= 2;
+            let pathPoints = [];
+            if (hasBgFlow) {
+              // bgX/bgY: 배경 누적 이동 (normalized). bgDy>0 → 뷰 위로(반동) → 차트 위로
+              const bgScale = Math.max(0.01, ...bgFlowTrack.map(p => Math.max(Math.abs(p.bgX), Math.abs(p.bgY))));
+              pathPoints = bgFlowTrack.map((p, i) => ({
+                x: PW/2 - (p.bgX / bgScale) * (PW/2 - 16), // bgX 좌우 반전: bg→우 = 크로스헤어→좌
+                y: PH/2 - (p.bgY / bgScale) * (PH/2 - 16), // bgY 반전 없음: bg↓ = 크로스헤어↑ = 차트↑
+                idx: i,
+              }));
+            } else if (r) {
               const maxR = Math.max(10, ...r.shots.map(s => Math.max(Math.abs(s.rx), Math.abs(s.ry))));
               scatterScale = maxR * 1.4;
-              // 조준점을 SVG 중앙에 배치
               pathPoints = r.shots.map(s => ({
                 x: PW/2 + (s.rx / scatterScale) * (PW/2 - 16),
                 y: PH/2 + (s.ry / scatterScale) * (PH/2 - 16),
@@ -1324,7 +1402,9 @@ export default function SensitivityAnalyzer() {
                           setMarks([]); setTargetBox(null);
                           templateRef.current = null; crosshairTemplateRef.current = null;
                           setCrosshairTrack([]); setTrackProgress(0);
-                          setKillDetected(false); setKillFrameTime(null); setShowClipDetail(false);
+                          setKillMarkTime(null); setShowClipDetail(false);
+                          setBgFlowTrack([]);
+                          bgLkPtsRef.current = []; bgLkGrayRef.current = null;
                         }}
                           style={{
                             padding: '8px 6px', borderRadius: 8, border: `1px solid ${analysisTab === tp.id ? tp.border : '#374151'}`,
@@ -1338,11 +1418,11 @@ export default function SensitivityAnalyzer() {
                       ))}
                     </div>
 
-                    {/* ── 감도 설정 (최상단) ── */}
+                    {/* ── 감도 설정 ── */}
                     <div style={{ background: '#111827', borderRadius: 10, padding: 12, flexShrink: 0 }}>
                       <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 10 }}>⚙️ 감도 설정</p>
 
-                      {/* DPI */}
+                      {/* DPI — 공통 */}
                       <div style={{ marginBottom: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', marginBottom: 3 }}>
                           <span>마우스 DPI</span>
@@ -1352,69 +1432,71 @@ export default function SensitivityAnalyzer() {
                           style={{ width: '100%', background: '#1e293b', border: '1px solid #374151', borderRadius: 6, padding: '5px 8px', fontSize: 12, color: '#e2e8f0', boxSizing: 'border-box' }} />
                       </div>
 
-                      {/* 일반 감도 */}
-                      <div style={{ marginBottom: 8 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', marginBottom: 3 }}>
-                          <span>일반 감도</span>
-                          <span style={{ color: '#3b82f6', fontWeight: 700 }}>{hipSens} <span style={{ color: '#475569', fontSize: 9 }}>eDPI {Math.round(dpi * hipSens / 100)}</span></span>
+                      {/* 에임 써치 탭: 일반 감도 + 체감 */}
+                      {analysisTab === 'search' && <>
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', marginBottom: 3 }}>
+                            <span>일반 감도</span>
+                            <span style={{ color: '#059669', fontWeight: 700 }}>{hipSens} <span style={{ color: '#475569', fontSize: 9 }}>eDPI {Math.round(dpi * hipSens / 100)}</span></span>
+                          </div>
+                          <input type="range" min="1" max="100" step="1" value={hipSens}
+                            onChange={e => setHipSens(Number(e.target.value))}
+                            style={{ width: '100%', accentColor: '#059669' }} />
                         </div>
-                        <input type="range" min="1" max="100" step="1" value={hipSens}
-                          onChange={e => setHipSens(Number(e.target.value))}
-                          style={{ width: '100%', accentColor: '#3b82f6' }} />
-                      </div>
 
-                      {/* 수직 감도 배율 */}
-                      <div style={{ marginBottom: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', marginBottom: 3 }}>
-                          <span>수직 감도 배율</span>
-                          <span style={{ color: '#a78bfa', fontWeight: 700 }}>{vertSens.toFixed(2)}×</span>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', marginTop: 8, marginBottom: 5 }}>체감 (선택)</p>
+                        <div style={{ marginBottom: 6 }}>
+                          <p style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>조준 시 자주 지나치나요?</p>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {[['yes','지나침'],['no','느린느낌'],['fine','적당']].map(([v, l]) => (
+                              <button key={v} onClick={() => setFeel(f => ({ ...f, overshoot: v }))}
+                                style={{ flex: 1, padding: '4px 0', borderRadius: 5, fontSize: 10, border: `1px solid ${feel.overshoot === v ? '#059669' : '#374151'}`, background: feel.overshoot === v ? '#065f46' : '#1e293b', color: feel.overshoot === v ? '#fff' : '#6b7280', cursor: 'pointer' }}>
+                                {l}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <input type="range" min="0.5" max="2.0" step="0.05" value={vertSens}
-                          onChange={e => setVertSens(Number(e.target.value))}
-                          style={{ width: '100%', accentColor: '#a855f7' }} />
-                      </div>
+                        <div>
+                          <p style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>이동 타겟 추적 느낌은?</p>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {[['fast','너무 빠름'],['slow','너무 느림'],['ok','좋음']].map(([v, l]) => (
+                              <button key={v} onClick={() => setFeel(f => ({ ...f, tracking: v }))}
+                                style={{ flex: 1, padding: '4px 0', borderRadius: 5, fontSize: 10, border: `1px solid ${feel.tracking === v ? '#059669' : '#374151'}`, background: feel.tracking === v ? '#065f46' : '#1e293b', color: feel.tracking === v ? '#fff' : '#6b7280', cursor: 'pointer' }}>
+                                {l}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>}
 
-                      {/* 스코프 감도 */}
-                      <p style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', marginBottom: 5 }}>스코프 감도</p>
-                      {SCOPES.slice(1).map(s => (
-                        <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                          <span style={{ fontSize: 10, color: '#6b7280', width: 64, flexShrink: 0 }}>{s.label}</span>
-                          <input type="range" min="1" max="100" step="1"
-                            value={currentScopes[s.key] || 0}
-                            onChange={e => setCurrentScopes(prev => ({ ...prev, [s.key]: Number(e.target.value) }))}
-                            style={{ flex: 1, accentColor: '#3b82f6' }} />
-                          <span style={{ fontSize: 10, color: '#e2e8f0', width: 20, textAlign: 'right', flexShrink: 0 }}>{currentScopes[s.key]}</span>
+                      {/* 반동 제어 탭: 수직감도 + 스코프감도 */}
+                      {analysisTab === 'recoil' && <>
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9ca3af', marginBottom: 3 }}>
+                            <span>수직 감도 배율</span>
+                            <span style={{ color: '#a78bfa', fontWeight: 700 }}>{vertSens.toFixed(2)}×</span>
+                          </div>
+                          <input type="range" min="0.5" max="2.0" step="0.05" value={vertSens}
+                            onChange={e => setVertSens(Number(e.target.value))}
+                            style={{ width: '100%', accentColor: '#a855f7' }} />
                         </div>
-                      ))}
 
-                      {/* 체감 질문 */}
-                      <p style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', marginTop: 8, marginBottom: 5 }}>체감 (선택)</p>
-                      <div style={{ marginBottom: 6 }}>
-                        <p style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>조준 시 자주 지나치나요?</p>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          {[['yes','지나침'],['no','느린느낌'],['fine','적당']].map(([v, l]) => (
-                            <button key={v} onClick={() => setFeel(f => ({ ...f, overshoot: v }))}
-                              style={{ flex: 1, padding: '4px 0', borderRadius: 5, fontSize: 10, border: `1px solid ${feel.overshoot === v ? '#3b82f6' : '#374151'}`, background: feel.overshoot === v ? '#1d4ed8' : '#1e293b', color: feel.overshoot === v ? '#fff' : '#6b7280', cursor: 'pointer' }}>
-                              {l}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p style={{ fontSize: 10, color: '#6b7280', marginBottom: 4 }}>이동 타겟 추적 느낌은?</p>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          {[['fast','너무 빠름'],['slow','너무 느림'],['ok','좋음']].map(([v, l]) => (
-                            <button key={v} onClick={() => setFeel(f => ({ ...f, tracking: v }))}
-                              style={{ flex: 1, padding: '4px 0', borderRadius: 5, fontSize: 10, border: `1px solid ${feel.tracking === v ? '#3b82f6' : '#374151'}`, background: feel.tracking === v ? '#1d4ed8' : '#1e293b', color: feel.tracking === v ? '#fff' : '#6b7280', cursor: 'pointer' }}>
-                              {l}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', marginBottom: 5 }}>스코프 감도</p>
+                        {SCOPES.slice(1).map(s => (
+                          <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                            <span style={{ fontSize: 10, color: '#6b7280', width: 64, flexShrink: 0 }}>{s.label}</span>
+                            <input type="range" min="1" max="100" step="1"
+                              value={currentScopes[s.key] || 0}
+                              onChange={e => setCurrentScopes(prev => ({ ...prev, [s.key]: Number(e.target.value) }))}
+                              style={{ flex: 1, accentColor: '#7c3aed' }} />
+                            <span style={{ fontSize: 10, color: '#e2e8f0', width: 20, textAlign: 'right', flexShrink: 0 }}>{currentScopes[s.key]}</span>
+                          </div>
+                        ))}
+                      </>}
                     </div>
 
-                    {/* ── 스코프 추천 결과 (항상 실시간 계산) ── */}
-                    {(() => {
+                    {/* ── 스코프 추천 결과 (에임 써치 탭에서만) ── */}
+                    {analysisTab === 'search' && (() => {
                       const mult = getFeelMultiplier();
                       const adjHip = Math.round(hipSens * mult * 10) / 10;
                       const adjEdpi = dpi * (adjHip / 100);
@@ -1471,6 +1553,25 @@ export default function SensitivityAnalyzer() {
                         </div>
                       );
                     })()}
+
+
+                    {/* 스코프 선택 — 반동 탭만 표시 */}
+                    {analysisTab === 'recoil' && (
+                      <div style={{ background: '#111827', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 6 }}>🔭 영상에서 사용한 스코프</p>
+                        <div style={{ display: 'flex', gap: 5 }}>
+                          {[{ key: 'red', label: '홀로/레드닷' }, { key: 'x2', label: '2배율' }, { key: 'x3', label: '3배율' }].map(sc => (
+                            <button key={sc.key} onClick={() => setRecoilScopeKey(sc.key)}
+                              style={{ flex: 1, padding: '5px 0', borderRadius: 6, fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer',
+                                background: recoilScopeKey === sc.key ? '#7c3aed' : '#374151',
+                                color: recoilScopeKey === sc.key ? '#fff' : '#9ca3af' }}>
+                              {sc.label}
+                              <span style={{ display: 'block', fontSize: 9, fontWeight: 400, opacity: 0.7 }}>{currentScopes[sc.key]}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* 무기 선택 — 반동 탭만 표시 */}
                     {analysisTab === 'recoil' && <div style={{ background: '#111827', borderRadius: 10, padding: 12, flexShrink: 0 }}>
@@ -1544,20 +1645,29 @@ export default function SensitivityAnalyzer() {
                           {analysisTab === 'search' ? '② 적 드래그 (첫 발견 프레임)' : '② 적 드래그 (사격 시작 프레임)'}
                         </p>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0 }}>추적 프레임</span>
-                        {[10, 20, 30, 50].map(n => (
-                          <button key={n} onClick={() => setTrackFrames(n)}
-                            style={{ padding: '3px 8px', borderRadius: 4, fontSize: 11, border: 'none', cursor: 'pointer', background: trackFrames === n ? '#3b82f6' : '#374151', color: trackFrames === n ? '#fff' : '#9ca3af' }}>{n}</button>
-                        ))}
-                      </div>
+                      {/* search 탭만 추적 프레임 수 선택 표시 */}
+                      {analysisTab === 'search' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                          <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0 }}>추적 프레임</span>
+                          {[10, 20, 30, 50].map(n => (
+                            <button key={n} onClick={() => setTrackFrames(n)}
+                              style={{ padding: '3px 8px', borderRadius: 4, fontSize: 11, border: 'none', cursor: 'pointer', background: trackFrames === n ? '#3b82f6' : '#374151', color: trackFrames === n ? '#fff' : '#9ca3af' }}>{n}</button>
+                          ))}
+                        </div>
+                      )}
                       {tracking ? (
                         <div>
                           <p style={{ fontSize: 11, color: '#f97316', fontWeight: 700, marginBottom: 4 }}>
-                            🔍 추적 중... {trackProgress}/{trackFrames}{crosshairSet ? ' + 크로스헤어' : ''}
+                            {analysisTab === 'recoil'
+                              ? `🔍 킬피드 감지 중... ${trackProgress}프레임 경과`
+                              : `🔍 추적 중... ${trackProgress}/${trackFrames}${crosshairSet ? ' + 크로스헤어' : ''}`}
                           </p>
                           <div style={{ width: '100%', background: '#374151', borderRadius: 99, height: 5 }}>
-                            <div style={{ background: '#f97316', height: '100%', borderRadius: 99, width: `${(trackProgress / trackFrames) * 100}%`, transition: 'width 0.2s' }} />
+                            {/* recoil: 경과 시간 기준(pulse 애니), search: 진행률 바 */}
+                            <div style={{ background: '#f97316', height: '100%', borderRadius: 99,
+                              width: analysisTab === 'recoil' ? '100%' : `${(trackProgress / trackFrames) * 100}%`,
+                              transition: analysisTab === 'recoil' ? 'none' : 'width 0.2s',
+                              animation: analysisTab === 'recoil' ? 'pulse 1.2s ease-in-out infinite' : 'none' }} />
                           </div>
                         </div>
                       ) : marks.length === 0 ? (
@@ -1675,84 +1785,111 @@ export default function SensitivityAnalyzer() {
                       </div>
                     )}
 
-                    {/* ── 반동 분석 탭: 킬피드 감지 상태 ── */}
-                    {analysisTab === 'recoil' && marks.length >= 2 && (
-                      <div style={{ background: killDetected ? 'rgba(239,68,68,0.08)' : 'rgba(124,58,237,0.08)',
-                        border: `1px solid ${killDetected ? '#ef444433' : '#7c3aed33'}`, borderRadius: 10, padding: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {/* ── 반동 분석 탭: 킬 프레임 설정 + 분석 시작 ── */}
+                    {analysisTab === 'recoil' && marks.length >= 1 && (
+                      <div style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid #7c3aed33', borderRadius: 10, padding: 10 }}>
+
+                        {/* ① 적 드래그 완료 표시 */}
+                        <p style={{ fontSize: 11, fontWeight: 700, color: '#a78bfa', marginBottom: 6 }}>
+                          ✓ 적 드래그 완료 — {marks[0].time.toFixed(2)}s
+                        </p>
+
+                        {/* ② 킬 프레임 설정 */}
+                        {!killMarkTime ? (
                           <div>
-                            <p style={{ fontSize: 11, fontWeight: 700, color: killDetected ? '#f87171' : '#a78bfa' }}>
-                              {killDetected ? '💀 사망/기절 감지됨' : '🔍 킬피드 감지 중...'}
+                            <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6 }}>
+                              영상을 <span style={{ color: '#f87171', fontWeight: 700 }}>킬 로그가 뜬 프레임</span>으로 이동 후 아래 버튼 클릭
                             </p>
-                            {killDetected && killFrameTime !== null && (
-                              <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
-                                감지 시각 {killFrameTime.toFixed(2)}s · 추적 {marks.length}프레임
+                            <button
+                              onClick={() => {
+                                if (!videoRef.current) return;
+                                videoRef.current.pause();
+                                setKillMarkTime(videoRef.current.currentTime);
+                              }}
+                              style={{ width: '100%', padding: '8px 0', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                                background: '#7f1d1d', border: '1px solid #ef444466', color: '#fca5a5', cursor: 'pointer' }}>
+                              🎯 현재 프레임을 킬 타이밍으로 설정
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            {/* 설정 완료 표시 + 초기화 */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                              <div>
+                                <p style={{ fontSize: 11, fontWeight: 700, color: '#f87171' }}>
+                                  💀 킬 타이밍: {killMarkTime.toFixed(2)}s
+                                </p>
+                                <p style={{ fontSize: 10, color: '#9ca3af' }}>
+                                  분석 구간: {marks[0].time.toFixed(2)}s → {killMarkTime.toFixed(2)}s
+                                  ({(killMarkTime - marks[0].time).toFixed(2)}s)
+                                </p>
+                              </div>
+                              <button onClick={() => { setKillMarkTime(null); setShowClipDetail(false); }}
+                                style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: '#374151', color: '#9ca3af', border: 'none', cursor: 'pointer' }}>
+                                초기화
+                              </button>
+                            </div>
+
+                            {/* ③ 분석 시작 */}
+                            {marks.length === 1 && !tracking && (
+                              <button
+                                onClick={() => autoTrackRef.current?.(marks, crosshairPos)}
+                                style={{ width: '100%', padding: '9px 0', borderRadius: 7, fontSize: 13, fontWeight: 700,
+                                  background: '#4c1d95', border: '1px solid #7c3aed', color: '#e9d5ff', cursor: 'pointer' }}>
+                                ▶ 구간 분석 시작
+                              </button>
+                            )}
+                            {tracking && (
+                              <p style={{ fontSize: 11, color: '#f97316', fontWeight: 700, textAlign: 'center' }}>
+                                🔍 분석 중... {trackProgress}프레임
                               </p>
                             )}
-                          </div>
-                          {killDetected && (
-                            <button onClick={() => setShowClipDetail(v => !v)}
-                              style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                                background: showClipDetail ? '#7c3aed' : '#4c1d95',
-                                border: '1px solid #7c3aed55', color: '#e9d5ff', cursor: 'pointer' }}>
-                              {showClipDetail ? '▲ 닫기' : '▼ 상세 보기'}
-                            </button>
-                          )}
-                        </div>
 
-                        {/* 클립 상세보기 */}
-                        {showClipDetail && killDetected && r && (
-                          <div style={{ marginTop: 10, borderTop: '1px solid #7c3aed33', paddingTop: 10 }}>
+                            {/* 분석 완료 — 상세 보기 */}
+                            {marks.length >= 2 && !tracking && r && (
+                              <div>
+                                <button onClick={() => setShowClipDetail(v => !v)}
+                                  style={{ width: '100%', padding: '7px 0', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                                    background: showClipDetail ? '#7c3aed' : '#4c1d95',
+                                    border: '1px solid #7c3aed55', color: '#e9d5ff', cursor: 'pointer', marginBottom: showClipDetail ? 8 : 0 }}>
+                                  {showClipDetail ? '▲ 닫기' : '▼ 상세 보기'}
+                                </button>
 
-                            {/* 프레임별 이탈 차트 */}
-                            <p style={{ fontSize: 10, fontWeight: 700, color: '#c4b5fd', marginBottom: 6 }}>프레임별 크로스헤어 이탈 (px)</p>
-                            <svg width="100%" height="60" viewBox={`0 0 ${Math.max(r.crosshairDists.length - 1, 1)} 200`}
-                              preserveAspectRatio="none" style={{ background: '#0f172a', borderRadius: 5, display: 'block', marginBottom: 4 }}>
-                              {/* 5% 기준선 (64px) */}
-                              <line x1={0} y1={136} x2={r.crosshairDists.length - 1} y2={136} stroke="#374151" strokeWidth="2" strokeDasharray="4,4"/>
-                              {/* 킬 감지 수직선 */}
-                              {killDetected && (
-                                <line x1={r.crosshairDists.length - 1} y1={0} x2={r.crosshairDists.length - 1} y2={200}
-                                  stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,3"/>
-                              )}
-                              <polyline
-                                points={r.crosshairDists.map((d, i) => `${i},${Math.max(0, 200 - d * 0.8)}`).join(' ')}
-                                fill="none" stroke="#a78bfa" strokeWidth="2.5"/>
-                            </svg>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#475569', marginBottom: 8 }}>
-                              <span>시작</span><span>점선=64px 기준 / 빨강=킬</span><span>종료</span>
-                            </div>
+                                {showClipDetail && (
+                                  <div style={{ marginTop: 8, borderTop: '1px solid #7c3aed33', paddingTop: 10 }}>
+                                    {/* 프레임별 이탈 차트 */}
+                                    <p style={{ fontSize: 10, fontWeight: 700, color: '#c4b5fd', marginBottom: 6 }}>프레임별 크로스헤어 이탈 (px)</p>
+                                    <svg width="100%" height="60" viewBox={`0 0 ${Math.max(r.crosshairDists.length - 1, 1)} 200`}
+                                      preserveAspectRatio="none" style={{ background: '#0f172a', borderRadius: 5, display: 'block', marginBottom: 4 }}>
+                                      <line x1={0} y1={136} x2={r.crosshairDists.length - 1} y2={136} stroke="#374151" strokeWidth="2" strokeDasharray="4,4"/>
+                                      <line x1={r.crosshairDists.length - 1} y1={0} x2={r.crosshairDists.length - 1} y2={200}
+                                        stroke="#f87171" strokeWidth="1.5" strokeDasharray="3,3"/>
+                                      <polyline
+                                        points={r.crosshairDists.map((d, i) => `${i},${Math.max(0, 200 - d * 0.8)}`).join(' ')}
+                                        fill="none" stroke="#a78bfa" strokeWidth="2.5"/>
+                                    </svg>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#475569', marginBottom: 8 }}>
+                                      <span>드래그 시작</span><span>점선=64px / 빨강=킬</span><span>킬 타이밍</span>
+                                    </div>
 
-                            {/* 핵심 지표 */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
-                              {[
-                                { label: '반동 보정률', value: `${r.crossCompRate}%`, color: r.crossCompRate >= 70 ? '#4ade80' : r.crossCompRate >= 40 ? '#facc15' : '#f87171' },
-                                { label: '추적 유지율', value: `${r.trackAcc}%`, color: r.trackAcc >= 70 ? '#4ade80' : r.trackAcc >= 40 ? '#facc15' : '#f87171' },
-                                { label: '수직 드리프트', value: `${r.crossTotalDriftY > 0 ? '↓' : '↑'}${Math.abs(r.crossTotalDriftY).toFixed(0)}px`, color: Math.abs(r.crossTotalDriftY) < 30 ? '#4ade80' : '#fb923c' },
-                                { label: '수평 흔들림', value: `${Math.abs(r.crossTotalDriftX).toFixed(0)}px`, color: Math.abs(r.crossTotalDriftX) < 20 ? '#4ade80' : '#fb923c' },
-                                { label: '평균 이탈', value: `${r.crossAvgDriftPx.toFixed(1)}px/f`, color: r.crossAvgDriftPx < 3 ? '#4ade80' : r.crossAvgDriftPx < 6 ? '#facc15' : '#f87171' },
-                                { label: '일관성', value: `${r.consistency}%`, color: r.consistency >= 70 ? '#4ade80' : r.consistency >= 40 ? '#facc15' : '#f87171' },
-                              ].map(it => (
-                                <div key={it.label} style={{ background: '#0f172a', borderRadius: 6, padding: '5px 8px' }}>
-                                  <p style={{ fontSize: 9, color: '#6b7280', marginBottom: 2 }}>{it.label}</p>
-                                  <p style={{ fontSize: 13, fontWeight: 900, color: it.color }}>{it.value}</p>
-                                </div>
-                              ))}
-                            </div>
+                                    {/* 핵심 지표 */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
+                                      {[
+                                        { label: '반동 보정률', value: `${r.crossCompRate}%`, color: r.crossCompRate >= 70 ? '#4ade80' : r.crossCompRate >= 40 ? '#facc15' : '#f87171' },
+                                        { label: '추적 유지율', value: `${r.trackAcc}%`, color: r.trackAcc >= 70 ? '#4ade80' : r.trackAcc >= 40 ? '#facc15' : '#f87171' },
+                                        { label: '수직 드리프트', value: `${r.crossTotalDriftY > 0 ? '↓' : '↑'}${Math.abs(r.crossTotalDriftY).toFixed(0)}px`, color: Math.abs(r.crossTotalDriftY) < 30 ? '#4ade80' : '#fb923c' },
+                                        { label: '수평 흔들림', value: `${Math.abs(r.crossTotalDriftX).toFixed(0)}px`, color: Math.abs(r.crossTotalDriftX) < 20 ? '#4ade80' : '#fb923c' },
+                                        { label: '평균 이탈', value: `${r.crossAvgDriftPx.toFixed(1)}px/f`, color: r.crossAvgDriftPx < 3 ? '#4ade80' : r.crossAvgDriftPx < 6 ? '#facc15' : '#f87171' },
+                                        { label: '일관성', value: `${r.consistency}%`, color: r.consistency >= 70 ? '#4ade80' : r.consistency >= 40 ? '#facc15' : '#f87171' },
+                                      ].map(it => (
+                                        <div key={it.label} style={{ background: '#0f172a', borderRadius: 6, padding: '5px 8px' }}>
+                                          <p style={{ fontSize: 9, color: '#6b7280', marginBottom: 2 }}>{it.label}</p>
+                                          <p style={{ fontSize: 13, fontWeight: 900, color: it.color }}>{it.value}</p>
+                                        </div>
+                                      ))}
+                                    </div>
 
-                            {/* 감도 힌트 */}
-                            {r.crossSensHint && (
-                              <div style={{ marginTop: 8, background: '#1e1040', borderRadius: 6, padding: '7px 9px' }}>
-                                <p style={{ fontSize: 10, fontWeight: 700, color: '#c4b5fd', marginBottom: 2 }}>
-                                  {r.crossSensHint === 'perfect' ? '✓ 반동 보정 거의 완벽'
-                                    : r.crossSensHint === 'too_high' ? '⚠ 과보정 진동 — 감도 낮추기'
-                                    : r.crossSensHint === 'need_more_correction' ? '↓ 반동 아래로 밀림 — 더 당기거나 감도 올리기'
-                                    : '📊 감도 적합'}
-                                </p>
-                                {r.crossIdealEdpi && r.crossIdealEdpi !== Math.round(r.currentEdpi) && (
-                                  <p style={{ fontSize: 10, color: '#a78bfa' }}>
-                                    추천 eDPI <strong>{r.crossIdealEdpi}</strong> · 감도 <strong>{Math.min(100, Math.max(1, r.crossIdealHip))}</strong>
-                                  </p>
+                                  </div>
                                 )}
                               </div>
                             )}
@@ -1815,11 +1952,16 @@ export default function SensitivityAnalyzer() {
                     {r && analysisTab === 'recoil' && (
                       <div style={{ background: '#111827', borderRadius: 10, padding: 12 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                          <p style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>반동 경로</p>
+                          <div>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>반동 경로</p>
+                            <p style={{ fontSize: 9, color: hasBgFlow ? '#a78bfa' : '#6b7280', marginTop: 1 }}>
+                              {hasBgFlow ? '🎯 배경 흐름 기반 (순수 크로스헤어 이동)' : '⚠ 적 드리프트 기반 (배경 흐름 데이터 부족)'}
+                            </p>
+                          </div>
                           <div style={{ display: 'flex', gap: 8, fontSize: 10 }}>
-                            <span style={{ color: '#22c55e' }}>● 1발</span>
+                            <span style={{ color: '#22c55e' }}>● 초탄</span>
                             <span style={{ color: '#eab308' }}>● 중간</span>
-                            <span style={{ color: '#ef4444' }}>● 끝</span>
+                            <span style={{ color: '#ef4444' }}>● 킬</span>
                           </div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -1831,10 +1973,10 @@ export default function SensitivityAnalyzer() {
                             {[-2,-1,0,1,2].map(i => (
                               <line key={`h${i}`} x1={8} y1={PH/2 + i*(PH/2-16)/2} x2={PW-8} y2={PH/2 + i*(PH/2-16)/2} stroke="#1e293b" strokeWidth={i===0?1.5:0.5}/>
                             ))}
-                            {/* 조준점 (중앙) */}
+                            {/* 초탄 위치 (중앙 = 시작점) */}
                             <line x1={PW/2-9} y1={PH/2} x2={PW/2+9} y2={PH/2} stroke="#22c55e" strokeWidth="1.5"/>
                             <line x1={PW/2} y1={PH/2-9} x2={PW/2} y2={PH/2+9} stroke="#22c55e" strokeWidth="1.5"/>
-                            <text x={PW/2+11} y={PH/2+4} fill="#22c55e" fontSize="8" fontWeight="bold">조준점</text>
+                            <text x={PW/2+11} y={PH/2+4} fill="#22c55e" fontSize="8" fontWeight="bold">{hasBgFlow ? '초탄' : '조준점'}</text>
                             {/* 경로 선 */}
                             {pathPoints.slice(1).map((pt, i) => (
                               <line key={i}
@@ -1924,8 +2066,8 @@ export default function SensitivityAnalyzer() {
                       </div>
                     )}
 
-                    {/* 감도 연동 추천 */}
-                    {r && r.sensEval !== 'stable' && (
+                    {/* 감도 기반 추천 제거됨 */}
+                    {false && r && r.sensEval !== 'stable' && (
                       <div style={{ background: '#111827', borderRadius: 10, padding: 12 }}>
                         <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 8 }}>📐 감도 기반 추천</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -2031,62 +2173,38 @@ export default function SensitivityAnalyzer() {
                           </div>
                         </div>
 
-                        {/* 감도 힌트 메시지 */}
-                        <div style={{
-                          borderRadius: 7, padding: '7px 10px', marginBottom: 8,
-                          background: r.crossSensHint === 'perfect' ? 'rgba(34,197,94,0.1)'
-                            : r.crossSensHint === 'too_high' ? 'rgba(239,68,68,0.1)'
-                            : r.crossSensHint === 'need_more_correction' ? 'rgba(251,146,60,0.1)'
-                            : 'rgba(59,130,246,0.1)',
-                          border: `1px solid ${r.crossSensHint === 'perfect' ? '#22c55e33' : r.crossSensHint === 'too_high' ? '#ef444433' : r.crossSensHint === 'need_more_correction' ? '#fb923c33' : '#3b82f633'}`,
-                        }}>
-                          {r.crossSensHint === 'perfect' && (
-                            <>
-                              <p style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', marginBottom: 2 }}>✓ 반동 보정 거의 완벽</p>
-                              <p style={{ fontSize: 10, color: '#86efac' }}>크로스헤어가 거의 제자리를 유지. 현재 감도가 이 반동 패턴에 잘 맞습니다.</p>
-                            </>
-                          )}
-                          {r.crossSensHint === 'too_high' && (
-                            <>
-                              <p style={{ fontSize: 11, fontWeight: 700, color: '#f87171', marginBottom: 2 }}>⚠ 과보정 진동 감지 → 감도 낮추기 권장</p>
-                              <p style={{ fontSize: 10, color: '#fca5a5' }}>크로스헤어가 불규칙하게 튀고 있습니다. 감도를 낮춰 미세 조정을 용이하게 하세요.</p>
-                            </>
-                          )}
-                          {r.crossSensHint === 'need_more_correction' && (
-                            <>
-                              <p style={{ fontSize: 11, fontWeight: 700, color: '#fb923c', marginBottom: 2 }}>↓ 반동이 아래로 밀림 → 더 많이 당겨야 함</p>
-                              <p style={{ fontSize: 10, color: '#fdba74' }}>크로스헤어가 일관되게 하강합니다. 마우스를 더 빠르게 당기거나 감도를 조정하세요.</p>
-                            </>
-                          )}
-                          {r.crossSensHint === 'good' && (
-                            <>
-                              <p style={{ fontSize: 11, fontWeight: 700, color: '#60a5fa', marginBottom: 2 }}>📊 감도 적합</p>
-                              <p style={{ fontSize: 10, color: '#93c5fd' }}>드리프트 패턴이 안정적. 반동 제어 연습으로 정확도를 높이세요.</p>
-                            </>
-                          )}
-                        </div>
-
-                        {/* 정밀 eDPI 추천 */}
-                        {r.crossIdealEdpi && r.crossIdealEdpi !== r.currentEdpi && (
-                          <div style={{ background: '#1e1040', border: '1px solid #7c3aed55', borderRadius: 7, padding: '8px 10px' }}>
-                            <p style={{ fontSize: 10, color: '#c4b5fd', marginBottom: 4 }}>🔬 크로스헤어 추적 기반 정밀 추천 감도</p>
-                            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-                              <div>
-                                <p style={{ fontSize: 9, color: '#7c3aed' }}>추천 eDPI</p>
-                                <p style={{ fontSize: 16, fontWeight: 900, color: '#a78bfa' }}>{r.crossIdealEdpi}</p>
-                              </div>
-                              <div>
-                                <p style={{ fontSize: 9, color: '#7c3aed' }}>일반 감도 (DPI {dpi})</p>
-                                <p style={{ fontSize: 16, fontWeight: 900, color: '#a78bfa' }}>{Math.min(100, Math.max(1, r.crossIdealHip))}</p>
-                              </div>
-                              <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                                <p style={{ fontSize: 9, color: '#7c3aed' }}>현재 eDPI</p>
-                                <p style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>{Math.round(r.currentEdpi)}</p>
-                              </div>
+                        {/* 감도 추천 패널 */}
+                        {r.crossSensHint && (
+                          <div style={{ marginTop: 8, background: '#1e1040', borderRadius: 6, padding: '9px 11px' }}>
+                            <p style={{ fontSize: 10, fontWeight: 700, color: '#c4b5fd', marginBottom: 8 }}>
+                              {r.crossSensHint === 'perfect' ? '✓ 반동 보정 거의 완벽 — 현재 감도 유지'
+                                : r.crossSensHint === 'too_high' ? '⚠ 과보정 진동 — 감도를 낮추세요'
+                                : r.crossSensHint === 'need_more_correction' ? '↓ 반동 아래로 밀림 — 수직 감도를 높여보세요'
+                                : '📊 감도 적합 — 현재 감도 유지'}
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
+                              {[
+                                { label: '현재 수직 감도', val: `${vertSens.toFixed(2)}×`, color: '#a78bfa' },
+                                { label: '추천 수직 감도', val: `${r.recVertSens.toFixed(2)}×`,
+                                  color: r.recVertSens === vertSens ? '#4ade80' : '#fb923c',
+                                  diff: r.recVertSens !== vertSens ? `${r.recVertSens > vertSens ? '+' : ''}${((r.recVertSens - vertSens) * 100 / Math.max(vertSens, 0.01)).toFixed(0)}%` : null },
+                                { label: `현재 스코프 감도 (${recoilScopeKey === 'red' ? '홀로/레드닷' : recoilScopeKey === 'x2' ? '2배율' : '3배율'})`, val: `${r.scopeSensVal}`, color: '#a78bfa' },
+                                { label: '추천 스코프 감도', val: `${r.recScopeSens}`,
+                                  color: r.recScopeSens === r.scopeSensVal ? '#4ade80' : '#fb923c',
+                                  diff: r.recScopeSens !== r.scopeSensVal ? `${r.recScopeSens > r.scopeSensVal ? '+' : ''}${r.recScopeSens - r.scopeSensVal}` : null },
+                              ].map(it => (
+                                <div key={it.label} style={{ background: '#0f172a', borderRadius: 5, padding: '6px 8px' }}>
+                                  <p style={{ fontSize: 9, color: '#6b7280', marginBottom: 2 }}>{it.label}</p>
+                                  <p style={{ fontSize: 13, fontWeight: 900, color: it.color, margin: 0 }}>
+                                    {it.val}
+                                    {it.diff && <span style={{ fontSize: 9, color: '#9ca3af', fontWeight: 400, marginLeft: 3 }}>({it.diff})</span>}
+                                  </p>
+                                </div>
+                              ))}
                             </div>
-                            <p style={{ fontSize: 9, color: '#4c1d95', marginTop: 4 }}>기준: 크로스헤어 드리프트를 2cm/sec 마우스 이동으로 보정 가능한 eDPI</p>
                           </div>
                         )}
+
                       </div>
                     )}
 

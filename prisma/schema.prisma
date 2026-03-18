@@ -316,3 +316,54 @@ model PlayerStatSnapshot {
   @@index([nickname, pubgShardId, capturedAt])
   @@map("player_stat_snapshots")
 }
+
+// 클랜 내전 기록
+model ClanWar {
+  id          Int      @id @default(autoincrement())
+  clanA       String
+  clanB       String
+  scoreA      Int      @default(0)
+  scoreB      Int      @default(0)
+  map         String   @default("")
+  mode        String   @default("squad-fpp")
+  note        String   @default("")
+  password    String   @default("")
+  playedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  players     ClanWarPlayer[]
+
+  @@index([clanA, clanB])
+  @@map("clan_wars")
+}
+
+model ClanWarPlayer {
+  id        Int      @id @default(autoincrement())
+  warId     Int
+  war       ClanWar  @relation(fields: [warId], references: [id], onDelete: Cascade)
+  nickname  String
+  team      String   // 'A' | 'B'
+  kills     Int      @default(0)
+  damage    Int      @default(0)
+  survived  Boolean  @default(false)
+
+  @@index([warId])
+  @@map("clan_war_players")
+}
+
+// 플레이어 리뷰
+model PlayerReview {
+  id          Int      @id @default(autoincrement())
+  targetNick  String
+  shard       String   @default("steam")
+  authorNick  String
+  rating      Int                      // 1~5
+  teamplay    Int      @default(3)     // 1~5
+  communication Int    @default(3)     // 1~5
+  comment     String   @default("")
+  password    String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([targetNick, shard])
+  @@map("player_reviews")
+}
