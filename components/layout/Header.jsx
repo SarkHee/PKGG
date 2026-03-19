@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useT } from '../../utils/i18n';
 import { useAuth } from '../../utils/useAuth';
@@ -14,10 +14,59 @@ const LANG_OPTIONS = [
   { code: 'zh', label: '中文', flag: '🇨🇳' },
 ];
 
+function NavDropdown({ label, links, isActive, t, openKey, openMenu, setOpenMenu }) {
+  const ref = useRef(null);
+  const isOpen = openMenu === openKey;
+  const hasActive = links.some((l) => isActive(l.href));
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpenMenu(null); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen, setOpenMenu]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpenMenu(isOpen ? null : openKey)}
+        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+          hasActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+        }`}
+      >
+        {label}
+        <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[160px]">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} passHref>
+              <span
+                onClick={() => setOpenMenu(null)}
+                className={`relative flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer transition-colors ${
+                  isActive(link.href) ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <span>{link.icon}</span>
+                {t(link.labelKey)}
+                {link.highlight && !isActive(link.href) && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-red-500 rounded-full" />
+                )}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Header() {
-  const [mobileMenuOpen,  setMobileMenuOpen]  = useState(false);
-  const [langMenuOpen,    setLangMenuOpen]    = useState(false);
-  const [trainMenuOpen,   setTrainMenuOpen]   = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [langMenuOpen,   setLangMenuOpen]   = useState(false);
+  const [openMenu,       setOpenMenu]       = useState(null); // 'analysis' | 'weapon' | 'community' | 'training'
   const [isDark, setIsDark] = useState(false);
   const router = useRouter();
   const { lang, t, switchLang } = useT();
@@ -37,35 +86,38 @@ export default function Header() {
 
   const isActive = (path) => router.pathname === path || router.pathname.startsWith(path + '/');
 
-  const navLinks = [
-    { href: '/compare',          labelKey: 'nav.compare',          icon: '⚔️' },
-    { href: '/clans',            labelKey: 'nav.clans',            icon: '🏆' },
-    { href: '/clan-analytics',   labelKey: 'nav.clan_analytics',   icon: '📊' },
-    { href: '/weapon-test',      labelKey: 'nav.weapon_test',      icon: '🔫', highlight: true },
-    { href: '/weapon-damage',    labelKey: 'nav.weapon_damage',    icon: '💥' },
-    { href: '/weapon-meta',      labelKey: 'nav.weapon_meta',      icon: '📊' },
-    { href: '/playstyle-matchup',labelKey: 'nav.playstyle_matchup',icon: '🗺️' },
-    { href: '/clan-war',         labelKey: 'nav.clan_war',         icon: '⚔️' },
-    { href: '/match-heatmap',    labelKey: 'nav.match_heatmap',    icon: '🗺️' },
-    { href: '/forum',            labelKey: 'nav.forum',            icon: '💬' },
-    { href: '/notices',          labelKey: 'nav.notices',          icon: '📢' },
-    { href: '/pubg-news',        labelKey: 'nav.news',             icon: '📰' },
+  const analysisLinks = [
+    { href: '/compare',           labelKey: 'nav.compare',           icon: '⚔️' },
+    { href: '/clans',             labelKey: 'nav.clans',             icon: '🏆' },
+    { href: '/clan-analytics',    labelKey: 'nav.clan_analytics',    icon: '📊' },
+    { href: '/clan-war',          labelKey: 'nav.clan_war',          icon: '🛡️' },
+    { href: '/playstyle-matchup', labelKey: 'nav.playstyle_matchup', icon: '🧭' },
+  ];
+
+  const weaponLinks = [
+    { href: '/weapon-test',   labelKey: 'nav.weapon_test',   icon: '🔫', highlight: true },
+    { href: '/weapon-damage', labelKey: 'nav.weapon_damage', icon: '💥' },
+    { href: '/weapon-meta',   labelKey: 'nav.weapon_meta',   icon: '📈' },
+  ];
+
+  const communityLinks = [
+    { href: '/forum',      labelKey: 'nav.forum',    icon: '💬' },
+    { href: '/party',      labelKey: 'nav.party',    icon: '👥' },
+    { href: '/notices',    labelKey: 'nav.notices',  icon: '📢' },
+    { href: '/pubg-news',  labelKey: 'nav.news',     icon: '📰' },
   ];
 
   const trainingLinks = [
-    { href: '/sensitivity-analyzer',  labelKey: 'nav.sensitivity_analyzer', icon: '📹' },
-    { href: '/aim-trainer',           labelKey: 'nav.aim_trainer',          icon: '⚡' },
-    { href: '/recoil-pattern',        labelKey: 'nav.recoil_pattern',       icon: '🔫' },
-    { href: '/recoil-quiz',           labelKey: 'nav.recoil_quiz',          icon: '🎯' },
-    { href: '/crosshair-trainer',     labelKey: 'nav.crosshair_trainer',    icon: '🏹' },
-    { href: '/peek-trainer',          labelKey: 'nav.peek_trainer',         icon: '👁️' },
-    { href: '/daily-goals',           labelKey: 'nav.daily_goals',          icon: '📅' },
-    { href: '/sens-preset',           labelKey: 'nav.sens_preset',          icon: '⚙️' },
-    { href: '/pubg-survivors',        labelKey: 'nav.pubg_survivors',       icon: '🎮' },
-    // { href: '/battle-sim',     labelKey: 'nav.battle_sim',     icon: '⚔️' },  // WIP
+    { href: '/sensitivity-analyzer', labelKey: 'nav.sensitivity_analyzer', icon: '📹' },
+    { href: '/aim-trainer',          labelKey: 'nav.aim_trainer',          icon: '⚡' },
+    { href: '/recoil-pattern',       labelKey: 'nav.recoil_pattern',       icon: '🔫' },
+    { href: '/recoil-quiz',          labelKey: 'nav.recoil_quiz',          icon: '🎯' },
+    { href: '/daily-goals',          labelKey: 'nav.daily_goals',          icon: '📅' },
+    { href: '/sens-preset',          labelKey: 'nav.sens_preset',          icon: '⚙️' },
+    { href: '/pubg-survivors',       labelKey: 'nav.pubg_survivors',       icon: '🎮' },
   ];
 
-  const currentLang = LANG_OPTIONS.find((l) => l.code === lang) || LANG_OPTIONS[0];
+  const currentLang = LANG_OPTIONS.find((lp) => lp.code === lang) || LANG_OPTIONS[0];
 
   return (
     <>
@@ -91,61 +143,12 @@ export default function Header() {
                 </span>
               </Link>
 
-              {/* 데스크탑 네비게이션 */}
+              {/* 데스크탑 네비게이션 — 4개 드롭다운 */}
               <nav className="hidden md:flex items-center gap-1">
-                {navLinks.map((link) => (
-                  <Link key={link.href} href={link.href} passHref>
-                    <span className={`relative flex items-center px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-                      isActive(link.href)
-                        ? 'bg-blue-50 text-blue-700'
-                        : link.highlight
-                        ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}>
-                      {t(link.labelKey)}
-                      {link.highlight && !isActive(link.href) && (
-                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-                      )}
-                    </span>
-                  </Link>
-                ))}
-
-                {/* 훈련 도구 드롭다운 */}
-                <div className="relative">
-                  <button
-                    onClick={() => setTrainMenuOpen((v) => !v)}
-                    onBlur={() => setTimeout(() => setTrainMenuOpen(false), 150)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-                      trainingLinks.some((l) => isActive(l.href))
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    {t('nav.training')}
-                    <svg className={`w-3 h-3 transition-transform ${trainMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {trainMenuOpen && (
-                    <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[160px]">
-                      {trainingLinks.map((link) => (
-                        <Link key={link.href} href={link.href} passHref>
-                          <span
-                            onClick={() => setTrainMenuOpen(false)}
-                            className={`flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer transition-colors ${
-                              isActive(link.href)
-                                ? 'bg-blue-50 text-blue-700 font-semibold'
-                                : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            <span>{link.icon}</span>
-                            {t(link.labelKey)}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <NavDropdown label={t('nav.group_analysis')}   links={analysisLinks}  isActive={isActive} t={t} openKey="analysis"  openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                <NavDropdown label={t('nav.group_weapon')}     links={weaponLinks}    isActive={isActive} t={t} openKey="weapon"    openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                <NavDropdown label={t('nav.group_community')}  links={communityLinks} isActive={isActive} t={t} openKey="community" openMenu={openMenu} setOpenMenu={setOpenMenu} />
+                <NavDropdown label={t('nav.training')}         links={trainingLinks}  isActive={isActive} t={t} openKey="training"  openMenu={openMenu} setOpenMenu={setOpenMenu} />
               </nav>
             </div>
 
@@ -263,15 +266,35 @@ export default function Header() {
             )}
 
             <div className="px-4 pb-3 space-y-4">
-              {/* 분석 도구 */}
+              {/* 분석 */}
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-1">분석</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-1">{t('nav.group_analysis')}</p>
                 <div className="grid grid-cols-2 gap-1">
-                  {navLinks.slice(0, 6).map((link) => (
+                  {analysisLinks.map((link) => (
                     <Link key={link.href} href={link.href} passHref>
                       <span
                         className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
                           isActive(link.href) ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <span className="text-base leading-none">{link.icon}</span>
+                        <span className="truncate">{t(link.labelKey)}</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* 무기 */}
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-1">{t('nav.group_weapon')}</p>
+                <div className="grid grid-cols-2 gap-1">
+                  {weaponLinks.map((link) => (
+                    <Link key={link.href} href={link.href} passHref>
+                      <span
+                        className={`relative flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
+                          isActive(link.href) ? 'bg-blue-50 text-blue-700' : link.highlight ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-600 hover:bg-gray-100'
                         }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -288,9 +311,9 @@ export default function Header() {
 
               {/* 커뮤니티 */}
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-1">커뮤니티</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-1">{t('nav.group_community')}</p>
                 <div className="grid grid-cols-2 gap-1">
-                  {navLinks.slice(6).map((link) => (
+                  {communityLinks.map((link) => (
                     <Link key={link.href} href={link.href} passHref>
                       <span
                         className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
@@ -308,7 +331,7 @@ export default function Header() {
 
               {/* 훈련 도구 */}
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-1">훈련</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 px-1">{t('nav.training')}</p>
                 <div className="grid grid-cols-3 gap-1">
                   {trainingLinks.map((link) => (
                     <Link key={link.href} href={link.href} passHref>

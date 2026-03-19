@@ -35,7 +35,6 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `sens-preset.js` | 감도 프리셋 저장/공유. DPI·일반감도·수직감도·스코프감도 5종 저장. URL 공유(btoa). localStorage 최대 20개 |
 | `weapon-meta.js` | 무기 메타 표. Update 40.1 기준 23종 픽률·승률·평균킬 정적 데이터. 테이블/티어 뷰 전환, 종류 필터, 컬럼 정렬 |
 | `clan-war.js` | 클랜 내전 기록. 두 클랜 스코어·맵·모드·선수별 킬/딜/생존 입력. DB 저장(ClanWar + ClanWarPlayer). 클랜명 검색 |
-| `match-heatmap.js` | 매치 히트맵. 닉네임 검색 → PUBG API 매치 데이터 → Canvas 히트맵/점 표시. 맵별 킬·데스 위치 시각화 |
 | `recoil-pattern.js` | 반동 패턴 시뮬레이터. 8종 무기 20발 정규화 패턴. Canvas 애니메이션(RPM 기반). 부착물 토글(보정기/수직그립/앵글드그립). 보정 가이드·방향 화살표. **연습 모드** 탭: DPI 설정(100-16000, 프리셋)/스코프 모드(기본~6배)/3·2·1 카운트다운/Canvas 오버레이 버튼/착탄 정확도 채점 |
 | `drop-calculator.js` | 낙하 지점 최적화 계산기. 7개 맵 선택. Canvas 3단계 클릭(경로시작→끝→목표). 낙하 범위 부채꼴 표시. 점프 타이밍·낙하 시간 계산 |
 | `playstyle-matchup.js` | 14가지 플레이스타일 상성 매트릭스 (1-5점 척도, 클릭으로 행/열 강조) |
@@ -162,13 +161,12 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - **클랜 내부 랭킹 탭 추가** (`/clan/[clanName]` → 🏆 랭킹 탭): `pages/api/clan/[clanName]/ranking.js` + `ClanRankingTab` 컴포넌트. 3가지 서브탭: 전체 리더보드(정렬 기준 선택), 이번 주 MVP(PlayerMatch 7일 집계), 성장왕(PlayerStatSnapshot 비교). 1위 하이라이트 카드 UI
 - **플레이스타일 분류기 v3**: 11종 → 14종으로 확장. 신규: 정밀 사수형(headshotRate≥40%), 초반 러셔(킬높음+생존짧음), 전술 리더형(승률+어시스트+Top10). `playstyle.js` API에서 `headshotKills` 집계 및 `headshotRate` 계산 후 분류기에 전달
 - **성장 추적 기능 추가**: `PlayerStatSnapshot` DB 모델, `components/player/GrowthChart.jsx`, `pages/api/pubg/growth.js`. 클랜 배치업데이트(`batch-update.js`) 시 hasData=true인 경우 스냅샷 자동 저장. 플레이어 상세 페이지에 `GrowthChart` 컴포넌트 삽입. **DB 마이그레이션 필요**: Supabase SQL Editor에서 `player_stat_snapshots` 테이블 생성
-- **클랜 상세 페이지 커스텀 탭 추가**: `pages/clan/[clanName].js` 하단 `SquadCustomTab` + 알고리즘 함수들 (normalize, classifyRole, calcBalanceScore, recommendAllSquads, teamBalanceScore)
-  - 스쿼드 추천: `recommendAllSquads(members)` → `{ squads: [[...4명], ...], unassigned: [...] }` 구조로 전체 클랜원을 4인 스쿼드로 분배
-  - 역할 분배 로직: Phase1(각 역할별 상위 N명을 스쿼드에 1명씩), Phase2(나머지를 스코어순으로 채움)
-  - 미배정 멤버: `members.length % 4` 나머지 → 하단에 별도 표시
-  - state: `allSquads` (부모) → `setAllSquads` props로 전달
-  - 역할 분류: dealer/fragger/survivor/support (정규화 기반)
-  - 수동 교체: 슬롯 클릭 → 벤치 멤버 선택으로 swap
+- **클랜 상세 스쿼드 빌더 전면 개편**: `pages/clan/[clanName].js` `SquadCustomTab` 완전 재작성
+  - 클랜원 다중선택 체크박스 리스트 (전체선택/해제, MMR 순 정렬)
+  - 스쿼드 크기: 4인/3인/듀오 선택
+  - 분류 방식: **밸런스형**(역할 균등분배) / **1군·2군·3군**(점수 상위·중·하 1/3 분리 후 각 그룹 내 스쿼드 편성)
+  - 핵심 함수: `packSquads(members,size)`, `assignTiers(scored)`, `recommendSquads(members,size,mode)`
+  - 서브컴포넌트: `MemberCard`, `SquadBlock`, `UnassignedRow`, `TIER_META`
 - **PlayerDashboard 클랜원 목록 섹션 제거**: 클랜 접근 제어 설계와 충돌 방지
 - **시너지 딜량 명칭 변경**: `SynergyHeatmap.jsx` "평균 딜량" → "파티 시 나의 평균 딜량" / `PlayerDashboard.jsx` "클랜원과 딜량" → "파티 시 내 평균 딜량"
 - WeaponMasteryCard: 헤드샷 기능 제거 (PUBG Headshots 필드 = 킬이 아닌 히트 수)

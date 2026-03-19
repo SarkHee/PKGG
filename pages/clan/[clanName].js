@@ -1220,32 +1220,19 @@ function calcBalanceScore(member, allMembers) {
   );
 }
 
-// 전체 클랜원을 4인 스쿼드로 자동 분배
-function recommendAllSquads(members) {
-  if (!members || members.length < 4) {
-    const scored = (members || []).map(m => ({
-      ...m,
-      _role: classifyRole(m, members || []),
-      _score: calcBalanceScore(m, members || []),
-    }));
-    return { squads: [scored], unassigned: [] };
-  }
+// 멤버를 지정 크기의 스쿼드로 밸런스 분배
+function packSquads(members, size) {
+  if (!members || members.length === 0) return { squads: [], unassigned: [] };
+  if (members.length < size) return { squads: [members], unassigned: [] };
 
-  const n = Math.floor(members.length / 4);
-  const scored = members.map(m => ({
-    ...m,
-    _role: classifyRole(m, members),
-    _score: calcBalanceScore(m, members),
-  }));
-
-  const byRole = { dealer: [], fragger: [], survivor: [], support: [] };
-  scored.forEach(m => byRole[m._role].push(m));
-  Object.values(byRole).forEach(arr => arr.sort((a, b) => b._score - a._score));
-
+  const n = Math.floor(members.length / size);
   const squads = Array.from({ length: n }, () => []);
   const assigned = new Set();
 
-  // Phase 1: 각 역할 최상위 N명을 스쿼드[0..N-1]에 1명씩 배정
+  const byRole = { dealer: [], fragger: [], survivor: [], support: [] };
+  members.forEach(m => byRole[m._role || 'support'].push(m));
+  Object.values(byRole).forEach(arr => arr.sort((a, b) => (b._score || 0) - (a._score || 0)));
+
   for (const role of ['dealer', 'fragger', 'survivor', 'support']) {
     byRole[role].slice(0, n).forEach((m, i) => {
       squads[i].push(m);
@@ -1253,20 +1240,56 @@ function recommendAllSquads(members) {
     });
   }
 
-  // Phase 2: 남은 멤버를 스코어 순으로 미완성 스쿼드에 채움
-  const remaining = scored
+  const remaining = members
     .filter(m => !assigned.has(m.playerName || m.id))
-    .sort((a, b) => b._score - a._score);
+    .sort((a, b) => (b._score || 0) - (a._score || 0));
 
   for (const m of remaining) {
-    const target = squads.find(sq => sq.length < 4);
+    const target = squads.find(sq => sq.length < size);
     if (!target) break;
     target.push(m);
     assigned.add(m.playerName || m.id);
   }
 
-  const unassigned = scored.filter(m => !assigned.has(m.playerName || m.id));
+  const unassigned = members.filter(m => !assigned.has(m.playerName || m.id));
   return { squads, unassigned };
+}
+
+// 점수 기반 1군/2군/3군 분류
+function assignTiers(scored) {
+  const sorted = [...scored].sort((a, b) => (b._score || 0) - (a._score || 0));
+  const n = sorted.length;
+  const t1 = Math.ceil(n / 3);
+  const t2 = Math.ceil(n * 2 / 3);
+  return sorted.map((m, i) => ({ ...m, _tier: i < t1 ? 1 : i < t2 ? 2 : 3 }));
+}
+
+// 통합 스쿼드 추천 (밸런스형 / 1군2군3군형)
+function recommendSquads(members, size, mode) {
+  if (!members || members.length === 0) return { squads: [], unassigned: [], tiers: null };
+  const scored = members.map(m => ({
+    ...m,
+    _role: classifyRole(m, members),
+    _score: calcBalanceScore(m, members),
+  }));
+
+  if (mode === 'tier') {
+    const tiered = assignTiers(scored);
+    const tiers = {};
+    for (const t of [1, 2, 3]) {
+      const tierMembers = tiered.filter(m => m._tier === t);
+      tiers[t] = packSquads(tierMembers, size);
+    }
+    return { squads: [], unassigned: [], tiers };
+  }
+
+  const { squads, unassigned } = packSquads(scored, size);
+  return { squads, unassigned, tiers: null };
+}
+
+// 하위 호환: 기존 코드에서 호출되는 경우를 위해 유지
+function recommendAllSquads(members) {
+  return recommendSquads(members, 4, 'balanced');
 }
 
 function teamBalanceScore(squadArr, allMembers) {
@@ -1284,12 +1307,134 @@ const ROLE_META = {
   support:  { label: '서포트', emoji: '🤝', color: 'text-blue-400',   bg: 'bg-blue-400/10 border-blue-400/30',  desc: '딜·MMR·TOP10 세 지표가 고르게 분포 — 팀 밸런스를 잡아주는 범용 플레이어' },
 };
 
+const TIER_META = {
+  1: { label: '1군', emoji: '🥇', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/30', desc: '상위 1/3 — 클랜 핵심 전력' },
+  2: { label: '2군', emoji: '🥈', color: 'text-gray-300',   bg: 'bg-gray-500/10 border-gray-500/30',   desc: '중위 1/3 — 클랜 주전급' },
+  3: { label: '3군', emoji: '🥉', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30', desc: '하위 1/3 — 성장 잠재 멤버' },
+};
+
+// 멤버 카드 (스쿼드 결과에서 공통 사용)
+function MemberCard({ member, idx, allMembers, showTier }) {
+  const role = ROLE_META[member._role] || ROLE_META.support;
+  const tier = TIER_META[member._tier];
+  return (
+    <div className={`border rounded-xl p-3 ${role.bg} relative`}>
+      <div className="flex items-center justify-between mb-2 gap-1 flex-wrap">
+        <Tooltip content={role.desc}>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full border cursor-help ${role.bg} ${role.color}`}>
+            {role.emoji} {role.label}
+          </span>
+        </Tooltip>
+        {showTier && tier && (
+          <span className={`text-xs font-bold px-1.5 py-0.5 rounded border ${tier.bg} ${tier.color}`}>
+            {tier.emoji} {tier.label}
+          </span>
+        )}
+      </div>
+      <Link href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}>
+        <div className={`text-sm font-bold mb-1 hover:underline cursor-pointer truncate ${role.color}`}>
+          {member.playerName}
+        </div>
+      </Link>
+      <div className="text-xs text-gray-400 space-y-0.5">
+        <div>MMR <span className="text-white font-semibold">{member.mmr || '-'}</span></div>
+        <div>딜 <span className="text-white font-semibold">{member.stats?.avgDamage || '-'}</span></div>
+        <div>TOP10 <span className="text-white font-semibold">{member.stats?.top10Rate ? `${Number(member.stats.top10Rate).toFixed(0)}%` : '-'}</span></div>
+      </div>
+    </div>
+  );
+}
+
+// 스쿼드 블록 렌더러
+function SquadBlock({ squad, squadIdx, label, allMembers, gridCols, showTier }) {
+  const balScore = teamBalanceScore(squad, allMembers);
+  return (
+    <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+          {squadIdx + 1}
+        </span>
+        <span className="text-sm font-bold text-gray-200">{label}</span>
+        <div className="flex items-center gap-1.5 ml-auto">
+          <span className="text-xs text-gray-500">밸런스</span>
+          <span className="text-sm font-black text-white">{balScore}</span>
+          <div className="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full ${balScore >= 70 ? 'bg-green-500' : balScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+              style={{ width: `${balScore}%` }}
+            />
+          </div>
+        </div>
+      </div>
+      <div className={`grid gap-2 ${gridCols}`}>
+        {squad.map((member) => (
+          <MemberCard key={member.playerName || member.id} member={member} allMembers={allMembers} showTier={showTier} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 미배정 표시
+function UnassignedRow({ members, size }) {
+  if (!members || members.length === 0) return null;
+  return (
+    <div className="mt-2">
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        미배정 ({members.length}명) — {size}인 편성 후 남은 클랜원
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {members.map(member => {
+          const role = ROLE_META[member._role] || ROLE_META.support;
+          return (
+            <div key={member.playerName || member.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-700 bg-gray-800">
+              <span className="text-base w-6 text-center">{role.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-white truncate">{member.playerName}</div>
+                <div className="text-xs text-gray-500">MMR {member.mmr || '-'} · 딜 {member.stats?.avgDamage || '-'}</div>
+              </div>
+              <span className={`text-xs font-bold ${role.color}`}>{role.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function SquadCustomTab({ members, allSquads, setAllSquads }) {
-  const hasStats = members?.some(m => m.stats?.avgDamage || m.mmr);
-  const validMembers = (members || []).filter(m => m.playerName && (m.mmr || m.stats?.avgDamage));
+  const validMembers = (members || [])
+    .filter(m => m.playerName && (m.mmr || m.stats?.avgDamage))
+    .sort((a, b) => (b.mmr || 0) - (a.mmr || 0));
+
+  const [selectedIds, setSelectedIds] = useState(() => new Set(validMembers.map(m => m.playerName || m.id)));
+  const [squadSize, setSquadSize] = useState(4);
+  const [mode, setMode] = useState('balanced'); // 'balanced' | 'tier'
+  const [result, setResult] = useState(null);
+
+  const hasStats = validMembers.length > 0;
+  const selectedMembers = validMembers.filter(m => selectedIds.has(m.playerName || m.id));
+  const expectedSquads = Math.floor(selectedMembers.length / squadSize);
+
+  const gridCols = squadSize === 4 ? 'grid-cols-2 lg:grid-cols-4'
+    : squadSize === 3 ? 'grid-cols-1 sm:grid-cols-3'
+    : 'grid-cols-2';
+
+  const toggleMember = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const selectAll = () => setSelectedIds(new Set(validMembers.map(m => m.playerName || m.id)));
+  const clearAll  = () => setSelectedIds(new Set());
 
   const handleRecommend = () => {
-    setAllSquads(recommendAllSquads(validMembers));
+    if (selectedMembers.length < 2) return;
+    const res = recommendSquads(selectedMembers, squadSize, mode);
+    setResult(res);
+    if (mode === 'balanced') setAllSquads({ squads: res.squads, unassigned: res.unassigned });
   };
 
   if (!hasStats) {
@@ -1300,132 +1445,186 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
     );
   }
 
-  const squadCount = allSquads ? allSquads.squads.length : Math.floor(validMembers.length / 4);
-
   return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-gray-200">⚡ 스쿼드 자동 추천</h2>
-          <p className="text-xs text-gray-500 mt-1">
-            MMR · 딜량 · TOP10 · 킬 기반 밸런스 스쿼드 구성 &middot; 클랜원 {validMembers.length}명 → {squadCount}스쿼드
-          </p>
+    <div className="space-y-5">
+      {/* 상단: 클랜원 선택 + 설정 */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
+
+        {/* 클랜원 선택 리스트 */}
+        <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <span className="text-sm font-bold text-gray-200">클랜원 선택</span>
+              <span className="ml-2 text-xs text-gray-500">{selectedMembers.length}/{validMembers.length}명 선택됨</span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={selectAll} className="text-xs px-2.5 py-1 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 border border-blue-600/30 transition-colors">전체선택</button>
+              <button onClick={clearAll}  className="text-xs px-2.5 py-1 rounded-lg bg-gray-700 text-gray-400 hover:bg-gray-600 border border-gray-600 transition-colors">전체해제</button>
+            </div>
+          </div>
+          <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
+            {validMembers.map((m) => {
+              const id = m.playerName || m.id;
+              const checked = selectedIds.has(id);
+              const role = ROLE_META[classifyRole(m, validMembers)] || ROLE_META.support;
+              return (
+                <label
+                  key={id}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors ${
+                    checked ? 'bg-blue-600/15 border border-blue-600/30' : 'border border-transparent hover:bg-gray-700/50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleMember(id)}
+                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-600 flex-shrink-0"
+                  />
+                  <span className="text-base w-5 text-center flex-shrink-0">{role.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-white truncate">{m.playerName}</div>
+                    <div className="text-xs text-gray-500">MMR {m.mmr || '-'} · 딜 {m.stats?.avgDamage || '-'}</div>
+                  </div>
+                  <span className={`text-xs font-bold flex-shrink-0 ${role.color}`}>{role.label}</span>
+                </label>
+              );
+            })}
+          </div>
         </div>
-        <button
-          onClick={handleRecommend}
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-colors shadow-md shadow-blue-900/40"
-        >
-          🎲 전체 추천
-        </button>
+
+        {/* 설정 패널 */}
+        <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4 flex flex-col gap-4">
+          <div>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">스쿼드 크기</div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { size: 4, label: '4인 스쿼드' },
+                { size: 3, label: '3인 스쿼드' },
+                { size: 2, label: '듀오' },
+              ].map(({ size, label }) => (
+                <button
+                  key={size}
+                  onClick={() => setSquadSize(size)}
+                  className={`py-2 rounded-xl text-sm font-bold transition-colors border ${
+                    squadSize === size
+                      ? 'bg-blue-600 border-blue-500 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">분류 방식</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setMode('balanced')}
+                className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-colors border text-left ${
+                  mode === 'balanced'
+                    ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300'
+                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                <div>⚖️ 밸런스형</div>
+                <div className="text-xs font-normal opacity-70 mt-0.5">역할 고르게 분배</div>
+              </button>
+              <button
+                onClick={() => setMode('tier')}
+                className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-colors border text-left ${
+                  mode === 'tier'
+                    ? 'bg-yellow-600/20 border-yellow-500/50 text-yellow-300'
+                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                <div>🏅 1군·2군·3군</div>
+                <div className="text-xs font-normal opacity-70 mt-0.5">실력대 별 분리</div>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-auto pt-2 border-t border-gray-700">
+            <div className="text-xs text-gray-500 mb-3">
+              {selectedMembers.length}명 선택 →&nbsp;
+              {mode === 'balanced'
+                ? `${expectedSquads}개 스쿼드 + 미배정 ${selectedMembers.length % squadSize}명`
+                : `1군·2군·3군 각 ${squadSize}인 편성`}
+            </div>
+            <button
+              onClick={handleRecommend}
+              disabled={selectedMembers.length < 2}
+              className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors ${
+                selectedMembers.length >= 2
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-900/40'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              🎲 스쿼드 추천 받기
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* 추천 결과 */}
-      {allSquads ? (
-        <div className="space-y-6">
-          {allSquads.squads.map((squad, squadIdx) => {
-            const balScore = teamBalanceScore(squad, validMembers);
-            return (
-              <div key={squadIdx} className="bg-gray-800/60 border border-gray-700 rounded-2xl p-5">
-                {/* 스쿼드 헤더 */}
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
-                    {squadIdx + 1}
-                  </span>
-                  <span className="text-sm font-bold text-gray-200">Squad {squadIdx + 1}</span>
-                  <div className="flex items-center gap-2 ml-auto">
-                    <div className="text-xs text-gray-400">밸런스</div>
-                    <div className="text-sm font-black text-white">{balScore}</div>
-                    <div className="w-20 h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${balScore >= 70 ? 'bg-green-500' : balScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                        style={{ width: `${balScore}%` }}
+      {/* 결과 */}
+      {result && (
+        <div className="space-y-4">
+          {result.tiers ? (
+            // 1군/2군/3군 모드
+            [1, 2, 3].map(tierNum => {
+              const { squads, unassigned } = result.tiers[tierNum];
+              const tierInfo = TIER_META[tierNum];
+              if (squads.length === 0 && (!unassigned || unassigned.length === 0)) return null;
+              return (
+                <div key={tierNum}>
+                  <div className={`flex items-center gap-2 mb-3 px-1`}>
+                    <span className="text-xl">{tierInfo.emoji}</span>
+                    <span className={`text-base font-black ${tierInfo.color}`}>{tierInfo.label}</span>
+                    <span className="text-xs text-gray-500">— {tierInfo.desc}</span>
+                  </div>
+                  <div className="space-y-3 pl-2">
+                    {squads.map((squad, si) => (
+                      <SquadBlock
+                        key={si}
+                        squad={squad}
+                        squadIdx={si}
+                        label={`${tierInfo.label} Squad ${si + 1}`}
+                        allMembers={selectedMembers}
+                        gridCols={gridCols}
+                        showTier={false}
                       />
-                    </div>
-                    <span className="text-xs text-gray-500">
-                      {balScore >= 70 ? '✅' : balScore >= 50 ? '⚠️' : '❌'}
-                    </span>
+                    ))}
+                    <UnassignedRow members={unassigned} size={squadSize} />
                   </div>
                 </div>
-
-                {/* 멤버 4장 */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {squad.map((member, idx) => {
-                    const role = ROLE_META[member._role] || ROLE_META.support;
-                    return (
-                      <div
-                        key={member.id || member.playerName}
-                        className={`border rounded-xl p-4 ${role.bg}`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <Tooltip content={role.desc}>
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full border cursor-help ${role.bg} ${role.color}`}>
-                              {role.emoji} {role.label}
-                            </span>
-                          </Tooltip>
-                          <span className="text-xs text-gray-500">#{idx + 1}</span>
-                        </div>
-                        <Link href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}>
-                          <div className={`text-sm font-bold mb-1 hover:underline cursor-pointer ${role.color}`}>
-                            {member.playerName}
-                          </div>
-                        </Link>
-                        <div className="text-xs text-gray-400 space-y-0.5">
-                          <div>MMR <span className="text-white font-semibold">{member.mmr || '-'}</span></div>
-                          <div>딜량 <span className="text-white font-semibold">{member.stats?.avgDamage || '-'}</span></div>
-                          <div>TOP10 <span className="text-white font-semibold">{member.stats?.top10Rate ? `${Number(member.stats.top10Rate).toFixed(0)}%` : '-'}</span></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* 미배정 멤버 (홀수 나머지) */}
-          {allSquads.unassigned.length > 0 && (
-            <div>
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                미배정 ({allSquads.unassigned.length}명) — 4인 편성 후 남은 클랜원
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {allSquads.unassigned.map(member => {
-                  const role = ROLE_META[member._role] || ROLE_META.support;
-                  return (
-                    <div
-                      key={member.id || member.playerName}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-gray-700 bg-gray-800"
-                    >
-                      <span className="text-base w-6 text-center">{role.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-white truncate">{member.playerName}</div>
-                        <div className="text-xs text-gray-500">MMR {member.mmr || '-'} · 딜 {member.stats?.avgDamage || '-'}</div>
-                      </div>
-                      <Tooltip content={role.desc}>
-                        <div className={`text-xs font-bold cursor-help ${role.color}`}>{role.label}</div>
-                      </Tooltip>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+              );
+            })
+          ) : (
+            // 밸런스형 모드
+            <>
+              {result.squads.map((squad, si) => (
+                <SquadBlock
+                  key={si}
+                  squad={squad}
+                  squadIdx={si}
+                  label={`Squad ${si + 1}`}
+                  allMembers={selectedMembers}
+                  gridCols={gridCols}
+                  showTier={false}
+                />
+              ))}
+              <UnassignedRow members={result.unassigned} size={squadSize} />
+            </>
           )}
         </div>
-      ) : (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-12 text-center">
-          <div className="text-5xl mb-4">⚡</div>
-          <div className="text-gray-300 font-semibold mb-2">전체 스쿼드 추천을 시작하세요</div>
-          <p className="text-sm text-gray-500 mb-6">
-            클랜원 {validMembers.length}명의 데이터를 분석해<br/>
-            {Math.floor(validMembers.length / 4)}개 스쿼드를 자동으로 구성합니다
-          </p>
-          <button
-            onClick={handleRecommend}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors"
-          >
-            🎲 전체 스쿼드 추천 받기
-          </button>
+      )}
+
+      {!result && (
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-10 text-center">
+          <div className="text-4xl mb-3">⚡</div>
+          <div className="text-gray-300 font-semibold mb-1">클랜원을 선택하고 편성 방식을 설정하세요</div>
+          <p className="text-sm text-gray-500">왼쪽 목록에서 참가할 클랜원을 체크한 뒤 추천 버튼을 누르세요</p>
         </div>
       )}
     </div>

@@ -191,6 +191,72 @@ function rankColor(i) {
   return 'text-gray-500';
 }
 
+function ClanRankRow({ clan, index, isMyClan, effectiveMyClanId, t }) {
+  return (
+    <tr className={`transition-all duration-200 ${
+      effectiveMyClanId
+        ? isMyClan
+          ? 'bg-blue-950/50 ring-1 ring-inset ring-blue-500/50 hover:bg-blue-950/70'
+          : 'opacity-20 blur-[1.5px] select-none pointer-events-none'
+        : isMyClan
+          ? 'bg-blue-950/40 ring-1 ring-inset ring-blue-500/40 hover:bg-blue-950/60'
+          : 'hover:bg-gray-800/40'
+    }`}>
+      <td className="px-4 py-3">
+        <span className={`text-lg font-black ${rankColor(index)}`}>#{index + 1}</span>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          {isMyClan || !effectiveMyClanId ? (
+            <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-bold text-white hover:text-blue-400 transition-colors">
+              {clan.name}
+            </Link>
+          ) : (
+            <span className="font-bold text-gray-500 cursor-not-allowed select-none">{clan.name}</span>
+          )}
+          {isMyClan && (
+            <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">내 클랜</span>
+          )}
+        </div>
+        {clan.tag && <div className="text-xs text-gray-500">{clan.tag}</div>}
+      </td>
+      <td className="px-4 py-3"><RegionBadge region={clan.region} /></td>
+      <td className="px-4 py-3 text-gray-400 text-sm">{clan.level ?? '-'}</td>
+      <td className="px-4 py-3 text-blue-400 font-semibold text-sm">{clan.apiMemberCount}{t('ca.persons')}</td>
+      <td className="px-4 py-3 font-bold text-blue-400">{clan.avgStats?.score}</td>
+      <td className="px-4 py-3">
+        {clan.avgStats?.avgMMR ? (() => {
+          const tier = getMMRTier(clan.avgStats.avgMMR);
+          return (
+            <Tooltip content={MMR_DISCLAIMER}>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border cursor-help text-xs font-bold ${tier.bgColor} ${tier.borderColor} ${tier.textColor}`}>
+                {tier.emoji} {clan.avgStats.avgMMR.toLocaleString()}
+              </span>
+            </Tooltip>
+          );
+        })() : <span className="text-gray-600">-</span>}
+      </td>
+      <td className="px-4 py-3 text-orange-400 font-semibold text-sm">{clan.avgStats?.damage}</td>
+      <td className="px-4 py-3 text-green-400 font-semibold text-sm">{clan.avgStats?.winRate}%</td>
+      <td className="px-4 py-3">
+        {clan.playStyle ? (
+          <div>
+            <PlayStyleBadge style={clan.playStyle.primary} />
+            {clan.playStyle.special && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-purple-900/60 text-purple-300 border border-purple-700">
+                ⭐ {clan.playStyle.special}
+              </span>
+            )}
+            <div className="text-xs text-gray-600 mt-0.5">{t('ca.dominance')} {clan.playStyle.dominance}%</div>
+          </div>
+        ) : (
+          <span className="text-gray-600 text-sm">-</span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 export default function ClanAnalytics() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -609,70 +675,50 @@ export default function ClanAnalytics() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800/50">
-                    {rankings.topClansByScore.map((clan, index) => {
-                      const isMyClan = myClanId && clan.id === myClanId;
+                    {(() => {
+                      const isMyInTop10 = myClanId && rankings.topClansByScore.some(c => c.id === myClanId);
+                      const myClanOutside = (!isMyInTop10 && myClanId)
+                        ? rankings.allRankedClans?.find(c => c.id === myClanId)
+                        : null;
                       return (
-                      <tr key={clan.id} className={`transition-all duration-200 ${
-                        effectiveMyClanId
-                          ? isMyClan
-                            ? 'bg-blue-950/50 ring-1 ring-inset ring-blue-500/50 hover:bg-blue-950/70'
-                            : 'opacity-20 blur-[1.5px] select-none pointer-events-none'
-                          : 'hover:bg-gray-800/40'
-                      }`}>
-                        <td className="px-4 py-3">
-                          <span className={`text-lg font-black ${rankColor(index)}`}>#{index + 1}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            {isMyClan || !effectiveMyClanId ? (
-                              <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-bold text-white hover:text-blue-400 transition-colors">
-                                {clan.name}
-                              </Link>
-                            ) : (
-                              <span className="font-bold text-gray-500 cursor-not-allowed select-none">{clan.name}</span>
-                            )}
-                            {isMyClan && (
-                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">내 클랜</span>
-                            )}
-                          </div>
-                          {clan.tag && <div className="text-xs text-gray-500">{clan.tag}</div>}
-                        </td>
-                        <td className="px-4 py-3"><RegionBadge region={clan.region} /></td>
-                        <td className="px-4 py-3 text-gray-400 text-sm">{clan.level ?? '-'}</td>
-                        <td className="px-4 py-3 text-blue-400 font-semibold text-sm">{clan.apiMemberCount}{t('ca.persons')}</td>
-                        <td className="px-4 py-3 font-bold text-blue-400">{clan.avgStats?.score}</td>
-                        <td className="px-4 py-3">
-                          {clan.avgStats?.avgMMR ? (() => {
-                            const tier = getMMRTier(clan.avgStats.avgMMR);
+                        <>
+                          {rankings.topClansByScore.map((clan, index) => {
+                            const isMyClan = myClanId && clan.id === myClanId;
                             return (
-                              <Tooltip content={MMR_DISCLAIMER}>
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border cursor-help text-xs font-bold ${tier.bgColor} ${tier.borderColor} ${tier.textColor}`}>
-                                  {tier.emoji} {clan.avgStats.avgMMR.toLocaleString()}
-                                </span>
-                              </Tooltip>
+                              <ClanRankRow
+                                key={clan.id}
+                                clan={clan}
+                                index={index}
+                                isMyClan={isMyClan}
+                                effectiveMyClanId={effectiveMyClanId}
+                                t={t}
+                              />
                             );
-                          })() : <span className="text-gray-600">-</span>}
-                        </td>
-                        <td className="px-4 py-3 text-orange-400 font-semibold text-sm">{clan.avgStats?.damage}</td>
-                        <td className="px-4 py-3 text-green-400 font-semibold text-sm">{clan.avgStats?.winRate}%</td>
-                        <td className="px-4 py-3">
-                          {clan.playStyle ? (
-                            <div>
-                              <PlayStyleBadge style={clan.playStyle.primary} />
-                              {clan.playStyle.special && (
-                                <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold bg-purple-900/60 text-purple-300 border border-purple-700">
-                                  ⭐ {clan.playStyle.special}
-                                </span>
-                              )}
-                              <div className="text-xs text-gray-600 mt-0.5">{t('ca.dominance')} {clan.playStyle.dominance}%</div>
-                            </div>
-                          ) : (
-                            <span className="text-gray-600 text-sm">-</span>
+                          })}
+                          {myClanOutside && (
+                            <>
+                              <tr>
+                                <td colSpan={10} className="px-4 py-2 text-center">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 border-t border-dashed border-gray-700" />
+                                    <span className="text-xs text-gray-600 font-mono tracking-widest">• • •</span>
+                                    <div className="flex-1 border-t border-dashed border-gray-700" />
+                                  </div>
+                                </td>
+                              </tr>
+                              <ClanRankRow
+                                key={myClanOutside.id}
+                                clan={myClanOutside}
+                                index={(myClanOutside.rank ?? 0) - 1}
+                                isMyClan={true}
+                                effectiveMyClanId={null}
+                                t={t}
+                              />
+                            </>
                           )}
-                        </td>
-                      </tr>
+                        </>
                       );
-                    })}
+                    })()}
                   </tbody>
                 </table>
               </div>
