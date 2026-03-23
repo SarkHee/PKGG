@@ -101,17 +101,17 @@ export default function Header() {
   ];
 
   const communityLinks = [
-    { href: '/forum',      labelKey: 'nav.forum',    icon: '💬' },
-    { href: '/party',      labelKey: 'nav.party',    icon: '👥' },
-    { href: '/notices',    labelKey: 'nav.notices',  icon: '📢' },
-    { href: '/pubg-news',  labelKey: 'nav.news',     icon: '📰' },
+    { href: '/forum',           labelKey: 'nav.forum',           icon: '💬' },
+    { href: '/party',           labelKey: 'nav.party',           icon: '👥' },
+    { href: '/settings-share',  labelKey: 'nav.settings_share',  icon: '⚙️' },
+    { href: '/notices',         labelKey: 'nav.notices',         icon: '📢' },
+    { href: '/pubg-news',       labelKey: 'nav.news',            icon: '📰' },
   ];
 
   const trainingLinks = [
     { href: '/sensitivity-analyzer', labelKey: 'nav.sensitivity_analyzer', icon: '📹' },
     { href: '/aim-trainer',          labelKey: 'nav.aim_trainer',          icon: '⚡' },
     { href: '/recoil-pattern',       labelKey: 'nav.recoil_pattern',       icon: '🔫' },
-    { href: '/recoil-quiz',          labelKey: 'nav.recoil_quiz',          icon: '🎯' },
     { href: '/daily-goals',          labelKey: 'nav.daily_goals',          icon: '📅' },
     { href: '/sens-preset',          labelKey: 'nav.sens_preset',          icon: '⚙️' },
     { href: '/pubg-survivors',       labelKey: 'nav.pubg_survivors',       icon: '🎮' },

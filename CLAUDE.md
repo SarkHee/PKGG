@@ -35,6 +35,8 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `sens-preset.js` | 감도 프리셋 저장/공유. DPI·일반감도·수직감도·스코프감도 5종 저장. URL 공유(btoa). localStorage 최대 20개 |
 | `weapon-meta.js` | 무기 메타 표. Update 40.1 기준 23종 픽률·승률·평균킬 정적 데이터. 테이블/티어 뷰 전환, 종류 필터, 컬럼 정렬 |
 | `clan-war.js` | 클랜 내전 기록. 두 클랜 스코어·맵·모드·선수별 킬/딜/생존 입력. DB 저장(ClanWar + ClanWarPlayer). 클랜명 검색 |
+| `settings-share.js` | 인게임 세팅 공유 게시판. 유형 필터(풀세팅/그래픽/마우스/키바인딩). 포럼 `settings` 카테고리 사용. SettingsCard 컴포넌트. |
+| `settings-share/create.js` | 세팅 공유 글 작성. 유형별 섹션 분기(그래픽: 해상도·Hz·프리셋·AA / 마우스: DPI·감도·스코프감도5종 / 키바인딩: 자유텍스트). 이미지 URL 첨부. JSON contentJson(`__settings:true`) → forum content에 저장 |
 | `recoil-pattern.js` | 반동 패턴 시뮬레이터. 8종 무기 20발 정규화 패턴. Canvas 애니메이션(RPM 기반). 부착물 토글(보정기/수직그립/앵글드그립). 보정 가이드·방향 화살표. **연습 모드** 탭: DPI 설정(100-16000, 프리셋)/스코프 모드(기본~6배)/3·2·1 카운트다운/Canvas 오버레이 버튼/착탄 정확도 채점 |
 | `drop-calculator.js` | 낙하 지점 최적화 계산기. 7개 맵 선택. Canvas 3단계 클릭(경로시작→끝→목표). 낙하 범위 부채꼴 표시. 점프 타이밍·낙하 시간 계산 |
 | `playstyle-matchup.js` | 14가지 플레이스타일 상성 매트릭스 (1-5점 척도, 클릭으로 행/열 강조) |

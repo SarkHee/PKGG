@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-19T03:55:31.292Z",
+  "lastUpdated": "2026-03-23T01:16:57.113Z",
   "activeFeatures": [
     "PKGG",
     "clan",
@@ -24,7 +24,8 @@
     "party",
     "desktop-app",
     "clan-war",
-    "player-review"
+    "player-review",
+    "settings-share"
   ],
   "primaryFeature": "PKGG",
   "features": {
@@ -37,9 +38,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:15:14.704Z",
-        "lastUpdated": "2026-03-19T03:50:01.548Z"
+        "lastUpdated": "2026-03-23T01:16:57.113Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/clan-analytics.js"
+      "lastFile": "/Users/mac/Desktop/PKGG/utils/i18n.js"
     },
     "clan": {
       "phase": "do",
@@ -63,7 +64,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:49:35.047Z",
-        "lastUpdated": "2026-03-18T05:27:42.980Z"
+        "lastUpdated": "2026-03-23T01:16:31.037Z"
       },
       "lastFile": "/Users/mac/Desktop/PKGG/components/layout/Header.jsx"
     },
@@ -128,9 +129,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-27T05:25:45.893Z",
-        "lastUpdated": "2026-03-09T01:23:22.395Z"
+        "lastUpdated": "2026-03-23T01:14:39.441Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/api/forum/seed-content.js"
+      "lastFile": "/Users/mac/Desktop/PKGG/pages/api/forum/init.js"
     },
     "notices": {
       "phase": "do",
@@ -154,7 +155,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-03T06:41:43.321Z",
-        "lastUpdated": "2026-03-17T05:00:31.272Z"
+        "lastUpdated": "2026-03-23T01:13:11.448Z"
       },
       "lastFile": "/Users/mac/Desktop/PKGG/components/player/PlayerHeader.jsx"
     },
@@ -326,6 +327,19 @@
         "lastUpdated": "2026-03-17T04:57:30.525Z"
       },
       "lastFile": "/Users/mac/Desktop/PKGG/pages/api/player-review/index.js"
+    },
+    "settings-share": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-23T01:16:16.563Z",
+        "lastUpdated": "2026-03-23T01:16:16.563Z"
+      },
+      "lastFile": "/Users/mac/Desktop/PKGG/pages/settings-share/create.js"
     }
   },
   "pipeline": {
@@ -336,7 +350,7 @@
   "session": {
     "startedAt": "2026-02-26T02:34:01.887Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-03-19T03:55:31.292Z"
+    "lastActivity": "2026-03-23T01:16:57.113Z"
   },
   "history": [
     {
@@ -6060,6 +6074,84 @@
     {
       "timestamp": "2026-03-19T03:55:31.292Z",
       "feature": "clan",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:12:11.702Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:12:27.060Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:12:35.392Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:13:00.972Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:13:11.448Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:14:39.441Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:15:14.048Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:16:16.563Z",
+      "feature": "settings-share",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:16:31.037Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:16:44.442Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:16:48.759Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:16:52.962Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-23T01:16:57.113Z",
+      "feature": "PKGG",
       "phase": "do",
       "action": "updated"
     }

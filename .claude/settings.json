@@ -37,7 +37,8 @@
       "Bash(npx --no-install next build --no-lint)"
     ],
     "additionalDirectories": [
-      "/Users/mac/Desktop/PKGG/PUBG 서바이버/Berserker (버서커) — AKM, HP 50% 이하 분노 🔥"
+      "/Users/mac/Desktop/PKGG/PUBG 서바이버/Berserker (버서커) — AKM, HP 50% 이하 분노 🔥",
+      "/Users/mac/Desktop/PKGG/pages"
     ]
   }
 }

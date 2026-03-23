@@ -5,7 +5,8 @@ const VALID_CATEGORIES = [
   { id: 'general', name: '자유 게시판', description: '자유롭게 이야기를 나누세요', icon: '💬', color: '#10B981', order: 2 },
   { id: 'questions', name: '질문 & 답변', description: '궁금한 점을 물어보고 답변해주세요', icon: '❓', color: '#F59E0B', order: 3 },
   { id: 'recruitment', name: '클랜 모집', description: '클랜원을 모집하거나 클랜을 찾아보세요', icon: '👥', color: '#8B5CF6', order: 4 },
-  { id: 'party', name: '파티 찾기', description: '함께 플레이할 파티원을 모집하거나 찾아보세요', icon: '🎮', color: '#06B6D4', order: 5 },
+  { id: 'party',    name: '파티 찾기',    description: '함께 플레이할 파티원을 모집하거나 찾아보세요', icon: '🎮', color: '#06B6D4', order: 5 },
+  { id: 'settings', name: '인게임 세팅', description: '그래픽/마우스/키바인딩 세팅을 공유하세요',     icon: '⚙️', color: '#8B5CF6', order: 6 },
 ];
 
 // 제거할 카테고리 ID 목록

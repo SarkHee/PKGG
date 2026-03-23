@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Tooltip from '../ui/Tooltip';
 import { calculateMMR, getMMRTier, MMR_DISCLAIMER } from '../../utils/mmrCalculator';
@@ -41,13 +41,6 @@ const PlayerHeader = ({
   const [showRankedDetails, setShowRankedDetails] = useState(false);
   const [showSeasonDetails, setShowSeasonDetails] = useState(false);
   const [showRecentDetails, setShowRecentDetails] = useState(false);
-  const [showReviews, setShowReviews] = useState(false);
-  const [reviews, setReviews] = useState([]);
-  const [reviewAvg, setReviewAvg] = useState(null);
-  const [reviewTotal, setReviewTotal] = useState(0);
-  const [reviewForm, setReviewForm] = useState({ authorNick: '', rating: 5, teamplay: 3, communication: 3, comment: '', password: '' });
-  const [reviewMsg, setReviewMsg] = useState('');
-  const [reviewPage, setReviewPage] = useState(1);
   const router = useRouter();
   const shard = (router.query.server || 'steam');
   const nickname = profile?.nickname || '';
@@ -74,37 +67,6 @@ const PlayerHeader = ({
   };
 
   // 리뷰 로드
-  const fetchReviews = useCallback(async (pg = 1) => {
-    if (!profile?.name) return;
-    try {
-      const r = await fetch(`/api/player-review?nick=${encodeURIComponent(profile.name)}&shard=${shard}&page=${pg}`);
-      const d = await r.json();
-      setReviews(d.reviews || []);
-      setReviewAvg(d.avg);
-      setReviewTotal(d.total || 0);
-      setReviewPage(pg);
-    } catch {}
-  }, [profile?.name, shard]);
-
-  useEffect(() => { if (showReviews) fetchReviews(1); }, [showReviews, fetchReviews]);
-
-  const submitReview = async () => {
-    if (!reviewForm.authorNick.trim()) { setReviewMsg('내 닉네임을 입력하세요'); return; }
-    if (!reviewForm.password || reviewForm.password.length < 4) { setReviewMsg('삭제 비밀번호 4자 이상'); return; }
-    try {
-      const r = await fetch('/api/player-review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetNick: profile.name, shard, ...reviewForm }),
-      });
-      const d = await r.json();
-      if (!r.ok) { setReviewMsg(d.error || '오류'); return; }
-      setReviewMsg('리뷰 등록 완료!');
-      setReviewForm({ authorNick: '', rating: 5, teamplay: 3, communication: 3, comment: '', password: '' });
-      fetchReviews(1);
-      setTimeout(() => setReviewMsg(''), 2000);
-    } catch { setReviewMsg('오류가 발생했습니다'); }
-  };
 
   // 즐겨찾기 상태
   const [isFav, setIsFav] = useState(false);
@@ -831,106 +793,6 @@ const PlayerHeader = ({
           </div>
         )}
 
-        {/* ─── 플레이어 리뷰 ─── */}
-        <div className="border-t border-gray-800">
-          <button onClick={() => setShowReviews(v => !v)}
-            className="w-full px-6 py-3 flex items-center justify-between text-sm font-semibold text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-            <span>⭐ 플레이어 리뷰 {reviewTotal > 0 && `(${reviewTotal})`}
-              {reviewAvg && <span className="ml-2 text-yellow-400 font-bold">{reviewAvg.rating}/5</span>}
-            </span>
-            <span>{showReviews ? '▲' : '▼'}</span>
-          </button>
-
-          {showReviews && (
-            <div className="px-6 pb-6">
-              {/* 평균 점수 */}
-              {reviewAvg && (
-                <div className="grid grid-cols-3 gap-3 mb-5">
-                  {[['종합', reviewAvg.rating], ['팀플레이', reviewAvg.teamplay], ['소통', reviewAvg.communication]].map(([lb, val]) => (
-                    <div key={lb} className="bg-gray-800 rounded-lg p-3 text-center">
-                      <div className="text-xs text-gray-500 mb-1">{lb}</div>
-                      <div className="text-xl font-black text-yellow-400">{val}</div>
-                      <div className="text-xs text-yellow-500">{'★'.repeat(Math.round(val))}{'☆'.repeat(5-Math.round(val))}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 리뷰 목록 */}
-              {reviews.length === 0 && !reviewAvg && (
-                <p className="text-gray-600 text-sm text-center py-4">아직 리뷰가 없습니다. 첫 리뷰를 남겨보세요!</p>
-              )}
-              <div className="space-y-3 mb-5">
-                {reviews.map(rv => (
-                  <div key={rv.id} className="bg-gray-800 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-white">{rv.authorNick}</span>
-                      <span className="text-yellow-400 text-sm">{'★'.repeat(rv.rating)}{'☆'.repeat(5-rv.rating)}</span>
-                    </div>
-                    <div className="flex gap-4 text-xs text-gray-500 mb-2">
-                      <span>팀플 {'★'.repeat(rv.teamplay)}</span>
-                      <span>소통 {'★'.repeat(rv.communication)}</span>
-                      <span>{new Date(rv.createdAt).toLocaleDateString('ko-KR')}</span>
-                    </div>
-                    {rv.comment && <p className="text-sm text-gray-300">{rv.comment}</p>}
-                  </div>
-                ))}
-              </div>
-              {reviewTotal > 10 && (
-                <div className="flex justify-center gap-2 mb-5">
-                  <button onClick={() => fetchReviews(reviewPage-1)} disabled={reviewPage===1}
-                    className="px-3 py-1 rounded bg-gray-700 text-gray-300 text-sm disabled:opacity-40">◀</button>
-                  <span className="px-3 py-1 text-gray-400 text-sm">{reviewPage}/{Math.ceil(reviewTotal/10)}</span>
-                  <button onClick={() => fetchReviews(reviewPage+1)} disabled={reviewPage>=Math.ceil(reviewTotal/10)}
-                    className="px-3 py-1 rounded bg-gray-700 text-gray-300 text-sm disabled:opacity-40">▶</button>
-                </div>
-              )}
-
-              {/* 리뷰 작성 폼 */}
-              <div className="bg-gray-800 rounded-xl p-4">
-                <p className="text-sm font-bold text-white mb-4">리뷰 작성</p>
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">내 닉네임</label>
-                    <input value={reviewForm.authorNick} onChange={e => setReviewForm(f => ({...f, authorNick: e.target.value}))}
-                      placeholder="내 닉네임" className="w-full bg-gray-700 border border-gray-600 rounded-lg text-white px-3 py-2 text-sm" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">삭제 비밀번호</label>
-                    <input type="password" value={reviewForm.password} onChange={e => setReviewForm(f => ({...f, password: e.target.value}))}
-                      placeholder="4자 이상" className="w-full bg-gray-700 border border-gray-600 rounded-lg text-white px-3 py-2 text-sm" />
-                  </div>
-                </div>
-                {[['rating','종합 평점',5],['teamplay','팀플레이',5],['communication','소통',5]].map(([key,label,max]) => (
-                  <div key={key} className="mb-3">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>{label}</span><span className="text-yellow-400 font-bold">{reviewForm[key]}/5</span>
-                    </div>
-                    <div className="flex gap-2">
-                      {[1,2,3,4,5].map(n => (
-                        <button key={n} onClick={() => setReviewForm(f => ({...f, [key]: n}))}
-                          className={`flex-1 py-1 rounded text-sm font-bold transition-colors ${reviewForm[key] >= n ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-gray-500'}`}>
-                          ★
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                <div className="mb-3">
-                  <label className="text-xs text-gray-500 mb-1 block">코멘트 (선택)</label>
-                  <textarea value={reviewForm.comment} onChange={e => setReviewForm(f => ({...f, comment: e.target.value}))}
-                    placeholder="함께 플레이한 경험을 공유하세요..." rows={2} maxLength={200}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg text-white px-3 py-2 text-sm resize-none" />
-                </div>
-                {reviewMsg && <p className={`text-sm mb-3 ${reviewMsg.includes('완료') ? 'text-green-400' : 'text-red-400'}`}>{reviewMsg}</p>}
-                <button onClick={submitReview}
-                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors">
-                  리뷰 등록
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
     </>
