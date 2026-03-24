@@ -1,14 +1,25 @@
 {
   "version": "1.0",
-  "enabled": false,
+  "enabled": true,
   "teamName": "",
   "feature": "PKGG",
   "pdcaPhase": "do",
   "orchestrationPattern": "leader",
   "ctoAgent": "opus",
-  "startedAt": "2026-03-09T09:01:14.651Z",
-  "lastUpdated": "2026-03-18T05:15:11.371Z",
-  "teammates": [],
+  "startedAt": "2026-03-24T08:16:38.996Z",
+  "lastUpdated": "2026-03-24T08:19:16.862Z",
+  "teammates": [
+    {
+      "name": "a0c10ec9004e1dc70",
+      "role": "bkit:code-analyzer",
+      "model": "sonnet",
+      "status": "completed",
+      "currentTask": null,
+      "taskId": null,
+      "startedAt": "2026-03-24T08:16:38.998Z",
+      "lastActivityAt": "2026-03-24T08:19:16.860Z"
+    }
+  ],
   "progress": {
     "totalTasks": 0,
     "completedTasks": 0,
@@ -17,5 +28,5 @@
     "pendingTasks": 0
   },
   "recentMessages": [],
-  "sessionId": "fa05181b-2238-47fd-bd23-59a67b8333b1"
+  "sessionId": "8993ee0e-e67f-46c4-a71d-27ff650a79b5"
 }
