@@ -2,6 +2,10 @@
 import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' })
+  }
+
   const { nickname } = req.query;
 
   if (!nickname) {

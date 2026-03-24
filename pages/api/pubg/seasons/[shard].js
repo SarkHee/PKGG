@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     console.error('시즌 조회 실패:', error);
     res.status(500).json({
       error: '시즌 정보 조회에 실패했습니다.',
-      details: error.message,
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 }

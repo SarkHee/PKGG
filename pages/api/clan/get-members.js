@@ -113,7 +113,7 @@ export default async function handler(req, res) {
     console.error('클랜 멤버 조회 오류:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      details: error.message,
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 }

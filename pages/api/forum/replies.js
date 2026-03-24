@@ -1,21 +1,5 @@
 import prisma from '../../../utils/prisma.js';
-import crypto from 'crypto';
-
-
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-const PROFANITY_WORDS = [
-  '시발', '씨발', '개새끼', '병신', '죽어', '꺼져', '미친', '또라이', '씨팔', '시팔',
-  '개놈', '창녀', '걸레', '등신', '개지랄', '지랄', '좆', '엿먹어', '닥쳐', '빙신',
-  'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'retard', 'nigger', 'whore', 'cunt', 'motherfucker',
-];
-
-function checkProfanity(text) {
-  const lowerText = text.toLowerCase();
-  return PROFANITY_WORDS.some((word) => lowerText.includes(word.toLowerCase()));
-}
+import { hashPassword, checkProfanity, LIMITS } from '../../../utils/forumUtils.js'
 
 export default async function handler(req, res) {
   try {
@@ -45,8 +29,14 @@ export default async function handler(req, res) {
       if (!postId || !content || !author || !password) {
         return res.status(400).json({ error: '닉네임, 내용, 삭제 비밀번호는 필수입니다.' });
       }
-      if (password.length < 4) {
-        return res.status(400).json({ error: '비밀번호는 4자 이상이어야 합니다.' });
+      if (password.length < LIMITS.PASSWORD_MIN) {
+        return res.status(400).json({ error: `비밀번호는 ${LIMITS.PASSWORD_MIN}자 이상이어야 합니다.` });
+      }
+      if (content.length > LIMITS.REPLY_CONTENT) {
+        return res.status(400).json({ error: `댓글은 ${LIMITS.REPLY_CONTENT}자 이하로 입력해주세요.` })
+      }
+      if (author.length > LIMITS.AUTHOR) {
+        return res.status(400).json({ error: `닉네임은 ${LIMITS.AUTHOR}자 이하로 입력해주세요.` })
       }
 
       if (checkProfanity(content)) {

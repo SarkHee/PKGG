@@ -3,6 +3,11 @@
 
 import prisma from '../../../utils/prisma.js';
 
+function isAdmin(req) {
+  const token = req.headers['x-admin-token']
+  return token && token === process.env.ADMIN_PASSWORD
+}
+
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
@@ -81,6 +86,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ violations });
       }
     } else if (req.method === 'POST') {
+      if (!isAdmin(req)) {
+        return res.status(401).json({ error: '관리자 권한이 필요합니다.' })
+      }
       const { action, username, banDuration, reason } = req.body;
 
       if (action === 'manual-ban') {
@@ -155,6 +163,9 @@ export default async function handler(req, res) {
         });
       }
     } else if (req.method === 'DELETE') {
+      if (!isAdmin(req)) {
+        return res.status(401).json({ error: '관리자 권한이 필요합니다.' })
+      }
       const { username } = req.body;
 
       if (!username) {

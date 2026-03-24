@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-23T01:16:57.113Z",
+  "lastUpdated": "2026-03-24T08:29:56.860Z",
   "activeFeatures": [
     "PKGG",
     "clan",
@@ -25,7 +25,8 @@
     "desktop-app",
     "clan-war",
     "player-review",
-    "settings-share"
+    "settings-share",
+    "debug"
   ],
   "primaryFeature": "PKGG",
   "features": {
@@ -38,9 +39,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:15:14.704Z",
-        "lastUpdated": "2026-03-23T01:16:57.113Z"
+        "lastUpdated": "2026-03-24T08:22:37.007Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/utils/i18n.js"
+      "lastFile": "/Users/mac/Desktop/삭비스/프로젝트/PKGG/utils/forumUtils.js"
     },
     "clan": {
       "phase": "do",
@@ -77,9 +78,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-27T01:12:11.439Z",
-        "lastUpdated": "2026-03-05T06:14:29.121Z"
+        "lastUpdated": "2026-03-24T08:28:43.832Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/weapon-test/index.js"
+      "lastFile": "/Users/mac/Desktop/삭비스/프로젝트/PKGG/pages/weapon-test/index.js"
     },
     "result": {
       "phase": "do",
@@ -90,9 +91,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-27T01:15:10.350Z",
-        "lastUpdated": "2026-03-05T02:05:16.983Z"
+        "lastUpdated": "2026-03-24T08:29:13.959Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/weapon-test/result/[id].js"
+      "lastFile": "/Users/mac/Desktop/삭비스/프로젝트/PKGG/pages/weapon-test/result/[id].js"
     },
     "category": {
       "phase": "do",
@@ -129,9 +130,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-27T05:25:45.893Z",
-        "lastUpdated": "2026-03-23T01:14:39.441Z"
+        "lastUpdated": "2026-03-24T08:23:13.502Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/api/forum/init.js"
+      "lastFile": "/Users/mac/Desktop/삭비스/프로젝트/PKGG/pages/api/forum/replies.js"
     },
     "notices": {
       "phase": "do",
@@ -207,9 +208,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-03T08:28:00.923Z",
-        "lastUpdated": "2026-03-06T02:32:29.581Z"
+        "lastUpdated": "2026-03-24T08:29:56.860Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/api/pubg/ai-coaching.js"
+      "lastFile": "/Users/mac/Desktop/삭비스/프로젝트/PKGG/pages/api/pubg/playstyle.js"
     },
     "matches": {
       "phase": "do",
@@ -340,6 +341,19 @@
         "lastUpdated": "2026-03-23T01:16:16.563Z"
       },
       "lastFile": "/Users/mac/Desktop/PKGG/pages/settings-share/create.js"
+    },
+    "debug": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-24T08:21:41.037Z",
+        "lastUpdated": "2026-03-24T08:21:46.758Z"
+      },
+      "lastFile": "/Users/mac/Desktop/삭비스/프로젝트/PKGG/pages/api/debug/check-ubd-clan.js"
     }
   },
   "pipeline": {
@@ -350,7 +364,7 @@
   "session": {
     "startedAt": "2026-02-26T02:34:01.887Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-03-23T01:16:57.113Z"
+    "lastActivity": "2026-03-24T08:29:56.860Z"
   },
   "history": [
     {
@@ -6152,6 +6166,138 @@
     {
       "timestamp": "2026-03-23T01:16:57.113Z",
       "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:21:11.632Z",
+      "feature": "pubg",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:21:17.347Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:21:23.925Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:21:29.367Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:21:33.853Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:21:41.037Z",
+      "feature": "debug",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:21:46.758Z",
+      "feature": "debug",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:21:52.994Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:21:57.883Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:22:37.007Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:22:43.784Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:22:50.255Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:22:55.054Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:23:01.672Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:23:13.502Z",
+      "feature": "forum",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:27:44.289Z",
+      "feature": "weapon-test",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:28:06.511Z",
+      "feature": "weapon-test",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:28:20.479Z",
+      "feature": "weapon-test",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:28:43.832Z",
+      "feature": "weapon-test",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:29:13.959Z",
+      "feature": "result",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:29:47.712Z",
+      "feature": "pubg",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-24T08:29:56.860Z",
+      "feature": "pubg",
       "phase": "do",
       "action": "updated"
     }

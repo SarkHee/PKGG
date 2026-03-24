@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     console.error('배치 API 오류:', error);
     res.status(500).json({
       error: '배치 처리 중 오류가 발생했습니다.',
-      details: error.message,
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 }
@@ -121,7 +121,7 @@ async function handlePlayersBatch(req, res, shard) {
     console.error('플레이어 배치 조회 실패:', error);
     res.status(500).json({
       error: '플레이어 정보 조회에 실패했습니다.',
-      details: error.message,
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 }
@@ -176,7 +176,7 @@ async function handleStatsBatch(req, res, shard, seasonId, gameMode) {
     console.error('시즌 통계 배치 조회 실패:', error);
     res.status(500).json({
       error: '시즌 통계 조회에 실패했습니다.',
-      details: error.message,
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 }
@@ -231,7 +231,7 @@ async function handleLifetimeBatch(req, res, shard, gameMode) {
     console.error('라이프타임 통계 배치 조회 실패:', error);
     res.status(500).json({
       error: '라이프타임 통계 조회에 실패했습니다.',
-      details: error.message,
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
     });
   }
 }

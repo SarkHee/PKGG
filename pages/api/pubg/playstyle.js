@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { cachedPubgFetch } from '../../../utils/pubgApiCache';
 import { calculateMMR } from '../../../utils/mmrCalculator';
 import { classifyPlaystyle } from '../../../utils/playstyleClassifier';
 
@@ -15,23 +15,20 @@ export default async function handler(req, res) {
       .json({ error: '필수 데이터 누락: matchIds, playerName, shardId' });
   }
 
-  const API_KEY = `Bearer ${process.env.PUBG_API_KEY}`;
-
   try {
+    // 최대 10개로 제한 (PUBG API rate limit 고려)
     const matchResponses = await Promise.all(
-      matchIds.slice(0, 20).map((id) =>
-        axios.get(`https://api.pubg.com/shards/${shardId}/matches/${id}`, {
-          headers: {
-            Authorization: API_KEY,
-            Accept: 'application/vnd.api+json',
-          },
-        })
+      matchIds.slice(0, 10).map((id) =>
+        cachedPubgFetch(
+          `https://api.pubg.com/shards/${shardId}/matches/${id}`,
+          { ttl: 30 * 60 * 1000 } // 30분 캐시
+        )
       )
     );
 
     const statsList = matchResponses
-      .map((res) => {
-        const participant = res.data.included.find(
+      .map((data) => {
+        const participant = data.included?.find(
           (el) =>
             el.type === 'participant' &&
             el.attributes.stats.name.toLowerCase() === playerName.toLowerCase()

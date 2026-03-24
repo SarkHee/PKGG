@@ -1,6 +1,13 @@
 // 포럼 디버그 API
 import prisma from '../../../utils/prisma.js';
 
+// 프로덕션에서는 접근 차단
+function isAllowed(req) {
+  if (process.env.NODE_ENV !== 'production') return true
+  // 프로덕션에서는 관리자 토큰 필요
+  return req.headers['x-admin-token'] === process.env.ADMIN_PASSWORD
+}
+
 const CATEGORIES_TO_CREATE = [
   {
     id: 'strategy',
@@ -45,6 +52,10 @@ const CATEGORIES_TO_CREATE = [
 ];
 
 export default async function handler(req, res) {
+  if (!isAllowed(req)) {
+    return res.status(404).json({ error: 'Not found' })
+  }
+
   if (req.method === 'GET') {
     try {
       // 현재 카테고리 조회

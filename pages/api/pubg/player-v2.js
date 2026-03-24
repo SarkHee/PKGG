@@ -3,46 +3,18 @@ import axios from 'axios';
 import prisma from '../../../utils/prisma.js';
 
 export default async function handler(req, res) {
-  const { nickname, initUBD } = req.query;
-
-  // 옵션: initUBD=1이면 UBD 데이터 초기화 후 진행
-  if (initUBD === '1') {
-    console.log('🔄 UBD 클랜 데이터 초기화 중...');
-    try {
-      const ubdClan = await prisma.clan.findFirst({
-        where: {
-          OR: [
-            { name: { contains: 'UBD', mode: 'insensitive' } },
-            { pubgClanTag: { contains: 'UBD', mode: 'insensitive' } },
-          ],
-        },
-      });
-
-      if (ubdClan) {
-        // 멤버 삭제
-        const deleteMembers = await prisma.clanMember.deleteMany({
-          where: { clanId: ubdClan.id },
-        });
-        console.log(`✅ UBD 클랜 멤버 ${deleteMembers.count}명 삭제`);
-
-        // 클랜 삭제
-        await prisma.clan.delete({ where: { id: ubdClan.id } });
-        console.log(`✅ UBD 클랜 삭제 완료`);
-      }
-    } catch (error) {
-      console.error('UBD 초기화 실패:', error.message);
-      return res.status(500).json({
-        error: 'Failed to initialize UBD clan data',
-        details: error.message,
-      });
-    }
-  }
+  const { nickname } = req.query;
 
   if (!nickname) {
     return res.status(400).json({ error: 'nickname is required' });
   }
 
-  const API_KEY = `Bearer ${process.env.PUBG_API_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiI3MDNhNDhhMC0wMjI1LTAxM2UtMzAwYi0wNjFhOWQ1YjYxYWYiLCJpc3MiOiJnYW1lbG9ja2VyIiwiaWF0IjoxNzQ1MzgwODM3LCJwdWIiOiJibHVlaG9sZSIsInRpdGxlIjoicHViZyIsImFwcCI6InViZCJ9.hs5WCvTM6d0W_y0lsYzpbkREq61PD1p7vbibOGTFK3o'}`;
+  if (!process.env.PUBG_API_KEY) {
+    console.error('PUBG_API_KEY 환경변수가 설정되지 않았습니다.')
+    return res.status(500).json({ error: 'Server configuration error' })
+  }
+
+  const API_KEY = `Bearer ${process.env.PUBG_API_KEY}`;
   const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
   console.log(`🔍 플레이어 검색: ${nickname}`);

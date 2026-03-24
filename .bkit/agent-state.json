@@ -1,25 +1,14 @@
 {
   "version": "1.0",
-  "enabled": true,
+  "enabled": false,
   "teamName": "",
   "feature": "PKGG",
   "pdcaPhase": "do",
   "orchestrationPattern": "leader",
   "ctoAgent": "opus",
   "startedAt": "2026-03-24T08:16:38.996Z",
-  "lastUpdated": "2026-03-24T08:19:16.862Z",
-  "teammates": [
-    {
-      "name": "a0c10ec9004e1dc70",
-      "role": "bkit:code-analyzer",
-      "model": "sonnet",
-      "status": "completed",
-      "currentTask": null,
-      "taskId": null,
-      "startedAt": "2026-03-24T08:16:38.998Z",
-      "lastActivityAt": "2026-03-24T08:19:16.860Z"
-    }
-  ],
+  "lastUpdated": "2026-03-24T08:30:53.767Z",
+  "teammates": [],
   "progress": {
     "totalTasks": 0,
     "completedTasks": 0,

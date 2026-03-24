@@ -1,7 +1,10 @@
 // utils/session.js — HMAC-signed cookie session (no external deps)
 import crypto from 'crypto';
 
-const SECRET = process.env.SESSION_SECRET || 'pkgg-session-secret-please-change';
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('SESSION_SECRET 환경변수가 설정되지 않았습니다. Vercel 대시보드에서 설정하세요.')
+}
+const SECRET = process.env.SESSION_SECRET || 'pkgg-dev-secret-not-for-production';
 const COOKIE_NAME = 'pkgg_session';
 const MAX_AGE = 60 * 60 * 24 * 30; // 30일
 

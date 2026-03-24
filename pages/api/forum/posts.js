@@ -1,22 +1,5 @@
 import prisma from '../../../utils/prisma.js';
-import crypto from 'crypto';
-
-
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-// 비속어 필터
-const PROFANITY_WORDS = [
-  '시발', '씨발', '개새끼', '병신', '죽어', '꺼져', '미친', '또라이', '씨팔', '시팔',
-  '개놈', '창녀', '걸레', '등신', '개지랄', '지랄', '좆', '엿먹어', '닥쳐', '빙신',
-  'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'retard', 'nigger', 'whore', 'cunt', 'motherfucker',
-];
-
-function checkProfanity(text) {
-  const lowerText = text.toLowerCase();
-  return PROFANITY_WORDS.some((word) => lowerText.includes(word.toLowerCase()));
-}
+import { hashPassword, checkProfanity, LIMITS } from '../../../utils/forumUtils.js'
 
 export default async function handler(req, res) {
   try {
@@ -102,6 +85,16 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: '필수 필드가 누락되었습니다.' });
       }
 
+      if (title.length > LIMITS.TITLE) {
+        return res.status(400).json({ error: `제목은 ${LIMITS.TITLE}자 이하로 입력해주세요.` })
+      }
+      if (content.length > LIMITS.CONTENT) {
+        return res.status(400).json({ error: `내용은 ${LIMITS.CONTENT}자 이하로 입력해주세요.` })
+      }
+      if (author.length > LIMITS.AUTHOR) {
+        return res.status(400).json({ error: `닉네임은 ${LIMITS.AUTHOR}자 이하로 입력해주세요.` })
+      }
+
       if (checkProfanity(title) || checkProfanity(content)) {
         return res.status(400).json({ error: '부적절한 언어가 포함되어 있습니다.' });
       }
@@ -158,6 +151,6 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('Forum posts API error:', error);
-    return res.status(500).json({ error: '서버 오류가 발생했습니다.', details: error.message });
+    return res.status(500).json({ error: '서버 오류가 발생했습니다.' });
   }
 }
