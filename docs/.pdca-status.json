@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-24T08:29:56.860Z",
+  "lastUpdated": "2026-04-01T06:50:11.657Z",
   "activeFeatures": [
     "PKGG",
     "clan",
@@ -39,9 +39,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:15:14.704Z",
-        "lastUpdated": "2026-03-24T08:22:37.007Z"
+        "lastUpdated": "2026-04-01T06:50:11.656Z"
       },
-      "lastFile": "/Users/mac/Desktop/삭비스/프로젝트/PKGG/utils/forumUtils.js"
+      "lastFile": "/Users/mac/Desktop/삭비스/프로젝트/PKGG/utils/session.js"
     },
     "clan": {
       "phase": "do",
@@ -364,7 +364,7 @@
   "session": {
     "startedAt": "2026-02-26T02:34:01.887Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-03-24T08:29:56.860Z"
+    "lastActivity": "2026-04-01T06:50:11.657Z"
   },
   "history": [
     {
@@ -6298,6 +6298,12 @@
     {
       "timestamp": "2026-03-24T08:29:56.860Z",
       "feature": "pubg",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-01T06:50:11.657Z",
+      "feature": "PKGG",
       "phase": "do",
       "action": "updated"
     }

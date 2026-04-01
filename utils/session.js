@@ -2,7 +2,7 @@
 import crypto from 'crypto';
 
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('SESSION_SECRET 환경변수가 설정되지 않았습니다. Vercel 대시보드에서 설정하세요.')
+  console.error('[session] ⚠️ SESSION_SECRET 환경변수가 설정되지 않았습니다. Vercel 대시보드에서 설정하세요.')
 }
 const SECRET = process.env.SESSION_SECRET || 'pkgg-dev-secret-not-for-production';
 const COOKIE_NAME = 'pkgg_session';
