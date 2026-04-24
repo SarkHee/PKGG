@@ -13,19 +13,20 @@ const PUBG_SHARD = 'steam'; // 사용하는 PUBG 서버 샤드 (예: 'steam', 'k
 
 /**
  * 텔레메트리 데이터를 분석하여 상세 킬로그, 무기별 딜량, 이동경로를 추출합니다.
- * @param {Array} telemetryData - PUBG 텔레메트리 데이터 배열
- * @param {string} playerName - 분석할 플레이어 이름 (소문자)
- * @param {string} matchId - 매치 ID (로깅용)
- * @returns {Object} { killLog: [], weaponStats: {}, movePath: '' }
+ * @param {Array}  telemetryData - PUBG 텔레메트리 데이터 배열
+ * @param {string} playerName   - 분석할 플레이어 이름 (소문자)
+ * @param {string} matchId      - 매치 ID (로깅용)
+ * @param {string} mapName      - PUBG API 맵 코드 (예: Baltic_Main)
+ * @returns {Object} { killLog, weaponStats, movePath, movePathCoords }
  */
-function analyzeTelemetryData(telemetryData, playerName, matchId) {
+function analyzeTelemetryData(telemetryData, playerName, matchId, mapName) {
   const killLog = [];
   const weaponStats = {};
   const positions = [];
 
   if (!Array.isArray(telemetryData)) {
     console.warn(`[TELEMETRY] 매치 ${matchId}: 잘못된 텔레메트리 데이터 형식`);
-    return { killLog, weaponStats, movePath: '' };
+    return { killLog, weaponStats, movePath: '', movePathCoords: [] };
   }
 
   console.log(
@@ -34,107 +35,151 @@ function analyzeTelemetryData(telemetryData, playerName, matchId) {
 
   telemetryData.forEach((event, index) => {
     try {
-      // 킬 이벤트 분석
-      if (event._T === 'LogPlayerKill') {
-        const killer = event.killer?.name?.toLowerCase();
-        const victim = event.victim?.name?.toLowerCase();
-
-        if (killer === playerName) {
+      // LogPlayerKill (구버전) + LogPlayerKillV2 (신버전) 모두 처리
+      if (event._T === 'LogPlayerKill' || event._T === 'LogPlayerKillV2') {
+        const killerName = (
+          event.killer?.name ||       // LogPlayerKill
+          event.finisher?.name ||     // LogPlayerKillV2
+          ''
+        ).toLowerCase();
+        if (killerName === playerName) {
+          // 무기명: 최상위 damageCauserName → finishDamageInfo → damageTypeCategory
           const weapon =
-            event.damageCaused?.damageCauserName ||
+            event.damageCauserName ||
+            event.finishDamageInfo?.damageCauserName ||
             event.damageTypeCategory ||
             '알 수 없음';
-          const distance = event.distance ? Math.round(event.distance) : 0;
+          const distance = event.distance ? Math.round(event.distance / 100) : 0; // cm → m
           const isHeadshot =
             event.damageReason === 'Head' ||
-            event.damageTypeCategory?.includes('Head');
-
-          const logEntry = `${event.victim?.name || 'Unknown'}을(를) ${weapon}${isHeadshot ? ' (헤드샷)' : ''}으로 ${distance}m에서 제거`;
-          killLog.push(logEntry);
-
-          console.log(`[TELEMETRY] 킬 발견: ${logEntry}`);
+            event.finishDamageInfo?.damageReason === 'Head';
+          const victimName = event.victim?.name || 'Unknown';
+          killLog.push(
+            `${victimName}을(를) ${weapon}${isHeadshot ? ' (헤드샷)' : ''}으로 ${distance}m에서 제거`
+          );
         }
-      }
-
-      // 데미지 이벤트 분석 (무기별 딜량)
-      else if (event._T === 'LogPlayerTakeDamage') {
+      } else if (event._T === 'LogPlayerTakeDamage') {
         const attacker = event.attacker?.name?.toLowerCase();
-
         if (attacker === playerName) {
-          const weapon =
-            event.damageCaused?.damageCauserName ||
-            event.damageTypeCategory ||
-            '알 수 없음';
+          // 무기명: 최상위 damageCauserName 사용 (중첩 객체 아님)
+          const weapon = event.damageCauserName || event.damageTypeCategory || '알 수 없음';
           const damage = event.damage || 0;
-
           if (damage > 0 && weapon !== '알 수 없음') {
             weaponStats[weapon] = (weaponStats[weapon] || 0) + damage;
           }
         }
-      }
-
-      // 위치 이벤트 분석 (이동경로용)
-      else if (event._T === 'LogPlayerPosition') {
+      } else if (event._T === 'LogPlayerPosition') {
         const character = event.character;
         if (character?.name?.toLowerCase() === playerName) {
-          const location = character.location;
-          if (location && location.x && location.y) {
-            positions.push({
-              x: location.x,
-              y: location.y,
-              timestamp: event._D || new Date().toISOString(),
-            });
+          const loc = character.location;
+          if (loc && (loc.x !== undefined) && (loc.y !== undefined)) {
+            positions.push({ x: loc.x, y: loc.y });
           }
         }
       }
     } catch (eventError) {
-      console.warn(
-        `[TELEMETRY] 매치 ${matchId}: 이벤트 ${index} 처리 실패 - ${eventError.message}`
-      );
+      console.warn(`[TELEMETRY] 매치 ${matchId}: 이벤트 ${index} 처리 실패 - ${eventError.message}`);
     }
   });
 
-  // 이동경로 생성 (주요 위치들 추출)
-  let movePath = '';
-  if (positions.length > 10) {
-    const keyPositions = [
-      positions[0], // 시작
-      positions[Math.floor(positions.length / 4)], // 25%
-      positions[Math.floor(positions.length / 2)], // 50%
-      positions[Math.floor((positions.length * 3) / 4)], // 75%
-      positions[positions.length - 1], // 끝
-    ];
+  // 맵별 최대 좌표 (PUBG 단위: cm, 100 = 1m)
+  const MAP_MAX = {
+    Baltic_Main: 820000, Desert_Main: 820000, Tiger_Main: 820000,
+    Kiki_Main: 820000,   Neon_Main: 820000,
+    Savage_Main: 408000,
+    DihorOtok_Main: 612000,
+  };
+  const maxCoord = MAP_MAX[mapName] || 820000;
 
-    const locationNames = keyPositions.map((pos) =>
-      getLocationName(pos.x, pos.y)
+  let movePath = '';
+  let movePathCoords = [];
+
+  if (positions.length > 5) {
+    // 5개 주요 지점 추출
+    const keyIdxs = [0, 0.25, 0.5, 0.75, 1].map((r) =>
+      Math.min(Math.floor(r * (positions.length - 1)), positions.length - 1)
     );
-    movePath = locationNames.filter((name) => name).join(' → ');
+    const keyPositions = keyIdxs.map((i) => positions[i]);
+    const zoneNames = keyPositions.map((p) => getLocationName(p.x, p.y, mapName));
+    const uniqueZones = zoneNames.filter((n, i, arr) => n && arr.indexOf(n) === i);
+    movePath = uniqueZones.join(' → ');
+
+    // 시각화용 샘플 좌표 (최대 30개, 0~1 정규화)
+    const step = Math.max(1, Math.floor(positions.length / 30));
+    movePathCoords = positions
+      .filter((_, i) => i % step === 0)
+      .map((p) => ({
+        x: Math.max(0, Math.min(1, p.x / maxCoord)),
+        y: Math.max(0, Math.min(1, p.y / maxCoord)),
+      }));
   }
 
   console.log(
     `[TELEMETRY] 매치 ${matchId}: 분석 완료 - 킬 ${killLog.length}개, 무기 ${Object.keys(weaponStats).length}개, 위치 ${positions.length}개`
   );
 
-  return {
-    killLog,
-    weaponStats,
-    movePath: movePath || '',
-  };
+  return { killLog, weaponStats, movePath: movePath || '', movePathCoords };
 }
 
-/**
- * 좌표를 기반으로 대략적인 위치명을 반환합니다.
- * @param {number} x - X 좌표
- * @param {number} y - Y 좌표
- * @returns {string} 위치명
- */
-function getLocationName(x, y) {
-  // 간단한 위치 매핑 (실제로는 맵별로 더 정교한 매핑이 필요)
-  if (x > 400000 && y > 400000) return 'Northeast';
-  if (x > 400000 && y < 200000) return 'Southeast';
-  if (x < 200000 && y > 400000) return 'Northwest';
-  if (x < 200000 && y < 200000) return 'Southwest';
-  return 'Center';
+// 맵별 한국어 지역명 (PUBG 좌표 기준)
+const MAP_ZONES = {
+  Baltic_Main: [ // 에란겔 8km
+    { name: '포치킨키', x1: 370000, x2: 460000, y1: 370000, y2: 460000 },
+    { name: '조르고폴',  x1: 90000,  x2: 200000, y1: 200000, y2: 300000 },
+    { name: '학교',      x1: 420000, x2: 490000, y1: 200000, y2: 280000 },
+    { name: '밀타',      x1: 560000, x2: 660000, y1: 360000, y2: 460000 },
+    { name: '노보',      x1: 540000, x2: 660000, y1: 640000, y2: 760000 },
+    { name: '군기지',    x1: 600000, x2: 710000, y1: 110000, y2: 230000 },
+    { name: '가트카',    x1: 300000, x2: 390000, y1: 480000, y2: 570000 },
+    { name: '야스나야',  x1: 560000, x2: 670000, y1: 230000, y2: 340000 },
+    { name: '프리모르',  x1: 200000, x2: 310000, y1: 620000, y2: 730000 },
+    { name: '로좌크',    x1: 430000, x2: 510000, y1: 460000, y2: 540000 },
+  ],
+  Savage_Main: [ // 사녹 4km
+    { name: '부트캠프',       x1: 145000, x2: 225000, y1: 115000, y2: 195000 },
+    { name: '루인스',         x1: 225000, x2: 295000, y1: 45000,  y2: 120000 },
+    { name: '파라다이스',     x1: 50000,  x2: 120000, y1: 50000,  y2: 130000 },
+    { name: '도크',           x1: 290000, x2: 370000, y1: 270000, y2: 350000 },
+    { name: '케이브',         x1: 185000, x2: 255000, y1: 195000, y2: 275000 },
+    { name: '하틴',           x1: 265000, x2: 345000, y1: 150000, y2: 220000 },
+    { name: '팜 타운',        x1: 150000, x2: 225000, y1: 265000, y2: 340000 },
+    { name: '페리야 비라',    x1: 60000,  x2: 145000, y1: 245000, y2: 330000 },
+    { name: '캠프 알파',      x1: 90000,  x2: 160000, y1: 145000, y2: 215000 },
+  ],
+  Desert_Main: [ // 미라마 8km
+    { name: '페카도',         x1: 340000, x2: 440000, y1: 340000, y2: 440000 },
+    { name: '산 마르틴',      x1: 360000, x2: 450000, y1: 200000, y2: 290000 },
+    { name: '로스 레오네스',  x1: 480000, x2: 620000, y1: 500000, y2: 650000 },
+    { name: '엘 포조',        x1: 160000, x2: 260000, y1: 280000, y2: 380000 },
+    { name: '아시엔다',       x1: 360000, x2: 440000, y1: 460000, y2: 540000 },
+    { name: '라 코브레리아',  x1: 490000, x2: 580000, y1: 200000, y2: 290000 },
+  ],
+  Tiger_Main: [ // 태이고 8km
+    { name: '태이고 시티',   x1: 340000, x2: 480000, y1: 280000, y2: 420000 },
+    { name: '쌍용',          x1: 530000, x2: 630000, y1: 190000, y2: 290000 },
+    { name: '북도 마을',     x1: 200000, x2: 310000, y1: 200000, y2: 310000 },
+    { name: '도하 마을',     x1: 390000, x2: 490000, y1: 490000, y2: 590000 },
+  ],
+  DihorOtok_Main: [ // 비켄디 6km
+    { name: '카슈미르',      x1: 270000, x2: 370000, y1: 200000, y2: 300000 },
+    { name: '디노 파크',     x1: 370000, x2: 460000, y1: 90000,  y2: 180000 },
+    { name: '발로로보',      x1: 100000, x2: 200000, y1: 200000, y2: 300000 },
+  ],
+}
+
+function getLocationName(x, y, mapName) {
+  const zones = MAP_ZONES[mapName]
+  if (zones) {
+    const found = zones.find((z) => x >= z.x1 && x <= z.x2 && y >= z.y1 && y <= z.y2)
+    if (found) return found.name
+  }
+  // fallback: 맵 크기별 사분면 (한국어)
+  const half = mapName === 'Savage_Main' ? 204000 : 410000
+  if (x > half && y < half) return '북동쪽'
+  if (x > half && y > half) return '남동쪽'
+  if (x < half && y < half) return '북서쪽'
+  if (x < half && y > half) return '남서쪽'
+  return '중앙'
 }
 
 /**
@@ -1669,37 +1714,8 @@ export default async function handler(req, res) {
         );
       }
 
-      // 텔레메트리 데이터에서 상세 정보 추출
-      let detailedKillLog = [];
-      let weaponStats = {};
-      let movePath = '';
-
-      if (telemetryUrl) {
-        try {
-          console.log(
-            `[TELEMETRY] 매치 ${matchId}: 텔레메트리 데이터 가져오기 시작`
-          );
-          const telemetryResponse = await fetch(telemetryUrl);
-          if (telemetryResponse.ok) {
-            const telemetryData = await telemetryResponse.json();
-            const analysisResult = analyzeTelemetryData(
-              telemetryData,
-              lowerNickname,
-              matchId
-            );
-            detailedKillLog = analysisResult.killLog;
-            weaponStats = analysisResult.weaponStats;
-            movePath = analysisResult.movePath;
-            console.log(
-              `[TELEMETRY] 매치 ${matchId}: 분석 완료 - 킬로그 ${detailedKillLog.length}개, 무기 ${Object.keys(weaponStats).length}개`
-            );
-          }
-        } catch (telemetryError) {
-          console.warn(
-            `[TELEMETRY] 매치 ${matchId}: 텔레메트리 처리 실패 - ${telemetryError.message}`
-          );
-        }
-      }
+      // 텔레메트리는 경기 확장 시 /api/pubg/match-telemetry 에서 지연 로드
+      // (메인 API에서 20개 동시 fetch 시 타임아웃 발생)
 
       matches.push({
         matchId,
@@ -1727,11 +1743,8 @@ export default async function handler(req, res) {
         top10: isTop10, // Top10 여부 추가
         totalTeamDamage: totalTeamDamage, // 팀 전체 딜량 추가
         teammatesDetail: teammatesDetail, // 팀원 상세 정보 추가 (시너지 히트맵용)
-        // 텔레메트리 기반 상세 데이터
+        // 텔레메트리는 지연 로드 — URL과 맵명만 전달
         telemetryUrl: telemetryUrl,
-        killLog: detailedKillLog,
-        weaponStats: weaponStats,
-        movePath: movePath,
       });
 
       totalRecentDamageSum += myStats.damageDealt || 0;

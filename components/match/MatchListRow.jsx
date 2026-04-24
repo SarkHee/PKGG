@@ -1,6 +1,55 @@
 import MatchDetailLog from './MatchDetailLog.jsx';
 import MatchTeammateStats from './MatchTeammateStats.jsx';
 import RankChangeIndicator from '../ui/RankChangeIndicator.jsx';
+import { getMapName } from '../../utils/mapUtils';
+
+// 개인 퍼포먼스 점수 (PPS) 계산
+function calcPPS(match) {
+  const damage      = match.damage || 0
+  const kills       = match.kills || 0
+  const assists     = match.assists || 0
+  const surviveTime = match.survivalTime || match.surviveTime || 0
+  const rank        = match.rank ?? match.placement ?? 100
+  const totalSquads = match.totalSquads || 100
+
+  const base           = damage * 0.3 + kills * 20 + assists * 8
+  const survivalBonus  = Math.min(25, (surviveTime / 60) * 1.2)
+  const placementBonus = Math.max(0, ((totalSquads - rank) / totalSquads) * 50)
+  const total          = base + survivalBonus + placementBonus
+
+  if (total >= 150) return { grade: 'S+', score: Math.round(total), color: 'text-purple-600', bg: 'bg-purple-50 border-purple-300' }
+  if (total >= 110) return { grade: 'S',  score: Math.round(total), color: 'text-yellow-500', bg: 'bg-yellow-50 border-yellow-300' }
+  if (total >= 75)  return { grade: 'A',  score: Math.round(total), color: 'text-orange-500', bg: 'bg-orange-50 border-orange-200' }
+  if (total >= 45)  return { grade: 'B',  score: Math.round(total), color: 'text-blue-500',   bg: 'bg-blue-50 border-blue-200' }
+  if (total >= 20)  return { grade: 'C',  score: Math.round(total), color: 'text-gray-500',   bg: 'bg-gray-100 border-gray-200' }
+  return                   { grade: 'D',  score: Math.round(total), color: 'text-gray-300',   bg: 'bg-gray-50 border-gray-100' }
+}
+
+// 팀 기여도 계산 (teammatesDetail 기반)
+function calcTeamContrib(match, myNickname) {
+  const teammates = match.teammatesDetail
+  if (!Array.isArray(teammates) || teammates.length < 2) return null
+
+  const lower = myNickname?.toLowerCase()
+  const me = teammates.find((t) => t.name?.toLowerCase() === lower)
+  if (!me) return null
+
+  const teamKills  = teammates.reduce((s, t) => s + (t.kills  || 0), 0)
+  const teamDamage = teammates.reduce((s, t) => s + (t.damage || 0), 0)
+  const teamDbnos  = teammates.reduce((s, t) => s + (t.dbnos  || 0), 0)
+
+  return {
+    killPct:   teamKills  > 0 ? Math.round((me.kills  || 0) / teamKills  * 100) : 0,
+    damagePct: teamDamage > 0 ? Math.round((me.damage || 0) / teamDamage * 100) : 0,
+    dbnosPct:  teamDbnos  > 0 ? Math.round((me.dbnos  || 0) / teamDbnos  * 100) : 0,
+    teamKills,
+    teamDamage: Math.round(teamDamage),
+    teamSize: teammates.length,
+    myKills:  me.kills  || 0,
+    myDamage: Math.round(me.damage || 0),
+    myDbnos:  me.dbnos  || 0,
+  }
+}
 
 export default function MatchListRow({
   match,
@@ -108,6 +157,11 @@ export default function MatchListRow({
           <div className="text-xs text-gray-400 mt-0.5">
             {translateGameMode(match.mode)}
           </div>
+          {match.mapName && (
+            <div className="text-[10px] text-gray-400 mt-0.5 truncate">
+              {getMapName(match.mapName)}
+            </div>
+          )}
         </div>
 
         {/* 시간 */}
@@ -165,6 +219,19 @@ export default function MatchListRow({
           </div>
           <div className="text-xs text-gray-400">생존</div>
         </div>
+
+        {/* PPS 등급 배지 */}
+        {(() => {
+          const pps = calcPPS(match)
+          return (
+            <div className="w-12 flex-shrink-0 text-center">
+              <span className={`inline-block px-1.5 py-0.5 text-xs font-black rounded border ${pps.bg} ${pps.color}`}>
+                {pps.grade}
+              </span>
+              <div className="text-[10px] text-gray-400 mt-0.5">PPS</div>
+            </div>
+          )
+        })()}
 
         {/* 승/패 배지 */}
         <div className="w-14 flex-shrink-0 text-center">
@@ -248,14 +315,83 @@ export default function MatchListRow({
               경기 상세 분석
             </h3>
             <div className="text-xs text-gray-400 mt-1 flex items-center gap-2 flex-wrap">
-              {match.mapName && <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded">{match.mapName}</span>}
+              {match.mapName && <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded">{getMapName(match.mapName)}</span>}
               <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded">{translateGameMode(match.mode)}</span>
               <span className="text-gray-400">{Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분 생존</span>
             </div>
           </div>
+          {/* 팀 기여도 + PPS 상세 */}
+          {(() => {
+            const myNick  = playerData?.profile?.nickname
+            const contrib = calcTeamContrib(match, myNick)
+            const pps     = calcPPS(match)
+            return (
+              <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* PPS 상세 */}
+                <div className="bg-white rounded-lg border border-gray-200 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-600">퍼포먼스 점수 (PPS)</span>
+                    <span className={`text-lg font-black ${pps.color}`}>{pps.grade}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {[
+                      { label: '딜량', val: match.damage || 0, pts: Math.round((match.damage || 0) * 0.3), fmt: (v) => Math.round(v) },
+                      { label: '킬',   val: match.kills || 0,  pts: (match.kills || 0) * 20,              fmt: (v) => v },
+                      { label: '어시', val: match.assists || 0,pts: (match.assists || 0) * 8,             fmt: (v) => v },
+                      { label: '생존', val: Math.round((match.survivalTime || match.surviveTime || 0) / 60), pts: Math.round(Math.min(25, ((match.survivalTime || match.surviveTime || 0) / 60) * 1.2)), fmt: (v) => `${v}분` },
+                    ].map(({ label, val, pts, fmt }) => (
+                      <div key={label} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 w-10">{label}</span>
+                        <span className="text-gray-700 font-medium">{fmt(val)}</span>
+                        <span className="text-blue-500 font-bold">+{pts}pt</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-gray-100 pt-1.5 flex justify-between text-xs">
+                      <span className="text-gray-500">총점</span>
+                      <span className={`font-black ${pps.color}`}>{pps.score}pt</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 팀 기여도 */}
+                {contrib ? (
+                  <div className="bg-white rounded-lg border border-gray-200 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-gray-600">팀 내 기여도</span>
+                      <span className="text-[10px] text-gray-400">{contrib.teamSize}인 스쿼드</span>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        { label: '딜 기여', pct: contrib.damagePct, my: `${contrib.myDamage}`, total: `${contrib.teamDamage}`, color: 'bg-orange-400' },
+                        { label: '킬 기여', pct: contrib.killPct,   my: `${contrib.myKills}킬`, total: `${contrib.teamKills}킬`, color: 'bg-red-400' },
+                        { label: '넉다운', pct: contrib.dbnosPct,  my: `${contrib.myDbnos}회`, total: null, color: 'bg-purple-400' },
+                      ].map(({ label, pct, my, total, color }) => (
+                        <div key={label}>
+                          <div className="flex justify-between text-xs mb-0.5">
+                            <span className="text-gray-500">{label}</span>
+                            <span className="font-bold text-gray-700">
+                              {my}{total ? ` / 팀 ${total}` : ''} <span className="text-blue-600">({pct}%)</span>
+                            </span>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${Math.min(100, pct)}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-lg border border-gray-100 p-3 flex items-center justify-center">
+                    <span className="text-xs text-gray-400">팀 데이터 없음 (솔로 또는 DB 매치)</span>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
           <MatchTeammateStats teammatesDetail={match.teammatesDetail} shard={playerData?.profile?.shardId || 'steam'} />
           <div className="mt-4">
-            <MatchDetailLog match={match} />
+            <MatchDetailLog match={match} playerNickname={playerData?.profile?.name || ''} />
           </div>
         </div>
       )}

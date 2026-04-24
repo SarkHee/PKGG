@@ -1,27 +1,12 @@
 import React from 'react';
+import { getMapInfo } from '../../utils/mapUtils';
 
-/**
- * 경기별 맵 위치 시각화(맵 위에 이동경로, 교전 위치 등)
- * @param {Object} props
- * @param {string} props.mapName - 맵 이름
- * @param {Array} props.movePathCoords - 이동 경로 좌표 배열 [{x, y}]
- * @param {Array} props.combatCoords - 교전 위치 좌표 배열 [{x, y}]
- */
 export default function MatchMapView({
   mapName,
   movePathCoords,
   combatCoords,
 }) {
-  // 맵 이미지 매핑 (예시)
-  const mapImages = {
-    ERANGEL: '/maps/erangel.jpg',
-    MIRAMAR: '/maps/miramar.jpg',
-    SANHOK: '/maps/sanhok.jpg',
-    VIKENDI: '/maps/vikendi.jpg',
-    TAEGO: '/maps/taego.jpg',
-    DESTON: '/maps/deston.jpg',
-  };
-  const mapImg = mapImages[mapName?.toUpperCase()] || mapImages['ERANGEL'];
+  const { name: displayName, img: mapImg } = getMapInfo(mapName);
 
   // 맵 크기 (예시)
   const mapSize = 400;
@@ -34,7 +19,7 @@ export default function MatchMapView({
       <div style={{ position: 'relative', width: mapSize, height: mapSize }}>
         <img
           src={mapImg}
-          alt={mapName}
+          alt={displayName}
           style={{
             width: mapSize,
             height: mapSize,

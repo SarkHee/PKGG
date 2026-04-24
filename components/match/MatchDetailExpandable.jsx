@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import MatchDetailCard from './MatchDetailCard.jsx';
+import { getMapName } from '../../utils/mapUtils';
 
 export default function MatchDetailExpandable({ match }) {
   const [open, setOpen] = useState(false);
@@ -39,7 +40,7 @@ export default function MatchDetailExpandable({ match }) {
                   맵
                 </div>
                 <div className="font-semibold text-gray-900 dark:text-gray-100">
-                  {match.mapName || '알 수 없음'}
+                  {getMapName(match.mapName) || '알 수 없음'}
                 </div>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600 shadow-sm">

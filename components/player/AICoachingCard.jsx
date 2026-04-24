@@ -65,6 +65,66 @@ const STYLE_DESCRIPTIONS = {
   BALANCED: '공격과 생존을 상황에 따라 유연하게 전환하는 올라운더 플레이어',
 };
 
+// 무기별 사거리·특성·핵심 조언
+const WEAPON_CHARS = {
+  'M416':         { range: '중거리',   tip: '4배율+보정기 조합으로 200m까지 점사 가능 — AR 중 범용성 1위' },
+  'AKM':          { range: '근거리',   tip: '50m 이내에서 DPS 최강이지만 원거리 반동은 크므로 점사 2~3발씩 끊어 쏘세요' },
+  'Beryl M762':   { range: '근중거리', tip: '수직그립+보정기 없으면 반동 제어 불가 — 연습장에서 25발 연속 명중 훈련 필수' },
+  'SCAR-L':       { range: '중거리',   tip: '낮은 반동으로 중거리 연사가 안정적 — DMR 서브와 조합 시 전거리 커버 완성' },
+  'QBZ-95':       { range: '중거리',   tip: '탄퍼짐이 낮아 6배율 장착 시 중원거리 정밀 사격에 강함' },
+  'AUG A3':       { range: '중원거리', tip: '유일하게 8배율 장착 가능한 AR — 원거리 교전에서 SR 대용 가능' },
+  'Groza':        { range: '근거리',   tip: '공중보급 무기, 50m 이내 DPS 최강 — 원거리 서브는 반드시 준비하세요' },
+  'ACE32':        { range: '중거리',   tip: 'AKM 탄약을 쓰는 중거리 AR — AKM보다 반동 낮고 탄속 빠름' },
+  'K2':           { range: '중거리',   tip: 'QBZ 계열 안정성 + M416 수준 부착물 호환 — 아시아 서버 숨겨진 강자' },
+  'FAMAS G2':     { range: '중거리',   tip: '3점사 특화 — 버스트 모드로 100m 교전 시 명중률이 크게 오름' },
+  'Mk47 Mutant':  { range: '중원거리', tip: '2점사 특화 AR — 반자동으로 전환 시 SKS 수준 중원거리 딜 가능' },
+  'Kar98k':       { range: '원거리',   tip: '300m 기준 조준점 3밀 상향 조준이 핵심 — 적 이동 방향 리드샷 연습 필수' },
+  'M24':          { range: '원거리',   tip: '탄속 빠르고 재장전 빠름 — 볼트액션 중 연속 2발 기회가 가장 많음' },
+  'AWM':          { range: '초원거리', tip: '레벨3 헬멧도 1샷 관통 — 공중보급 확보 시 엔드게임 포지션 싸움 지배 가능' },
+  'Mosin':        { range: '원거리',   tip: 'Kar98k보다 탄속 빠르지만 부착물 적음 — 기본 에임이 좋은 유저에게 유리' },
+  'Win94':        { range: '중거리',   tip: '스코프 고정(2.7배율), 빠른 연사 — 중거리 핸드건처럼 운용 가능' },
+  'SKS':          { range: '중원거리', tip: '소음기 필수, 8배율로 원거리 연속 견제 — 사격 후 포지션 즉시 이동 필수' },
+  'Mini 14':      { range: '중원거리', tip: '탄속이 DMR 중 가장 빠름 — 이동 타겟 리드샷 난이도 가장 낮음' },
+  'SLR':          { range: '원거리',   tip: 'DMR 중 피해량 최강이지만 강한 반동 — 서포트그립+소음기로 반동 완화 필수' },
+  'Mk14 EBR':     { range: '원거리',   tip: '공중보급 무기, 자동사격 가능한 DMR — 근접에서 AR처럼 쓰거나 원거리 저격 모두 가능' },
+  'QBU':          { range: '중원거리', tip: '수평 반동이 적어 이동 중 사격 안정성 우수 — 미라마 맵에서 특히 강함' },
+  'Mk12':         { range: '중원거리', tip: 'AR 탄 사용 DMR — AR/DMR 모두 사용 가능, 보급 없이도 탄약 걱정 적음' },
+  'UMP45':        { range: '근거리',   tip: '소음기 장착 시 총소리 거의 없음 — 실내 기습과 넉다운 완료 후 부활 커버에 최적' },
+  'Vector':       { range: '근거리',   tip: '연사속도 SMG 중 1위, 5m 이내 최강 — 확장탄창 필수, 탄약 관리 주의' },
+  'PP-19 Bizon':  { range: '근거리',   tip: '53발 대용량 탄창이 강점 — 여러 적과 연속 교전 시 재장전 없이 처리 가능' },
+  'MP5K':         { range: '근거리',   tip: '차량 위에서 사격 가능한 유일한 SMG — 기동전 및 이동 중 교전에 특화' },
+  'P90':          { range: '근중거리', tip: '50발 탄창에 중거리까지 유효한 유일한 SMG — AR 부재 시 대체 가능' },
+}
+
+// 두 무기 조합에 대한 맞춤 전술 팁 생성
+function getDynamicTip(dynPrimary, dynSecondary, playStyle) {
+  if (!dynPrimary) return null
+
+  const p  = dynPrimary.name
+  const pC = dynPrimary.cat
+  const pK = dynPrimary.kills
+  const s  = dynSecondary?.name
+  const sC = dynSecondary?.cat
+  const sK = dynSecondary?.kills
+  const pDesc = WEAPON_CHARS[p]?.tip || ''
+
+  if (dynPrimary && dynSecondary) {
+    if ((pC === 'AR' || pC === 'SMG') && (sC === 'SR' || sC === 'DMR')) {
+      const sDesc = WEAPON_CHARS[s]?.tip || ''
+      return `실전 데이터: ${p} ${pK}킬 · ${s} ${sK}킬. ${p}로 100m 이내 교전을 주도하고 ${s}로 원거리 견제를 병행하면 전거리 대응 완성. ${pDesc ? `→ ${pDesc}` : ''}`
+    }
+    if (pC === 'AR' && sC === 'SMG') {
+      return `실전 데이터: ${p} ${pK}킬 · ${s} ${sK}킬. ${p}로 중거리 교전, ${s}로 실내 클리어링을 담당하는 밸런스 조합. ${pDesc ? `→ ${pDesc}` : ''}`
+    }
+    if ((pC === 'SR' || pC === 'DMR') && (sC === 'AR' || sC === 'SMG')) {
+      return `실전 데이터: ${p} ${pK}킬 · ${s} ${sK}킬. 원거리 저격 후 ${s}로 진입하는 공격적 저격 운용. 사격 직후 포지션 즉시 이동이 핵심.`
+    }
+    return `실전 데이터: ${p} ${pK}킬 · ${s} ${sK}킬. ${pDesc ? pDesc : '검증된 무기 조합으로 상황에 맞게 유연하게 운용하세요.'}`
+  }
+
+  return `실전 데이터: ${p} ${pK}킬. ${pDesc || '꾸준히 사용해 가장 숙련된 무기입니다.'}`
+}
+
 // PUBG-specific weapon recommendations per playstyle
 const WEAPON_RECOMMENDATIONS = {
   AGGRESSIVE: {
@@ -100,64 +160,61 @@ const PRIORITY_BADGE = {
   권장: 'bg-blue-100 text-blue-700',
 };
 
-// Build PUBG-specific action plans
+// Build PUBG-specific action plans — 5개 항목
 function getPUBGActions(stats, playStyle) {
   const actions = [];
 
-  // 1. Damage-based advice
+  // 1. 딜량 기반
   if (stats.avgDamage < 150) {
-    actions.push({
-      priority: '긴급',
-      action: `Training Grounds에서 M416 반동(우하방)을 마우스로 당겨올리는 연습을 매일 15분씩 하세요. 100m 타겟에 30발 연속 명중을 목표로 잡으면 딜량이 빠르게 향상됩니다`,
-    });
+    actions.push({ priority: '긴급', action: `Training Grounds에서 M416 반동(우하방)을 마우스로 당겨올리는 연습을 매일 15분씩 하세요. 100m 타겟에 30발 연속 명중을 목표로 잡으면 딜량이 빠르게 향상됩니다` });
   } else if (stats.avgDamage < 280) {
-    actions.push({
-      priority: '중요',
-      action: `딜량 ${Math.round(stats.avgDamage)}은 배그 평균보다 낮습니다. 교전 전 앉거나 엎드려 반동을 줄이고, 100-150m 거리에서 4배율 스코프로 점사(2~3발) 습관을 들이세요`,
-    });
+    actions.push({ priority: '중요', action: `딜량 ${Math.round(stats.avgDamage)} — 교전 전 앉거나 엎드려 반동을 줄이고, 100~150m 거리에서 4배율 스코프로 점사(2~3발) 습관을 들이세요` });
   } else if (stats.avgDamage < 400) {
-    actions.push({
-      priority: '권장',
-      action: `딜량 ${Math.round(stats.avgDamage)}은 양호합니다. 200m 이상 원거리에서 DMR(SKS·Mini14) 견제를 추가하면 딜량과 어시스트를 동시에 올릴 수 있습니다`,
-    });
+    actions.push({ priority: '권장', action: `딜량 ${Math.round(stats.avgDamage)} 양호. 200m+ 원거리에서 DMR(SKS·Mini14) 견제를 추가하면 딜량과 어시스트를 동시에 올릴 수 있습니다` });
   } else {
-    actions.push({
-      priority: '권장',
-      action: `딜량 ${Math.round(stats.avgDamage)}은 상위권입니다. 원거리 교전 비중을 높이고, 팀원 부활 커버 시 DMR로 상대 포지션을 압박하는 고급 전술을 연습하세요`,
-    });
+    actions.push({ priority: '권장', action: `딜량 ${Math.round(stats.avgDamage)} 상위권. 팀원 부활 커버 시 DMR로 상대 포지션을 압박하고, 교전 후 이동하는 타이밍에 추가 딜을 넣는 고급 전술을 연습하세요` });
   }
 
-  // 2. Survival / win rate advice
+  // 2. 승률/엔드게임
   if (stats.winRate < 3) {
-    actions.push({
-      priority: '긴급',
-      action: `치킨까지 살아남는 연습이 필요합니다. Top10 이후엔 먼저 뛰지 마세요 — 언덕·바위·건물 1층에 고정하고 상대가 이동할 때 사냥하세요. 먼저 움직이면 먼저 맞습니다`,
-    });
+    actions.push({ priority: '긴급', action: `Top10 이후엔 먼저 뛰지 마세요 — 언덕·바위·건물 1층에 고정하고 상대가 이동할 때 사냥하세요. 먼저 움직이면 먼저 맞습니다` });
   } else if (stats.winRate < 8) {
-    actions.push({
-      priority: '중요',
-      action: `Top5 진입 후 고지대(언덕·언덕 능선)를 우선 확보하세요. 조준선 우위 = 교전 우위. 평지에서 위를 향해 싸우면 무조건 불리합니다`,
-    });
+    actions.push({ priority: '중요', action: `Top5 진입 후 고지대(언덕·능선)를 우선 확보하세요. 조준선 우위 = 교전 우위. 평지에서 위를 향해 싸우면 무조건 불리합니다` });
   } else {
-    actions.push({
-      priority: '권장',
-      action: `엔드게임 실력이 좋습니다(${stats.winRate.toFixed(1)}% 승률). 연막탄 1~2개 상시 소지로 불리한 포지션에서 탈출 루트를 만드는 고급 기술을 연습하세요`,
-    });
+    actions.push({ priority: '권장', action: `승률 ${stats.winRate.toFixed(1)}% 우수. 연막탄 1~2개 상시 소지로 불리한 포지션에서 탈출 루트를 만드는 고급 기술을 연습하세요` });
   }
 
-  // 3. Playstyle-specific advice
+  // 3. 플레이스타일 특화
   const styleActions = {
-    AGGRESSIVE: '교전 직전 팀원 위치를 확인하고 "돌격합니다" 콜을 하세요. 1명 단독 돌진보다 팀 엄호 사격 + 1명 진입 조합이 생존율을 2배 높입니다. 써드파티(제3자 개입)를 항상 경계하세요',
-    PASSIVE: '중반(약 15분 후) 에너지드링크 3개를 상시 유지하여 블루존을 맞으며 이동할 수 있게 하세요. 붕대에만 의존하면 노출 시간이 길어져 죽습니다',
-    SNIPER: '스나이핑 후 즉시 20m 옆으로 이동하는 습관을 들이세요. 1발 쏜 자리에 계속 있으면 역스나이핑 당합니다. 반드시 "쏘고 이동"을 반복하세요',
-    SUPPORT: '스모크 그레네이드 1~2개와 어도부 권총을 항상 소지하세요. 팀원 넉다운 시 스모크로 시야 차단 후 안전하게 부활시키는 루틴을 팀과 공유하세요',
-    BALANCED: '교전 참여 여부를 3초 내에 결정하세요. 배그에서 망설임은 죽음입니다. 유리하면 즉시 공격, 불리하면 즉시 이탈 — 이 판단력이 승률을 결정합니다',
+    AGGRESSIVE: '교전 직전 팀원 위치를 확인하고 "돌격합니다" 콜을 하세요. 1명 단독 돌진보다 팀 엄호 사격 + 1명 진입 조합이 생존율을 2배 높입니다. 써드파티를 항상 경계하세요',
+    PASSIVE:    '중반(약 15분 후) 에너지드링크 3개를 상시 유지하여 블루존을 맞으며 이동할 수 있게 하세요. 붕대에만 의존하면 노출 시간이 길어져 죽습니다',
+    SNIPER:     '스나이핑 후 즉시 20m 옆으로 이동하세요. 1발 쏜 자리에 계속 있으면 역스나이핑 당합니다. 반드시 "쏘고 이동"을 반복하세요',
+    SUPPORT:    '스모크 그레네이드 1~2개와 어도부 권총을 항상 소지하세요. 팀원 넉다운 시 스모크로 시야 차단 후 안전하게 부활시키는 루틴을 팀과 공유하세요',
+    BALANCED:   '교전 참여 여부를 3초 내에 결정하세요. 유리하면 즉시 공격, 불리하면 즉시 이탈 — 이 판단력이 승률을 결정합니다',
   };
+  actions.push({ priority: '중요', action: styleActions[playStyle] || styleActions.BALANCED });
 
-  actions.push({
-    priority: '중요',
-    action: styleActions[playStyle] || styleActions.BALANCED,
-  });
+  // 4. Top10 / 생존 시간 기반
+  if (stats.top10Rate < 20) {
+    actions.push({ priority: '긴급', action: `Top10 ${stats.top10Rate.toFixed(0)}% — 블루존 축소 30초 전 이동이 핵심. 미니맵을 5초마다 확인하고 에너지드링크 3개 이상 상시 소지하세요` });
+  } else if (stats.avgSurvivalTime < 600) {
+    actions.push({ priority: '중요', action: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 핫드랍에서 3명 이상 경쟁이면 즉시 옆 건물로 이동하세요. 루팅 경쟁 회피가 초반 생존의 핵심입니다` });
+  } else if (stats.avgKills < 1.5) {
+    actions.push({ priority: '중요', action: `경기당 ${stats.avgKills.toFixed(1)}킬 — 블루존으로 이동 중인 적을 미리 포지션 잡고 기다리는 것이 가장 쉬운 킬 방법입니다` });
+  } else {
+    actions.push({ priority: '권장', action: `그레네이드를 적극 활용하세요. 교전 전 프래그 1개로 적을 이동시키거나 체력을 깎으면 교전 승률이 크게 오릅니다. 매 루팅 시 그레네이드 우선 수거를 습관화하세요` });
+  }
+
+  // 5. 헤드샷 또는 어시스트 또는 일관성
+  if (stats.headshotRate > 0 && stats.headshotRate < 20) {
+    actions.push({ priority: '권장', action: `헤드샷 비율 ${stats.headshotRate.toFixed(0)}% — 에임 트레이너(이 사이트 훈련 메뉴)에서 '반응속도' 모드를 매일 5분 연습하면 2~3주 내 체감 향상됩니다` });
+  } else if (stats.avgAssists < 1.0) {
+    actions.push({ priority: '권장', action: `어시스트 ${stats.avgAssists.toFixed(1)}개 — 내가 처치 못해도 팀원이 마무리할 수 있도록 먼저 딜을 넣는 '선딜 후 커버' 플레이를 의식적으로 연습하세요` });
+  } else if (stats.winRate >= 8 && stats.avgDamage >= 350) {
+    actions.push({ priority: '권장', action: `상위권 지표 유지 중. 팀 콜링(적 위치·이동 방향 공유)을 습관화하면 팀 전체 성과가 오르고 치킨 확률이 추가로 높아집니다` });
+  } else {
+    actions.push({ priority: '권장', action: `착지 지점 2~3곳을 고정하고 루팅 동선을 패턴화하세요. 매 게임 변수를 줄이면 평균 성과가 안정되고 일관성이 오릅니다` });
+  }
 
   return actions;
 }
@@ -204,43 +261,86 @@ function getPUBGStrengths(stats, analysis) {
   return list;
 }
 
-// Build PUBG-specific improvements
+// Build PUBG-specific improvements — 최소 4개 보장
 function getPUBGImprovements(stats, analysis) {
   const list = [];
 
+  // ── 딜량 ──
   if (stats.avgDamage < 180) {
-    const nextTarget = Math.round(stats.avgDamage / 10) * 10 + 30;
-    list.push({ title: '딜량 향상 (1단계)', desc: `현재 평균 ${Math.round(stats.avgDamage)} → 우선 ${nextTarget} 목표. Training Grounds에서 AR 반동 제어 10분씩 연습하세요` });
+    const next = Math.round(stats.avgDamage / 10) * 10 + 30;
+    list.push({ title: '딜량 향상 (1단계)', desc: `현재 ${Math.round(stats.avgDamage)} → ${next} 목표. Training Grounds에서 AR 반동 제어 10분씩, 100m 타겟에 30발 연속 명중을 목표로 하세요` });
   } else if (stats.avgDamage < 280) {
-    const nextTarget = Math.min(280, Math.round(stats.avgDamage / 10) * 10 + 40);
-    list.push({ title: '중거리 딜링 개선', desc: `현재 ${Math.round(stats.avgDamage)} → ${nextTarget} 목표. 4배율 스코프로 100-150m 거리에서 점사(2~3발) 습관을 들이세요` });
+    const next = Math.min(280, Math.round(stats.avgDamage / 10) * 10 + 40);
+    list.push({ title: '중거리 딜링 개선', desc: `현재 ${Math.round(stats.avgDamage)} → ${next} 목표. 4배율로 100~150m 거리에서 2~3발 점사 습관을 들이세요` });
+  } else if (stats.avgDamage < 400) {
+    list.push({ title: '딜량 상위권 진입', desc: `현재 ${Math.round(stats.avgDamage)} → 400 목표(상위 15% 기준). 교전 시 상대를 넉다운시키고 팀원이 처치하도록 피해를 극대화하는 '딜딜킬' 전략을 써보세요` });
+  } else {
+    list.push({ title: '딜량 유지 + 원거리 확장', desc: `딜량 ${Math.round(stats.avgDamage)}은 상위권. DMR(SKS·Mini14) 서브 활용으로 200m+ 견제를 추가하면 교전 없이도 어시스트와 딜을 쌓을 수 있습니다` });
   }
 
+  // ── 킬/교전 ──
   if (stats.avgKills < 1.0)
-    list.push({ title: '교전 참여 늘리기', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 우선 1킬 목표. 블루존으로 이동하는 적을 미리 대기하는 것부터 시작하세요` });
-  else if (stats.avgKills < 1.5)
-    list.push({ title: '킬 기회 포착 개선', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 1.5킬 목표. 교전 중인 두 팀 중 이기는 팀 뒤를 써드파티하는 타이밍을 노리세요` });
+    list.push({ title: '교전 참여 늘리기', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 1킬 목표. 블루존으로 이동 중인 적을 미리 포지션 잡고 기다리는 것부터 시작하세요` });
+  else if (stats.avgKills < 2.0)
+    list.push({ title: '써드파티 킬 추가', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 2킬 목표. 교전 중인 두 팀이 있으면 이기는 쪽 뒤에서 기다렸다가 체력 낮은 생존자를 사냥하세요` });
+  else if (stats.avgKills < 3.0)
+    list.push({ title: '연속 교전 처리 능력', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 3킬 목표. 1명 처치 후 즉시 다음 타겟으로 전환하는 속도가 핵심 — 교전 후 재장전 타이밍을 항상 의식하세요` });
+  else
+    list.push({ title: '킬 후 포지션 이탈', desc: `킬 ${stats.avgKills.toFixed(1)}개로 교전 능력 우수. 킬 직후 동일 포지션에 머물면 팀원 복수가 오므로, 사격 후 즉시 10~20m 측면 이동을 습관화하세요` });
 
+  // ── 승률/엔드게임 ──
   if (stats.winRate < 3)
-    list.push({ title: 'Top15 생존 습관 만들기', desc: `승률 ${stats.winRate.toFixed(1)}% — 치킨보다 Top15 진입 목표로 잡으세요. 먼저 총 쏘지 않고 상대가 나올 때까지 기다리는 연습이 우선입니다` });
+    list.push({ title: 'Top15 생존 습관', desc: `승률 ${stats.winRate.toFixed(1)}% — 먼저 총 쏘지 않고 상대가 이동할 때 사냥하는 습관이 먼저입니다. 치킨보다 Top15 진입을 목표로 잡으세요` });
   else if (stats.winRate < 6)
-    list.push({ title: 'Top5 포지션 싸움 개선', desc: `승률 ${stats.winRate.toFixed(1)}% — 마지막 원에서 언덕/바위 뒤 고지대 선점이 핵심. 연막탄 1개로 이동 경로를 만드는 연습을 하세요` });
+    list.push({ title: 'Top5 고지대 선점', desc: `승률 ${stats.winRate.toFixed(1)}% → 6% 목표. 마지막 원에서 언덕·바위 뒤 조준선 우위 포지션을 먼저 잡는 것이 치킨 확률을 2배 올립니다` });
+  else if (stats.winRate < 12)
+    list.push({ title: '엔드게임 연막탄 활용', desc: `승률 ${stats.winRate.toFixed(1)}% → 12% 목표. 연막탄 1~2개 상시 소지 — 불리한 포지션에서 이동 경로를 만드는 것만으로 엔드게임 생존율이 크게 오릅니다` });
+  else
+    list.push({ title: '치킨 결정력 향상', desc: `승률 ${stats.winRate.toFixed(1)}% 최상위권. 마지막 2팀 상황에서 상대 포지션 파악 후 그레네이드 1개로 이동을 강제하는 고급 전술을 연습하세요` });
 
-  if (stats.top10Rate < 15)
-    list.push({ title: '안전지대 이동 타이밍', desc: `Top10 ${stats.top10Rate.toFixed(0)}% — 블루존이 줄어들기 30초 전에 이동 시작하는 습관. 미니맵을 5초마다 확인하세요` });
-  else if (stats.top10Rate < 25)
-    list.push({ title: '중반 포지셔닝 개선', desc: `Top10 ${stats.top10Rate.toFixed(0)}% → 30% 목표. 1차 원 축소 전 미리 이동해 건물 안쪽 포지션을 선점하세요` });
+  // ── Top10 생존 ──
+  if (stats.top10Rate < 20)
+    list.push({ title: '안전지대 이동 타이밍', desc: `Top10 ${stats.top10Rate.toFixed(0)}% — 블루존 축소 30초 전 이동 시작이 핵심. 미니맵을 5초마다 확인하고 에너지드링크 3개 이상 상시 소지하세요` });
+  else if (stats.top10Rate < 35)
+    list.push({ title: '중반 포지션 선점', desc: `Top10 ${stats.top10Rate.toFixed(0)}% → 35% 목표. 1차 원 축소 전 미리 이동해 건물 안쪽·능선 뒤를 선점하세요. 늦게 진입할수록 노출 시간이 길어집니다` });
+  else if (stats.top10Rate < 50)
+    list.push({ title: 'Top10 → 치킨 전환율', desc: `Top10 ${stats.top10Rate.toFixed(0)}%로 후반 진입은 잘 됩니다. 이제는 Top10 진입 후 교전 참여 타이밍을 늦추고 3위 이하로 좁혀진 뒤 움직이세요` });
 
+  // ── 헤드샷 (데이터 있을 때만) ──
+  if (stats.headshotRate > 0) {
+    if (stats.headshotRate < 15)
+      list.push({ title: '헤드샷 정확도 향상', desc: `헤드샷 비율 ${stats.headshotRate.toFixed(0)}% — Training Grounds에서 정지 타겟 헤드 조준부터 연습하세요. 헤드샷 1회가 바디샷 2회 이상의 효과입니다` });
+    else if (stats.headshotRate < 30)
+      list.push({ title: '이동 타겟 헤드샷', desc: `헤드샷 비율 ${stats.headshotRate.toFixed(0)}% — 정지 타겟은 잘 맞추지만 이동 타겟 리드샷 연습이 필요합니다. 에임 트레이너 '이동 타겟' 모드 30초씩 하세요` });
+  }
+
+  // ── 생존 시간 ──
   if (stats.avgSurvivalTime < 480)
-    list.push({ title: '초반 착지 전략 변경', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 핫드랍 착지 인원이 3명 이상이면 바로 다음 건물로 이동하세요. 루팅 경쟁 회피가 우선입니다` });
-  else if (stats.avgSurvivalTime < 800)
-    list.push({ title: '중반 생존 개선', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 1차 원 축소 시 에너지 드링크 2개를 마시며 이동하면 블루존 피해를 버틸 수 있습니다` });
+    list.push({ title: '착지 전략 변경', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 핫드랍 3명 이상 경쟁 시 즉시 옆 건물로 이동하세요. 루팅 경쟁 회피가 초반 생존의 핵심입니다` });
+  else if (stats.avgSurvivalTime < 900)
+    list.push({ title: '중반 생존력 향상', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 에너지드링크 2개를 마시며 블루존 피해를 버티는 이동이 가능합니다. 힐 아이템 우선 루팅 습관을 들이세요` });
 
+  // ── 어시스트 ──
+  if (stats.avgAssists < 0.8)
+    list.push({ title: '팀 기여도 향상', desc: `어시스트 ${stats.avgAssists.toFixed(1)}개 — 교전 시 내가 처치 못해도 팀원이 마무리할 수 있도록 먼저 딜을 넣어주는 '선딜 후 커버' 습관을 들이세요` });
+
+  // ── 일관성 ──
   if (analysis?.consistencyIndex < 40)
-    list.push({ title: '매 게임 루틴 만들기', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 착지 지점 2~3곳을 고정하고 루팅 순서를 패턴화하세요. 변수를 줄이면 평균 성과가 올라갑니다` });
+    list.push({ title: '착지 루틴 고정', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 착지 지점 2~3곳을 고정하고 루팅 동선을 패턴화하세요. 변수를 줄이면 평균 성과가 안정됩니다` });
+  else if (analysis?.consistencyIndex < 60)
+    list.push({ title: '컨디션 무관 루틴화', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 게임 시작 전 Training Grounds 5분 워밍업으로 컨디션 편차를 줄이면 최악의 경기 빈도가 감소합니다` });
 
-  if (list.length === 0)
-    list.push({ title: '고급 전술 단계', desc: '현재 지표 모두 양호 — 그레네이드 투척 루틴, 연막탄 커버, 팀 콜링 등 고급 스킬에 도전하세요' });
+  // ── 최소 4개 보장 ──
+  const extras = [
+    { title: '그레네이드 적극 활용', desc: '프래그 1~2개 상시 소지 — 건물 안 적에게 투척하면 적이 나오거나 체력을 잃습니다. 교전 전 그레네이드로 유리한 상황을 만드세요' },
+    { title: '차량 이동 활용', desc: '안전지대 이동 시 차량을 사용하면 블루존 피해를 줄이고 에너지드링크 소비도 절약됩니다. 차량 소리가 부담이면 시동을 끄고 내리막길 활강을 활용하세요' },
+    { title: '엄폐물 거리 유지', desc: '엄폐물에 너무 붙어있으면 그레네이드에 취약합니다. 엄폐물에서 1~2m 거리를 두고 피킹하면 반응 시간이 늘어납니다' },
+    { title: '팀원 넉다운 복구 루틴', desc: '팀원 넉다운 시 즉시 연막탄 투척 → 시야 차단 → 안전하게 부활 루틴을 팀과 공유하세요. 부활 성공률이 팀 승률에 직결됩니다' },
+  ]
+  let ei = 0
+  while (list.length < 4 && ei < extras.length) {
+    list.push(extras[ei++])
+  }
 
   return list;
 }
@@ -250,46 +350,9 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
   const [loading, setLoading] = useState(true);
   const savedKeyRef = useRef('');
 
-  // Groq AI 심층 분석 state
-  const [aiAdvice, setAiAdvice]   = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError]     = useState('');
-  const [aiCached, setAiCached]   = useState(false);
 
   // 유저 실제 무기 데이터 (AR·SR·DMR 최다 킬 무기)
   const [userWeaponRec, setUserWeaponRec] = useState(null);
-
-  const fetchAiAdvice = async (currentStats, currentAnalysis) => {
-    if (aiLoading || !playerInfo?.nickname) return;
-    setAiLoading(true);
-    setAiError('');
-    try {
-      const res = await fetch('/api/pubg/ai-coaching', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nickname: playerInfo.nickname,
-          shard: playerInfo.server || 'steam',
-          stats: {
-            avgDamage: currentStats.avgDamage,
-            avgKills: currentStats.avgKills,
-            winRate: currentStats.winRate,
-            top10Rate: currentStats.top10Rate,
-            avgSurvivalTime: currentStats.avgSurvivalTime,
-            playstyle: currentAnalysis?.playStyle || '',
-          },
-        }),
-      });
-      const data = await res.json();
-      if (data.error) { setAiError(data.error); return; }
-      setAiAdvice(data.advice);
-      setAiCached(data.cached);
-    } catch {
-      setAiError('네트워크 오류. 다시 시도해주세요.');
-    } finally {
-      setAiLoading(false);
-    }
-  };
 
   const getValue = (v) => {
     if (v == null) return 0;
@@ -441,14 +504,16 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
   // 유저 실제 사용 무기가 있으면 덮어씌움
   const dynPrimary = userWeaponRec?.bestARorSMG;
   const dynSecondary = userWeaponRec?.bestSRDMR;
+  const dynamicTip = getDynamicTip(dynPrimary, dynSecondary, analysis.playStyle);
   const weapons = {
     ...staticWeapons,
     primary: dynPrimary
-      ? { name: dynPrimary.name, note: `${dynPrimary.cat === 'SMG' ? 'SMG' : 'AR'} 중 ${dynPrimary.kills}킬 1위 — 이미 가장 잘 쓰는 주무기`, attach: staticWeapons.primary.attach }
+      ? { name: dynPrimary.name, note: `${dynPrimary.cat === 'SMG' ? 'SMG' : 'AR'} 중 ${dynPrimary.kills}킬 1위 — 실전 검증된 주무기`, attach: staticWeapons.primary.attach }
       : staticWeapons.primary,
     secondary: dynSecondary
-      ? { name: dynSecondary.name, note: `SR/DMR 중 ${dynSecondary.kills}킬 1위 — 실전에서 검증된 보조무기`, attach: staticWeapons.secondary.attach }
+      ? { name: dynSecondary.name, note: `SR/DMR 중 ${dynSecondary.kills}킬 1위 — 실전 검증된 보조무기`, attach: staticWeapons.secondary.attach }
       : staticWeapons.secondary,
+    tip: dynamicTip || staticWeapons.tip,
   };
 
   const styleColor = {
@@ -459,39 +524,39 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     BALANCED: 'from-violet-600 to-indigo-600',
   };
 
-  // Benchmark context for stats
+  // Benchmark context for stats (백분위 섹션이 별도 존재하므로 간결한 평가어만)
   const statBenchmarks = [
     {
       label: '평균 킬',
       value: stats.avgKills.toFixed(1),
       color: 'text-red-600',
-      sub: stats.avgKills >= 3 ? '상위 10%' : stats.avgKills >= 2 ? '상위 25%' : stats.avgKills >= 1 ? '평균' : '하위권',
+      sub:   stats.avgKills >= 3 ? '최상위' : stats.avgKills >= 2 ? '상위권' : stats.avgKills >= 1 ? '평균' : '하위권',
       green: stats.avgKills >= 2,
-      red: stats.avgKills < 1,
+      red:   stats.avgKills < 1,
     },
     {
       label: '평균 딜량',
       value: Math.round(stats.avgDamage),
       color: 'text-orange-600',
-      sub: stats.avgDamage >= 400 ? '상위 15%' : stats.avgDamage >= 280 ? '평균 이상' : stats.avgDamage >= 180 ? '평균' : '하위권',
+      sub:   stats.avgDamage >= 400 ? '최상위' : stats.avgDamage >= 280 ? '상위권' : stats.avgDamage >= 180 ? '평균' : '하위권',
       green: stats.avgDamage >= 280,
-      red: stats.avgDamage < 180,
+      red:   stats.avgDamage < 180,
     },
     {
       label: '승률',
       value: `${stats.winRate.toFixed(1)}%`,
       color: 'text-green-600',
-      sub: stats.winRate >= 15 ? '상위 10%' : stats.winRate >= 8 ? '상위 25%' : stats.winRate >= 4 ? '평균' : '하위권',
+      sub:   stats.winRate >= 15 ? '최상위' : stats.winRate >= 8 ? '상위권' : stats.winRate >= 4 ? '평균' : '하위권',
       green: stats.winRate >= 8,
-      red: stats.winRate < 3,
+      red:   stats.winRate < 3,
     },
     {
       label: 'Top 10',
       value: `${stats.top10Rate.toFixed(1)}%`,
       color: 'text-blue-600',
-      sub: stats.top10Rate >= 50 ? '상위 15%' : stats.top10Rate >= 30 ? '평균 이상' : stats.top10Rate >= 20 ? '평균' : '하위권',
+      sub:   stats.top10Rate >= 50 ? '최상위' : stats.top10Rate >= 30 ? '상위권' : stats.top10Rate >= 20 ? '평균' : '하위권',
       green: stats.top10Rate >= 30,
-      red: stats.top10Rate < 15,
+      red:   stats.top10Rate < 15,
     },
   ];
 
@@ -698,49 +763,6 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Groq AI 심층 분석 섹션 */}
-        <div className="border border-violet-200 rounded-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-violet-50 to-indigo-50 px-4 py-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-base">✨</span>
-              <div>
-                <div className="text-xs font-bold text-violet-800">AI 심층 코칭</div>
-                <div className="text-[10px] text-violet-500">Groq Llama 3.1 · {aiCached ? '7일 캐시' : '실시간 생성'}</div>
-              </div>
-            </div>
-            {!aiAdvice && (
-              <button
-                onClick={() => fetchAiAdvice(stats, analysis)}
-                disabled={aiLoading}
-                className="px-3 py-1.5 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-400 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
-              >
-                {aiLoading ? (
-                  <>
-                    <span className="inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    분석 중…
-                  </>
-                ) : '분석 받기'}
-              </button>
-            )}
-          </div>
-          {aiError && (
-            <div className="px-4 py-3 text-xs text-red-600 bg-red-50">{aiError}</div>
-          )}
-          {aiAdvice && (
-            <div className="px-4 py-3 space-y-1.5">
-              {aiAdvice.split('\n').filter(l => l.trim()).map((line, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-gray-700 leading-relaxed">
-                  <span className="text-violet-500 flex-shrink-0 mt-0.5">•</span>
-                  <span>{line.replace(/^[•\-]\s*/, '')}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {!aiAdvice && !aiLoading && !aiError && (
-            <div className="px-4 py-3 text-xs text-gray-400">버튼을 눌러 AI 맞춤 조언을 받아보세요</div>
-          )}
         </div>
 
         <div className="text-center text-xs text-gray-400">

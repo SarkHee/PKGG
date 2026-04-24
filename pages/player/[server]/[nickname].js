@@ -15,6 +15,7 @@ import EnhancedPlayerStats from '../../../components/player/EnhancedPlayerStats'
 import PlayerHeader from '../../../components/player/PlayerHeader';
 import MatchDetailExpandable from '../../../components/match/MatchDetailExpandable';
 import AICoachingCard from '../../../components/player/AICoachingCard';
+import PlayerPercentileCard from '../../../components/player/PlayerPercentileCard';
 import WeaponMasteryCard from '../../../components/player/WeaponMasteryCard';
 import GrowthChart from '../../../components/player/GrowthChart';
 import AdUnit from '../../../components/AdUnit';
@@ -991,6 +992,11 @@ export default function PlayerPage({ playerData, error, dataSource }) {
 
         {/* 광고 1: 플레이어 헤더 아래 (상단 배너) */}
         <AdUnit slot="2646189375" format="auto" className="mb-6" />
+
+        {/* 퍼포먼스 백분위 리포트 */}
+        <div className="mb-6">
+          <PlayerPercentileCard playerStats={summary || profile} />
+        </div>
 
         {/* 개인 맞춤형 AI 코칭 시스템 */}
         <div className="mb-8">
