@@ -128,6 +128,23 @@ function rankBadgeClass(i) {
   return 'bg-gray-100 text-gray-500';
 }
 
+// 무기 숙련도 점수: 킬 수(60점) + 딜 효율(40점)
+function calcWeaponScore(kills, damage) {
+  const killScore = Math.min(kills / 200, 1) * 60
+  // 딜/킬 비율: 150 이하 = 0점, 300 이상 = 40점 (선형 보간)
+  const dPerKill = kills > 0 ? damage / kills : 0
+  const effScore = Math.max(0, Math.min((dPerKill - 150) / 150, 1)) * 40
+  return Math.round(killScore + effScore)
+}
+
+function getWeaponGrade(score) {
+  if (score >= 75) return { grade: 'S', label: '최상급',  color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-300' }
+  if (score >= 55) return { grade: 'A', label: '상급',    color: 'text-green-600',  bg: 'bg-green-50 border-green-300' }
+  if (score >= 35) return { grade: 'B', label: '중상급',  color: 'text-blue-600',   bg: 'bg-blue-50 border-blue-300' }
+  if (score >= 15) return { grade: 'C', label: '중급',    color: 'text-gray-500',   bg: 'bg-gray-100 border-gray-300' }
+  return               { grade: 'D', label: '입문',    color: 'text-red-400',    bg: 'bg-red-50 border-red-200' }
+}
+
 // 재시도 포함 fetch 헬퍼 (최대 maxRetry회, 500 에러만 재시도)
 async function fetchWithRetry(url, maxRetry = 2, delayMs = 800) {
   let lastError = null;
@@ -312,6 +329,8 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
             const barPct = Math.round((val / maxVal) * 100);
             const barColor  = CATEGORY_BAR[w.category]   || 'bg-gray-400';
             const badgeCls  = CATEGORY_BADGE[w.category] || 'bg-gray-50 text-gray-500 border-gray-200';
+            const weaponScore = calcWeaponScore(w.kills, w.damage);
+            const { grade, label, color: gradeColor, bg: gradeBg } = getWeaponGrade(weaponScore);
 
             return (
               <div
@@ -341,11 +360,38 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
 
                 {/* 정보 영역 */}
                 <div className="flex-1 min-w-0">
-                  {/* 이름 + 카테고리 */}
-                  <div className="flex items-center gap-2 mb-1.5">
+                  {/* 이름 + 카테고리 + 등급 */}
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className="text-sm font-bold text-gray-800 truncate">{w.name}</span>
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border flex-shrink-0 ${badgeCls}`}>
                       {w.category}
+                    </span>
+                    <span className="relative group flex-shrink-0 flex items-center gap-1 cursor-default">
+                      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border ${gradeBg} ${gradeColor}`}>
+                        {grade}
+                      </span>
+                      <span className={`text-[10px] font-semibold ${gradeColor}`}>
+                        {label}
+                      </span>
+                      {/* 툴팁 */}
+                      <span className="pointer-events-none absolute bottom-full left-0 mb-2 w-56 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                        <span className="block bg-gray-900 text-white text-[11px] rounded-lg px-3 py-2.5 shadow-xl leading-relaxed">
+                          <span className="block font-bold text-yellow-300 mb-1">📊 등급 산출 기준</span>
+                          <span className="block text-gray-300 mb-1.5">
+                            킬 수와 킬당 딜량을 조합해<br />
+                            <span className="text-white font-semibold">PKGG가 자체 산출</span>한 등급입니다.<br />
+                            <span className="text-gray-500 text-[10px]">공식 통계와 무관합니다</span>
+                          </span>
+                          <span className="block border-t border-gray-700 pt-1.5 mt-1 space-y-0.5">
+                            <span className="block text-gray-400 mb-0.5">이 무기 실적 (계정 전체 누적)</span>
+                            <span className="block">
+                              킬 <span className="text-white font-bold">{w.kills.toLocaleString()}회</span>
+                              {' · '}킬당 딜 <span className="text-white font-bold">{w.kills > 0 ? Math.round(w.damage / w.kills).toLocaleString() : 0}</span>
+                            </span>
+                          </span>
+                        </span>
+                        <span className="block w-2 h-2 bg-gray-900 rotate-45 ml-3 -mt-1" />
+                      </span>
                     </span>
                   </div>
 

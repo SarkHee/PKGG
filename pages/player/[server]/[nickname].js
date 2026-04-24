@@ -998,6 +998,14 @@ export default function PlayerPage({ playerData, error, dataSource }) {
           <PlayerPercentileCard playerStats={summary || profile} />
         </div>
 
+        {/* 성장 추적 섹션 */}
+        <div className="mb-8">
+          <GrowthChart
+            nickname={profile.nickname}
+            shard={profile.shardId || router.query.server || 'steam'}
+          />
+        </div>
+
         {/* 개인 맞춤형 AI 코칭 시스템 */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4 px-1">
@@ -1158,14 +1166,6 @@ export default function PlayerPage({ playerData, error, dataSource }) {
             </div>
           </div>
         )}
-
-        {/* 성장 추적 섹션 */}
-        <div className="mb-8">
-          <GrowthChart
-            nickname={profile.nickname}
-            shard={profile.shardId || router.query.server || 'steam'}
-          />
-        </div>
 
         {/* 광고 3: 무기 통계 아래 */}
         <AdUnit slot="2646189375" format="auto" className="mb-6" />

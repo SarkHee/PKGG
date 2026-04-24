@@ -1,6 +1,83 @@
 import { useState, useEffect, useRef } from 'react';
 import { analyzePlayStyle } from '../../utils/aiCoaching';
 
+// PUBG 스쿼드 기준 백분위 추정 (공식 통계 기반 추정치)
+function getDmgPercentile(dmg) {
+  if (dmg >= 550) return { label: '상위 5%',  color: 'text-red-500' };
+  if (dmg >= 430) return { label: '상위 10%', color: 'text-orange-500' };
+  if (dmg >= 350) return { label: '상위 20%', color: 'text-yellow-600' };
+  if (dmg >= 270) return { label: '상위 35%', color: 'text-green-500' };
+  if (dmg >= 200) return { label: '상위 50%', color: 'text-blue-500' };
+  if (dmg >= 140) return { label: '상위 65%', color: 'text-gray-500' };
+  return                  { label: '하위 35%', color: 'text-gray-400' };
+}
+function getKillPercentile(k) {
+  if (k >= 4.0) return { label: '상위 5%',  color: 'text-red-500' };
+  if (k >= 3.0) return { label: '상위 10%', color: 'text-orange-500' };
+  if (k >= 2.0) return { label: '상위 25%', color: 'text-yellow-600' };
+  if (k >= 1.5) return { label: '상위 40%', color: 'text-green-500' };
+  if (k >= 1.0) return { label: '상위 55%', color: 'text-blue-500' };
+  return               { label: '하위 45%', color: 'text-gray-400' };
+}
+function getWinPercentile(w) {
+  if (w >= 20) return { label: '상위 5%',  color: 'text-red-500' };
+  if (w >= 15) return { label: '상위 10%', color: 'text-orange-500' };
+  if (w >= 8)  return { label: '상위 20%', color: 'text-yellow-600' };
+  if (w >= 5)  return { label: '상위 35%', color: 'text-green-500' };
+  if (w >= 3)  return { label: '상위 50%', color: 'text-blue-500' };
+  return              { label: '하위 50%', color: 'text-gray-400' };
+}
+function getTop10Percentile(t) {
+  if (t >= 60) return { label: '상위 5%',  color: 'text-red-500' };
+  if (t >= 50) return { label: '상위 15%', color: 'text-orange-500' };
+  if (t >= 35) return { label: '상위 30%', color: 'text-yellow-600' };
+  if (t >= 25) return { label: '상위 50%', color: 'text-blue-500' };
+  return              { label: '하위 50%', color: 'text-gray-400' };
+}
+
+// 전문용어 툴팁 컴포넌트
+function Term({ word, desc }) {
+  return (
+    <span className="relative group/term inline-flex items-center gap-0.5">
+      <span className="font-semibold">{word}</span>
+      <span className="w-3.5 h-3.5 rounded-full bg-gray-200 text-gray-500 text-[9px] font-bold flex items-center justify-center cursor-help flex-shrink-0">?</span>
+      <span className="pointer-events-none absolute bottom-full left-0 mb-1.5 w-56 px-2.5 py-2 bg-gray-800 text-white text-xs rounded-xl leading-relaxed opacity-0 group-hover/term:opacity-100 transition-opacity z-50 shadow-xl whitespace-normal">
+        {desc}
+      </span>
+    </span>
+  );
+}
+
+// 개선 포인트 설명에서 용어 자동 툴팁 적용
+const TERM_MAP = [
+  { word: 'DMR', desc: 'Designated Marksman Rifle. 지정사수소총. SKS·Mini14·SLR 같은 반자동 저격 계열 총기로, AR보다 사거리가 길고 SR보다 연사가 빠릅니다.' },
+  { word: 'AR', desc: 'Assault Rifle. 돌격소총. M416·AKM·SCAR-L 등 전투용 메인 총기로 다양한 거리에서 사용합니다.' },
+  { word: 'SR', desc: 'Sniper Rifle. 저격소총. Kar98k·AWM·M24 등 볼트액션 방식으로 원거리 1~2발 킬을 노리는 총기입니다.' },
+  { word: 'SMG', desc: 'Submachine Gun. 기관단총. UMP45·Vector 등 근거리에서 빠른 연사로 실내 교전에 강한 총기입니다.' },
+  { word: '피킹', desc: 'Peeking. 엄폐물 뒤에서 잠깐 몸을 내밀어 적을 사격하는 기술. 노출 시간을 최소화해 피격 위험을 줄입니다.' },
+  { word: 'K/D', desc: 'Kill/Death Ratio. 킬 수를 사망 수로 나눈 비율. 1.0이면 죽을 때마다 1명을 처치한다는 의미입니다.' },
+  { word: 'eDPI', desc: 'Effective DPI. 마우스 DPI × 게임 내 감도. 실제 조준 민감도를 하나의 수치로 표현한 값입니다.' },
+  { word: 'DBNOs', desc: 'Down But Not Out. 쓰러졌지만 아직 살아있는 상태. 팀원이 부활시켜 줄 수 있습니다.' },
+  { word: '써드파티', desc: 'Third Party. 두 팀이 교전 중일 때 제3세력이 끼어들어 체력이 소모된 쌍방을 사냥하는 전술입니다.' },
+  { word: '투척류', desc: '프래그 그레네이드(폭발), 연막탄(시야차단), 섬광탄(시력마비), 화염병(지역거부) 등 손으로 던지는 폭발물 계열 아이템 총칭입니다.' },
+];
+
+function DescWithTerms({ text }) {
+  if (!text) return null;
+  let parts = [text];
+  for (const { word, desc } of TERM_MAP) {
+    parts = parts.flatMap((part) => {
+      if (typeof part !== 'string') return [part];
+      const segs = part.split(word);
+      if (segs.length === 1) return [part];
+      return segs.flatMap((s, i) =>
+        i < segs.length - 1 ? [s, <Term key={`${word}-${i}`} word={word} desc={desc} />] : [s]
+      );
+    });
+  }
+  return <>{parts}</>;
+}
+
 // 무기 카테고리 분류 (WeaponMasteryCard와 동일 기준)
 const WEAPON_CAT = {
   Item_Weapon_HK416_C: { name: 'M416', cat: 'AR' },
@@ -202,7 +279,7 @@ function getPUBGActions(stats, playStyle) {
   } else if (stats.avgKills < 1.5) {
     actions.push({ priority: '중요', action: `경기당 ${stats.avgKills.toFixed(1)}킬 — 블루존으로 이동 중인 적을 미리 포지션 잡고 기다리는 것이 가장 쉬운 킬 방법입니다` });
   } else {
-    actions.push({ priority: '권장', action: `그레네이드를 적극 활용하세요. 교전 전 프래그 1개로 적을 이동시키거나 체력을 깎으면 교전 승률이 크게 오릅니다. 매 루팅 시 그레네이드 우선 수거를 습관화하세요` });
+    actions.push({ priority: '권장', action: `투척류(수류탄)를 적극 활용하세요. 교전 전 프래그 1개로 적을 이동시키거나 체력을 깎으면 교전 승률이 크게 오릅니다. 매 루팅 시 투척류 우선 수거를 습관화하세요` });
   }
 
   // 5. 헤드샷 또는 어시스트 또는 일관성
@@ -282,7 +359,7 @@ function getPUBGImprovements(stats, analysis) {
   if (stats.avgKills < 1.0)
     list.push({ title: '교전 참여 늘리기', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 1킬 목표. 블루존으로 이동 중인 적을 미리 포지션 잡고 기다리는 것부터 시작하세요` });
   else if (stats.avgKills < 2.0)
-    list.push({ title: '써드파티 킬 추가', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 2킬 목표. 교전 중인 두 팀이 있으면 이기는 쪽 뒤에서 기다렸다가 체력 낮은 생존자를 사냥하세요` });
+    list.push({ title: '써드파티 킬 추가', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 2킬 목표. 써드파티 — 교전 중인 두 팀이 있으면 이기는 쪽 뒤에서 기다렸다가 체력 낮은 생존자를 사냥하세요` });
   else if (stats.avgKills < 3.0)
     list.push({ title: '연속 교전 처리 능력', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 3킬 목표. 1명 처치 후 즉시 다음 타겟으로 전환하는 속도가 핵심 — 교전 후 재장전 타이밍을 항상 의식하세요` });
   else
@@ -330,11 +407,13 @@ function getPUBGImprovements(stats, analysis) {
   else if (analysis?.consistencyIndex < 60)
     list.push({ title: '컨디션 무관 루틴화', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 게임 시작 전 Training Grounds 5분 워밍업으로 컨디션 편차를 줄이면 최악의 경기 빈도가 감소합니다` });
 
+  // ── 수류탄 킬 관련 팁 (항상 추가) ──
+  list.push({ title: '건물 진입 전 투척류 선사용', desc: '건물 안으로 들어가기 전 투척류(수류탄)를 1개 먼저 던지세요. 적이 밖으로 나오거나 체력이 깎여 교전이 훨씬 유리해집니다. 루팅 시 투척류를 가장 먼저 챙기는 습관을 만드세요' });
+
   // ── 최소 4개 보장 ──
   const extras = [
-    { title: '그레네이드 적극 활용', desc: '프래그 1~2개 상시 소지 — 건물 안 적에게 투척하면 적이 나오거나 체력을 잃습니다. 교전 전 그레네이드로 유리한 상황을 만드세요' },
     { title: '차량 이동 활용', desc: '안전지대 이동 시 차량을 사용하면 블루존 피해를 줄이고 에너지드링크 소비도 절약됩니다. 차량 소리가 부담이면 시동을 끄고 내리막길 활강을 활용하세요' },
-    { title: '엄폐물 거리 유지', desc: '엄폐물에 너무 붙어있으면 그레네이드에 취약합니다. 엄폐물에서 1~2m 거리를 두고 피킹하면 반응 시간이 늘어납니다' },
+    { title: '엄폐물 거리 유지', desc: '엄폐물에 너무 붙어있으면 투척류(수류탄)에 취약합니다. 엄폐물에서 1~2m 거리를 두고 피킹(Peeking)하면 반응 시간이 늘어납니다' },
     { title: '팀원 넉다운 복구 루틴', desc: '팀원 넉다운 시 즉시 연막탄 투척 → 시야 차단 → 안전하게 부활 루틴을 팀과 공유하세요. 부활 성공률이 팀 승률에 직결됩니다' },
   ]
   let ei = 0
@@ -524,39 +603,30 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     BALANCED: 'from-violet-600 to-indigo-600',
   };
 
-  // Benchmark context for stats (백분위 섹션이 별도 존재하므로 간결한 평가어만)
   const statBenchmarks = [
     {
       label: '평균 킬',
       value: stats.avgKills.toFixed(1),
       color: 'text-red-600',
-      sub:   stats.avgKills >= 3 ? '최상위' : stats.avgKills >= 2 ? '상위권' : stats.avgKills >= 1 ? '평균' : '하위권',
-      green: stats.avgKills >= 2,
-      red:   stats.avgKills < 1,
+      pct:   getKillPercentile(stats.avgKills),
     },
     {
       label: '평균 딜량',
       value: Math.round(stats.avgDamage),
       color: 'text-orange-600',
-      sub:   stats.avgDamage >= 400 ? '최상위' : stats.avgDamage >= 280 ? '상위권' : stats.avgDamage >= 180 ? '평균' : '하위권',
-      green: stats.avgDamage >= 280,
-      red:   stats.avgDamage < 180,
+      pct:   getDmgPercentile(stats.avgDamage),
     },
     {
       label: '승률',
       value: `${stats.winRate.toFixed(1)}%`,
       color: 'text-green-600',
-      sub:   stats.winRate >= 15 ? '최상위' : stats.winRate >= 8 ? '상위권' : stats.winRate >= 4 ? '평균' : '하위권',
-      green: stats.winRate >= 8,
-      red:   stats.winRate < 3,
+      pct:   getWinPercentile(stats.winRate),
     },
     {
       label: 'Top 10',
       value: `${stats.top10Rate.toFixed(1)}%`,
       color: 'text-blue-600',
-      sub:   stats.top10Rate >= 50 ? '최상위' : stats.top10Rate >= 30 ? '상위권' : stats.top10Rate >= 20 ? '평균' : '하위권',
-      green: stats.top10Rate >= 30,
-      red:   stats.top10Rate < 15,
+      pct:   getTop10Percentile(stats.top10Rate),
     },
   ];
 
@@ -600,14 +670,12 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
 
         {/* 핵심 4개 지표 */}
         <div className="grid grid-cols-4 gap-2">
-          {statBenchmarks.map(({ label, value, color, sub, green, red }) => (
+          {statBenchmarks.map(({ label, value, color, pct }) => (
             <div key={label} className="bg-white rounded-lg p-2.5 text-center border border-gray-200">
               <div className={`text-xl font-black ${color}`}>{value}</div>
               <div className="text-xs text-gray-500 mt-0.5">{label}</div>
-              <div
-                className={`text-xs mt-0.5 ${green ? 'text-green-500' : red ? 'text-red-400' : 'text-gray-400'}`}
-              >
-                {sub}
+              <div className={`text-[11px] font-semibold mt-0.5 ${pct.color}`}>
+                {pct.label}
               </div>
             </div>
           ))}
@@ -701,14 +769,16 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
               <span className="text-xs font-bold text-orange-800">개선 우선순위</span>
             </div>
             <div className="space-y-2">
-              {improvements.slice(0, 3).map((imp, i) => (
+              {improvements.slice(0, 4).map((imp, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="w-4 h-4 bg-orange-500 text-white rounded-full text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
                     {i + 1}
                   </span>
                   <div>
                     <div className="text-xs font-bold text-orange-800">{imp.title}</div>
-                    <div className="text-xs text-orange-600">{imp.desc}</div>
+                    <div className="text-xs text-orange-600 leading-relaxed">
+                      <DescWithTerms text={imp.desc} />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -759,7 +829,7 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
                 >
                   {item.priority}
                 </span>
-                <span className="text-xs text-gray-700 leading-relaxed">{item.action}</span>
+                <span className="text-xs text-gray-700 leading-relaxed"><DescWithTerms text={item.action} /></span>
               </div>
             ))}
           </div>

@@ -11,6 +11,26 @@ const FAV_KEY    = 'pkgg_favorites';
 const SEARCH_KEY = 'pkgg_recent_searches';
 const MAX_RECENT = 8;
 
+function FaqItem({ q, a }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="bg-white/5 border border-blue-500/10 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors"
+      >
+        <span className="text-sm font-semibold text-gray-200">{q}</span>
+        <span className={`text-gray-400 transition-transform duration-200 text-xs ml-3 flex-shrink-0 ${open ? 'rotate-180' : ''}`}>▼</span>
+      </button>
+      {open && (
+        <div className="px-5 pb-4 text-sm text-gray-400 leading-relaxed border-t border-blue-500/10 pt-3">
+          {a}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function loadFavs() {
   if (typeof window === 'undefined') return [];
   try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch { return []; }
@@ -497,6 +517,34 @@ export default function Home() {
               ))}
             </div>
           </div>
+
+          {/* FAQ */}
+          <div className="w-full max-w-2xl mx-auto px-4 mt-14 mb-4">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
+              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">FAQ</h2>
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
+            </div>
+            <div className="space-y-3">
+              {[
+                {
+                  q: 'PKGG는 무료인가요?',
+                  a: '네, 완전 무료입니다. 회원가입 없이 닉네임 검색만으로 모든 기능을 이용할 수 있습니다.',
+                },
+                {
+                  q: '어떤 플랫폼을 지원하나요?',
+                  a: 'Steam, Kakao, Console(PS·Xbox) 세 가지 플랫폼을 지원합니다. 검색 시 플랫폼을 선택해 조회하세요.',
+                },
+                {
+                  q: '클랜 분석은 어떻게 사용하나요?',
+                  a: '상단 메뉴 → 클랜 분석에서 클랜명을 검색하면 멤버 스탯, 시너지 분석, 내전 기록 등을 확인할 수 있습니다.',
+                },
+              ].map((item, i) => (
+                <FaqItem key={i} q={item.q} a={item.a} />
+              ))}
+            </div>
+          </div>
+
         </main>
 
       </div>

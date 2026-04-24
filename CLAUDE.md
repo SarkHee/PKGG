@@ -184,10 +184,12 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
   - 게시글 목록 (category, 최근 목록): 미리보기 텍스트 제거 → 제목만 표시
   - 게시글 상세: 이미지 `-mx-6 w-full` 풀-와이드 렌더링
   - 글 작성: 이미지 드래그 앤 드롭 업로드 (`onDrop` → `uploadFile()`)
-- **무기 데미지 표** (`pages/weapon-damage.js`): 공식 패치노트 기반, Update 40.1 기준. 타입 필터·정렬·DPS·방어구 시뮬레이터. ⚡(최신 패치 변경) / ℹ(이전 패치 이력) 툴팁 뱃지
-  - 패치 이력 반영: U34.1(Mk12 추가), U36.1(VSS 43→45, AUG 41→40), U37.1(DMR 전체 피해량 ~12%·발사속도 ~45% 감소), U38.1(MP5K 34→32), U39.1(SLR·SKS·AUG·M416·VSS 반동 조정), U40.1(Mk12·SLR 변경)
-  - `historyNote` 필드: 이전 패치 이력 기록 → ℹ 뱃지 툴팁으로 표시
-  - RPM/DPS 컬럼 헤더 마우스오버 툴팁 설명 추가 (`Tooltip` 컴포넌트 인라인 정의)
+- **무기 데미지 표** (`pages/weapon-damage.js`): 공식 패치노트 기반, Update 41.1 기준. 타입 필터·정렬·DPS·방어구 시뮬레이터. ⚡(최신 패치 변경) / ℹ(이전 패치 이력) / 🗑️(삭제 예정) 툴팁 뱃지
+  - 패치 이력 반영: U34.1(Mk12 추가), U36.1(VSS·AUG), U37.1(DMR 전체 너프), U38.1(MP5K), U39.1(반동 조정), U40.1(Mk12·SLR), U41.1(하이브리드 스코프 추가, 틸티드 그립 추가, 앵글 손잡이 삭제, 하프 그립 버프, Dragunov 반동 감소)
+  - `deletePending: true` 필드: 42.1(2026년 6월) 삭제 예정 총기 → 🗑️ 뱃지 + 취소선. 대상: 모신 나강·R45·DP-28·PP-19 Bizon·P1911·QBU
+  - Dragunov(SVD) 신규 추가: DMR·7.62mm·damage 56·RPM 240
+  - `historyNote` 필드: 이전 패치 이력 → ℹ 툴팁
+  - RPM/DPS 컬럼 헤더 마우스오버 툴팁 (`Tooltip` 컴포넌트 인라인 정의)
 - **포럼 댓글 비밀번호 필수화**: 댓글 작성 시 삭제 비밀번호 4자 이상 필수 (게시글 동일)
 - **정보 페이지 추가**: `pages/about.js`, `pages/terms.js`, `pages/contact.js` 생성
   - Footer에 About/개인정보/이용약관/문의 링크 4개 pill 버튼 표시 (`footer.*` i18n 키)
@@ -205,3 +207,22 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - **능선 전략 시뮬레이터 추가** (`pages/battle-sim.js`): 12×8 그리드 턴제 전술 게임. setup(배치) → combat(전투) → result(분석) 화면 전환. 지형: 능선(▲ +25% 공격), 엄폐(🪨 -35% 피해). 이동/사격 액션, AI 자동 턴. Header 훈련 메뉴에 추가
 - **다크/라이트 테마 토글**: Header 🌙/☀️ 버튼. `pkgg_theme` localStorage 저장. `_app.js`에서 초기화 (저장값 → OS 설정 순). `tailwind.config.cjs` `darkMode: 'class'` 활용. `nav.playstyle_matchup` i18n 키 4개 언어 추가
 - **전체 페이지 모바일 최적화**: `_document.js` viewport meta 태그 추가(전체 사이트 핵심 수정). `PlayerHeader`: 패딩 `px-4 sm:px-8`, 아바타 `w-12 sm:w-16`, 닉네임 `text-xl sm:text-3xl`, 액션버튼 아이콘전용(모바일)/텍스트(sm+), 시즌선택 `hidden sm:block`, 스탯 그리드 `md:grid-cols-3`. `GrowthChart`: 지표카드 `min-w-[60px]`, 요약배너 flex-wrap, 차트 패딩 반응형. `compare.js`: 검색폼 `flex-col sm:flex-row`
+
+---
+
+## 알려진 버그 및 개선 대기 항목 (2026-04-24 피드백 기반)
+
+### 버그
+- **이동경로 맵 이미지 오류** (`utils/mapUtils.js`): 알 수 없는 맵코드 fallback이 항상 `/maps/erangel.jpg`. 사녹(Savage_Main) 경기에서도 에란겔 이미지 표시될 수 있음. `Heaven_Main`, `Summerland_Main`, `Chimera_Main`, `Range_Main`도 에란겔로 고정됨. `pages/api/pubg/match-telemetry.js`의 `MAP_MAX` 좌표계도 mapName 형식 불일치 시 에란겔 기준으로 계산되어 경로 좌표 오차 발생
+- **이동경로 기능 미완성**: `MatchDetailLog.jsx`에서 `match.telemetryUrl`을 사용하지만, `getServerSideProps`에서 recentMatches 데이터 구조에 `telemetryUrl` 필드가 없음 → 텔레메트리 데이터 항상 없음으로 표시됨
+
+### 개선 대기 (구현 방향)
+- **플로팅 검색창 위치 변경** (`pages/_app.js:64`): 현재 `fixed bottom-0 left-0 right-0` 중앙 하단 전역 노출. 가독성 방해 → 우측 사이드 고정 패널(`fixed right-4 bottom-24`)로 이동 권장. 접힘/펼침 토글 버튼 추가 고려
+- **딜량 상위% 표시**: `AICoachingCard.jsx`에서 avgDamage를 "평균 이상" 대신 상위 몇% 인지 표시. PUBG 공식 통계 기준 일반 스쿼드 평균딜 약 200~250, 상위 10%가 약 500+ 기준으로 percentile 구간 적용 권장
+- **AI 코칭 추천무기 세밀화**: `AICoachingCard.jsx` 무기 추천 시 실제 mastery 데이터 없는 경우에도 플레이스타일(K/D·딜량·헤드샷률)에 따라 개인화된 추천 제공. 현재 mastery 없으면 정적 M416+UMP45로 고정되는 문제
+- **AI 코칭 개선포인트 추가**:
+  - 수류탄킬 0이면 "건물 진입 전 투척류(수류탄) 선활용" 팁 추가
+  - 용어 툴팁 시스템: "그리네이드", "DBNOs", "eDPI" 등 전문용어 옆 `?` 아이콘 + 마우스오버 설명 (배린이 친화)
+- **최근 경기내역 기여도 지표**: winPlace 외 `killPlace`(킬 순위), 팀 내 딜량 기여율, 어시스트 포함 기여 킬수 표시
+- **주사용 무기 등급/상위%** (`WeaponMasteryCard.jsx`): 판수 대비 딜량·킬 기준 무기별 등급 산정 (S/A/B/C). 상위 몇% 인지 상대 지표 표시
+- **팀원 상세스탯에 MMR(PPS) 표시**: 최근 경기 teammatesDetail 섹션에서 닉네임 옆 소형 MMR 뱃지 표시. PlayerCache DB 조회 필요 (닉네임으로 `playerCache.score` 조회)

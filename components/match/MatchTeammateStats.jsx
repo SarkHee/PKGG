@@ -1,3 +1,19 @@
+function calcPerfScore(t) {
+  const dmgPts     = Math.min((t.damage || 0) / 500, 1) * 40
+  const killPts    = Math.min((t.kills || 0), 5) * 8
+  const assistPts  = Math.min((t.assists || 0), 4) * 3
+  const survivePts = Math.min((t.survivalTime || 0) / 1800, 1) * 8
+  return Math.round(dmgPts + killPts + assistPts + survivePts)
+}
+
+function getPerfGrade(score) {
+  if (score >= 70) return { grade: 'S', color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-300' }
+  if (score >= 55) return { grade: 'A', color: 'text-green-600',  bg: 'bg-green-50 border-green-300' }
+  if (score >= 40) return { grade: 'B', color: 'text-blue-600',   bg: 'bg-blue-50 border-blue-300' }
+  if (score >= 25) return { grade: 'C', color: 'text-gray-500',   bg: 'bg-gray-100 border-gray-300' }
+  return               { grade: 'D', color: 'text-red-400',    bg: 'bg-red-50 border-red-200' }
+}
+
 export default function MatchTeammateStats({ teammatesDetail, shard = 'steam' }) {
   if (!Array.isArray(teammatesDetail) || teammatesDetail.length === 0) {
     return (
@@ -6,6 +22,11 @@ export default function MatchTeammateStats({ teammatesDetail, shard = 'steam' })
       </div>
     );
   }
+
+  // 에이스: 퍼포먼스 점수 최고인 팀원 (최소 B등급 이상)
+  const scores = teammatesDetail.map((t) => calcPerfScore(t))
+  const maxScore = Math.max(...scores)
+  const aceIdx = maxScore >= 40 ? scores.indexOf(maxScore) : -1
 
   const formatSurvivalTime = (seconds) => {
     if (!seconds || seconds < 0) return '0:00';
@@ -53,10 +74,15 @@ export default function MatchTeammateStats({ teammatesDetail, shard = 'steam' })
               <th className="px-3 py-2.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">기절</th>
               <th className="px-3 py-2.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">생존</th>
               <th className="px-3 py-2.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">등수</th>
+              <th className="px-3 py-2.5 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">퍼포먼스</th>
             </tr>
           </thead>
           <tbody>
-            {teammatesDetail.map((t) => (
+            {teammatesDetail.map((t, idx) => {
+              const score = scores[idx]
+              const { grade, color, bg } = getPerfGrade(score)
+              const isAce = idx === aceIdx
+              return (
               <tr
                 key={t.name}
                 className={`border-b border-gray-100 last:border-0 transition-colors ${
@@ -75,7 +101,12 @@ export default function MatchTeammateStats({ teammatesDetail, shard = 'steam' })
                     ) : (
                       <span className="w-5 h-5 bg-gray-200 rounded-full flex-shrink-0" />
                     )}
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                      {isAce && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-yellow-400 text-white flex-shrink-0">
+                          에이스
+                        </span>
+                      )}
                       {t.clanTag && (
                         <span className="px-1.5 py-0.5 rounded text-xs bg-indigo-50 text-indigo-500 border border-indigo-100 font-medium flex-shrink-0">
                           [{t.clanTag}]
@@ -132,8 +163,18 @@ export default function MatchTeammateStats({ teammatesDetail, shard = 'steam' })
                 <td className="px-3 py-3 text-center">
                   {getRankDisplay(t.rank)}
                 </td>
+                {/* 퍼포먼스 */}
+                <td className="px-3 py-3 text-center">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className={`px-2 py-0.5 rounded border text-xs font-black ${bg} ${color}`}>
+                      {grade}
+                    </span>
+                    <span className="text-[10px] text-gray-400">{score}점</span>
+                  </div>
+                </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>

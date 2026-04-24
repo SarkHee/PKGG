@@ -49,6 +49,7 @@ function FloatingFavorites() {
 function FloatingSearch() {
   const [nick, setNick] = useState('');
   const [srv, setSrv] = useState('steam');
+  const [open, setOpen] = useState(false);
   const router = useRouter();
   const { t } = useT();
 
@@ -57,39 +58,49 @@ function FloatingSearch() {
     if (nick.trim()) {
       router.push(`/player/${srv}/${encodeURIComponent(nick.trim())}`);
       setNick('');
+      setOpen(false);
     }
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-10 px-4 pointer-events-none">
-      <form
-        onSubmit={handleSubmit}
-        className="pointer-events-auto flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-2 shadow-lg w-full max-w-md"
+    <div className="fixed left-4 bottom-8 z-50 flex flex-col items-start gap-2 pointer-events-none">
+      {open && (
+        <div className="pointer-events-auto w-52 bg-white border border-gray-200 rounded-2xl p-3 shadow-xl">
+          <div className="text-xs font-bold text-gray-500 mb-2">🔍 플레이어 검색</div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <select
+              value={srv}
+              onChange={(e) => setSrv(e.target.value)}
+              className="w-full bg-gray-50 text-gray-600 text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 outline-none cursor-pointer"
+            >
+              <option value="steam">Steam</option>
+              <option value="kakao">Kakao</option>
+              <option value="console">Console</option>
+            </select>
+            <input
+              type="text"
+              placeholder={t('search.placeholder')}
+              value={nick}
+              onChange={(e) => setNick(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-400"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs transition-colors"
+            >
+              {t('search.button')}
+            </button>
+          </form>
+        </div>
+      )}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="pointer-events-auto w-11 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center text-lg transition-colors self-start"
+        title="플레이어 검색"
       >
-        <select
-          value={srv}
-          onChange={(e) => setSrv(e.target.value)}
-          className="bg-transparent text-gray-600 text-xs font-bold border-none outline-none cursor-pointer"
-        >
-          <option value="steam">Steam</option>
-          <option value="kakao">Kakao</option>
-          <option value="console">Console</option>
-        </select>
-        <div className="w-px h-4 bg-gray-200" />
-        <input
-          type="text"
-          placeholder={t('search.placeholder')}
-          value={nick}
-          onChange={(e) => setNick(e.target.value)}
-          className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 text-sm outline-none min-w-0"
-        />
-        <button
-          type="submit"
-          className="flex-shrink-0 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-sm transition-colors"
-        >
-          {t('search.button')}
-        </button>
-      </form>
+        {open ? '✕' : '🔍'}
+      </button>
     </div>
   );
 }

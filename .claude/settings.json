@@ -36,7 +36,10 @@
       "Bash(node --input-type=module --eval \"import\\(''/dev/null''\\)\")",
       "Bash(npx --no-install next build --no-lint)",
       "Bash(while read:*)",
-      "Bash(do sed:*)"
+      "Bash(do sed:*)",
+      "Bash(getent services *)",
+      "Read(//private/etc/**)",
+      "Bash(ps -p 10447 -p 10487 -o pid,command)"
     ],
     "additionalDirectories": [
       "/Users/mac/Desktop/PKGG/PUBG 서바이버/Berserker (버서커) — AKM, HP 50% 이하 분노 🔥",

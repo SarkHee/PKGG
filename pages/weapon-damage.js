@@ -4,13 +4,14 @@ import Head from 'next/head';
 import Header from '../components/layout/Header';
 
 // ─── 최신 패치 기준 정보 ─────────────────────────────────
-const LATEST_PATCH = 'Update 40.1';
-const LATEST_PATCH_DATE = '2026.02.04 PC 적용';
+const LATEST_PATCH = 'Update 41.1';
+const LATEST_PATCH_DATE = '2026.04 PC 적용';
 const DATA_SOURCE = '공식 패치노트 기반';
 
 // ─── 무기 데이터 ────────────────────────────────────────
-// changed: true     → 최신 패치(40.1)에서 변경된 항목 (노란 강조)
-// historyNote       → 이전 패치에서의 변경 이력 (ℹ 툴팁으로 표시)
+// changed: true       → 최신 패치(41.1)에서 변경된 항목 (노란 강조)
+// historyNote         → 이전 패치에서의 변경 이력 (ℹ 툴팁으로 표시)
+// deletePending: true → Update 42.1(2026년 6월) 삭제 예정 (🗑️ 표시)
 const WEAPON_DATA = [
   // ── 돌격소총 (AR) ──
   { name: 'Mk47 Mutant',  type: 'AR',  damage: 49, rpm: 360,  magBase: 20, magExt: 30,  modes: 'Semi / 2점사', caliber: '7.62mm', dataFrom: 'Update 28.1' },
@@ -36,7 +37,9 @@ const WEAPON_DATA = [
   { name: 'SLR',          type: 'DMR', damage: 56, rpm: 400,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '7.62mm', dataFrom: 'Update 40.1', changed: true, changeNote: '수평 반동 약 4% 추가 감소', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수직·수평 반동 각 5% 감소' },
   { name: 'SKS',          type: 'DMR', damage: 53, rpm: 400,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '7.62mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수평 반동 10% 감소' },
   { name: 'Mini14',       type: 'DMR', damage: 48, rpm: 600,  magBase: 20, magExt: 30,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
-  { name: 'QBU',          type: 'DMR', damage: 48, rpm: 600,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
+  { name: 'QBU',          type: 'DMR', damage: 48, rpm: 600,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
+  // 드라구노프: U37.1 피해량 너프 적용, 발사속도 조정은 제외 · U41.1 수직/수평 반동 감소
+  { name: 'Dragunov',     type: 'DMR', damage: 56, rpm: 240,  magBase: 10, magExt: 20,  modes: '반자동',         caliber: '7.62mm', dataFrom: 'Update 41.1', changed: true, changeNote: '수직 반동 20% 감소, 수평 반동 15% 감소', historyNote: 'U37.1: 피해량 ~12% 감소 (발사속도 조정 제외)' },
   { name: 'Mk12',         type: 'DMR', damage: 43, rpm: 600,  magBase: 20, magExt: 30,  modes: '반자동',         caliber: '5.56mm', dataFrom: 'Update 40.1', changed: true, changeNote: '피해량 44→43, 수평 반동 8% 증가', historyNote: 'U34.1: 신규 추가 · U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
   // VSS: U36.1에서 피해량 43→45 버프, U37.1 DMR 너프 제외, U39.1 반동 조정
   { name: 'VSS',          type: 'DMR', damage: 45, rpm: 700,  magBase: 10, magExt: 20,  modes: 'Semi / 완전자동', caliber: '9mm',    dataFrom: 'Update 36.1', historyNote: 'U36.1: 피해량 43→45 버프 (U37.1 DMR 너프 제외) · U39.1: 수직 반동 10%, 수평 반동 5% 증가' },
@@ -46,14 +49,14 @@ const WEAPON_DATA = [
   { name: 'AWM',          type: 'SR',  damage: 105, rpm: 50,  magBase: 5,  magExt: null, modes: '볼트액션', caliber: '.300 Mag',   dataFrom: 'Update 28.1' },
   { name: 'Crossbow',     type: 'SR',  damage: 105, rpm: 25,  magBase: 1,  magExt: null, modes: '단발',     caliber: '볼트',       dataFrom: 'Update 28.1' },
   { name: 'Kar98k',       type: 'SR',  damage: 79,  rpm: 47,  magBase: 5,  magExt: null, modes: '볼트액션', caliber: '7.62mm',     dataFrom: 'Update 28.1' },
-  { name: 'Mosin-Nagant', type: 'SR',  damage: 79,  rpm: 50,  magBase: 5,  magExt: null, modes: '볼트액션', caliber: '7.62mm',     dataFrom: 'Update 28.1' },
+  { name: 'Mosin-Nagant', type: 'SR',  damage: 79,  rpm: 50,  magBase: 5,  magExt: null, modes: '볼트액션', caliber: '7.62mm',     dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'M24',          type: 'SR',  damage: 75,  rpm: 67,  magBase: 5,  magExt: null, modes: '볼트액션', caliber: '7.62mm',     dataFrom: 'Update 28.1' },
   { name: 'Win94',        type: 'SR',  damage: 66,  rpm: 55,  magBase: 8,  magExt: null, modes: '레버액션', caliber: '.45 ACP',    dataFrom: 'Update 28.1' },
 
   // ── 기관단총 (SMG) ──
   { name: 'UMP45',        type: 'SMG', damage: 41, rpm: 600,  magBase: 25, magExt: 35,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1' },
   { name: 'Tommy Gun',    type: 'SMG', damage: 40, rpm: 750,  magBase: 30, magExt: 50,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1' },
-  { name: 'PP-19 Bizon',  type: 'SMG', damage: 36, rpm: 800,  magBase: 53, magExt: null, modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1' },
+  { name: 'PP-19 Bizon',  type: 'SMG', damage: 36, rpm: 800,  magBase: 53, magExt: null, modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'P90',          type: 'SMG', damage: 35, rpm: 900,  magBase: 40, magExt: 50,  modes: '완전자동', caliber: '5.7mm',   dataFrom: 'Update 28.1' },
   // MP5K: U38.1에서 피해량 34→32 너프
   { name: 'MP5K',         type: 'SMG', damage: 32, rpm: 900,  magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 38.1', historyNote: 'U38.1: 피해량 34→32 너프' },
@@ -62,7 +65,7 @@ const WEAPON_DATA = [
   { name: 'Micro UZI',    type: 'SMG', damage: 26, rpm: 1200, magBase: 25, magExt: 35,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1' },
 
   // ── 경기관총 (LMG) ──
-  { name: 'DP-28',        type: 'LMG', damage: 52, rpm: 550,  magBase: 47, magExt: null, modes: '완전자동',          caliber: '7.62mm', dataFrom: 'Update 28.1' },
+  { name: 'DP-28',        type: 'LMG', damage: 52, rpm: 550,  magBase: 47, magExt: null, modes: '완전자동',          caliber: '7.62mm', dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'MG3',          type: 'LMG', damage: 42, rpm: 660,  magBase: 75, magExt: null, modes: '완전자동 (660/990)', caliber: '7.62mm', dataFrom: 'Update 28.1' },
   { name: 'M249',         type: 'LMG', damage: 41, rpm: 750,  magBase: 75, magExt: 100,  modes: '완전자동',          caliber: '5.56mm', dataFrom: 'Update 28.1' },
 
@@ -75,10 +78,10 @@ const WEAPON_DATA = [
   { name: 'Sawed-Off',    type: 'SGN', damage: 21, rpm: 150, magBase: 2,  magExt: null, modes: '이중 총신',  caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
 
   // ── 권총 (PST) ──
-  { name: 'R45',          type: 'PST', damage: 65, rpm: 180,  magBase: 6,  magExt: null, modes: '단발',     caliber: '.45 ACP',   dataFrom: 'Update 28.1' },
+  { name: 'R45',          type: 'PST', damage: 65, rpm: 180,  magBase: 6,  magExt: null, modes: '단발',     caliber: '.45 ACP',   dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'R1895',        type: 'PST', damage: 64, rpm: 150,  magBase: 7,  magExt: null, modes: '단발',     caliber: '7.62mm',    dataFrom: 'Update 28.1' },
   { name: 'Desert Eagle', type: 'PST', damage: 62, rpm: 300,  magBase: 7,  magExt: null, modes: '단발',     caliber: '.357 Mag',  dataFrom: 'Update 28.1' },
-  { name: 'P1911',        type: 'PST', damage: 42, rpm: 450,  magBase: 7,  magExt: 13,  modes: '단발',     caliber: '.45 ACP',   dataFrom: 'Update 28.1' },
+  { name: 'P1911',        type: 'PST', damage: 42, rpm: 450,  magBase: 7,  magExt: 13,  modes: '단발',     caliber: '.45 ACP',   dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'P92',          type: 'PST', damage: 34, rpm: 450,  magBase: 15, magExt: 20,  modes: '단발',     caliber: '9mm',       dataFrom: 'Update 28.1' },
   { name: 'P18C',         type: 'PST', damage: 23, rpm: 1100, magBase: 17, magExt: 25,  modes: '완전자동', caliber: '9mm',       dataFrom: 'Update 28.1' },
   { name: 'Skorpion',     type: 'PST', damage: 22, rpm: 1100, magBase: 20, magExt: 35,  modes: '완전자동', caliber: '.32 ACP',   dataFrom: 'Update 28.1' },
@@ -125,9 +128,9 @@ function Tooltip({ text, children }) {
   return (
     <span className="relative group/tip inline-flex items-center">
       {children}
-      <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-xs text-gray-200 leading-relaxed opacity-0 group-hover/tip:opacity-100 transition-opacity z-50 shadow-xl whitespace-normal text-left">
+      <span className="pointer-events-none absolute bottom-full left-0 mb-2 w-80 max-w-xs px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-xs text-gray-200 leading-relaxed opacity-0 group-hover/tip:opacity-100 transition-opacity z-50 shadow-xl whitespace-normal text-left">
         {text}
-        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+        <span className="absolute top-full left-4 border-4 border-transparent border-t-gray-700" />
       </span>
     </span>
   );
@@ -170,9 +173,42 @@ function ArmorSelector({ label, value, onChange, color }) {
 // ─── 패치 노트 이력 ──────────────────────────────────────
 const PATCH_NOTES = [
   {
+    version: 'Update 41.1',
+    date: '2026.04',
+    isLatest: true,
+    sections: [
+      {
+        title: '신규 부착물',
+        items: [
+          { weapon: '하이브리드 스코프', changes: ['신규 스코프 추가', '1배율 ↔ 4배율 즉시 전환 가능', '조준기 상태 변경 키로 배율 전환', '근거리·중거리 유연한 대응 가능'] },
+          { weapon: '틸티드 그립 (신규 손잡이)', changes: ['수직 반동 제어 +12%', '수평 반동 제어 +6%', '사격 시 시야 흔들림 제어 +25%'] },
+        ],
+      },
+      {
+        title: '부착물 밸런스 조정',
+        items: [
+          { weapon: '앵글 손잡이', changes: ['전장에서 삭제됨', '수평 반동 제어 역할이 하프 그립으로 통합됨'] },
+          { weapon: '하프 그립', changes: ['수평 반동 제어 +8% → +16% (버프)'] },
+        ],
+      },
+      {
+        title: '무기 밸런스',
+        items: [
+          { weapon: 'Dragunov', changes: ['수직 반동 20% 감소', '수평 반동 15% 감소'] },
+        ],
+      },
+      {
+        title: '삭제 예정 안내 (Update 42.1 · 2026년 6월)',
+        items: [
+          { weapon: '삭제 대상 6종', changes: ['모신 나강 (SR)', 'R45 (PST)', 'DP-28 (LMG)', 'PP-19 Bizon (SMG)', 'P1911 (PST)', 'QBU (DMR)', '사유: 사용률 저조 및 부주류 총기 정리'] },
+        ],
+      },
+    ],
+  },
+  {
     version: 'Update 40.1',
     date: '2026.02.04',
-    isLatest: true,
+    isLatest: false,
     sections: [
       {
         title: '무기 밸런스',
@@ -286,7 +322,7 @@ export default function WeaponDamage() {
   const [search, setSearch] = useState('');
   const [armorLevel, setArmorLevel] = useState(0);
   const [helmetLevel, setHelmetLevel] = useState(0);
-  const [openPatches, setOpenPatches]   = useState(['Update 40.1']);
+  const [openPatches, setOpenPatches]   = useState(['Update 41.1']);
   const [compareMode, setCompareMode]   = useState(false);
   const [compareSet, setCompareSet]     = useState(new Set());
 
@@ -334,6 +370,7 @@ export default function WeaponDamage() {
 
   // 최신 패치 변경 무기 수
   const changedCount = filtered.filter((w) => w.changed).length;
+  const deletePendingCount = WEAPON_DATA.filter((w) => w.deletePending).length;
 
   return (
     <>
@@ -372,6 +409,9 @@ export default function WeaponDamage() {
                 ⚡ 이번 패치 변경 {changedCount}건
               </span>
             )}
+            <span className="px-3 py-1.5 bg-red-950/50 border border-red-800/50 rounded-full text-xs text-red-400 font-semibold">
+              🗑️ 삭제 예정 {deletePendingCount}종 (42.1 · 2026년 6월)
+            </span>
           </div>
 
           {/* 검색 + 비교 모드 버튼 */}
@@ -508,6 +548,8 @@ export default function WeaponDamage() {
                         className={`border-b border-gray-800/80 transition-colors ${
                           compareSet.has(w.name)
                             ? 'bg-emerald-950/20 hover:bg-emerald-950/30'
+                            : w.deletePending
+                            ? 'bg-red-950/10 hover:bg-red-950/20'
                             : w.changed
                             ? 'bg-yellow-950/20 hover:bg-yellow-950/30'
                             : i % 2 === 0
@@ -530,7 +572,16 @@ export default function WeaponDamage() {
                         {/* 무기명 */}
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-white text-sm">{w.name}</span>
+                            <span className={`font-semibold text-sm ${w.deletePending ? 'text-gray-400 line-through decoration-red-500' : 'text-white'}`}>
+                              {w.name}
+                            </span>
+                            {w.deletePending && (
+                              <Tooltip text={w.deletePendingNote || 'Update 42.1(2026년 6월)에서 삭제 예정'}>
+                                <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 rounded text-red-400 text-xs font-bold flex-shrink-0 cursor-help">
+                                  🗑️
+                                </span>
+                              </Tooltip>
+                            )}
                             {w.changed && (
                               <Tooltip text={`${LATEST_PATCH}: ${w.changeNote || ''}`}>
                                 <span className="px-1.5 py-0.5 bg-yellow-500/20 border border-yellow-500/40 rounded text-yellow-400 text-xs font-bold flex-shrink-0 cursor-help">
@@ -637,6 +688,7 @@ export default function WeaponDamage() {
                 <span>• DPS = (데미지 × RPM) ÷ 60 / 이동·반동 미적용</span>
                 <span className="text-yellow-500">• ⚡: {LATEST_PATCH} 패치 변경 항목 (마우스 올리면 상세 확인)</span>
                 <span className="text-blue-400/60">• ℹ: 이전 패치 이력 (마우스 올리면 확인)</span>
+                <span className="text-red-400/70">• 🗑️: Update 42.1(2026년 6월) 삭제 예정 총기 (마우스 올리면 확인)</span>
               </div>
             </div>
           </div>

@@ -2,7 +2,51 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Header from '../../components/layout/Header';
 
+const CHANGELOG = [
+  {
+    date: '2026.04',
+    items: [
+      { icon: '📊', text: '경기 상세 분석 — 팀원별 퍼포먼스 점수 및 에이스 표시' },
+      { icon: '🔫', text: '주사용 무기 — 숙련도 등급 산출 기능 추가' },
+      { icon: '📈', text: '성장 추적 차트 위치 개편 (퍼포먼스 리포트 하단으로 이동)' },
+      { icon: '💡', text: 'AI 코칭 — 딜량 상위% 표시 및 개선 포인트 강화' },
+      { icon: '🔍', text: '플레이어 검색창 측면 고정 패널로 개편' },
+    ],
+  },
+  {
+    date: '2026.03',
+    items: [
+      { icon: '🗺️', text: '무기 데미지 표 — Update 41.1 패치 내용 반영' },
+      { icon: '👥', text: '경기 내역 — 팀원 상세 스탯 테이블 추가' },
+      { icon: '🏆', text: '클랜 내전 기록 기능 추가' },
+      { icon: '⭐', text: '플레이어 리뷰 시스템 추가' },
+      { icon: '🎯', text: '피킹 트레이너 미니게임 추가' },
+    ],
+  },
+  {
+    date: '2026.02',
+    items: [
+      { icon: '🌙', text: '다크/라이트 테마 토글 지원' },
+      { icon: '📱', text: '전체 페이지 모바일 최적화' },
+      { icon: '🌐', text: '다국어 지원 (한/영/일/중)' },
+      { icon: '📊', text: '플레이어 비교 페이지 추가' },
+      { icon: '🏅', text: '공개 클랜 디렉토리 추가' },
+    ],
+  },
+  {
+    date: '2026.01',
+    items: [
+      { icon: '🤖', text: 'AI 코칭 시스템 출시' },
+      { icon: '📈', text: '성장 추적 차트 추가' },
+      { icon: '🔫', text: '무기 성향 테스트 v2 업데이트' },
+      { icon: '🎮', text: '에임 트레이너·반동 퀴즈 등 훈련 도구 추가' },
+      { icon: '💬', text: '커뮤니티 포럼 오픈' },
+    ],
+  },
+];
+
 export default function NoticesPage() {
+  const [tab, setTab] = useState('notices');
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({});
@@ -88,37 +132,82 @@ export default function NoticesPage() {
                   사이트 업데이트 및 공지사항을 확인하세요
                 </p>
               </div>
+            </div>
 
-              {/* 필터 */}
-              <div className="mt-4 sm:mt-0 flex gap-2">
-                <select
-                  value={filter.type}
-                  onChange={(e) =>
-                    setFilter((prev) => ({ ...prev, type: e.target.value }))
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            {/* 탭 */}
+            <div className="flex gap-1 mt-4 bg-gray-100 rounded-lg p-1 w-fit">
+              {[
+                { key: 'notices', label: '📋 공지사항' },
+                { key: 'changelog', label: '🆕 업데이트 기록' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${
+                    tab === key
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
                 >
-                  <option value="">전체 유형</option>
-                  <option value="UPDATE">기능 업데이트</option>
-                  <option value="MAINTENANCE">점검 공지</option>
-                  <option value="EVENT">이벤트</option>
-                  <option value="GENERAL">일반 공지</option>
-                </select>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                <select
-                  value={filter.priority}
-                  onChange={(e) =>
-                    setFilter((prev) => ({ ...prev, priority: e.target.value }))
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-                >
-                  <option value="">전체 우선순위</option>
-                  <option value="HIGH">높음</option>
-                  <option value="NORMAL">보통</option>
-                  <option value="LOW">낮음</option>
-                </select>
+          {/* 업데이트 기록 탭 */}
+          {tab === 'changelog' && (
+            <div className="px-6 py-6">
+              <div className="space-y-8">
+                {CHANGELOG.map((release) => (
+                  <div key={release.date} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 flex-shrink-0" />
+                      <div className="w-0.5 bg-gray-200 flex-1 mt-1" />
+                    </div>
+                    <div className="pb-2 flex-1">
+                      <div className="text-sm font-bold text-blue-600 mb-2">{release.date}</div>
+                      <ul className="space-y-1.5">
+                        {release.items.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                            <span className="flex-shrink-0">{item.icon}</span>
+                            <span>{item.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
+
+          {/* 공지사항 탭 */}
+          {tab === 'notices' && <>
+
+          {/* 필터 */}
+          <div className="px-6 py-3 border-b border-gray-100 flex gap-2">
+            <select
+              value={filter.type}
+              onChange={(e) => setFilter((prev) => ({ ...prev, type: e.target.value }))}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="">전체 유형</option>
+              <option value="UPDATE">기능 업데이트</option>
+              <option value="MAINTENANCE">점검 공지</option>
+              <option value="EVENT">이벤트</option>
+              <option value="GENERAL">일반 공지</option>
+            </select>
+            <select
+              value={filter.priority}
+              onChange={(e) => setFilter((prev) => ({ ...prev, priority: e.target.value }))}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="">전체 우선순위</option>
+              <option value="HIGH">높음</option>
+              <option value="NORMAL">보통</option>
+              <option value="LOW">낮음</option>
+            </select>
           </div>
 
           <div className="divide-y divide-gray-200">
@@ -265,9 +354,10 @@ export default function NoticesPage() {
               </div>
             </div>
           )}
+          </>}
+
         </div>
       </main>
-
     </div>
   );
 }
