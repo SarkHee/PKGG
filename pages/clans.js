@@ -111,6 +111,7 @@ export default function ClansDirectory() {
   const [clans, setClans]       = useState([]);
   const [total, setTotal]       = useState(0);
   const [page, setPage]         = useState(1);
+  const [shard, setShard]       = useState('steam');
   const [region, setRegion]     = useState('all');
   const [query, setQuery]       = useState('');
   const [search, setSearch]     = useState('');
@@ -119,11 +120,12 @@ export default function ClansDirectory() {
 
   const LIMIT = 20;
 
-  const fetchClans = useCallback(async (pg = 1, reg = region, q = search) => {
+  const fetchClans = useCallback(async (pg = 1, reg = region, q = search, sh = shard) => {
     setLoading(true);
     setError('');
     try {
       const params = new URLSearchParams({ page: pg, limit: LIMIT });
+      if (sh !== 'all') params.set('shard', sh);
       if (reg !== 'all') params.set('region', reg);
       if (q) params.set('q', q);
 
@@ -138,16 +140,16 @@ export default function ClansDirectory() {
     } finally {
       setLoading(false);
     }
-  }, [region, search]);
+  }, [region, search, shard]);
 
   useEffect(() => {
-    fetchClans(1, region, search);
-  }, [region]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchClans(1, region, search, shard);
+  }, [region, shard]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = (e) => {
     e.preventDefault();
     setSearch(query);
-    fetchClans(1, region, query);
+    fetchClans(1, region, query, shard);
   };
 
   const totalPages = Math.ceil(total / LIMIT);
@@ -170,6 +172,27 @@ export default function ClansDirectory() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">🏘️ {t('clans.title')}</h1>
             <p className="text-sm text-gray-500 mt-1">{t('clans.subtitle')}</p>
+          </div>
+
+          {/* 플랫폼 탭 */}
+          <div className="flex gap-2 mb-4">
+            {[
+              { key: 'steam', label: '🖥 Steam 클랜' },
+              { key: 'kakao', label: '🟡 카카오 클랜' },
+              { key: 'all',   label: '전체' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => { setShard(key); setPage(1); }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors border ${
+                  shard === key
+                    ? 'bg-blue-600 text-white border-blue-500'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* 필터 바 */}

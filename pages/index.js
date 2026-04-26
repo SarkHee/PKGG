@@ -12,21 +12,12 @@ const SEARCH_KEY = 'pkgg_recent_searches';
 const MAX_RECENT = 8;
 
 function FaqItem({ q, a }) {
-  const [open, setOpen] = useState(false);
   return (
     <div className="bg-white/5 border border-blue-500/10 rounded-xl overflow-hidden">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/5 transition-colors"
-      >
-        <span className="text-sm font-semibold text-gray-200">{q}</span>
-        <span className={`text-gray-400 transition-transform duration-200 text-xs ml-3 flex-shrink-0 ${open ? 'rotate-180' : ''}`}>▼</span>
-      </button>
-      {open && (
-        <div className="px-5 pb-4 text-sm text-gray-400 leading-relaxed border-t border-blue-500/10 pt-3">
-          {a}
-        </div>
-      )}
+      <div className="px-5 py-4">
+        <h3 className="text-sm font-semibold text-gray-200 mb-2">{q}</h3>
+        <p className="text-sm text-gray-400 leading-relaxed">{a}</p>
+      </div>
     </div>
   );
 }
@@ -518,8 +509,31 @@ export default function Home() {
             </div>
           </div>
 
+          {/* PKGG란? */}
+          <div className="w-full max-w-2xl mx-auto px-4 mt-14 mb-10">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
+              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">PKGG란?</h2>
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
+            </div>
+            <div className="bg-white/5 border border-blue-500/10 rounded-xl px-6 py-5 space-y-3 text-sm text-gray-400 leading-relaxed">
+              <p>
+                <strong className="text-gray-200">PKGG(PK.GG)</strong>는 PUBG(배틀그라운드) 플레이어를 위한 무료 전적 조회 및 분석 플랫폼입니다. 닉네임 하나만 입력하면 시즌 통계, 랭크 정보, 무기 숙련도, 플레이스타일 분석까지 한눈에 확인할 수 있습니다.
+              </p>
+              <p>
+                단순한 K/D 조회를 넘어, <strong className="text-gray-200">PKGG MMR(PPS)</strong>이라는 자체 지표로 플레이어의 종합 실력을 수치화합니다. 딜량·생존·승률·어시스트 등 6가지 지표를 정규화해 Bronze부터 Legend까지 7단계 티어로 표현합니다.
+              </p>
+              <p>
+                클랜 기능도 강력합니다. 클랜원 전체 스탯 비교, 시너지 히트맵, 스쿼드 자동 편성, 내전 기록 관리까지 지원합니다. 공개 클랜 디렉토리에서 MMR 랭킹 순으로 전국 클랜을 탐색할 수도 있습니다.
+              </p>
+              <p>
+                그 외에도 에임 트레이너, 반동 패턴 시뮬레이터, 크로스헤어 배치 트레이너, 피킹 트레이너 등 실력 향상을 위한 미니게임과 훈련 도구를 무료로 제공합니다. PUBG 공식 API 데이터를 기반으로 하며, 회원가입 없이 누구나 이용 가능합니다.
+              </p>
+            </div>
+          </div>
+
           {/* FAQ */}
-          <div className="w-full max-w-2xl mx-auto px-4 mt-14 mb-4">
+          <div className="w-full max-w-2xl mx-auto px-4 mt-4 mb-4">
             <div className="flex items-center justify-center gap-3 mb-6">
               <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
               <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">FAQ</h2>
@@ -529,15 +543,27 @@ export default function Home() {
               {[
                 {
                   q: 'PKGG는 무료인가요?',
-                  a: '네, 완전 무료입니다. 회원가입 없이 닉네임 검색만으로 모든 기능을 이용할 수 있습니다.',
+                  a: '네, 완전 무료입니다. 회원가입·로그인 없이 닉네임 검색만으로 전적 조회, 클랜 분석, 훈련 도구 등 모든 기능을 이용할 수 있습니다.',
                 },
                 {
                   q: '어떤 플랫폼을 지원하나요?',
-                  a: 'Steam, Kakao, Console(PS·Xbox) 세 가지 플랫폼을 지원합니다. 검색 시 플랫폼을 선택해 조회하세요.',
+                  a: 'Steam, Kakao, Console(PS·Xbox) 세 가지 플랫폼을 지원합니다. 검색창에서 플랫폼을 선택한 뒤 닉네임을 입력하면 해당 플랫폼의 데이터를 불러옵니다.',
+                },
+                {
+                  q: 'PKGG MMR(PPS)은 어떻게 계산되나요?',
+                  a: 'K/D, 딜량, 승률, Top10 진입률, 어시스트, 생존시간 6가지 지표를 0~1 범위로 정규화한 뒤 가중 합산해 1000~2500 범위로 환산합니다. 공식 랭크와는 별개로 실력을 종합적으로 나타내는 PKGG 자체 지표입니다.',
                 },
                 {
                   q: '클랜 분석은 어떻게 사용하나요?',
-                  a: '상단 메뉴 → 클랜 분석에서 클랜명을 검색하면 멤버 스탯, 시너지 분석, 내전 기록 등을 확인할 수 있습니다.',
+                  a: '상단 메뉴 → 클랜 분석에서 클랜명을 검색하면 멤버 스탯 비교, 시너지 히트맵, 스쿼드 자동 편성, 내전 기록 등을 확인할 수 있습니다. 공개 클랜은 /clans 페이지에서 MMR 랭킹 순으로 탐색할 수도 있습니다.',
+                },
+                {
+                  q: '데이터는 얼마나 자주 업데이트되나요?',
+                  a: '플레이어 정보는 조회 시점 기준으로 PUBG 공식 API에서 실시간으로 가져옵니다. 클랜 멤버 일괄 업데이트는 주기적인 배치 작업으로 진행됩니다.',
+                },
+                {
+                  q: '훈련 도구에는 어떤 것들이 있나요?',
+                  a: '에임 트레이너(반응속도·플리커·이동타겟), 반동 패턴 시뮬레이터, 크로스헤어 배치 트레이너, 피킹 트레이너, 낙하 지점 계산기, 감도 분석기, 반동 퀴즈 등을 무료로 제공합니다. 모두 브라우저에서 바로 실행되며 별도 설치가 필요 없습니다.',
                 },
               ].map((item, i) => (
                 <FaqItem key={i} q={item.q} a={item.a} />

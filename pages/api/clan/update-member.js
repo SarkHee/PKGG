@@ -5,14 +5,13 @@ import prisma from '../../../utils/prisma.js';
 import { calculateMMR } from '../../../utils/mmrCalculator';
 const PUBG_API_KEY = process.env.PUBG_API_KEY;
 const PUBG_BASE_URL = 'https://api.pubg.com/shards';
-const PUBG_SHARD = 'steam';
 
-async function getPubgStats(nickname) {
+async function getPubgStats(nickname, shard = 'steam') {
   if (!PUBG_API_KEY) return null;
   try {
     // 1. 플레이어 ID 조회
     const playerRes = await fetch(
-      `${PUBG_BASE_URL}/${PUBG_SHARD}/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
+      `${PUBG_BASE_URL}/${shard}/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
       {
         headers: {
           Authorization: `Bearer ${PUBG_API_KEY}`,
@@ -36,7 +35,7 @@ async function getPubgStats(nickname) {
     const matchDetails = await Promise.all(
       matchIds.map(async (matchId) => {
         const matchRes = await fetch(
-          `${PUBG_BASE_URL}/${PUBG_SHARD}/matches/${matchId}`,
+          `${PUBG_BASE_URL}/${shard}/matches/${matchId}`,
           {
             headers: {
               Authorization: `Bearer ${PUBG_API_KEY}`,
@@ -175,15 +174,18 @@ export default async function handler(req, res) {
   const members = await prisma.clanMember.findMany({ where: { nickname } });
   console.log(
     '[update-member] 찾은 멤버:',
-    members.map((m) => ({ id: m.id, nickname: m.nickname, clanId: m.clanId }))
+    members.map((m) => ({ id: m.id, nickname: m.nickname, clanId: m.clanId, shard: m.pubgShardId }))
   );
   if (!members || members.length === 0) {
     console.log('[update-member] DB에 멤버 없음');
     return res.status(404).json({ error: '멤버 없음' });
   }
 
+  // 멤버의 shard 결정 (DB에 저장된 값 우선, 없으면 steam)
+  const memberShard = members[0]?.pubgShardId || 'steam';
+
   // PUBG API에서 최신 통계 가져오기
-  const stats = await getPubgStats(nickname);
+  const stats = await getPubgStats(nickname, memberShard);
   console.log('[update-member] getPubgStats 결과:', stats);
   if (!stats) {
     console.log('[update-member] PUBG API에서 통계 불러오기 실패');

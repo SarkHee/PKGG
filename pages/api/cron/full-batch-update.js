@@ -10,7 +10,7 @@ import { cachedPubgFetch, TTL } from '../../../utils/pubgApiCache.js';
 import { fetchClanMembersBatch } from '../../../utils/pubgBatchApi.js';
 
 const MAX_MS    = 250_000; // 250초 (Vercel Pro 300s 기준 안전 마진)
-const SHARD     = 'steam';
+const DEFAULT_SHARD = 'steam';
 
 export default async function handler(req, res) {
   // Vercel Cron 인증
@@ -24,13 +24,18 @@ export default async function handler(req, res) {
   console.log('⏰ [FullBatch] 시작:', new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }));
 
   try {
-    // 현재 시즌 조회
-    const seasonData = await cachedPubgFetch(
-      `https://api.pubg.com/shards/${SHARD}/seasons`,
-      { ttl: TTL.SEASON }
-    );
-    const currentSeason = seasonData?.data?.find(s => s.attributes?.isCurrentSeason);
-    if (!currentSeason) throw new Error('현재 시즌을 찾을 수 없습니다.');
+    // 샤드별 현재 시즌 캐시
+    const seasonCache = {};
+    async function getSeasonForShard(shard) {
+      if (seasonCache[shard]) return seasonCache[shard];
+      const data = await cachedPubgFetch(
+        `https://api.pubg.com/shards/${shard}/seasons`,
+        { ttl: TTL.SEASON }
+      );
+      const season = data?.data?.find(s => s.attributes?.isCurrentSeason);
+      seasonCache[shard] = season;
+      return season;
+    }
 
     // 클랜 목록 — lastSynced 오래된 순으로 처리 (공평하게 순환)
     const clans = await prisma.clan.findMany({
@@ -55,11 +60,26 @@ export default async function handler(req, res) {
 
       if (members.length === 0) continue;
 
-      const memberNames = members.map(m => m.nickname);
+      // 멤버별 shard 그룹핑 (kakao/steam 혼재 가능)
+      const shardGroups = {};
+      for (const m of members) {
+        const shard = m.pubgShardId || DEFAULT_SHARD;
+        if (!shardGroups[shard]) shardGroups[shard] = [];
+        shardGroups[shard].push(m);
+      }
 
       try {
-        // PUBG API 배치 조회
-        const memberData = await fetchClanMembersBatch(SHARD, memberNames, currentSeason.id);
+        const allMemberData = {};
+        for (const [shard, shardMembers] of Object.entries(shardGroups)) {
+          const currentSeason = await getSeasonForShard(shard);
+          if (!currentSeason) { console.warn(`[FullBatch] ${shard} 시즌 없음`); continue; }
+          const memberNames = shardMembers.map(m => m.nickname);
+          // PUBG API 배치 조회
+          const memberData = await fetchClanMembersBatch(shard, memberNames, currentSeason.id);
+          Object.assign(allMemberData, memberData);
+        }
+        const memberData = allMemberData;
+        const memberNames = members.map(m => m.nickname);
 
         for (const [nickname, data] of Object.entries(memberData)) {
           if (data.error) { log.errors++; continue; }
@@ -111,7 +131,7 @@ export default async function handler(req, res) {
             await prisma.playerStatSnapshot.create({
               data: {
                 nickname,
-                pubgShardId: SHARD,
+                pubgShardId: member.pubgShardId || DEFAULT_SHARD,
                 score,
                 avgDamage:      Math.round(avgDamage),
                 avgKills:       parseFloat(avgKills.toFixed(2)),

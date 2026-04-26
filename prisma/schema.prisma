@@ -24,6 +24,7 @@ model Clan {
   region            String?
   isKorean          Boolean?
   shardDistribution String?
+  shard             String       @default("steam")
   members           ClanMember[]
 }
 
@@ -272,7 +273,9 @@ model CoachingTip {
 
 model User {
   id            Int      @id @default(autoincrement())
-  steamId       String   @unique
+  steamId       String?  @unique
+  kakaoId       String?  @unique
+  platform      String   @default("steam")
   pubgNickname  String?
   pubgAccountId String?
   clanId        Int?

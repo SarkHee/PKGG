@@ -59,6 +59,7 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
             pubgClanLevel: attrs.clanLevel,
             pubgMemberCount: attrs.clanMemberCount,
             memberCount: attrs.clanMemberCount || 0,
+            shard,
             lastSynced: new Date(),
           },
           create: {
@@ -69,6 +70,7 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
             pubgClanTag: attrs.clanTag,
             pubgClanLevel: attrs.clanLevel,
             pubgMemberCount: attrs.clanMemberCount || 0,
+            shard,
             lastSynced: new Date(),
           },
         });
@@ -327,8 +329,74 @@ function ModeStatsTabs({ modeStats }) {
   );
 }
 
-export default function PlayerPage({ playerData, error, dataSource }) {
+function PlayerSkeleton() {
+  return (
+    <div className="min-h-screen bg-gray-900 animate-pulse">
+      <div className="max-w-5xl mx-auto px-4 pt-6 space-y-4">
+        {/* 헤더 스켈레톤 */}
+        <div className="bg-gray-800 rounded-2xl p-6 flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-gray-700 flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-6 bg-gray-700 rounded w-40" />
+            <div className="h-4 bg-gray-700 rounded w-24" />
+          </div>
+          <div className="h-10 w-24 bg-gray-700 rounded-lg" />
+        </div>
+        {/* 스탯 카드 스켈레톤 */}
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-gray-800 rounded-xl p-4 space-y-2">
+              <div className="h-3 bg-gray-700 rounded w-12" />
+              <div className="h-6 bg-gray-700 rounded w-16" />
+            </div>
+          ))}
+        </div>
+        {/* 매치 리스트 스켈레톤 */}
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-gray-800 rounded-xl p-4 flex items-center gap-4">
+              <div className="w-12 h-12 bg-gray-700 rounded-lg flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-700 rounded w-32" />
+                <div className="h-3 bg-gray-700 rounded w-48" />
+              </div>
+              <div className="h-8 w-16 bg-gray-700 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PLAYER_CACHE_TTL = 5 * 60 * 1000; // 5분
+
+function getCachedPlayer(key) {
+  try {
+    const raw = sessionStorage.getItem(`pkgg_player_${key}`);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > PLAYER_CACHE_TTL) {
+      sessionStorage.removeItem(`pkgg_player_${key}`);
+      return null;
+    }
+    return data;
+  } catch { return null; }
+}
+
+function setCachedPlayer(key, data) {
+  try {
+    sessionStorage.setItem(`pkgg_player_${key}`, JSON.stringify({ data, ts: Date.now() }));
+  } catch {}
+}
+
+export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
   const router = useRouter();
+  const { server, nickname } = router.query;
+  const cacheKey = `${server}_${nickname}`;
+
+  const [playerData, setPlayerData] = useState(ssrData);
+  const [pageLoading, setPageLoading] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const detailRef = useRef(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -339,6 +407,43 @@ export default function PlayerPage({ playerData, error, dataSource }) {
     'division.bro.official.pc-2024-01'
   );
   const [selectedMatchFilter, setSelectedMatchFilter] = useState('전체');
+
+  // SSR 데이터를 세션 캐시에 저장
+  useEffect(() => {
+    if (ssrData && cacheKey) setCachedPlayer(cacheKey, ssrData);
+  }, [ssrData, cacheKey]);
+
+  // 클라이언트 사이드 캐시: 세션에 있으면 즉시 표시
+  useEffect(() => {
+    if (!ssrData && cacheKey) {
+      const cached = getCachedPlayer(cacheKey);
+      if (cached) setPlayerData(cached);
+    }
+  }, [cacheKey, ssrData]);
+
+  useEffect(() => {
+    const handleStart = (url) => {
+      if (url !== router.asPath) setPageLoading(true);
+    };
+    const handleDone = () => setPageLoading(false);
+    router.events.on('routeChangeStart', handleStart);
+    router.events.on('routeChangeComplete', handleDone);
+    router.events.on('routeChangeError', handleDone);
+    return () => {
+      router.events.off('routeChangeStart', handleStart);
+      router.events.off('routeChangeComplete', handleDone);
+      router.events.off('routeChangeError', handleDone);
+    };
+  }, [router]);
+
+  if (pageLoading) {
+    return (
+      <>
+        <Header />
+        <PlayerSkeleton />
+      </>
+    );
+  }
 
   // 더보기 관련 상태
   const [extraMatches, setExtraMatches] = useState([]);

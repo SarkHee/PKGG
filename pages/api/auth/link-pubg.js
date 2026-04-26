@@ -12,12 +12,14 @@ export default async function handler(req, res) {
   const { nickname } = req.body;
   if (!nickname?.trim()) return res.status(400).json({ error: '닉네임을 입력하세요' });
 
+  const shard = session.platform === 'kakao' ? 'kakao' : 'steam';
+
   // 1. PUBG API로 accountId 조회
   let pubgAccountId = null;
   let pubgClanId = null;
   try {
     const response = await fetch(
-      `https://api.pubg.com/shards/steam/players?filter[playerNames]=${encodeURIComponent(nickname.trim())}`,
+      `https://api.pubg.com/shards/${shard}/players?filter[playerNames]=${encodeURIComponent(nickname.trim())}`,
       { headers: { Authorization: `Bearer ${PUBG_API_KEY}`, Accept: 'application/vnd.api+json' } },
     );
     if (response.ok) {
@@ -59,10 +61,11 @@ export default async function handler(req, res) {
         pubgAccountId: pubgAccountId || null,
         clanId: clanId || null,
       },
+      select: { id: true, steamId: true, kakaoId: true, platform: true, role: true, pubgNickname: true },
     });
 
-    // 세션 갱신 (clanId 포함)
-    setSession(res, { userId: user.id, steamId: user.steamId, role: user.role });
+    // 세션 갱신
+    setSession(res, { userId: user.id, steamId: user.steamId, kakaoId: user.kakaoId, platform: user.platform, role: user.role });
     return res.status(200).json({ ok: true, pubgNickname: user.pubgNickname, clanId });
   } catch {
     return res.status(500).json({ error: 'DB 업데이트 실패' });

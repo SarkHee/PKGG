@@ -28,11 +28,12 @@ function clanAvgMMR(members) {
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
 
-  const { region, q, page = '1', limit = '20' } = req.query;
+  const { region, q, page = '1', limit = '20', shard } = req.query;
   const take = Math.min(parseInt(limit, 10) || 20, 50);
   const pageNum = Math.max(parseInt(page, 10) || 1, 1);
 
   const where = { NOT: { name: '무소속' } };
+  if (shard && shard !== 'all') where.shard = shard;
   if (region && region !== 'all') where.region = region;
   if (q) where.name = { contains: q, mode: 'insensitive' };
 

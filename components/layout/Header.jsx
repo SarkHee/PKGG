@@ -154,13 +154,26 @@ export default function Header() {
 
             {/* 오른쪽: 언어 + 로그인 */}
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
-              {/* Steam 로그인 / 유저 정보 */}
+              {/* 로그인 / 유저 정보 */}
               {user === undefined ? null : user ? (
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-green-50 border border-green-200">
-                    <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                    <span className="text-xs font-semibold text-green-700 max-w-[100px] truncate">
-                      {user.pubgNickname || 'Steam 유저'}
+                  <div className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border ${
+                    user.platform === 'kakao'
+                      ? 'bg-yellow-50 border-yellow-300'
+                      : 'bg-green-50 border-green-200'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      user.platform === 'kakao' ? 'bg-yellow-400' : 'bg-green-500'
+                    }`} />
+                    <span className={`text-xs font-semibold max-w-[100px] truncate ${
+                      user.platform === 'kakao' ? 'text-yellow-700' : 'text-green-700'
+                    }`}>
+                      {user.pubgNickname || (user.platform === 'kakao' ? '카카오 유저' : 'Steam 유저')}
+                    </span>
+                    <span className={`text-[10px] font-medium ${
+                      user.platform === 'kakao' ? 'text-yellow-500' : 'text-green-400'
+                    }`}>
+                      {user.platform === 'kakao' ? 'KA' : 'ST'}
                     </span>
                   </div>
                   <button
@@ -171,15 +184,26 @@ export default function Header() {
                   </button>
                 </div>
               ) : (
-                <a
-                  href="/api/auth/steam-login"
-                  className="h-9 flex items-center gap-2 px-3 rounded-lg bg-[#1b2838] hover:bg-[#2a475e] text-white text-xs font-semibold transition-colors border border-[#1b2838]"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.373 0 0 5.373 0 12c0 5.623 3.872 10.328 9.092 11.63L9.086 12H12v-1.5c0-.828.672-1.5 1.5-1.5S15 9.672 15 10.5V12h1.5c.828 0 1.5.672 1.5 1.5 0 .796-.622 1.45-1.406 1.496L18 24c3.534-1.257 6-4.649 6-8.5C24 10.745 18.627 0 12 0z"/>
-                  </svg>
-                  Steam 로그인
-                </a>
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href="/api/auth/steam-login"
+                    className="h-9 flex items-center gap-1.5 px-3 rounded-lg bg-[#1b2838] hover:bg-[#2a475e] text-white text-xs font-semibold transition-colors border border-[#1b2838]"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.373 0 0 5.373 0 12c0 5.623 3.872 10.328 9.092 11.63L9.086 12H12v-1.5c0-.828.672-1.5 1.5-1.5S15 9.672 15 10.5V12h1.5c.828 0 1.5.672 1.5 1.5 0 .796-.622 1.45-1.406 1.496L18 24c3.534-1.257 6-4.649 6-8.5C24 10.745 18.627 0 12 0z"/>
+                    </svg>
+                    Steam
+                  </a>
+                  <a
+                    href="/api/auth/kakao-login"
+                    className="h-9 flex items-center gap-1.5 px-3 rounded-lg bg-[#FEE500] hover:bg-[#F0D800] text-[#3C1E1E] text-xs font-semibold transition-colors border border-[#FEE500]"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 3C6.477 3 2 6.477 2 10.8c0 2.707 1.566 5.09 3.938 6.548L5 21l4.188-2.188C10.065 19.258 11.012 19.4 12 19.4c5.523 0 10-3.478 10-7.8C22 6.477 17.523 3 12 3z"/>
+                    </svg>
+                    카카오
+                  </a>
+                </div>
               )}
 
               {/* 다크/라이트 테마 토글 */}

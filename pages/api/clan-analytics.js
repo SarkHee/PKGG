@@ -201,12 +201,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { region, isKorean, search } = req.query;
+    const { region, isKorean, search, shard } = req.query;
 
-    console.log('🔍 Query parameters:', { region, isKorean, search });
+    console.log('🔍 Query parameters:', { region, isKorean, search, shard });
 
     // 기본 조건
     let whereCondition = {};
+
+    // 플랫폼 필터링 (steam / kakao)
+    if (shard && shard !== 'all') {
+      whereCondition.shard = shard;
+    }
 
     // 지역 필터링
     if (region && region !== 'ALL') {

@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { id: true, steamId: true, pubgNickname: true, pubgAccountId: true, clanId: true, role: true },
+      select: { id: true, steamId: true, kakaoId: true, platform: true, pubgNickname: true, pubgAccountId: true, clanId: true, role: true },
     });
     return res.status(200).json({ user });
   } catch {

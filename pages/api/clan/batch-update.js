@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       currentSeason.id
     );
 
-    // 클랜 정보 조회
+    // 클랜 정보 조회 + shard 동기화
     const clan = await prisma.clan.findUnique({
       where: { name: clanName },
     });
@@ -66,6 +66,12 @@ export default async function handler(req, res) {
     if (!clan) {
       throw new Error(`클랜 '${clanName}'을 찾을 수 없습니다.`);
     }
+
+    // 클랜 shard 갱신 (요청 shard 기준)
+    await prisma.clan.update({
+      where: { id: clan.id },
+      data: { shard },
+    });
 
     // 모든 멤버 DB 일괄 조회 (N+1 방지)
     const allExistingMembers = await prisma.clanMember.findMany({

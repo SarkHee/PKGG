@@ -264,6 +264,7 @@ export default function ClanAnalytics() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState(null);
   const [showSearchResult, setShowSearchResult] = useState(false);
+  const [selectedShard, setSelectedShard] = useState(null); // null = 로그인 후 자동 결정
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const [isKoreanOnly, setIsKoreanOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -282,15 +283,28 @@ export default function ClanAnalytics() {
     }
   }, []);
 
+  // 로그인 상태 확정 후 shard 자동 설정 (undefined=로딩중, null=비로그인, object=로그인)
   useEffect(() => {
-    fetchAnalytics();
-    setCurrentPage(1);
-  }, [selectedRegion, isKoreanOnly]);
+    if (user === undefined) return; // 아직 로딩 중
+    if (user === null) {
+      setSelectedShard(prev => prev === null ? 'steam' : prev); // 비로그인 → steam 기본값
+    } else {
+      setSelectedShard(user.platform || 'steam'); // 로그인 → 플랫폼에 맞게
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (selectedShard !== null) {
+      fetchAnalytics();
+      setCurrentPage(1);
+    }
+  }, [selectedShard, selectedRegion, isKoreanOnly]);
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
+      if (selectedShard && selectedShard !== 'all') params.append('shard', selectedShard);
       if (selectedRegion !== 'ALL') params.append('region', selectedRegion);
       if (isKoreanOnly) params.append('isKorean', 'true');
       const response = await fetch(`/api/clan-analytics?${params.toString()}`);
@@ -453,17 +467,28 @@ export default function ClanAnalytics() {
             </div>
             <h2 className="text-lg font-bold text-white mb-2">로그인이 필요합니다</h2>
             <p className="text-sm text-gray-400 mb-6 leading-relaxed">
-              Steam 로그인 후 내 클랜의 상세 데이터를<br />전체 열람할 수 있습니다.
+              로그인하면 내 플랫폼의 클랜 데이터를<br />바로 확인할 수 있습니다.
             </p>
-            <a
-              href="/api/auth/steam-login"
-              className="flex items-center justify-center gap-2.5 w-full px-5 py-3 bg-[#1b2838] hover:bg-[#2a475e] text-white text-sm font-semibold rounded-xl transition-colors border border-[#2a475e]"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.373 0 0 5.373 0 12c0 5.623 3.872 10.328 9.092 11.63L9.086 12H12v-1.5c0-.828.672-1.5 1.5-1.5S15 9.672 15 10.5V12h1.5c.828 0 1.5.672 1.5 1.5 0 .796-.622 1.45-1.406 1.496L18 24c3.534-1.257 6-4.649 6-8.5C24 10.745 18.627 0 12 0z"/>
-              </svg>
-              Steam으로 로그인
-            </a>
+            <div className="flex flex-col gap-3">
+              <a
+                href="/api/auth/steam-login"
+                className="flex items-center justify-center gap-2.5 w-full px-5 py-3 bg-[#1b2838] hover:bg-[#2a475e] text-white text-sm font-semibold rounded-xl transition-colors border border-[#2a475e]"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 5.623 3.872 10.328 9.092 11.63L9.086 12H12v-1.5c0-.828.672-1.5 1.5-1.5S15 9.672 15 10.5V12h1.5c.828 0 1.5.672 1.5 1.5 0 .796-.622 1.45-1.406 1.496L18 24c3.534-1.257 6-4.649 6-8.5C24 10.745 18.627 0 12 0z"/>
+                </svg>
+                Steam으로 로그인
+              </a>
+              <a
+                href="/api/auth/kakao-login"
+                className="flex items-center justify-center gap-2.5 w-full px-5 py-3 bg-[#FEE500] hover:bg-[#F0D800] text-[#3C1E1E] text-sm font-semibold rounded-xl transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.667 1.567 5.01 3.938 6.394L5 21l4.563-2.418A11.2 11.2 0 0 0 12 18c5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/>
+                </svg>
+                카카오로 로그인
+              </a>
+            </div>
           </div>
         </div>
       )}
@@ -499,6 +524,32 @@ export default function ClanAnalytics() {
               </Link>
             </div>
           )}
+
+          {/* 플랫폼 탭 */}
+          <div className="flex gap-2 mb-4 items-center">
+            {[
+              { key: 'steam',  label: '🖥 Steam 클랜' },
+              { key: 'kakao',  label: '🟡 카카오 클랜' },
+              { key: 'all',    label: '전체' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => { setSelectedShard(key); setCurrentPage(1); }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors border ${
+                  selectedShard === key
+                    ? 'bg-blue-600 text-white border-blue-500'
+                    : 'bg-gray-900 text-gray-400 border-gray-700 hover:border-gray-500'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+            {user && (
+              <span className="ml-2 text-xs text-gray-500">
+                {user.platform === 'kakao' ? '🟡 카카오 계정으로 로그인됨' : '🖥 Steam 계정으로 로그인됨'}
+              </span>
+            )}
+          </div>
 
           {/* 필터 & 검색 */}
           <div className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-5">

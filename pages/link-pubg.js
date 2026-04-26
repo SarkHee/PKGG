@@ -6,6 +6,8 @@ import Image from 'next/image';
 
 export default function LinkPubg() {
   const router = useRouter();
+  const platform = router.query.platform || 'steam';
+  const isKakao = platform === 'kakao';
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +29,7 @@ export default function LinkPubg() {
         setError(data.error || '연결 실패');
       } else {
         setResult(data);
-        setTimeout(() => router.push('/'), 2000);
+        setTimeout(() => router.push('/clan-analytics'), 2000);
       }
     } catch {
       setError('서버 오류가 발생했습니다');
@@ -48,7 +50,10 @@ export default function LinkPubg() {
           <div className="text-center mb-8">
             <Image src="/logo.png" alt="PKGG" width={120} height={68} className="mx-auto mb-4" />
             <h1 className="text-2xl font-black text-white">PUBG 계정 연결</h1>
-            <p className="text-gray-400 text-sm mt-2">Steam 로그인이 완료되었습니다.<br/>PUBG 닉네임을 입력해 클랜 데이터를 연결하세요.</p>
+            <p className="text-gray-400 text-sm mt-2">
+              {isKakao ? '카카오 로그인이 완료되었습니다.' : 'Steam 로그인이 완료되었습니다.'}<br/>
+              PUBG {isKakao ? '카카오' : 'Steam'} 닉네임을 입력해 클랜 데이터를 연결하세요.
+            </p>
           </div>
 
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
@@ -65,7 +70,7 @@ export default function LinkPubg() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">
-                    PUBG 닉네임 (Steam)
+                    PUBG 닉네임 ({isKakao ? '카카오' : 'Steam'})
                   </label>
                   <input
                     type="text"
