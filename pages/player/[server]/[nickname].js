@@ -1,24 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
 import { calculateMMR } from '../../../utils/mmrCalculator';
 
-import PlayerDashboard from '../../../components/player/PlayerDashboard';
-import ModeDistributionChart from '../../../components/charts/ModeDistributionChart';
-import RecentDamageTrendChart from '../../../components/charts/RecentDamageTrendChart';
-import MatchListRow from '../../../components/match/MatchListRow';
-import SeasonStatsTabs from '../../../components/SeasonStatsTabs';
-import RankDistributionChart from '../../../components/charts/RankDistributionChart';
-import SynergyHeatmap from '../../../components/charts/SynergyHeatmap';
 import Header from '../../../components/layout/Header';
-import EnhancedPlayerStats from '../../../components/player/EnhancedPlayerStats';
 import PlayerHeader from '../../../components/player/PlayerHeader';
-import MatchDetailExpandable from '../../../components/match/MatchDetailExpandable';
-import AICoachingCard from '../../../components/player/AICoachingCard';
-import PlayerPercentileCard from '../../../components/player/PlayerPercentileCard';
-import WeaponMasteryCard from '../../../components/player/WeaponMasteryCard';
-import GrowthChart from '../../../components/player/GrowthChart';
+import MatchListRow from '../../../components/match/MatchListRow';
 import AdUnit from '../../../components/AdUnit';
+
+// 무거운 컴포넌트 lazy load → 초기 JS 번들 분리, LCP 차단 제거
+const PlayerDashboard       = dynamic(() => import('../../../components/player/PlayerDashboard'), { ssr: false });
+const ModeDistributionChart = dynamic(() => import('../../../components/charts/ModeDistributionChart'), { ssr: false });
+const RecentDamageTrendChart= dynamic(() => import('../../../components/charts/RecentDamageTrendChart'), { ssr: false });
+const SeasonStatsTabs       = dynamic(() => import('../../../components/SeasonStatsTabs'), { ssr: false });
+const RankDistributionChart = dynamic(() => import('../../../components/charts/RankDistributionChart'), { ssr: false });
+const SynergyHeatmap        = dynamic(() => import('../../../components/charts/SynergyHeatmap'), { ssr: false });
+const EnhancedPlayerStats   = dynamic(() => import('../../../components/player/EnhancedPlayerStats'), { ssr: false });
+const MatchDetailExpandable = dynamic(() => import('../../../components/match/MatchDetailExpandable'), { ssr: false });
+const WeaponMasteryCard     = dynamic(() => import('../../../components/player/WeaponMasteryCard'), { ssr: false, loading: () => <div className="h-40 bg-gray-100 animate-pulse rounded-xl" /> });
+const GrowthChart           = dynamic(() => import('../../../components/player/GrowthChart'), { ssr: false, loading: () => <div className="h-48 bg-gray-100 animate-pulse rounded-xl" /> });
+const AICoachingCard        = dynamic(() => import('../../../components/player/AICoachingCard'), { ssr: false, loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-xl" /> });
+const PlayerPercentileCard  = dynamic(() => import('../../../components/player/PlayerPercentileCard'), { ssr: false, loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-xl" /> });
 
 // 반드시 export default 함수 바깥에 위치!
 function MatchList({ recentMatches, playerData }) {
@@ -397,6 +400,10 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
   const [playerData, setPlayerData] = useState(ssrData);
   const [pageLoading, setPageLoading] = useState(false);
+  // SSR에서 매치를 빼고 클라이언트에서 로드 → LCP 개선
+  const [matchesLoading, setMatchesLoading] = useState(
+    !ssrData?.recentMatches?.length
+  );
   const [selectedMatchId, setSelectedMatchId] = useState(null);
   const detailRef = useRef(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -412,6 +419,37 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
   useEffect(() => {
     if (ssrData && cacheKey) setCachedPlayer(cacheKey, ssrData);
   }, [ssrData, cacheKey]);
+
+  // 클라이언트에서 초기 매치 로딩 (SSR에서 매치 제거로 LCP 개선)
+  useEffect(() => {
+    if (ssrData?.recentMatches?.length > 0) {
+      setMatchesLoading(false);
+      return;
+    }
+    const nick = ssrData?.profile?.nickname;
+    const shard = ssrData?.profile?.shardId || server || 'steam';
+    if (!nick) { setMatchesLoading(false); return; }
+
+    const matchCacheKey = `matches_${shard}_${nick}`;
+    const cachedMatches = getCachedPlayer(matchCacheKey);
+    if (cachedMatches) {
+      setPlayerData(prev => prev ? { ...prev, recentMatches: cachedMatches } : prev);
+      setMatchesLoading(false);
+      return;
+    }
+
+    fetch(`/api/matches/load-more?nickname=${encodeURIComponent(nick)}&shard=${shard}&offset=0&limit=10`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.matches?.length > 0) {
+          setPlayerData(prev => prev ? { ...prev, recentMatches: data.matches } : prev);
+          setCachedPlayer(matchCacheKey, data.matches);
+        }
+      })
+      .catch(e => console.warn('초기 매치 로드 실패:', e))
+      .finally(() => setMatchesLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 클라이언트 사이드 캐시: 세션에 있으면 즉시 표시
   useEffect(() => {
@@ -436,6 +474,20 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
     };
   }, [router]);
 
+  // 더보기 관련 상태 — early return 이전에 선언해야 훅 규칙 준수
+  const [extraMatches, setExtraMatches] = useState([]);
+  const [matchOffset, setMatchOffset] = useState(10);
+  const [noMoreMatches, setNoMoreMatches] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  // 쿨타임 타이머 — early return 이전에 위치해야 훅 규칙 준수
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setInterval(() => setCooldown((c) => c - 1), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [cooldown]);
+
   if (pageLoading) {
     return (
       <>
@@ -444,14 +496,6 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
       </>
     );
   }
-
-  // 더보기 관련 상태
-  const [extraMatches, setExtraMatches] = useState([]);
-  const [matchOffset, setMatchOffset] = useState(
-    () => (playerData?.recentMatches?.length || 10)
-  );
-  const [noMoreMatches, setNoMoreMatches] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
 
   const handleLoadMore = async () => {
     if (loadingMore || noMoreMatches) return;
@@ -476,14 +520,6 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
       setLoadingMore(false);
     }
   };
-
-  // 쿨타임 타이머
-  useEffect(() => {
-    if (cooldown > 0) {
-      const timer = setInterval(() => setCooldown((c) => c - 1), 1000);
-      return () => clearInterval(timer);
-    }
-  }, [cooldown]);
 
   // 시즌 변경 핸들러
   const handleSeasonChange = (seasonId, seasonData) => {
@@ -1051,11 +1087,11 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
           <meta property="og:url" content={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
           <meta property="og:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`} />
           <meta property="og:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
-          <meta property="og:image" content="https://pk.gg/og.png" />
+          <meta property="og:image" content="https://pk.gg/og-image.png" />
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`} />
           <meta name="twitter:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
-          <meta name="twitter:image" content="https://pk.gg/og.png" />
+          <meta name="twitter:image" content="https://pk.gg/og-image.png" />
           <link rel="canonical" href={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
         </Head>
 
@@ -1428,7 +1464,20 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
             </div>
 
             <div className="p-4">
-              {filteredMatches && filteredMatches.length > 0 ? (
+              {matchesLoading ? (
+                <div className="space-y-3 animate-pulse">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-32" />
+                        <div className="h-3 bg-gray-200 rounded w-48" />
+                      </div>
+                      <div className="h-8 w-16 bg-gray-200 rounded" />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredMatches && filteredMatches.length > 0 ? (
                 <MatchList
                   recentMatches={filteredMatches}
                   playerData={playerData}
@@ -1755,15 +1804,24 @@ export async function getServerSideProps({ params, query }) {
   const { server, nickname } = params;
   const forceRefresh = query.force === '1';
   const { calculateMMR: calcMMR } = require('../../../utils/mmrCalculator');
-  const { cachedPubgFetch, TTL, PubgApiError } = require('../../../utils/pubgApiCache');
+  const { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache } = require('../../../utils/pubgApiCache');
   const PUBG_BASE = 'https://api.pubg.com/shards';
   const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
-  // ── DB 우선 캐시 (force=1이면 무조건 API 호출) ──
+  // ── 1순위: 인메모리 닉네임 캐시 (5분, PUBG API + DB 완전 스킵) ──
+  if (!forceRefresh) {
+    const memCached = getPlayerDataCache(nickname, server);
+    if (memCached) {
+      return { props: { playerData: memCached, error: null, dataSource: 'memory_cache' } };
+    }
+  }
+
+  // ── 2순위: DB 캐시 (force=1이면 무조건 API 호출) ──
   if (!forceRefresh) {
     const cached = await getPlayerFromDB(nickname, server);
     if (cached) {
       console.log(`✅ DB 캐시 사용: ${nickname}`);
+      setPlayerDataCache(nickname, cached.profile?.shardId || server, cached);
       return { props: { playerData: cached, error: null, dataSource: 'database' } };
     }
   }
@@ -1971,158 +2029,9 @@ export async function getServerSideProps({ params, query }) {
       }
     }
 
-    // Step 4: PUBG API에서 최근 매치 직접 조회 (초기 10경기만, 더보기는 /api/matches/load-more)
-    let recentMatches = [];
-    const allMatchIds = (pubgPlayer.relationships?.matches?.data || []).map(m => m.id);
-    const initialMatchIds = allMatchIds.slice(0, 10);
-    if (initialMatchIds.length > 0) {
-      try {
-        console.log(`⚙️ 최근 매치 ${initialMatchIds.length}개 병렬 조회 중...`);
-        const matchResults = await Promise.allSettled(
-          initialMatchIds.map(matchId =>
-            cachedPubgFetch(
-              `${PUBG_BASE}/${pubgShard}/matches/${matchId}`,
-              { ttl: TTL.MATCH, force: false } // 매치는 불변 데이터 → force bypass 없음
-            )
-          )
-        );
-        recentMatches = matchResults
-          .filter(r => r.status === 'fulfilled')
-          .map(r => {
-            const data = r.value; // cachedPubgFetch는 이미 파싱된 JSON
-            const matchId = data.data.id;
-            const attrs = data.data.attributes;
-            const included = data.included || [];
-            const participants = included.filter(i => i.type === 'participant');
-            const rosters     = included.filter(i => i.type === 'roster');
-
-            const me = participants.find(p =>
-              p.attributes.stats.name?.toLowerCase() === nickname.toLowerCase()
-            );
-            if (!me) return null;
-
-            // 내 로스터(팀) 찾기 → 팀원 목록 추출
-            const myRoster = rosters.find(r =>
-              r.relationships?.participants?.data?.some(ref => ref.id === me.id)
-            );
-            const teammateRefs = myRoster?.relationships?.participants?.data || [{ id: me.id }];
-            const teammatesDetail = teammateRefs
-              .map(ref => participants.find(p => p.id === ref.id))
-              .filter(Boolean)
-              .map(t => {
-                const ts = t.attributes.stats;
-                return {
-                  name: ts.name,
-                  kills: ts.kills || 0,
-                  assists: ts.assists || 0,
-                  damage: Math.round(ts.damageDealt || 0),
-                  dbnos: ts.DBNOs || 0,
-                  survivalTime: ts.timeSurvived || 0,
-                  rank: ts.winPlace || 0,
-                  isSelf: t.id === me.id,
-                };
-              })
-              .sort((a, b) => {
-                if (a.isSelf) return -1;
-                if (b.isSelf) return 1;
-                return b.damage - a.damage;
-              });
-
-            const s = me.attributes.stats;
-            return {
-              matchId,
-              mode: attrs.gameMode,        // squad, squad-fpp, duo 등 모드 유형
-              matchType: attrs.matchType,  // official(일반), ranked(경쟁전), casual, event
-              mapName: attrs.mapName,
-              placement: s.winPlace || 0,
-              kills: s.kills || 0,
-              assists: s.assists || 0,
-              damage: Math.round(s.damageDealt || 0),
-              surviveTime: s.timeSurvived || 0,
-              matchTimestamp: attrs.createdAt || new Date().toISOString(),
-              teammatesDetail,
-            };
-          })
-          .filter(m => m !== null);
-        console.log(`✅ 매치 조회 완료: ${recentMatches.length}개`);
-      } catch (e) {
-        console.warn('매치 API 조회 실패:', e.message);
-      }
-    }
-    // DB 캐시 폴백 (API 실패 또는 매치 없는 경우)
-    if (recentMatches.length === 0) {
-      try {
-        const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
-        const cached = await prisma.clanMember.findFirst({
-          where: { pubgPlayerId: pubgPlayer.id },
-          include: { matches: { orderBy: { createdAt: 'desc' }, take: 20 } },
-        });
-        if (cached?.matches?.length > 0) {
-          recentMatches = cached.matches.map(m => ({
-            matchId: m.matchId,
-            mode: m.mode,
-            mapName: m.mapName,
-            placement: m.placement,
-            kills: m.kills,
-            assists: m.assists,
-            damage: m.damage,
-            surviveTime: m.surviveTime,
-            matchTimestamp: m.createdAt ? m.createdAt.toISOString() : new Date().toISOString(),
-          }));
-        }
-        await prisma.$disconnect();
-      } catch (e) {
-        console.warn('DB 매치 캐시 조회 실패:', e.message);
-      }
-    }
-
-    // Step 4.5: teammate 클랜 정보 DB 조회 (추가 API 호출 없이)
-    try {
-      const allTeammateNames = [
-        ...new Set(
-          recentMatches.flatMap((m) =>
-            (m.teammatesDetail || [])
-              .filter((t) => !t.isSelf)
-              .map((t) => t.name)
-          )
-        ),
-      ];
-      if (allTeammateNames.length > 0) {
-        const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
-        const teammateRows = await prisma.clanMember.findMany({
-          where: { nickname: { in: allTeammateNames, mode: 'insensitive' } },
-          select: { nickname: true, pubgClanId: true, clan: { select: { name: true, pubgClanTag: true, pubgClanId: true } } },
-        });
-        await prisma.$disconnect();
-
-        // nickname.toLowerCase() → clan 정보 맵
-        const clanMap = {};
-        for (const row of teammateRows) {
-          // pubgClanId 교차 검증: 멤버의 pubgClanId가 클랜의 pubgClanId와 일치해야 함
-          if (row.clan && row.pubgClanId && row.clan.pubgClanId === row.pubgClanId) {
-            clanMap[row.nickname.toLowerCase()] = {
-              clanTag: row.clan.pubgClanTag || '',
-              clanName: row.clan.name || '',
-            };
-          }
-        }
-
-        // 각 매치의 teammatesDetail에 클랜 정보 주입
-        for (const match of recentMatches) {
-          if (Array.isArray(match.teammatesDetail)) {
-            match.teammatesDetail = match.teammatesDetail.map((t) => ({
-              ...t,
-              ...(clanMap[t.name?.toLowerCase()] || {}),
-            }));
-          }
-        }
-        console.log(`✅ teammate 클랜 정보 조회: ${Object.keys(clanMap).length}명 매칭`);
-      }
-    } catch (e) {
-      console.warn('teammate 클랜 조회 실패:', e.message);
-    }
+    // Step 4: 매치는 클라이언트에서 비동기 로딩 (LCP 개선)
+    // 매치 10개 병렬 API 조회를 SSR에서 제거 → HTML 즉시 전송 후 client에서 /api/matches/load-more 호출
+    const recentMatches = [];
 
     // Step 5: API 기반 playerData 구성
     const playerData = {
@@ -2201,6 +2110,11 @@ export async function getServerSideProps({ params, query }) {
       } catch (e) {
         console.warn('클랜 멤버 DB 조회 실패:', e.message);
       }
+    }
+
+    // PUBG API 결과를 5분 인메모리 캐시에 저장 (Rate Limit 절약)
+    if (!forceRefresh) {
+      setPlayerDataCache(playerData.profile.nickname, pubgShard, playerData);
     }
 
     return {

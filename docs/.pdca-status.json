@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-04-26T10:30:42.668Z",
+  "lastUpdated": "2026-04-26T11:49:17.509Z",
   "activeFeatures": [
     "PKGG",
     "clan",
@@ -28,7 +28,8 @@
     "settings-share",
     "debug",
     "match",
-    "scripts"
+    "scripts",
+    "donations"
   ],
   "primaryFeature": "PKGG",
   "features": {
@@ -41,9 +42,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:15:14.704Z",
-        "lastUpdated": "2026-04-26T10:06:02.915Z"
+        "lastUpdated": "2026-04-26T11:41:10.331Z"
       },
-      "lastFile": "/Users/bag-isag/Desktop/PKGG/pages/link-pubg.js"
+      "lastFile": "/Users/bag-isag/Desktop/PKGG/pages/index.js"
     },
     "clan": {
       "phase": "do",
@@ -67,7 +68,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:49:35.047Z",
-        "lastUpdated": "2026-04-26T10:30:42.668Z"
+        "lastUpdated": "2026-04-26T11:49:17.509Z"
       },
       "lastFile": "/Users/bag-isag/Desktop/PKGG/components/layout/Header.jsx"
     },
@@ -145,9 +146,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-03T01:59:53.144Z",
-        "lastUpdated": "2026-04-24T06:55:15.046Z"
+        "lastUpdated": "2026-04-26T10:51:07.675Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/notices/index.js"
+      "lastFile": "/Users/bag-isag/Desktop/PKGG/pages/notices/index.js"
     },
     "player": {
       "phase": "do",
@@ -223,9 +224,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-04T01:07:03.631Z",
-        "lastUpdated": "2026-03-04T01:07:12.129Z"
+        "lastUpdated": "2026-04-26T10:48:36.684Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/api/matches/load-more.js"
+      "lastFile": "/Users/bag-isag/Desktop/PKGG/pages/api/matches/load-more.js"
     },
     "[server]": {
       "phase": "do",
@@ -236,7 +237,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-04T02:24:04.089Z",
-        "lastUpdated": "2026-04-26T07:56:21.597Z"
+        "lastUpdated": "2026-04-26T11:10:28.535Z"
       },
       "lastFile": "/Users/bag-isag/Desktop/PKGG/pages/player/[server]/[nickname].js"
     },
@@ -382,6 +383,19 @@
         "lastUpdated": "2026-04-24T06:13:29.546Z"
       },
       "lastFile": "/Users/mac/Desktop/PKGG/scripts/seed-notice.js"
+    },
+    "donations": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-26T11:47:57.444Z",
+        "lastUpdated": "2026-04-26T11:47:57.444Z"
+      },
+      "lastFile": "/Users/bag-isag/Desktop/PKGG/pages/api/donations/count.js"
     }
   },
   "pipeline": {
@@ -392,7 +406,7 @@
   "session": {
     "startedAt": "2026-02-26T02:34:01.887Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-04-26T10:30:42.668Z"
+    "lastActivity": "2026-04-26T11:49:17.509Z"
   },
   "history": [
     {
@@ -7171,6 +7185,348 @@
     },
     {
       "timestamp": "2026-04-26T10:30:42.668Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:44:32.044Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:48:30.088Z",
+      "feature": "matches",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:48:36.684Z",
+      "feature": "matches",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:49:09.840Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:49:27.053Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:49:36.532Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:49:47.393Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:49:56.266Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:50:09.279Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:51:07.675Z",
+      "feature": "notices",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:51:30.811Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:51:36.933Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:55:24.817Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:55:35.446Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:55:49.681Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:56:13.491Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:56:27.523Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T10:57:37.782Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:09:43.803Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:10:22.908Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:10:28.535Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:12:55.524Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:13:08.333Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:24:32.845Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:27:16.233Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:29:26.032Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:29:35.430Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:29:52.633Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:37:55.834Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:38:02.046Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:38:08.447Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:38:13.992Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:38:20.220Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:38:30.401Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:38:36.993Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:38:45.081Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:38:51.097Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:39:04.481Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:39:15.382Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:39:20.970Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:39:27.241Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:39:38.732Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:39:44.388Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:39:52.428Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:40:06.139Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:40:20.964Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:40:27.229Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:40:32.537Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:40:40.203Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:40:58.633Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:41:04.936Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:41:10.331Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:47:57.444Z",
+      "feature": "donations",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:48:08.500Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:48:31.042Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:48:47.889Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-26T11:49:17.509Z",
       "feature": "layout",
       "phase": "do",
       "action": "updated"

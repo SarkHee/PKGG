@@ -345,11 +345,11 @@ export default function ClanAnalytics() {
         <meta property="og:url" content="https://pk.gg/clan-analytics" />
         <meta property="og:title" content="클랜 분석 | PKGG" />
         <meta property="og:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
-        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="클랜 분석 | PKGG" />
         <meta name="twitter:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지." />
-        <meta name="twitter:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
         <link rel="canonical" href="https://pk.gg/clan-analytics" />
       </Head>
         <Header />
@@ -373,11 +373,11 @@ export default function ClanAnalytics() {
         <meta property="og:url" content="https://pk.gg/clan-analytics" />
         <meta property="og:title" content="클랜 분석 | PKGG" />
         <meta property="og:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
-        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="클랜 분석 | PKGG" />
         <meta name="twitter:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지." />
-        <meta name="twitter:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
         <link rel="canonical" href="https://pk.gg/clan-analytics" />
       </Head>
         <Header />
@@ -447,11 +447,11 @@ export default function ClanAnalytics() {
         <meta property="og:url" content="https://pk.gg/clan-analytics" />
         <meta property="og:title" content="클랜 분석 | PKGG" />
         <meta property="og:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
-        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="클랜 분석 | PKGG" />
         <meta name="twitter:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지." />
-        <meta name="twitter:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
         <link rel="canonical" href="https://pk.gg/clan-analytics" />
       </Head>
       <Header />

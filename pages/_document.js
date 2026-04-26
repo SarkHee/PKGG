@@ -15,17 +15,17 @@ export default function Document() {
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="PKGG" />
         <meta property="og:url" content="https://pk.gg/" />
-        <meta property="og:title" content="PKGG — PUBG 전적 검색 & 클랜 분석" />
-        <meta property="og:description" content="PUBG 플레이어 전적, 무기 숙련도, 클랜 분석을 한 곳에서 확인하세요." />
-        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta property="og:title" content="PKGG - PUBG 전적 분석 & 클랜 분석" />
+        <meta property="og:description" content="클랜 순위, PKGG 점수, AI 코치 무료 제공" />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="PKGG — PUBG 전적 검색" />
+        <meta property="og:image:alt" content="PKGG - PUBG 전적 분석 & 클랜 분석" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@pkgg" />
-        <meta name="twitter:title" content="PKGG — PUBG 전적 검색 & 클랜 분석" />
-        <meta name="twitter:description" content="PUBG 플레이어 전적, 무기 숙련도, 클랜 분석을 한 곳에서 확인하세요." />
-        <meta name="twitter:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:title" content="PKGG - PUBG 전적 분석 & 클랜 분석" />
+        <meta name="twitter:description" content="클랜 순위, PKGG 점수, AI 코치 무료 제공" />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
       </Head>
       <body>
         <Main />

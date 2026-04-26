@@ -303,7 +303,7 @@ export default function SensitivityPage() {
       <Head>
         <title>PUBG 감도 계산기 | PKGG</title>
         <meta name="description" content="PUBG 감도(eDPI, cm/360) 계산, 타 게임 감도 변환, 스코프별 권장 감도, 에임 체험 데모" />
-        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
       <Header />

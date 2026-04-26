@@ -583,9 +583,9 @@ export default function WeaponTestPage() {
         <meta name="description" content="12문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
         <meta property="og:title" content="PUBG 무기 성향 테스트 | PKGG" />
         <meta property="og:description" content="12문항으로 알아보는 나의 PUBG 무기 성향! 12가지 타입 중 나는 어떤 타입일까?" />
-        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
       </Head>
 
       {phase !== 'survey' && <Header />}

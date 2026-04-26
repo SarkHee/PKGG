@@ -435,9 +435,9 @@ export default function AimTrainerPage() {
         <meta name="description" content="PUBG 에임 트레이너 — 반응속도 테스트, 플리커 에임, 이동 타겟 클릭 연습" />
         <meta property="og:title" content="에임 트레이너 | PKGG" />
         <meta property="og:description" content="반응속도 · 플리커 에임 · 이동 타겟 — 브라우저에서 바로 플레이" />
-        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
       </Head>
       <Header />
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useT } from '../../utils/i18n';
 import { useAuth } from '../../utils/useAuth';
@@ -31,7 +31,9 @@ function NavDropdown({ label, links, isActive, t, openKey, openMenu, setOpenMenu
       <button
         onClick={() => setOpenMenu(isOpen ? null : openKey)}
         className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-          hasActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          hasActive
+            ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10'
         }`}
       >
         {label}
@@ -40,13 +42,15 @@ function NavDropdown({ label, links, isActive, t, openKey, openMenu, setOpenMenu
         </svg>
       </button>
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[160px]">
+        <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[160px]">
           {links.map((link) => (
             <Link key={link.href} href={link.href} passHref>
               <span
                 onClick={() => setOpenMenu(null)}
                 className={`relative flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer transition-colors ${
-                  isActive(link.href) ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700 hover:bg-gray-50'
+                  isActive(link.href)
+                    ? 'bg-blue-50 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-400'
+                    : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/60'
                 }`}
               >
                 <span>{link.icon}</span>
@@ -68,14 +72,57 @@ export default function Header() {
   const [langMenuOpen,   setLangMenuOpen]   = useState(false);
   const [openMenu,       setOpenMenu]       = useState(null); // 'analysis' | 'weapon' | 'community' | 'training'
   const [isDark, setIsDark] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [donationCount, setDonationCount]   = useState(null); // 전체 후원 횟수
+  const [myDonations,   setMyDonations]     = useState(0);    // 이 기기 후원 횟수
+  const [donating,      setDonating]        = useState(false);
+  const [thankMsg,      setThankMsg]        = useState('');
   const router = useRouter();
   const { lang, t, switchLang } = useT();
   const { user, logout } = useAuth() || {};
 
-  // 초기 테마 읽기
+  // 초기 테마 읽기 + 후원 수 로드
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
+    setMyDonations(parseInt(localStorage.getItem('pkgg_my_donations') || '0', 10));
+    fetch('/api/donations/count')
+      .then((r) => r.json())
+      .then((d) => setDonationCount(d.count ?? 0))
+      .catch(() => {});
   }, []);
+
+  const handleDonationComplete = useCallback(async () => {
+    if (donating) return;
+    setDonating(true);
+    try {
+      const res = await fetch('/api/donations/count', { method: 'POST' });
+      const data = await res.json();
+      const newTotal = data.count;
+      const myNext = myDonations + 1;
+
+      setDonationCount(newTotal);
+      setMyDonations(myNext);
+      localStorage.setItem('pkgg_my_donations', String(myNext));
+
+      setThankMsg(`${newTotal}번째 후원자님 감사합니다! 🎉`);
+
+      // 폭죽
+      if (typeof window !== 'undefined') {
+        import('canvas-confetti').then(({ default: confetti }) => {
+          confetti({ particleCount: 150, spread: 80, origin: { y: 0.4 }, colors: ['#FFD700','#FEE500','#3B82F6','#10B981','#F59E0B'] });
+          setTimeout(() => confetti({ particleCount: 80, angle: 60, spread: 55, origin: { x: 0 } }), 250);
+          setTimeout(() => confetti({ particleCount: 80, angle: 120, spread: 55, origin: { x: 1 } }), 400);
+        });
+      }
+
+      setTimeout(() => { setThankMsg(''); setShowQR(false); }, 4000);
+    } catch {
+      setThankMsg('감사합니다! 🙏');
+      setTimeout(() => setThankMsg(''), 3000);
+    } finally {
+      setDonating(false);
+    }
+  }, [donating, myDonations]);
 
   const toggleTheme = () => {
     const next = !isDark;
@@ -124,7 +171,7 @@ export default function Header() {
       {/* 상단 강조선 */}
       <div className="h-0.5 bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 w-full" />
 
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 shadow-sm dark:shadow-gray-900/50">
         <div className="max-w-screen-2xl mx-auto px-4">
           <div className="flex items-center justify-between h-14 gap-2">
 
@@ -159,8 +206,8 @@ export default function Header() {
                 <div className="flex items-center gap-2">
                   <div className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border ${
                     user.platform === 'kakao'
-                      ? 'bg-yellow-50 border-yellow-300'
-                      : 'bg-green-50 border-green-200'
+                      ? 'bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-700'
+                      : 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
                   }`}>
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
                       user.platform === 'kakao' ? 'bg-yellow-400' : 'bg-green-500'
@@ -178,7 +225,7 @@ export default function Header() {
                   </div>
                   <button
                     onClick={logout}
-                    className="h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-xs text-gray-600 hover:bg-gray-100 transition-all font-medium"
+                    className="h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all font-medium"
                   >
                     로그아웃
                   </button>
@@ -206,10 +253,22 @@ export default function Header() {
                 </div>
               )}
 
+              {/* 커피 후원 버튼 */}
+              <button
+                onClick={() => setShowQR(true)}
+                className="h-8 flex items-center gap-1 px-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-xs font-medium transition-colors whitespace-nowrap"
+              >
+                ☕
+                <span className="hidden sm:inline">커피 사주기</span>
+                {donationCount !== null && (
+                  <span className="hidden sm:inline text-[10px] text-yellow-500 font-bold ml-0.5">{donationCount}</span>
+                )}
+              </button>
+
               {/* 다크/라이트 테마 토글 */}
               <button
                 onClick={toggleTheme}
-                className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all"
+                className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                 title={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
               >
                 {isDark ? '☀️' : '🌙'}
@@ -220,7 +279,7 @@ export default function Header() {
                 <button
                   onClick={() => setLangMenuOpen(!langMenuOpen)}
                   onBlur={() => setTimeout(() => setLangMenuOpen(false), 150)}
-                  className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 hover:bg-gray-100 transition-all font-medium"
+                  className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all font-medium"
                 >
                   <span>{currentLang.flag}</span>
                   <span>{currentLang.label}</span>
@@ -229,15 +288,15 @@ export default function Header() {
                   </svg>
                 </button>
                 {langMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[130px]">
+                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[130px]">
                     {LANG_OPTIONS.map((option) => (
                       <button
                         key={option.code}
                         onClick={() => { switchLang(option.code); setLangMenuOpen(false); }}
                         className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors text-left ${
                           lang === option.code
-                            ? 'bg-blue-50 text-blue-700 font-semibold'
-                            : 'text-gray-700 hover:bg-gray-50'
+                            ? 'bg-blue-50 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/60'
                         }`}
                       >
                         <span>{option.flag}</span>
@@ -252,7 +311,7 @@ export default function Header() {
 
             {/* 모바일 메뉴 버튼 */}
             <button
-              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,7 +326,7 @@ export default function Header() {
 
         {/* 모바일 메뉴 */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white">
+          <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
             {/* 빠른 닉네임 검색 (훈련 도구 페이지에서는 숨김) */}
             {!['/sensitivity-analyzer', '/sensitivity', '/aim-trainer', '/recoil-pattern', '/peek-trainer', '/pubg-survivors'].includes(router.pathname) && (
             <form
@@ -282,7 +341,7 @@ export default function Header() {
                 <input
                   name="q"
                   placeholder="닉네임 검색..."
-                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <button type="submit" className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition-colors">검색</button>
               </div>
@@ -298,7 +357,9 @@ export default function Header() {
                     <Link key={link.href} href={link.href} passHref>
                       <span
                         className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-                          isActive(link.href) ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                          isActive(link.href)
+                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10'
                         }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -318,7 +379,11 @@ export default function Header() {
                     <Link key={link.href} href={link.href} passHref>
                       <span
                         className={`relative flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-                          isActive(link.href) ? 'bg-blue-50 text-blue-700' : link.highlight ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-600 hover:bg-gray-100'
+                          isActive(link.href)
+                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            : link.highlight
+                              ? 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20'
+                              : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10'
                         }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -341,7 +406,9 @@ export default function Header() {
                     <Link key={link.href} href={link.href} passHref>
                       <span
                         className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-                          isActive(link.href) ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+                          isActive(link.href)
+                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10'
                         }`}
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -362,7 +429,9 @@ export default function Header() {
                       <span
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg text-xs cursor-pointer transition-all text-center ${
-                          isActive(link.href) ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-500 hover:bg-gray-100'
+                          isActive(link.href)
+                            ? 'bg-blue-50 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-400'
+                            : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10'
                         }`}
                       >
                         <span className="text-xl leading-none">{link.icon}</span>
@@ -374,7 +443,7 @@ export default function Header() {
               </div>
 
               {/* 하단: 언어 + 테마 */}
-              <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+              <div className="pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
                 <div className="flex gap-1.5 flex-wrap">
                   {LANG_OPTIONS.map((option) => (
                     <button
@@ -383,7 +452,7 @@ export default function Header() {
                       className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
                         lang === option.code
                           ? 'bg-blue-600 border-blue-600 text-white'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
                       }`}
                     >
                       {option.flag} {option.label}
@@ -392,7 +461,7 @@ export default function Header() {
                 </div>
                 <button
                   onClick={() => { toggleTheme(); setMobileMenuOpen(false); }}
-                  className="p-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all text-base"
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all text-base"
                   title={isDark ? '라이트 모드' : '다크 모드'}
                 >
                   {isDark ? '☀️' : '🌙'}
@@ -402,6 +471,81 @@ export default function Header() {
           </div>
         )}
       </header>
+
+      {/* 카카오페이 후원 팝업 */}
+      {showQR && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => { if (!donating) setShowQR(false); }}
+        >
+          <div
+            className="relative bg-gray-900 border border-white/10 rounded-2xl p-6 flex flex-col items-center gap-4 shadow-2xl w-[280px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowQR(false)}
+              className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white text-sm transition-colors"
+            >
+              ✕
+            </button>
+
+            <p className="text-white font-semibold text-sm">☕ 카카오페이로 후원하기</p>
+
+            {/* 전체 후원 횟수 */}
+            {donationCount !== null && (
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
+                <span className="text-yellow-400 text-xs font-bold">🏆 누적 후원</span>
+                <span className="text-yellow-300 text-xs font-black">{donationCount}회</span>
+              </div>
+            )}
+
+            {/* 모바일: 링크 버튼 / PC: QR 이미지 */}
+            <div className="block sm:hidden w-full">
+              <a
+                href="https://qr.kakaopay.com/Ej80WO41U"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-[#FEE500] hover:bg-[#F0D800] text-[#3C1E1E] font-bold text-sm rounded-xl transition-colors"
+              >
+                카카오페이로 후원하기 →
+              </a>
+            </div>
+            <div className="hidden sm:block">
+              <Image
+                src="/kakao-qr.png"
+                alt="카카오페이 QR"
+                width={180}
+                height={180}
+                className="rounded-xl"
+              />
+              <p className="text-gray-500 text-xs text-center mt-2">QR 코드를 스캔해 후원해주세요</p>
+            </div>
+
+            {/* 후원 완료 버튼 */}
+            {thankMsg ? (
+              <div className="w-full py-3 bg-green-500/20 border border-green-500/40 rounded-xl text-center">
+                <p className="text-green-300 font-bold text-sm">{thankMsg}</p>
+              </div>
+            ) : (
+              <button
+                onClick={handleDonationComplete}
+                disabled={donating}
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+              >
+                {donating ? (
+                  <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> 처리 중...</>
+                ) : (
+                  '✅ 후원 완료'
+                )}
+              </button>
+            )}
+
+            {myDonations > 0 && (
+              <p className="text-gray-600 text-[10px]">이 기기에서 총 {myDonations}회 후원</p>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

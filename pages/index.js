@@ -151,11 +151,11 @@ export default function Home() {
         <meta property="og:url" content="https://pk.gg/" />
         <meta property="og:title" content={t('home.meta_title')} />
         <meta property="og:description" content={t('home.meta_desc')} />
-        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={t('home.meta_title')} />
         <meta name="twitter:description" content={t('home.meta_desc')} />
-        <meta name="twitter:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
         <link rel="canonical" href="https://pk.gg/" />
         <script
           type="application/ld+json"
@@ -239,8 +239,8 @@ export default function Home() {
         />
 
         {/* 메인 콘텐츠 */}
-        <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20">
-          <div className="text-center max-w-4xl mx-auto mb-16">
+        <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 pt-10 pb-14 sm:py-20">
+          <div className="text-center max-w-4xl mx-auto mb-10 sm:mb-16">
 
             {/* 배경 글로우 */}
             <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none" style={{ top: '12%', zIndex: -1 }}>
@@ -401,7 +401,7 @@ export default function Home() {
 
           {/* PUBG 뉴스 섹션 */}
           {Array.isArray(recentNews) && recentNews.length > 0 && (
-            <div className="w-full max-w-6xl mx-auto mb-14 px-4">
+            <div className="w-full max-w-6xl mx-auto mb-10 sm:mb-14 px-4">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <span className="w-1 h-5 bg-blue-500 rounded-full inline-block"></span>
@@ -510,7 +510,7 @@ export default function Home() {
           </div>
 
           {/* PKGG란? */}
-          <div className="w-full max-w-2xl mx-auto px-4 mt-14 mb-10">
+          <div className="w-full max-w-2xl mx-auto px-4 mt-8 sm:mt-14 mb-6 sm:mb-10">
             <div className="flex items-center justify-center gap-3 mb-6">
               <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
               <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">PKGG란?</h2>

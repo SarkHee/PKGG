@@ -15,12 +15,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'GET 메소드만 지원됩니다.' });
   }
 
-  const { nickname, shard = 'steam', offset = '10', force } = req.query;
+  const { nickname, shard = 'steam', offset = '10', limit = '5', force } = req.query;
   if (!nickname) {
     return res.status(400).json({ error: 'nickname이 필요합니다.' });
   }
 
-  const skip     = parseInt(offset, 10) || 10;
+  const skip     = req.query.offset !== undefined ? parseInt(offset, 10) : 10;
+  const take     = Math.min(parseInt(limit, 10) || 5, 15);
   const forceRefresh = force === '1';
 
   try {
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
     }
 
     const allMatchIds = (pubgPlayer.relationships?.matches?.data || []).map((m) => m.id);
-    const matchIds    = allMatchIds.slice(skip, skip + 5);
+    const matchIds    = allMatchIds.slice(skip, skip + take);
 
     if (matchIds.length === 0) {
       return res.status(200).json({ matches: [] });

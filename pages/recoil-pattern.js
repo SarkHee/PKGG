@@ -660,9 +660,9 @@ export default function RecoilPattern() {
         <title>반동 패턴 시뮬레이터 | PKGG</title>
         <meta name="description" content="PUBG 총기별 반동 패턴 시각화 — M416, AKM, SCAR-L, Beryl, Groza 등 8종. 어태치먼트 효과 비교. 직접 반동을 제어해보는 연습 모드 제공." />
         <meta property="og:title" content="반동 패턴 시뮬레이터 | PKGG" />
-        <meta property="og:image" content="https://pk.gg/og.png" />
+        <meta property="og:image" content="https://pk.gg/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://pk.gg/og.png" />
+        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
       </Head>
       <Header />
 

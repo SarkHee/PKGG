@@ -24,18 +24,18 @@ function FloatingFavorites() {
     load();
   }, [pathname]); // 페이지 이동 시마다 새로 로드
 
-  // 홈·어드민은 제외 (홈은 인라인으로 이미 표시)
+  // 홈·어드민·모바일은 제외 (홈은 인라인으로 이미 표시)
   if (pathname === '/' || pathname.startsWith('/admin') || favs.length === 0) return null;
 
   return (
-    <div className="fixed right-3 bottom-10 z-40 pointer-events-none">
-      <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-white/90 backdrop-blur border border-gray-200 rounded-2xl px-2 py-3 shadow-lg">
-        <span className="text-gray-500 text-xs font-bold mb-0.5 whitespace-nowrap">즐겨찾기 유저</span>
+    <div className="hidden sm:block fixed right-3 bottom-24 z-40 pointer-events-none">
+      <div className="pointer-events-auto flex flex-col items-center gap-1.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur border border-gray-200 dark:border-gray-700 rounded-2xl px-2 py-3 shadow-lg">
+        <span className="text-gray-500 dark:text-gray-400 text-xs font-bold mb-0.5 whitespace-nowrap">즐겨찾기 유저</span>
         {favs.map((fav) => (
           <button
             key={`${fav.shard}-${fav.nickname}`}
             onClick={() => router.push(`/player/${fav.shard}/${encodeURIComponent(fav.nickname)}`)}
-            className="px-2.5 py-1.5 bg-gray-100 hover:bg-blue-100 hover:text-blue-700 text-gray-700 rounded-xl text-sm font-semibold transition-colors text-center max-w-[90px] truncate"
+            className="px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold transition-colors text-center max-w-[90px] truncate"
             title={fav.nickname}
           >
             {fav.nickname}
@@ -63,15 +63,15 @@ function FloatingSearch() {
   };
 
   return (
-    <div className="fixed left-4 bottom-8 z-50 flex flex-col items-start gap-2 pointer-events-none">
+    <div className="fixed left-4 bottom-6 z-50 flex flex-col items-start gap-2 pointer-events-none">
       {open && (
-        <div className="pointer-events-auto w-52 bg-white border border-gray-200 rounded-2xl p-3 shadow-xl">
-          <div className="text-xs font-bold text-gray-500 mb-2">🔍 플레이어 검색</div>
+        <div className="pointer-events-auto w-52 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-3 shadow-xl">
+          <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">🔍 플레이어 검색</div>
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
             <select
               value={srv}
               onChange={(e) => setSrv(e.target.value)}
-              className="w-full bg-gray-50 text-gray-600 text-xs font-semibold border border-gray-200 rounded-lg px-2 py-1.5 outline-none cursor-pointer"
+              className="w-full bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-semibold border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 outline-none cursor-pointer"
             >
               <option value="steam">Steam</option>
               <option value="kakao">Kakao</option>
@@ -82,7 +82,7 @@ function FloatingSearch() {
               placeholder={t('search.placeholder')}
               value={nick}
               onChange={(e) => setNick(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-400"
               autoFocus
             />
             <button

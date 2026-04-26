@@ -370,3 +370,12 @@ model PlayerReview {
   @@index([targetNick, shard])
   @@map("player_reviews")
 }
+
+// 후원 카운터 (싱글톤 row, id=1)
+model DonationCounter {
+  id        Int      @id @default(1)
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("donation_counter")
+}

@@ -14,10 +14,11 @@
 
 // ── TTL 상수 ────────────────────────────────────────────────────────────────
 export const TTL = {
-  PLAYER:  10 * 60 * 1000, // 10분 — 플레이어 조회 / 시즌 통계 / weapon mastery
-  MATCH:   30 * 60 * 1000, // 30분 — 개별 매치 상세
-  CLAN:    15 * 60 * 1000, // 15분 — 클랜 정보
-  SEASON:  60 * 60 * 1000, // 60분 — 시즌 목록 (거의 안 바뀜)
+  PLAYER:       5 * 60 * 1000, // 5분  — 플레이어 조회 / 시즌 통계 / weapon mastery
+  MATCH:       30 * 60 * 1000, // 30분 — 개별 매치 상세 (불변 데이터)
+  CLAN:        10 * 60 * 1000, // 10분 — 클랜 정보
+  SEASON:      60 * 60 * 1000, // 60분 — 시즌 목록 (거의 안 바뀜)
+  PLAYER_DATA:  5 * 60 * 1000, // 5분  — 닉네임 레벨 전체 playerData
 };
 
 // ── 내부 저장소 (모듈 싱글턴) ───────────────────────────────────────────────
@@ -26,6 +27,13 @@ const _cache = new Map();
 
 /** @type {Map<string, Promise<any>>} 진행 중인 요청 Promise (중복 제거용) */
 const _inFlight = new Map();
+
+/**
+ * 닉네임 레벨 전체 playerData 캐시 (5분).
+ * URL 레벨 _cache와 독립 운영 — 한 닉네임의 모든 PUBG API 호출을 하나의 키로 묶어 차단.
+ * @type {Map<string, { data: any, expiresAt: number }>}
+ */
+const _playerDataCache = new Map();
 
 // ── 캐시 유틸 ───────────────────────────────────────────────────────────────
 function cacheGet(key) {
@@ -47,6 +55,9 @@ function pruneExpired() {
   const now = Date.now();
   for (const [key, entry] of _cache) {
     if (entry.expiresAt < now) _cache.delete(key);
+  }
+  for (const [key, entry] of _playerDataCache) {
+    if (entry.expiresAt < now) _playerDataCache.delete(key);
   }
 }
 // 주기적 정리 (서버리스 환경에서는 보조적인 역할)
@@ -170,6 +181,38 @@ export async function cachedPubgFetch(url, { ttl = TTL.PLAYER, force = false } =
 }
 
 /**
+ * 닉네임 레벨 playerData 캐시 조회.
+ * getServerSideProps 최상단에서 PUBG API + DB 접근 전에 먼저 확인.
+ * @param {string} nickname
+ * @param {string} shard
+ * @returns {any|null}
+ */
+export function getPlayerDataCache(nickname, shard) {
+  const key = `${(shard || 'steam').toLowerCase()}:${nickname.toLowerCase()}`;
+  const entry = _playerDataCache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt < Date.now()) {
+    _playerDataCache.delete(key);
+    return null;
+  }
+  console.log(`[pubgApiCache] PLAYER_DATA HIT: ${nickname} (${shard})`);
+  return entry.data;
+}
+
+/**
+ * 닉네임 레벨 playerData 캐시 저장 (5분 TTL).
+ * PUBG API 응답 조합 완료 후 또는 DB 캐시 히트 시 저장.
+ * @param {string} nickname
+ * @param {string} shard
+ * @param {any}    data
+ */
+export function setPlayerDataCache(nickname, shard, data) {
+  const key = `${(shard || 'steam').toLowerCase()}:${nickname.toLowerCase()}`;
+  _playerDataCache.set(key, { data, expiresAt: Date.now() + TTL.PLAYER_DATA });
+  console.log(`[pubgApiCache] PLAYER_DATA SET: ${nickname} (${shard}), TTL=5min`);
+}
+
+/**
  * 특정 키의 캐시를 수동으로 무효화합니다.
  * @param {string} urlOrPrefix - 완전한 URL 또는 URL 접두사
  */
@@ -186,8 +229,10 @@ export function getCacheStats() {
   pruneExpired();
   return {
     entries: _cache.size,
+    playerDataEntries: _playerDataCache.size,
     inFlight: _inFlight.size,
     keys: [..._cache.keys()].map((k) => k.replace('https://api.pubg.com', '')),
+    playerDataKeys: [..._playerDataCache.keys()],
   };
 }
 

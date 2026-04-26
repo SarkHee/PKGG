@@ -29,7 +29,7 @@ const translations = {
     'footer.contact': '문의',
     // ── Home
     'home.subtitle': 'PUBG 플레이어 통계와 클랜 정보를 한눈에 확인하세요',
-    'home.notice': '*아직 모든 클랜이 적용되지않습니다.',
+    'home.notice': '✅ 카카오 배그 로그인 · 클랜 분석 지원 추가 | 아직 모든 클랜이 적용되지 않습니다.',
     'home.news_title': 'PUBG 이벤트 & 뉴스',
     'home.news_all': '전체보기 →',
     'home.news_detail': '자세히 보기',
@@ -327,7 +327,7 @@ const translations = {
     'footer.terms': 'Terms of Service',
     'footer.contact': 'Contact',
     'home.subtitle': 'Check PUBG player stats and clan info at a glance',
-    'home.notice': '*Not all clans are registered yet.',
+    'home.notice': '✅ Kakao PUBG login & clan analytics added | Not all clans are registered yet.',
     'home.news_title': 'PUBG Events & News',
     'home.news_all': 'View All →',
     'home.news_detail': 'Read More',
