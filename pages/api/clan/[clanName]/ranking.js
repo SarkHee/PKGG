@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         return {
           id: m.id,
           nickname: m.nickname,
-          server: m.pubgShardId || 'steam',
+          server: m.pubgShardId || clan.shard || 'steam',
           matches: w.matches,
           avgDamage: Math.round(avgDmg),
           avgKills: avgKill.toFixed(2),
@@ -120,7 +120,7 @@ export default async function handler(req, res) {
 
         return {
           nickname: m.nickname,
-          server: m.pubgShardId || 'steam',
+          server: m.pubgShardId || clan.shard || 'steam',
           currentMmr: latestMmr,
           mmrDelta,
           dmgDelta,
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
       .map((m) => ({
         id: m.id,
         nickname: m.nickname,
-        server: m.pubgShardId || 'steam',
+        server: m.pubgShardId || clan.shard || 'steam',
         mmr: calculateMMR(m),
         score: m.score,
         avgDamage: Math.round(m.avgDamage || 0),

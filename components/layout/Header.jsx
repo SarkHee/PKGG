@@ -77,14 +77,16 @@ export default function Header() {
   const [myDonations,   setMyDonations]     = useState(0);    // 이 기기 후원 횟수
   const [donating,      setDonating]        = useState(false);
   const [thankMsg,      setThankMsg]        = useState('');
+  const [isMobile,      setIsMobile]        = useState(false);
   const router = useRouter();
   const { lang, t, switchLang } = useT();
   const { user, logout } = useAuth() || {};
 
-  // 초기 테마 읽기 + 후원 수 로드
+  // 초기 테마 읽기 + 후원 수 로드 + 모바일 감지
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
     setMyDonations(parseInt(localStorage.getItem('pkgg_my_donations') || '0', 10));
+    setIsMobile(window.innerWidth < 640);
     fetch('/api/donations/count')
       .then((r) => r.json())
       .then((d) => setDonationCount(d.count ?? 0))
@@ -254,16 +256,27 @@ export default function Header() {
               )}
 
               {/* 커피 후원 버튼 */}
-              <button
-                onClick={() => setShowQR(true)}
-                className="h-8 flex items-center gap-1 px-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-xs font-medium transition-colors whitespace-nowrap"
-              >
-                ☕
-                <span className="hidden sm:inline">커피 사주기</span>
-                {donationCount !== null && (
-                  <span className="hidden sm:inline text-[10px] text-yellow-500 font-bold ml-0.5">{donationCount}</span>
-                )}
-              </button>
+              {isMobile ? (
+                <a
+                  href="https://qr.kakaopay.com/Ej80WO41U"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-8 flex items-center gap-1 px-2.5 rounded-lg border border-yellow-400/40 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 text-xs font-medium transition-colors whitespace-nowrap"
+                >
+                  ☕ <span className="text-[11px]">후원</span>
+                </a>
+              ) : (
+                <button
+                  onClick={() => setShowQR(true)}
+                  className="h-8 flex items-center gap-1 px-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-xs font-medium transition-colors whitespace-nowrap"
+                >
+                  ☕
+                  <span>커피 사주기</span>
+                  {donationCount !== null && (
+                    <span className="text-[10px] text-yellow-500 font-bold ml-0.5">{donationCount}</span>
+                  )}
+                </button>
+              )}
 
               {/* 다크/라이트 테마 토글 */}
               <button

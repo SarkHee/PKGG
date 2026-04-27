@@ -2,10 +2,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Link from 'next/link';
 import Image from 'next/image';
 import Header from '../components/layout/Header';
 import { useT } from '../utils/i18n';
+import { MAJOR, TYPES } from '../utils/playstyleClassifier';
 
 const FAV_KEY    = 'pkgg_favorites';
 const SEARCH_KEY = 'pkgg_recent_searches';
@@ -43,9 +43,8 @@ function saveRecentSearch(nickname, shard) {
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [server, setServer] = useState('steam');
+  const [activeMajor, setActiveMajor] = useState('OFFENSIVE');
   const [searchMessage, setSearchMessage] = useState('');
-  const [recentNews, setRecentNews] = useState([]);
-  const [newsLoading, setNewsLoading] = useState(false);
   const [favorites, setFavorites]           = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
   const [showDropdown, setShowDropdown]     = useState(false);
@@ -83,34 +82,6 @@ export default function Home() {
       setTimeout(() => setSearchMessage(''), 5000);
     }
   }, [router.query, t]);
-
-  // PUBG 뉴스 가져오기
-  const loadRecentNews = async () => {
-    try {
-      setNewsLoading(true);
-      const response = await fetch('/api/pubg-news?limit=3');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && Array.isArray(data.data)) {
-          setRecentNews(data.data.slice(0, 3)); // 최대 3개만 가져오기
-        } else {
-          setRecentNews([]); // 실패 시 빈 배열
-        }
-      } else {
-        setRecentNews([]); // 응답 실패 시 빈 배열
-      }
-    } catch (error) {
-      console.error('뉴스 로드 실패:', error);
-      setRecentNews([]); // 오류 시 빈 배열
-    } finally {
-      setNewsLoading(false);
-    }
-  };
-
-  // 컴포넌트 마운트 시 뉴스 로드
-  useEffect(() => {
-    loadRecentNews();
-  }, []);
 
   const handleSearch = (nick = searchTerm, shard = server) => {
     const name = nick.trim();
@@ -239,40 +210,40 @@ export default function Home() {
         />
 
         {/* 메인 콘텐츠 */}
-        <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 pt-10 pb-14 sm:py-20">
-          <div className="text-center max-w-4xl mx-auto mb-10 sm:mb-16">
+        <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-3 pt-20 pb-10 sm:pt-24 sm:pb-16 sm:py-20">
+          <div className="text-center w-full max-w-4xl mx-auto mb-6 sm:mb-16">
 
             {/* 배경 글로우 */}
             <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none" style={{ top: '12%', zIndex: -1 }}>
-              <div className="w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)' }} />
+              <div className="w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)' }} />
             </div>
 
             {/* 배지 */}
-            <div className="mb-6">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-bold tracking-widest text-blue-400 uppercase">
+            <div className="mb-4 sm:mb-6">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-[10px] sm:text-xs font-bold tracking-widest text-blue-400 uppercase">
                 <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
                 PUBG Stats &amp; Analytics
               </span>
             </div>
 
             {/* 로고 */}
-            <h1 className="mb-6">
+            <h1 className="mb-4 sm:mb-6">
               <Image
                 src="/logo.png"
                 alt="PKGG"
                 width={518}
                 height={295}
-                className="w-52 sm:w-80 md:w-[460px] h-auto mx-auto"
-                style={{ filter: 'drop-shadow(0 0 48px rgba(59,130,246,0.55)) drop-shadow(0 8px 24px rgba(0,0,0,0.6))' }}
+                className="w-44 sm:w-80 md:w-[460px] h-auto mx-auto"
+                style={{ filter: 'drop-shadow(0 0 36px rgba(59,130,246,0.55)) drop-shadow(0 6px 18px rgba(0,0,0,0.6))' }}
                 priority
               />
             </h1>
 
             {/* 서브타이틀 */}
-            <p className="text-lg sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-4">
+            <p className="text-base sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-2">
               {t('home.subtitle')}
             </p>
-            <p className="text-xs text-gray-600 mb-10">
+            <p className="text-xs text-gray-600 mb-6 sm:mb-10">
               {t('home.notice')}
             </p>
 
@@ -289,29 +260,38 @@ export default function Home() {
             )}
 
             {/* 검색 섹션 */}
-            <div className="max-w-xl mx-auto px-4 mb-4" ref={searchBoxRef}>
-              <div className="bg-white/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-4 shadow-2xl shadow-blue-900/30">
+            <div className="w-full max-w-xl mx-auto px-0 sm:px-4 mb-4" ref={searchBoxRef}>
+              <div className="bg-white/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-blue-900/30">
                 {/* 서버 선택 탭 */}
-                <div className="flex gap-2 mb-3">
-                  {['steam', 'kakao', 'console'].map((s) => (
+                <div className="flex gap-1.5 sm:gap-2 mb-3">
+                  {[
+                    { key: 'steam',   label: '🎮 Steam',  mLabel: '🎮',  active: 'bg-[#1b2838] border border-[#4a9eff]/60 text-white' },
+                    { key: 'kakao',   label: '🟡 카카오배그', mLabel: '🟡 카카오', active: 'bg-yellow-500 text-gray-900' },
+                    { key: 'console', label: '🎯 Console', mLabel: '🎯',  active: 'bg-blue-600 text-white' },
+                  ].map(({ key, label, mLabel, active }) => (
                     <button
-                      key={s}
-                      onClick={() => setServer(s)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                        server === s
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                      key={key}
+                      onClick={() => setServer(key)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                        server === key
+                          ? active
                           : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300'
                       }`}
                     >
-                      {s === 'steam' ? '🎮 Steam' : s === 'kakao' ? '🟡 Kakao' : '🎯 Console'}
+                      <span className="hidden sm:inline">{label}</span>
+                      <span className="sm:hidden">{mLabel}</span>
                     </button>
                   ))}
                 </div>
+                {/* 선택된 플랫폼 안내 */}
+                <p className="text-[11px] text-gray-500 mb-2 px-0.5">
+                  {server === 'kakao' ? '🟡 카카오배그 닉네임으로 검색합니다' : server === 'console' ? '🎯 PS/Xbox 닉네임으로 검색합니다' : '🎮 Steam 배틀그라운드 닉네임으로 검색합니다'}
+                </p>
                 {/* 검색 입력 */}
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder={t('search.player_placeholder')}
+                    placeholder={server === 'kakao' ? '카카오배그 닉네임 입력...' : server === 'console' ? 'Console 닉네임 입력...' : 'Steam 닉네임 입력...'}
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setShowDropdown(true); }}
                     onFocus={() => setShowDropdown(true)}
@@ -399,88 +379,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* PUBG 뉴스 섹션 */}
-          {Array.isArray(recentNews) && recentNews.length > 0 && (
-            <div className="w-full max-w-6xl mx-auto mb-10 sm:mb-14 px-4">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span className="w-1 h-5 bg-blue-500 rounded-full inline-block"></span>
-                  {t('home.news_title')}
-                </h2>
-                <Link href="/pubg-news" passHref>
-                  <span className="text-blue-400 hover:text-blue-300 text-sm font-medium cursor-pointer transition-colors">
-                    {t('home.news_all')}
-                  </span>
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {recentNews.map((news, index) => (
-                  <div
-                    key={news?.id || index}
-                    className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-blue-500/40 hover:bg-white/8 transition-all duration-300 group"
-                  >
-                    {news?.imageUrl ? (
-                      <div className="relative h-28 overflow-hidden">
-                        <img
-                          src={news.imageUrl}
-                          alt={news.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent" />
-                      </div>
-                    ) : (
-                      <div className="h-28 bg-gradient-to-br from-blue-800/50 to-blue-900/50 flex items-center justify-center">
-                        <span className="text-3xl opacity-50">📢</span>
-                      </div>
-                    )}
-
-                    <div className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        {news?.category && (
-                          <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                            news.category === '이벤트' ? 'bg-purple-500/20 text-purple-300' :
-                            news.category === '업데이트' ? 'bg-green-500/20 text-green-300' :
-                            'bg-blue-500/20 text-blue-300'
-                          }`}>
-                            {news.category}
-                          </span>
-                        )}
-                        {(news?.publishedAt || news?.publishDate) && (
-                          <span className="text-xs text-gray-500">
-                            {(() => {
-                              try {
-                                return new Date(news.publishedAt || news.publishDate).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-                              } catch { return ''; }
-                            })()}
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="font-semibold text-gray-100 text-sm mb-3 group-hover:text-blue-300 transition-colors line-clamp-2">
-                        {news?.title || t('home.no_title')}
-                      </h3>
-
-                      <a
-                        href={news?.link || news?.url || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {t('home.news_detail')}
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* 특징 카드 섹션 */}
           <div className="w-full max-w-6xl mx-auto px-4">
             <div className="flex items-center justify-center gap-3 mb-8">
@@ -506,6 +404,49 @@ export default function Home() {
                   <p className="text-gray-500 text-xs leading-relaxed">{t(item.descKey)}</p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* PKGG 플레이 분석 카드 */}
+          <div className="w-full max-w-4xl mx-auto px-4 mt-8 sm:mt-12">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
+              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">PKGG 플레이 분석</h2>
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
+            </div>
+            <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-4 sm:p-6">
+              <p className="text-xs text-gray-500 text-center mb-4">
+                실제 전적 데이터를 기반으로 <strong className="text-gray-300">25가지 세부 유형</strong>으로 플레이스타일을 분석합니다
+              </p>
+              {/* 대카테고리 탭 */}
+              <div className="flex gap-2 mb-5 flex-wrap justify-center">
+                {Object.entries(MAJOR).map(([key, info]) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveMajor(key)}
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition-all border ${
+                      activeMajor === key
+                        ? `${info.bg} ${info.border} ${info.color}`
+                        : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10 hover:text-gray-300'
+                    }`}
+                  >
+                    {info.icon} {info.label}
+                  </button>
+                ))}
+              </div>
+              {/* 세부 유형 목록 */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {Object.values(TYPES)
+                  .filter(tp => tp.major === activeMajor && tp.label !== '❓ 분류 불가')
+                  .map(tp => (
+                    <div
+                      key={tp.label}
+                      className={`px-3 py-2.5 rounded-xl border text-center ${tp.bg} ${tp.border}`}
+                    >
+                      <span className={`text-xs font-semibold ${tp.color}`}>{tp.label}</span>
+                    </div>
+                  ))}
+              </div>
             </div>
           </div>
 

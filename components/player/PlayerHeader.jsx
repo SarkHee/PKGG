@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Tooltip from '../ui/Tooltip';
 import { calculateMMR, getMMRTier, MMR_DISCLAIMER } from '../../utils/mmrCalculator';
 import PlayerShareCard from './PlayerShareCard';
+import { classifyPlaystyle, MAJOR } from '../../utils/playstyleClassifier';
 
 // DB 캐시 업데이트 시간 → 상대 표시
 function timeAgo(isoString) {
@@ -201,93 +202,17 @@ const PlayerHeader = ({
 
   const recent20Form = calculateFormStatus(recentMatches);
 
-  const getStyleString = (summary) => {
-    const style = summary?.realPlayStyle || summary?.playstyle || summary?.style;
-    if (typeof style === 'string') {
-      return style.replace(/^[^\w\s가-힣]+\s*/, '').trim() || '일반 밸런스형';
-    }
-    if (typeof style === 'object' && style !== null) {
-      console.warn('PlayerHeader: style is an object, using default value', style);
-      return '일반 밸런스형';
-    }
-    return '일반 밸런스형';
-  };
-
-  const styleString = getStyleString(summary);
-
-  const getCleanStyleText = (text) => {
-    if (!text) return '';
-    return text.replace(/^[^\w\s가-힣]+\s*/, '').trim();
-  };
-
-  const basicStyleText = getCleanStyleText(summary?.playstyle);
-  const detailStyleText = getCleanStyleText(summary?.realPlayStyle);
-  const isDifferentStyles = basicStyleText !== detailStyleText;
-
-  const getStyleDescription = (style) => {
-    const cleanStyle = getCleanStyleText(style);
-    const descriptions = {
-      캐리형: '높은 점수와 딜량으로 팀을 이끄는 핵심 플레이어',
-      안정형: '균형잡힌 성과로 꾸준한 기여를 하는 플레이어',
-      수비형: '생존을 우선시하며 신중하게 플레이하는 타입',
-      '극단적 공격형': '매우 높은 딜량과 킬로 압도적인 공격력을 보이는 하드캐리형',
-      순간광폭형: '초반에 폭발적인 딜량을 뽑아내지만 빠르게 사망하는 하이리스크형',
-      '극단적 수비형': '최소한의 교전으로 최대한 오래 생존하는 완전 수비형',
-      '도박형 파밍러': '초반 파밍 실패로 즉사하는 경우가 많은 불안정한 타입',
-      '치명적 저격수': '장거리에서 정밀한 헤드샷으로 적을 제거하는 저격 전문가',
-      '고효율 승부사': '적은 딜량으로도 킬을 잘 따내는 마무리 전문가',
-      '전략적 어시스트러': '킬보다는 팀원 지원과 어시스트에 특화된 서포터형',
-      '유령 생존자': '교전을 완전히 피하며 은신으로 높은 순위를 달성하는 타입',
-      '지속 전투형': '높은 딜량과 긴 생존시간으로 지속적인 교전을 이어가는 타입',
-      교전형: '적극적인 교전으로 높은 딜량과 킬을 기록하는 공격적 플레이어',
-      '초반 돌격형': '게임 시작부터 적극적으로 교전에 나서는 어그로형',
-      '장거리 정찰러': '넓은 범위를 이동하며 정찰과 포지셔닝을 중시하는 타입',
-      '저격 위주': '원거리에서 저격으로 안정적인 딜량을 누적하는 스타일',
-      '후반 존버형': '초중반을 버티고 후반까지 생존하여 높은 순위를 노리는 타입',
-      '중거리 안정형': '중거리 교전을 선호하며 안정적인 성과를 보이는 밸런스형',
-      공격형: '평균 이상의 딜량으로 공격적인 플레이를 보이는 타입',
-      생존형: '생존시간을 우선시하며 신중한 플레이를 하는 타입',
-      이동형: '넓은 범위를 이동하며 포지셔닝을 중시하는 타입',
-    };
-    return descriptions[cleanStyle] || '플레이스타일 분석 중입니다.';
-  };
-
-  const getPlayerStyle = (style) => {
-    const styles = {
-      '극단적 공격형': { icon: '☠️', color: 'red', bg: 'from-red-500 to-red-600' },
-      '초반 돌격형': { icon: '🚀', color: 'orange', bg: 'from-orange-500 to-orange-600' },
-      '극단적 수비형': { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-      '후반 존버형': { icon: '🏕️', color: 'yellow', bg: 'from-yellow-500 to-yellow-600' },
-      '장거리 정찰러': { icon: '🏃', color: 'blue', bg: 'from-blue-500 to-blue-600' },
-      '저격 위주': { icon: '🎯', color: 'purple', bg: 'from-purple-500 to-purple-600' },
-      '중거리 안정형': { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      '지속 전투형': { icon: '🔥', color: 'red', bg: 'from-red-600 to-red-700' },
-      '일반 밸런스형': { icon: '📦', color: 'gray', bg: 'from-gray-400 to-gray-500' },
-      '☠️ 극단적 공격형': { icon: '☠️', color: 'red', bg: 'from-red-500 to-red-600' },
-      '🚀 초반 돌격형': { icon: '🚀', color: 'orange', bg: 'from-orange-500 to-orange-600' },
-      '🛡️ 극단적 수비형': { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-      '🏕️ 후반 존버형': { icon: '🏕️', color: 'yellow', bg: 'from-yellow-500 to-yellow-600' },
-      '🏃 장거리 정찰러': { icon: '🏃', color: 'blue', bg: 'from-blue-500 to-blue-600' },
-      '🎯 저격 위주': { icon: '🎯', color: 'purple', bg: 'from-purple-500 to-purple-600' },
-      '⚖️ 중거리 안정형': { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      '🔥 지속 전투형': { icon: '🔥', color: 'red', bg: 'from-red-600 to-red-700' },
-      '📦 일반 밸런스형': { icon: '📦', color: 'gray', bg: 'from-gray-400 to-gray-500' },
-      어그로: { icon: '⚔️', color: 'red', bg: 'from-red-500 to-red-600' },
-      서포터: { icon: '🤝', color: 'blue', bg: 'from-blue-500 to-blue-600' },
-      생존형: { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-      킬러: { icon: '💀', color: 'purple', bg: 'from-purple-500 to-purple-600' },
-      밸런스: { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      캐리형: { icon: '🔥', color: 'red', bg: 'from-red-500 to-red-600' },
-      안정형: { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      수비형: { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-      '🔥 캐리형': { icon: '🔥', color: 'red', bg: 'from-red-500 to-red-600' },
-      '⚖️ 안정형': { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      '🛡️ 수비형': { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-    };
-    return styles[style] || styles['일반 밸런스형'];
-  };
-
-  const playerStyleInfo = getPlayerStyle(summary?.playstyle || styleString);
+  // v4: 실제 스탯 기반 플레이스타일 분류
+  const psResult = classifyPlaystyle({
+    avgDamage:      summary?.avgDamage      || seasonStat?.avgDamage      || 0,
+    avgKills:       summary?.avgKills       || seasonStat?.avgKills       || 0,
+    avgAssists:     summary?.avgAssists     || seasonStat?.avgAssists     || 0,
+    avgSurviveTime: summary?.avgSurvivalTime || seasonStat?.avgSurvival   || 0,
+    winRate:        summary?.winRate        || seasonStat?.winRate        || 0,
+    top10Rate:      summary?.top10Rate      || seasonStat?.top10Rate      || 0,
+    headshotRate:   summary?.headshotRate   || 0,
+  })
+  const majorInfo = MAJOR[psResult.major] || MAJOR.BALANCED
 
   const getFormStyle = (form) => {
     if (form === '급상승' || form === '상승') return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
@@ -304,7 +229,7 @@ const PlayerHeader = ({
       shard={shard}
       mmr={mmr}
       seasonStat={seasonStat}
-      playstyle={summary?.playstyle || styleString}
+      playstyle={psResult.label}
       clanInfo={clanInfo}
     />
     <div className="mb-8 rounded-2xl overflow-hidden shadow-xl">
@@ -329,26 +254,42 @@ const PlayerHeader = ({
                   </span>
                 )}
               </div>
+              {/* 플랫폼 배지 */}
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {(() => {
+                  const PLATFORM = {
+                    steam:   { label: 'Steam',  icon: '🎮', cls: 'bg-[#1b2838]/80 border-[#2a475e] text-[#c7d5e0]' },
+                    kakao:   { label: '카카오배그', icon: '🟡', cls: 'bg-yellow-900/40 border-yellow-600/50 text-yellow-300' },
+                    psn:     { label: 'PlayStation', icon: '🎯', cls: 'bg-blue-900/60 border-blue-500/50 text-blue-300' },
+                    xbox:    { label: 'Xbox',   icon: '🟢', cls: 'bg-green-900/40 border-green-600/50 text-green-300' },
+                    console: { label: 'Console', icon: '🎯', cls: 'bg-gray-700/60 border-gray-500/50 text-gray-300' },
+                  };
+                  const p = PLATFORM[shard] || PLATFORM.steam;
+                  return (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${p.cls}`}>
+                      {p.icon} {p.label}
+                    </span>
+                  );
+                })()}
+              </div>
               {/* 클랜 + 플레이스타일 */}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 {clanInfo && (
                   <span className="px-3 py-1 bg-blue-700/60 text-blue-200 border border-blue-600/50 rounded-full text-xs font-semibold backdrop-blur-sm">
                     [{clanInfo.tag || 'CLAN'}] {clanInfo.name || '클랜'}
                     {clanInfo.level ? ` Lv.${clanInfo.level}` : ''}
                   </span>
                 )}
-                <Tooltip content={getStyleDescription(summary?.playstyle)}>
-                  <span className={`px-3 py-1 bg-gradient-to-r ${playerStyleInfo.bg} text-white rounded-full text-xs font-semibold cursor-help shadow-sm`}>
-                    {summary?.playstyle || styleString}
+                <Tooltip content={`${psResult.desc}\n\n💡 ${psResult.tip}`}>
+                  <span className="flex items-center gap-1 cursor-help">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${majorInfo.bg} ${majorInfo.border} ${majorInfo.color}`}>
+                      {majorInfo.icon} {majorInfo.label}
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold text-white ${psResult.bg}`}>
+                      {psResult.label}
+                    </span>
                   </span>
                 </Tooltip>
-                {summary?.realPlayStyle && isDifferentStyles && (
-                  <Tooltip content={getStyleDescription(summary?.realPlayStyle)}>
-                    <span className="px-3 py-1 bg-purple-600/70 text-purple-100 border border-purple-500/50 rounded-full text-xs font-semibold cursor-help">
-                      {summary.realPlayStyle}
-                    </span>
-                  </Tooltip>
-                )}
               </div>
             </div>
           </div>
@@ -511,7 +452,14 @@ const PlayerHeader = ({
 
                 {showSeasonDetails && (() => {
                   const seasonData = Object.values(seasonStats || {})[0] || {};
-                  const modeLabels = { 'squad-fpp': 'Squad FPP', 'squad': 'Squad TPP', 'duo-fpp': 'Duo FPP', 'duo': 'Duo TPP', 'solo-fpp': 'Solo FPP', 'solo': 'Solo TPP' };
+                  const MODE_META = {
+                    'squad-fpp': { label: '스쿼드', view: '1인칭', fpp: true },
+                    'squad':     { label: '스쿼드', view: '3인칭', fpp: false },
+                    'duo-fpp':   { label: '듀오',   view: '1인칭', fpp: true },
+                    'duo':       { label: '듀오',   view: '3인칭', fpp: false },
+                    'solo-fpp':  { label: '솔로',   view: '1인칭', fpp: true },
+                    'solo':      { label: '솔로',   view: '3인칭', fpp: false },
+                  };
                   const activeModes = Object.entries(seasonData).filter(([, ms]) => (ms.rounds || 0) > 0);
                   return (
                     <div className="mt-3 rounded-xl border border-blue-100 overflow-hidden">
@@ -521,9 +469,16 @@ const PlayerHeader = ({
                       <div className="p-2 space-y-1.5">
                         {activeModes.length === 0 ? (
                           <div className="text-xs text-gray-400 text-center py-2">모드 데이터 없음</div>
-                        ) : activeModes.map(([mode, ms]) => (
-                          <div key={mode} className="rounded-lg bg-white border border-blue-100 p-2">
-                            <div className="text-xs font-bold text-blue-500 mb-1.5">{modeLabels[mode] || mode}</div>
+                        ) : activeModes.map(([mode, ms]) => {
+                          const meta = MODE_META[mode] || { label: mode, view: '', fpp: false };
+                          return (
+                          <div key={mode} className={`rounded-lg bg-white border p-2 ${meta.fpp ? 'border-orange-200' : 'border-blue-100'}`}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="text-xs font-bold text-gray-700">{meta.label}</span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${meta.fpp ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {meta.view}
+                              </span>
+                            </div>
                             <div className="grid grid-cols-4 gap-1">
                               {[
                                 { label: '게임', value: ms.rounds || 0 },
@@ -531,14 +486,15 @@ const PlayerHeader = ({
                                 { label: '평균킬', value: ((ms.totalKills || 0) / (ms.rounds || 1)).toFixed(1) },
                                 { label: '승률', value: (((ms.wins || 0) / (ms.rounds || 1)) * 100).toFixed(1) + '%' },
                               ].map(({ label, value }) => (
-                                <div key={label} className="bg-blue-50/60 rounded p-1.5 text-center">
-                                  <div className="text-[10px] text-blue-400 font-medium">{label}</div>
+                                <div key={label} className={`rounded p-1.5 text-center ${meta.fpp ? 'bg-orange-50/60' : 'bg-blue-50/60'}`}>
+                                  <div className={`text-[10px] font-medium ${meta.fpp ? 'text-orange-400' : 'text-blue-400'}`}>{label}</div>
                                   <div className="text-xs font-bold text-gray-800">{value}</div>
                                 </div>
                               ))}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );

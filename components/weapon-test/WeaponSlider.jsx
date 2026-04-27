@@ -27,7 +27,8 @@ export const WEAPON_IMG = {
   'Micro UZI':    'Item_Weapon_UZI_C.png',
   'PP-19 Bizon':  'Item_Weapon_BizonPP19_C.png',
   'DP-28':        'Item_Weapon_DP28_C.png',
-  'S12K':         'Item_Weapon_OriginS12_C.png',
+  'S12K':         'Item_Weapon_Saiga12_C.png',
+  'O12':          'Item_Weapon_OriginS12_C.png',
   'S686':         'Item_Weapon_Berreta686_C.png',
   'DBS':          'Item_Weapon_DP12_C.png',
 }

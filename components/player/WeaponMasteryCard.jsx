@@ -56,11 +56,11 @@ const WEAPON_MAP = {
   Item_Weapon_MG3_C:         { name: 'MG3',         category: 'LMG', img: 'Item_Weapon_MG3_C.png' },
 
   // ── Shotguns ──────────────────────────────────────────────────────
-  Item_Weapon_OriginS12_C:   { name: 'S12K',        category: 'SG',  img: 'Item_Weapon_OriginS12_C.png' },
+  Item_Weapon_OriginS12_C:   { name: 'O12',         category: 'SG',  img: 'Item_Weapon_OriginS12_C.png' },
   Item_Weapon_Berreta686_C:  { name: 'S686',        category: 'SG',  img: 'Item_Weapon_Berreta686_C.png' },
   Item_Weapon_Winchester_C:  { name: 'S1897',       category: 'SG',  img: 'Item_Weapon_Winchester_C.png' },
   Item_Weapon_DP12_C:        { name: 'DBS',         category: 'SG',  img: 'Item_Weapon_DP12_C.png' },
-  Item_Weapon_Saiga12_C:     { name: 'O12',         category: 'SG',  img: 'Item_Weapon_Saiga12_C.png' },
+  Item_Weapon_Saiga12_C:     { name: 'S12K',        category: 'SG',  img: 'Item_Weapon_Saiga12_C.png' },
 
   // ── Pistols ───────────────────────────────────────────────────────
   Item_Weapon_G18_C:         { name: 'P18C',        category: 'Pistol', img: 'Item_Weapon_G18_C.png' },

@@ -1,13 +1,13 @@
 // pages/api/pubg/growth.js
 // 플레이어 성장 추적 — GET ?nickname=xxx&shard=steam&limit=30
 
-import prisma from '../../../utils/prisma.js';
+import prisma from '../../../utils/prisma'
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).end();
+  if (req.method !== 'GET') return res.status(405).end()
 
-  const { nickname, shard = 'steam', limit = '30' } = req.query;
-  if (!nickname) return res.status(400).json({ error: 'nickname is required' });
+  const { nickname, shard = 'steam', limit = '30' } = req.query
+  if (!nickname) return res.status(400).json({ error: 'nickname is required' })
 
   try {
     const snapshots = await prisma.playerStatSnapshot.findMany({
@@ -27,10 +27,11 @@ export default async function handler(req, res) {
         avgSurviveTime: true,
         capturedAt:     true,
       },
-    });
+    })
 
-    res.status(200).json({ snapshots });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(200).json({ snapshots })
+  } catch {
+    // 테이블 미존재 등 DB 오류 → 빈 배열로 안전하게 반환
+    return res.status(200).json({ snapshots: [] })
   }
 }

@@ -1090,7 +1090,7 @@ function ClanRankingTab({ data, loading }) {
                       <tr key={m.id} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
                         <td className="px-4 py-2.5 font-bold">{rankMedal(i)}</td>
                         <td className="px-4 py-2.5">
-                          <Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">
+                          <Link href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">
                             {m.nickname}
                           </Link>
                         </td>
@@ -1162,7 +1162,7 @@ function ClanRankingTab({ data, loading }) {
                       <tr key={m.nickname} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
                         <td className="px-4 py-2.5 font-bold">{rankMedal(i)}</td>
                         <td className="px-4 py-2.5">
-                          <Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">
+                          <Link href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">
                             {m.nickname}
                           </Link>
                         </td>

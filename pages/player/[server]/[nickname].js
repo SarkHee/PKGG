@@ -393,7 +393,7 @@ function setCachedPlayer(key, data) {
   } catch {}
 }
 
-export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
+export default function PlayerPage({ playerData: ssrData, error, dataSource, availableSeasons = [], playerId, shardId }) {
   const router = useRouter();
   const { server, nickname } = router.query;
   const cacheKey = `${server}_${nickname}`;
@@ -410,9 +410,10 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
   const [cooldown, setCooldown] = useState(0);
   const [refreshMsg, setRefreshMsg] = useState('');
   const [currentSeasonData, setCurrentSeasonData] = useState(null);
-  const [currentSeasonId, setCurrentSeasonId] = useState(
-    'division.bro.official.pc-2024-01'
+  const [currentSeasonId, setCurrentSeasonId] = useState(() =>
+    availableSeasons.find(s => s.isCurrent)?.id || ''
   );
+  const [seasonLoading, setSeasonLoading] = useState(false);
   const [selectedMatchFilter, setSelectedMatchFilter] = useState('전체');
 
   // SSR 데이터를 세션 캐시에 저장
@@ -521,10 +522,55 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
     }
   };
 
-  // 시즌 변경 핸들러
-  const handleSeasonChange = (seasonId, seasonData) => {
+  // 지난 시즌 전적 조회 핸들러
+  const handleSeasonChange = async (seasonId) => {
+    const currentId = availableSeasons.find(s => s.isCurrent)?.id;
+    if (seasonId === currentId) {
+      setCurrentSeasonId(seasonId);
+      setCurrentSeasonData(null);
+      return;
+    }
+    if (!playerId || !shardId) return;
     setCurrentSeasonId(seasonId);
-    setCurrentSeasonData(seasonData);
+    setSeasonLoading(true);
+    try {
+      const res = await fetch(`/api/pubg/stats/season/${shardId}/${playerId}/${seasonId}`);
+      const json = await res.json();
+      if (json.success && json.data?.gameModeStats) {
+        const modeStats = json.data.gameModeStats;
+        const isEventMode = (m) => m.startsWith('normal') || m.includes('event') || m.includes('airoyale');
+        const transformed = {};
+        for (const [mode, s] of Object.entries(modeStats)) {
+          if (isEventMode(mode)) continue;
+          const rounds = s.roundsPlayed || 0;
+          if (rounds === 0) continue;
+          transformed[mode] = {
+            rounds,
+            wins: s.wins || 0,
+            top10s: s.top10s || 0,
+            kd: parseFloat(((s.kills || 0) / Math.max(1, rounds - (s.wins || 0))).toFixed(2)),
+            avgDamage: Math.round((s.damageDealt || 0) / rounds),
+            winRate: Math.round(((s.wins || 0) / rounds) * 100),
+            top10Rate: Math.round(((s.top10s || 0) / rounds) * 100),
+            headshotRate: (s.kills || 0) > 0 ? Math.round(((s.headshotKills || 0) / s.kills) * 100) : 0,
+            longestKill: Math.round(s.longestKill || 0),
+            headshots: s.headshotKills || 0,
+            totalKills: s.kills || 0,
+            maxKills: s.roundMostKills || 0,
+            avgRank: 0,
+            avgSurvivalTime: Math.round((s.timeSurvived || 0) / rounds),
+            avgAssists: parseFloat(((s.assists || 0) / rounds).toFixed(1)),
+            assists: s.assists || 0,
+            mostAssists: 0,
+          };
+        }
+        setCurrentSeasonData({ [seasonId]: transformed });
+      }
+    } catch (e) {
+      console.error('과거 시즌 조회 실패:', e);
+    } finally {
+      setSeasonLoading(false);
+    }
   };
 
   // 현재 표시할 데이터 결정 (시즌이 변경되었으면 시즌 데이터, 아니면 기본 데이터)
@@ -1418,12 +1464,31 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
         {/* 게임 모드별 통계 섹션 */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4 px-1">
-            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-            <h2 className="text-lg font-bold text-gray-800">게임 모드별 통계</h2>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
+          <div className="flex items-center justify-between gap-3 mb-4 px-1 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+              <h2 className="text-lg font-bold text-gray-800">게임 모드별 통계</h2>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
+            </div>
+            {availableSeasons.length > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 font-medium">시즌 선택</span>
+                <select
+                  value={currentSeasonId}
+                  onChange={(e) => handleSeasonChange(e.target.value)}
+                  disabled={seasonLoading}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-50"
+                >
+                  {availableSeasons.map(s => {
+                    const label = s.isCurrent ? '현재 시즌' : s.id.replace('division.bro.official.pc-', 'S').replace('-', ' ');
+                    return <option key={s.id} value={s.id}>{label}</option>;
+                  })}
+                </select>
+                {seasonLoading && <span className="text-xs text-blue-500 animate-pulse">로딩중...</span>}
+              </div>
+            )}
           </div>
-          <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
+          <SeasonStatsTabs seasonStatsBySeason={currentSeasonData || seasonStats || {}} />
         </div>
 
         {/* 최근 경기 내역 섹션 */}
@@ -1827,11 +1892,12 @@ export async function getServerSideProps({ params, query }) {
   }
 
   try {
-    // Step 1: PUBG API로 플레이어 검색 (shard 우선순위 적용)
+    // Step 1: PUBG API로 플레이어 검색
+    // 명시적으로 선택된 shard(steam/kakao/psn/xbox)면 해당 shard만 검색
     let pubgPlayer = null;
     let pubgShard = server || 'steam';
-    const searchShards = server && server !== 'unknown'
-      ? [server, ...shards.filter(s => s !== server)]
+    const searchShards = shards.includes(server)
+      ? [server]
       : shards;
 
     for (const shard of searchShards) {
@@ -1881,6 +1947,16 @@ export async function getServerSideProps({ params, query }) {
     let pubgRankedSummary = null;
     let pubgModeDistribution = { ranked: 0, normal: 0, event: 0 };
 
+    // 최근 시즌 목록 (현재 + 이전 5시즌) SSR 전달용
+    let availableSeasons = [];
+    if (seasonResult.status === 'fulfilled') {
+      const allSeasons = seasonResult.value.data || [];
+      availableSeasons = allSeasons
+        .filter(s => s.id && !s.id.includes('beta') && !s.id.includes('pre'))
+        .sort((a, b) => b.id.localeCompare(a.id))
+        .slice(0, 6)
+        .map(s => ({ id: s.id, isCurrent: !!s.attributes?.isCurrentSeason }));
+    }
     if (seasonResult.status === 'fulfilled') {
       const seasons = seasonResult.value.data || []; // cachedPubgFetch: json.data = 배열
       const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
@@ -1901,7 +1977,10 @@ export async function getServerSideProps({ params, query }) {
         if (statsResult.status === 'fulfilled') {
           const gameModeStats = statsResult.value.data?.attributes?.gameModeStats || {};
           const transformedModes = {};
+          // 이벤트맵/사용자 지정/데스매치(normal-* 접두사) 제외 — 일반·경쟁전만 집계
+          const isEventMode = (m) => m.startsWith('normal') || m.includes('event') || m.includes('airoyale') || m.includes('deathmatch') || m.includes('casual');
           for (const [mode, s] of Object.entries(gameModeStats)) {
+            if (isEventMode(mode)) continue;
             const rounds = s.roundsPlayed || 0;
             if (rounds === 0) continue;
             transformedModes[mode] = {
@@ -2118,7 +2197,14 @@ export async function getServerSideProps({ params, query }) {
     }
 
     return {
-      props: { playerData, error: null, dataSource: forceRefresh ? 'pubg_api_refreshed' : 'pubg_api' },
+      props: {
+        playerData,
+        error: null,
+        dataSource: forceRefresh ? 'pubg_api_refreshed' : 'pubg_api',
+        availableSeasons,
+        playerId: pubgPlayer.id,
+        shardId: pubgShard,
+      },
     };
   } catch (error) {
     console.error('getServerSideProps error:', error);

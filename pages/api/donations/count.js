@@ -1,14 +1,14 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+// pages/api/donations/count.js
+import prisma from '../../../utils/prisma'
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
-      const row = await prisma.donationCounter.findUnique({ where: { id: 1 } });
-      return res.status(200).json({ count: row?.count ?? 0 });
-    } catch (e) {
-      return res.status(500).json({ count: 0, error: e.message });
+      const row = await prisma.donationCounter.findUnique({ where: { id: 1 } })
+      return res.status(200).json({ count: row?.count ?? 0 })
+    } catch {
+      // 테이블 미존재 등 DB 오류 → 0으로 안전하게 반환
+      return res.status(200).json({ count: 0 })
     }
   }
 
@@ -18,12 +18,12 @@ export default async function handler(req, res) {
         where: { id: 1 },
         update: { count: { increment: 1 } },
         create: { id: 1, count: 1 },
-      });
-      return res.status(200).json({ count: row.count });
+      })
+      return res.status(200).json({ count: row.count })
     } catch (e) {
-      return res.status(500).json({ error: e.message });
+      return res.status(200).json({ count: 0, error: e.message })
     }
   }
 
-  return res.status(405).end();
+  return res.status(405).end()
 }

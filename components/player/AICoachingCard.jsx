@@ -188,10 +188,10 @@ function getDynamicTip(dynPrimary, dynSecondary, playStyle) {
   if (dynPrimary && dynSecondary) {
     if ((pC === 'AR' || pC === 'SMG') && (sC === 'SR' || sC === 'DMR')) {
       const sDesc = WEAPON_CHARS[s]?.tip || ''
-      return `실전 데이터: ${p} ${pK}킬 · ${s} ${sK}킬. ${p}로 100m 이내 교전을 주도하고 ${s}로 원거리 견제를 병행하면 전거리 대응 완성. ${pDesc ? `→ ${pDesc}` : ''}`
+      return `실전 데이터: ${p} ${pK}킬 · ${s} ${sK}킬. ${p}로 100m 이내 교전을 주도하고 ${s}로 원거리 견제를 더하면 전 거리 대응이 완성됩니다. ${pDesc ? `→ ${pDesc}` : ''}`
     }
     if (pC === 'AR' && sC === 'SMG') {
-      return `실전 데이터: ${p} ${pK}킬 · ${s} ${sK}킬. ${p}로 중거리 교전, ${s}로 실내 클리어링을 담당하는 밸런스 조합. ${pDesc ? `→ ${pDesc}` : ''}`
+      return `실전 데이터: ${p} ${pK}킬 · ${s} ${sK}킬. ${p}로 중거리 교전, ${s}로 실내 클리어링을 담당하는 균형 잡힌 조합입니다. ${pDesc ? `→ ${pDesc}` : ''}`
     }
     if ((pC === 'SR' || pC === 'DMR') && (sC === 'AR' || sC === 'SMG')) {
       return `실전 데이터: ${p} ${pK}킬 · ${s} ${sK}킬. 원거리 저격 후 ${s}로 진입하는 공격적 저격 운용. 사격 직후 포지션 즉시 이동이 핵심.`
@@ -243,54 +243,54 @@ function getPUBGActions(stats, playStyle) {
 
   // 1. 딜량 기반
   if (stats.avgDamage < 150) {
-    actions.push({ priority: '긴급', action: `Training Grounds에서 M416 반동(우하방)을 마우스로 당겨올리는 연습을 매일 15분씩 하세요. 100m 타겟에 30발 연속 명중을 목표로 잡으면 딜량이 빠르게 향상됩니다` });
+    actions.push({ priority: '긴급', action: `평균 딜량 ${Math.round(stats.avgDamage)} — 연습장에서 M416으로 100m 타겟 연속 명중 훈련을 15분만 해도 체감 변화가 생깁니다.` });
   } else if (stats.avgDamage < 280) {
-    actions.push({ priority: '중요', action: `딜량 ${Math.round(stats.avgDamage)} — 교전 전 앉거나 엎드려 반동을 줄이고, 100~150m 거리에서 4배율 스코프로 점사(2~3발) 습관을 들이세요` });
+    actions.push({ priority: '중요', action: `평균 딜량 ${Math.round(stats.avgDamage)} — 교전 전 앉아서 반동을 줄이고 4배율로 2~3발씩 끊어 쏘는 습관만 들여도 딜량이 눈에 띄게 오릅니다.` });
   } else if (stats.avgDamage < 400) {
-    actions.push({ priority: '권장', action: `딜량 ${Math.round(stats.avgDamage)} 양호. 200m+ 원거리에서 DMR(SKS·Mini14) 견제를 추가하면 딜량과 어시스트를 동시에 올릴 수 있습니다` });
+    actions.push({ priority: '권장', action: `딜량 ${Math.round(stats.avgDamage)} 양호. DMR(SKS·Mini14)로 원거리 견제를 추가하면 어시스트와 딜이 함께 오릅니다.` });
   } else {
-    actions.push({ priority: '권장', action: `딜량 ${Math.round(stats.avgDamage)} 상위권. 팀원 부활 커버 시 DMR로 상대 포지션을 압박하고, 교전 후 이동하는 타이밍에 추가 딜을 넣는 고급 전술을 연습하세요` });
+    actions.push({ priority: '권장', action: `딜량 ${Math.round(stats.avgDamage)} 상위권. 팀원 부활 커버 중 DMR로 상대를 압박하면 생존율도 같이 오릅니다.` });
   }
 
   // 2. 승률/엔드게임
   if (stats.winRate < 3) {
-    actions.push({ priority: '긴급', action: `Top10 이후엔 먼저 뛰지 마세요 — 언덕·바위·건물 1층에 고정하고 상대가 이동할 때 사냥하세요. 먼저 움직이면 먼저 맞습니다` });
+    actions.push({ priority: '긴급', action: `Top10 이후엔 먼저 움직이지 마세요. 언덕·바위 뒤에 자리 잡고 상대가 이동할 때 처치하는 것이 치킨의 시작입니다.` });
   } else if (stats.winRate < 8) {
-    actions.push({ priority: '중요', action: `Top5 진입 후 고지대(언덕·능선)를 우선 확보하세요. 조준선 우위 = 교전 우위. 평지에서 위를 향해 싸우면 무조건 불리합니다` });
+    actions.push({ priority: '중요', action: `Top5부터 고지대를 먼저 잡으세요. 위에서 아래로 쏘는 쪽이 항상 유리합니다.` });
   } else {
-    actions.push({ priority: '권장', action: `승률 ${stats.winRate.toFixed(1)}% 우수. 연막탄 1~2개 상시 소지로 불리한 포지션에서 탈출 루트를 만드는 고급 기술을 연습하세요` });
+    actions.push({ priority: '권장', action: `승률 ${stats.winRate.toFixed(1)}% 우수. 연막탄 1~2개를 항상 소지하면 불리한 포지션에서도 탈출할 수 있습니다.` });
   }
 
   // 3. 플레이스타일 특화
   const styleActions = {
-    AGGRESSIVE: '교전 직전 팀원 위치를 확인하고 "돌격합니다" 콜을 하세요. 1명 단독 돌진보다 팀 엄호 사격 + 1명 진입 조합이 생존율을 2배 높입니다. 써드파티를 항상 경계하세요',
-    PASSIVE:    '중반(약 15분 후) 에너지드링크 3개를 상시 유지하여 블루존을 맞으며 이동할 수 있게 하세요. 붕대에만 의존하면 노출 시간이 길어져 죽습니다',
-    SNIPER:     '스나이핑 후 즉시 20m 옆으로 이동하세요. 1발 쏜 자리에 계속 있으면 역스나이핑 당합니다. 반드시 "쏘고 이동"을 반복하세요',
-    SUPPORT:    '스모크 그레네이드 1~2개와 어도부 권총을 항상 소지하세요. 팀원 넉다운 시 스모크로 시야 차단 후 안전하게 부활시키는 루틴을 팀과 공유하세요',
-    BALANCED:   '교전 참여 여부를 3초 내에 결정하세요. 유리하면 즉시 공격, 불리하면 즉시 이탈 — 이 판단력이 승률을 결정합니다',
+    AGGRESSIVE: '돌격 전 팀원 위치를 확인하세요. 혼자 돌진보다 엄호 + 1명 진입 조합이 생존율을 크게 높이고 써드파티도 방어할 수 있습니다.',
+    PASSIVE:    '에너지드링크 3개를 상시 유지하면 블루존 데미지를 받으면서도 이동이 가능합니다. 붕대만 챙기면 힐하는 동안 노출 시간이 늘어나니 에너지를 우선 확보하세요.',
+    SNIPER:     '저격 후 즉시 20m 옆으로 포지션을 바꾸세요. 같은 자리에 오래 있으면 역저격을 당합니다.',
+    SUPPORT:    '연막탄 1개와 어드레날린을 항상 챙기세요. 팀원이 쓰러졌을 때 연막으로 시야를 막고 살려주는 루틴 하나가 팀 승률을 크게 올립니다.',
+    BALANCED:   '교전할지 말지를 3초 내에 결정하는 습관을 들이세요. 유리하면 바로 공격, 불리하면 바로 이탈이 승률의 핵심입니다.',
   };
   actions.push({ priority: '중요', action: styleActions[playStyle] || styleActions.BALANCED });
 
   // 4. Top10 / 생존 시간 기반
   if (stats.top10Rate < 20) {
-    actions.push({ priority: '긴급', action: `Top10 ${stats.top10Rate.toFixed(0)}% — 블루존 축소 30초 전 이동이 핵심. 미니맵을 5초마다 확인하고 에너지드링크 3개 이상 상시 소지하세요` });
+    actions.push({ priority: '긴급', action: `Top10 ${stats.top10Rate.toFixed(0)}% — 블루존 줄어들기 30초 전에 이동을 시작하고, 에너지드링크 3개는 항상 가지고 다니세요.` });
   } else if (stats.avgSurvivalTime < 600) {
-    actions.push({ priority: '중요', action: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 핫드랍에서 3명 이상 경쟁이면 즉시 옆 건물로 이동하세요. 루팅 경쟁 회피가 초반 생존의 핵심입니다` });
+    actions.push({ priority: '중요', action: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 착지 지점에 경쟁자가 많으면 바로 옆 건물로 넘어가세요. 루팅 경쟁이 초반 사망의 주원인입니다.` });
   } else if (stats.avgKills < 1.5) {
-    actions.push({ priority: '중요', action: `경기당 ${stats.avgKills.toFixed(1)}킬 — 블루존으로 이동 중인 적을 미리 포지션 잡고 기다리는 것이 가장 쉬운 킬 방법입니다` });
+    actions.push({ priority: '중요', action: `경기당 ${stats.avgKills.toFixed(1)}킬 — 블루존 이동 중인 적을 미리 자리 잡고 기다리는 것이 가장 쉽게 킬을 늘리는 방법입니다.` });
   } else {
-    actions.push({ priority: '권장', action: `투척류(수류탄)를 적극 활용하세요. 교전 전 프래그 1개로 적을 이동시키거나 체력을 깎으면 교전 승률이 크게 오릅니다. 매 루팅 시 투척류 우선 수거를 습관화하세요` });
+    actions.push({ priority: '권장', action: `수류탄을 적극 쓰세요. 교전 전 프래그 1개가 적을 이동시키거나 체력을 깎아 교전 승률을 크게 높입니다.` });
   }
 
   // 5. 헤드샷 또는 어시스트 또는 일관성
   if (stats.headshotRate > 0 && stats.headshotRate < 20) {
-    actions.push({ priority: '권장', action: `헤드샷 비율 ${stats.headshotRate.toFixed(0)}% — 에임 트레이너(이 사이트 훈련 메뉴)에서 '반응속도' 모드를 매일 5분 연습하면 2~3주 내 체감 향상됩니다` });
+    actions.push({ priority: '권장', action: `헤드샷 비율 ${stats.headshotRate.toFixed(0)}% — 훈련 메뉴의 에임 트레이너에서 반응속도 모드를 5분씩 꾸준히 하면 2~3주 내 변화를 느낄 수 있습니다.` });
   } else if (stats.avgAssists < 1.0) {
-    actions.push({ priority: '권장', action: `어시스트 ${stats.avgAssists.toFixed(1)}개 — 내가 처치 못해도 팀원이 마무리할 수 있도록 먼저 딜을 넣는 '선딜 후 커버' 플레이를 의식적으로 연습하세요` });
+    actions.push({ priority: '권장', action: `어시스트 ${stats.avgAssists.toFixed(1)}개 — 처치를 못해도 먼저 딜을 넣어주는 '선딜 후 커버' 플레이 하나만 챙겨도 팀 기여도가 달라집니다.` });
   } else if (stats.winRate >= 8 && stats.avgDamage >= 350) {
-    actions.push({ priority: '권장', action: `상위권 지표 유지 중. 팀 콜링(적 위치·이동 방향 공유)을 습관화하면 팀 전체 성과가 오르고 치킨 확률이 추가로 높아집니다` });
+    actions.push({ priority: '권장', action: `상위권 지표를 잘 유지하고 있습니다. 적 위치·이동 방향을 팀원에게 공유하는 콜링을 습관화하면 팀 전체 승률이 추가로 올라갑니다.` });
   } else {
-    actions.push({ priority: '권장', action: `착지 지점 2~3곳을 고정하고 루팅 동선을 패턴화하세요. 매 게임 변수를 줄이면 평균 성과가 안정되고 일관성이 오릅니다` });
+    actions.push({ priority: '권장', action: `착지 지점 2~3곳을 고정하고 루팅 동선을 패턴화하세요. 매 게임의 변수를 줄이면 평균 성과가 안정되고 일관성이 높아집니다.` });
   }
 
   return actions;
@@ -345,76 +345,76 @@ function getPUBGImprovements(stats, analysis) {
   // ── 딜량 ──
   if (stats.avgDamage < 180) {
     const next = Math.round(stats.avgDamage / 10) * 10 + 30;
-    list.push({ title: '딜량 향상 (1단계)', desc: `현재 ${Math.round(stats.avgDamage)} → ${next} 목표. Training Grounds에서 AR 반동 제어 10분씩, 100m 타겟에 30발 연속 명중을 목표로 하세요` });
+    list.push({ title: '딜량 향상 (1단계)', desc: `현재 ${Math.round(stats.avgDamage)} → ${next} 목표. 연습장에서 M416 반동 제어 10분씩, 100m 타겟 30발 명중 훈련이 가장 빠른 길입니다.` });
   } else if (stats.avgDamage < 280) {
     const next = Math.min(280, Math.round(stats.avgDamage / 10) * 10 + 40);
-    list.push({ title: '중거리 딜링 개선', desc: `현재 ${Math.round(stats.avgDamage)} → ${next} 목표. 4배율로 100~150m 거리에서 2~3발 점사 습관을 들이세요` });
+    list.push({ title: '중거리 딜링 개선', desc: `현재 ${Math.round(stats.avgDamage)} → ${next} 목표. 4배율로 100~150m에서 2~3발 점사하는 습관이 딜량을 빠르게 올립니다.` });
   } else if (stats.avgDamage < 400) {
-    list.push({ title: '딜량 상위권 진입', desc: `현재 ${Math.round(stats.avgDamage)} → 400 목표(상위 15% 기준). 교전 시 상대를 넉다운시키고 팀원이 처치하도록 피해를 극대화하는 '딜딜킬' 전략을 써보세요` });
+    list.push({ title: '딜량 상위권 진입', desc: `현재 ${Math.round(stats.avgDamage)} → 400 목표. 상대를 넉다운시키고 팀원이 처치하는 '딜딜킬' 전략으로 경기당 딜을 늘리세요.` });
   } else {
-    list.push({ title: '딜량 유지 + 원거리 확장', desc: `딜량 ${Math.round(stats.avgDamage)}은 상위권. DMR(SKS·Mini14) 서브 활용으로 200m+ 견제를 추가하면 교전 없이도 어시스트와 딜을 쌓을 수 있습니다` });
+    list.push({ title: '딜량 유지 + 원거리 확장', desc: `딜량 ${Math.round(stats.avgDamage)} 상위권. DMR(SKS·Mini14)로 200m+ 견제를 추가하면 어시스트도 함께 오릅니다.` });
   }
 
   // ── 킬/교전 ──
   if (stats.avgKills < 1.0)
-    list.push({ title: '교전 참여 늘리기', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 1킬 목표. 블루존으로 이동 중인 적을 미리 포지션 잡고 기다리는 것부터 시작하세요` });
+    list.push({ title: '교전 참여 늘리기', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 1킬 목표. 블루존으로 이동하는 적을 미리 자리 잡고 기다리는 것부터 시작하세요.` });
   else if (stats.avgKills < 2.0)
-    list.push({ title: '써드파티 킬 추가', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 2킬 목표. 써드파티 — 교전 중인 두 팀이 있으면 이기는 쪽 뒤에서 기다렸다가 체력 낮은 생존자를 사냥하세요` });
+    list.push({ title: '써드파티 킬 추가', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 2킬 목표. 두 팀이 싸우면 뒤에서 기다렸다가 체력 낮은 생존자를 정리하세요.` });
   else if (stats.avgKills < 3.0)
-    list.push({ title: '연속 교전 처리 능력', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 3킬 목표. 1명 처치 후 즉시 다음 타겟으로 전환하는 속도가 핵심 — 교전 후 재장전 타이밍을 항상 의식하세요` });
+    list.push({ title: '연속 교전 처리 능력', desc: `경기당 ${stats.avgKills.toFixed(1)}킬 → 3킬 목표. 1명 처치 후 재장전과 동시에 다음 타겟으로 시선을 돌리는 속도가 핵심입니다.` });
   else
-    list.push({ title: '킬 후 포지션 이탈', desc: `킬 ${stats.avgKills.toFixed(1)}개로 교전 능력 우수. 킬 직후 동일 포지션에 머물면 팀원 복수가 오므로, 사격 후 즉시 10~20m 측면 이동을 습관화하세요` });
+    list.push({ title: '킬 후 포지션 이탈', desc: `킬 ${stats.avgKills.toFixed(1)}개로 교전 능력 우수. 사격 후 같은 자리에 있으면 복수가 오니 즉시 10~20m 옆으로 이동하는 습관을 들이세요.` });
 
   // ── 승률/엔드게임 ──
   if (stats.winRate < 3)
-    list.push({ title: 'Top15 생존 습관', desc: `승률 ${stats.winRate.toFixed(1)}% — 먼저 총 쏘지 않고 상대가 이동할 때 사냥하는 습관이 먼저입니다. 치킨보다 Top15 진입을 목표로 잡으세요` });
+    list.push({ title: 'Top15 생존 습관', desc: `승률 ${stats.winRate.toFixed(1)}% — 상대가 이동할 때 사냥하는 자리 우선 전략이 먼저입니다. 치킨보다 Top15 진입을 목표로 잡으세요.` });
   else if (stats.winRate < 6)
-    list.push({ title: 'Top5 고지대 선점', desc: `승률 ${stats.winRate.toFixed(1)}% → 6% 목표. 마지막 원에서 언덕·바위 뒤 조준선 우위 포지션을 먼저 잡는 것이 치킨 확률을 2배 올립니다` });
+    list.push({ title: 'Top5 고지대 선점', desc: `승률 ${stats.winRate.toFixed(1)}% → 6% 목표. 마지막 원에서 언덕·바위 뒤를 먼저 잡으면 교전이 훨씬 유리해집니다.` });
   else if (stats.winRate < 12)
-    list.push({ title: '엔드게임 연막탄 활용', desc: `승률 ${stats.winRate.toFixed(1)}% → 12% 목표. 연막탄 1~2개 상시 소지 — 불리한 포지션에서 이동 경로를 만드는 것만으로 엔드게임 생존율이 크게 오릅니다` });
+    list.push({ title: '엔드게임 연막탄 활용', desc: `승률 ${stats.winRate.toFixed(1)}% → 12% 목표. 연막탄 1~2개 상시 소지로 불리한 포지션에서도 탈출 루트를 만들 수 있습니다.` });
   else
-    list.push({ title: '치킨 결정력 향상', desc: `승률 ${stats.winRate.toFixed(1)}% 최상위권. 마지막 2팀 상황에서 상대 포지션 파악 후 그레네이드 1개로 이동을 강제하는 고급 전술을 연습하세요` });
+    list.push({ title: '치킨 결정력 향상', desc: `승률 ${stats.winRate.toFixed(1)}% 최상위권. 마지막 2팀 상황에서 그레네이드로 상대 이동을 강제하는 전술을 연습해보세요.` });
 
   // ── Top10 생존 ──
   if (stats.top10Rate < 20)
-    list.push({ title: '안전지대 이동 타이밍', desc: `Top10 ${stats.top10Rate.toFixed(0)}% — 블루존 축소 30초 전 이동 시작이 핵심. 미니맵을 5초마다 확인하고 에너지드링크 3개 이상 상시 소지하세요` });
+    list.push({ title: '안전지대 이동 타이밍', desc: `Top10 ${stats.top10Rate.toFixed(0)}% — 블루존이 줄어들기 30초 전에 먼저 이동하는 것이 핵심입니다. 에너지드링크 3개를 항상 챙기세요.` });
   else if (stats.top10Rate < 35)
-    list.push({ title: '중반 포지션 선점', desc: `Top10 ${stats.top10Rate.toFixed(0)}% → 35% 목표. 1차 원 축소 전 미리 이동해 건물 안쪽·능선 뒤를 선점하세요. 늦게 진입할수록 노출 시간이 길어집니다` });
+    list.push({ title: '중반 포지션 선점', desc: `Top10 ${stats.top10Rate.toFixed(0)}% → 35% 목표. 1차 원 줄어들기 전에 미리 이동해 건물 안쪽·능선 뒤를 선점하세요.` });
   else if (stats.top10Rate < 50)
-    list.push({ title: 'Top10 → 치킨 전환율', desc: `Top10 ${stats.top10Rate.toFixed(0)}%로 후반 진입은 잘 됩니다. 이제는 Top10 진입 후 교전 참여 타이밍을 늦추고 3위 이하로 좁혀진 뒤 움직이세요` });
+    list.push({ title: 'Top10 → 치킨 전환율', desc: `Top10 ${stats.top10Rate.toFixed(0)}%로 후반 진입은 잘 됩니다. Top5부터 교전 타이밍을 늦추고 기다리면 치킨 확률이 오릅니다.` });
 
   // ── 헤드샷 (데이터 있을 때만) ──
   if (stats.headshotRate > 0) {
     if (stats.headshotRate < 15)
-      list.push({ title: '헤드샷 정확도 향상', desc: `헤드샷 비율 ${stats.headshotRate.toFixed(0)}% — Training Grounds에서 정지 타겟 헤드 조준부터 연습하세요. 헤드샷 1회가 바디샷 2회 이상의 효과입니다` });
+      list.push({ title: '헤드샷 정확도 향상', desc: `헤드샷 비율 ${stats.headshotRate.toFixed(0)}% — 연습장에서 정지 타겟 헤드 조준부터 시작하세요. 헤드샷 1회가 바디샷 2회 이상의 효과입니다.` });
     else if (stats.headshotRate < 30)
-      list.push({ title: '이동 타겟 헤드샷', desc: `헤드샷 비율 ${stats.headshotRate.toFixed(0)}% — 정지 타겟은 잘 맞추지만 이동 타겟 리드샷 연습이 필요합니다. 에임 트레이너 '이동 타겟' 모드 30초씩 하세요` });
+      list.push({ title: '이동 타겟 헤드샷', desc: `헤드샷 비율 ${stats.headshotRate.toFixed(0)}% — 에임 트레이너 '이동 타겟' 모드로 리드샷 감각을 익히세요.` });
   }
 
   // ── 생존 시간 ──
   if (stats.avgSurvivalTime < 480)
-    list.push({ title: '착지 전략 변경', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 핫드랍 3명 이상 경쟁 시 즉시 옆 건물로 이동하세요. 루팅 경쟁 회피가 초반 생존의 핵심입니다` });
+    list.push({ title: '착지 전략 변경', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 착지 경쟁자가 많으면 바로 옆 건물로 넘어가세요. 루팅 경쟁 회피가 초반 생존의 핵심입니다.` });
   else if (stats.avgSurvivalTime < 900)
-    list.push({ title: '중반 생존력 향상', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 에너지드링크 2개를 마시며 블루존 피해를 버티는 이동이 가능합니다. 힐 아이템 우선 루팅 습관을 들이세요` });
+    list.push({ title: '중반 생존력 향상', desc: `평균 ${Math.round(stats.avgSurvivalTime / 60)}분 생존 — 에너지드링크 2개를 마시면 블루존을 맞으면서도 이동이 가능합니다. 힐보다 에너지드링크를 먼저 챙기세요.` });
 
   // ── 어시스트 ──
   if (stats.avgAssists < 0.8)
-    list.push({ title: '팀 기여도 향상', desc: `어시스트 ${stats.avgAssists.toFixed(1)}개 — 교전 시 내가 처치 못해도 팀원이 마무리할 수 있도록 먼저 딜을 넣어주는 '선딜 후 커버' 습관을 들이세요` });
+    list.push({ title: '팀 기여도 향상', desc: `어시스트 ${stats.avgAssists.toFixed(1)}개 — 처치보다 먼저 딜을 넣어주는 '선딜 후 커버' 하나만 챙겨도 팀 기여도가 눈에 띄게 오릅니다.` });
 
   // ── 일관성 ──
   if (analysis?.consistencyIndex < 40)
-    list.push({ title: '착지 루틴 고정', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 착지 지점 2~3곳을 고정하고 루팅 동선을 패턴화하세요. 변수를 줄이면 평균 성과가 안정됩니다` });
+    list.push({ title: '착지 루틴 고정', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 착지 지점 2~3곳을 고정하면 변수가 줄어 평균 성과가 안정됩니다.` });
   else if (analysis?.consistencyIndex < 60)
-    list.push({ title: '컨디션 무관 루틴화', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 게임 시작 전 Training Grounds 5분 워밍업으로 컨디션 편차를 줄이면 최악의 경기 빈도가 감소합니다` });
+    list.push({ title: '컨디션 무관 루틴화', desc: `일관성 ${Math.round(analysis.consistencyIndex)}% — 게임 전 연습장 5분 워밍업으로 컨디션 편차를 줄이면 최악의 경기 빈도가 감소합니다.` });
 
   // ── 수류탄 킬 관련 팁 (항상 추가) ──
-  list.push({ title: '건물 진입 전 투척류 선사용', desc: '건물 안으로 들어가기 전 투척류(수류탄)를 1개 먼저 던지세요. 적이 밖으로 나오거나 체력이 깎여 교전이 훨씬 유리해집니다. 루팅 시 투척류를 가장 먼저 챙기는 습관을 만드세요' });
+  list.push({ title: '건물 진입 전 수류탄 선사용', desc: '건물에 들어가기 전 수류탄 1개를 먼저 던지세요. 적이 나오거나 체력이 깎여 교전이 유리해집니다. 루팅 시 투척류를 가장 먼저 챙기는 습관을 만드세요.' });
 
   // ── 최소 4개 보장 ──
   const extras = [
-    { title: '차량 이동 활용', desc: '안전지대 이동 시 차량을 사용하면 블루존 피해를 줄이고 에너지드링크 소비도 절약됩니다. 차량 소리가 부담이면 시동을 끄고 내리막길 활강을 활용하세요' },
-    { title: '엄폐물 거리 유지', desc: '엄폐물에 너무 붙어있으면 투척류(수류탄)에 취약합니다. 엄폐물에서 1~2m 거리를 두고 피킹(Peeking)하면 반응 시간이 늘어납니다' },
-    { title: '팀원 넉다운 복구 루틴', desc: '팀원 넉다운 시 즉시 연막탄 투척 → 시야 차단 → 안전하게 부활 루틴을 팀과 공유하세요. 부활 성공률이 팀 승률에 직결됩니다' },
+    { title: '차량 이동 활용', desc: '안전지대 이동 시 차량을 쓰면 블루존 피해를 줄이고 힐 소비도 아낄 수 있습니다. 소리가 부담이면 시동을 끄고 내리막 활강을 활용하세요.' },
+    { title: '엄폐물 거리 유지', desc: '엄폐물에 너무 붙어 있으면 수류탄에 취약합니다. 1~2m 거리를 두고 피킹하면 반응 시간이 늘어납니다.' },
+    { title: '팀원 부활 루틴', desc: '팀원이 쓰러지면 연막탄으로 시야를 막고 부활시키는 루틴을 팀과 미리 공유하세요. 부활 성공률이 팀 승률에 직결됩니다.' },
   ]
   let ei = 0
   while (list.length < 4 && ei < extras.length) {

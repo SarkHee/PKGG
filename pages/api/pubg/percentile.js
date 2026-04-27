@@ -12,7 +12,6 @@ export default async function handler(req, res) {
   const t = Number(top10Rate) || 0
 
   try {
-    // 실제 플레이 기록이 있는 유저만 대상 (avgDamage > 0)
     const [total, damageBelow, killsBelow, winBelow, top10Below] = await Promise.all([
       prisma.playerCache.count({ where: { avgDamage: { gt: 0 } } }),
       prisma.playerCache.count({ where: { avgDamage: { lt: d, gt: 0 } } }),
@@ -22,11 +21,9 @@ export default async function handler(req, res) {
     ])
 
     if (total < 20) {
-      // 데이터가 너무 적으면 백분위 의미 없음
       return res.status(200).json({ insufficient: true, total })
     }
 
-    // 상위 N% = 100 - floor(나보다 낮은 수 / 전체 * 100)
     const toTop = (below) => Math.max(1, Math.ceil((1 - below / total) * 100))
 
     return res.status(200).json({
@@ -38,6 +35,7 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     console.error('[percentile] DB 오류:', err.message)
-    return res.status(500).json({ error: 'DB 조회 실패' })
+    // 500 대신 insufficient로 반환해 클라이언트 오류 방지
+    return res.status(200).json({ insufficient: true, total: 0 })
   }
 }

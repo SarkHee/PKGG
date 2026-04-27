@@ -289,7 +289,8 @@ export default function ClanAnalytics() {
     if (user === null) {
       setSelectedShard(prev => prev === null ? 'steam' : prev); // 비로그인 → steam 기본값
     } else {
-      setSelectedShard(user.platform || 'steam'); // 로그인 → 플랫폼에 맞게
+      // 카카오 유저는 'all'로 기본 설정 (DB에 kakao 클랜 데이터가 없을 경우 빈 화면 방지)
+      setSelectedShard(user.platform === 'kakao' ? 'all' : (user.platform || 'steam'));
     }
   }, [user]);
 

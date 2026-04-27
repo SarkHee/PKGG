@@ -112,6 +112,16 @@ function MyApp({ Component, pageProps }) {
   // null = 아직 결정 안 함(배너 표시), true = 동의, false = 거부
   const [cookieConsent, setCookieConsent] = useState(null);
 
+  // GTM 페이지뷰 이벤트 (Next.js SPA 라우팅 대응)
+  useEffect(() => {
+    const handleRouteChange = (url) => {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'pageview', page: url });
+    };
+    router.events.on('routeChangeComplete', handleRouteChange);
+    return () => router.events.off('routeChangeComplete', handleRouteChange);
+  }, [router.events]);
+
   useEffect(() => {
     // 앱 시작 시 포럼 카테고리 초기화
     const initializeForum = async () => {
@@ -176,7 +186,7 @@ function MyApp({ Component, pageProps }) {
       </div>
       <FloatingFavorites />
       {showSearch && <FloatingSearch />}
-      <SpeedInsights />
+      <SpeedInsights sampleRate={0.1} />
       <Analytics />
     </LanguageProvider>
     </AuthProvider>

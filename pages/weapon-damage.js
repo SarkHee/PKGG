@@ -1,5 +1,5 @@
 // pages/weapon-damage.js
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
 
@@ -125,15 +125,29 @@ function SortIcon({ col, sortCol, sortDir }) {
 }
 
 function Tooltip({ text, children }) {
+  const [pos, setPos] = React.useState(null)
+  const ref = React.useRef(null)
+
+  const show = () => {
+    if (!ref.current) return
+    const r = ref.current.getBoundingClientRect()
+    setPos({ x: r.left + r.width / 2, y: r.top })
+  }
+
   return (
-    <span className="relative group/tip inline-flex items-center">
+    <span ref={ref} className="inline-flex items-center" onMouseEnter={show} onMouseLeave={() => setPos(null)}>
       {children}
-      <span className="pointer-events-none absolute bottom-full left-0 mb-2 w-80 max-w-xs px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-xs text-gray-200 leading-relaxed opacity-0 group-hover/tip:opacity-100 transition-opacity z-50 shadow-xl whitespace-normal text-left">
-        {text}
-        <span className="absolute top-full left-4 border-4 border-transparent border-t-gray-700" />
-      </span>
+      {pos && (
+        <span
+          className="pointer-events-none z-[9999] w-72 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-xs text-gray-200 leading-relaxed shadow-xl whitespace-normal text-left"
+          style={{ position: 'fixed', left: pos.x, top: pos.y - 8, transform: 'translateX(-50%) translateY(-100%)' }}
+        >
+          {text}
+          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+        </span>
+      )}
     </span>
-  );
+  )
 }
 
 function ArmorSelector({ label, value, onChange, color }) {

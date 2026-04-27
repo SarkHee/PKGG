@@ -98,7 +98,7 @@ export default async function handler(req, res) {
     const members = uniqueMembers.map((m) => ({
       id: m.id,
       playerName: m.nickname,
-      server: m.pubgShardId || 'steam',
+      server: m.pubgShardId || clan.shard || 'steam',
       lastActiveAt: m.lastUpdated,
       mmr: calcMMR(m),
       stats: m.score > 0
@@ -129,11 +129,11 @@ export default async function handler(req, res) {
       [...activeMembers].sort((a, b) => (fn ? fn(b) - fn(a) : (b[key] || 0) - (a[key] || 0)));
 
     const topPerformers = {
-      byMMR: sorted(null, calcMMR).slice(0, 3).map((m) => ({ name: m.nickname, value: calcMMR(m), server: m.pubgShardId || 'steam' })),
-      byDamage: sorted('avgDamage').slice(0, 3).map((m) => ({ name: m.nickname, value: Math.round(m.avgDamage), server: m.pubgShardId || 'steam' })),
-      byKills: sorted('avgKills').slice(0, 3).map((m) => ({ name: m.nickname, value: Number(m.avgKills).toFixed(1), server: m.pubgShardId || 'steam' })),
-      byWinRate: sorted('winRate').slice(0, 3).map((m) => ({ name: m.nickname, value: `${Number(m.winRate).toFixed(1)}%`, server: m.pubgShardId || 'steam' })),
-      byTop10: sorted('top10Rate').slice(0, 3).map((m) => ({ name: m.nickname, value: `${Number(m.top10Rate).toFixed(1)}%`, server: m.pubgShardId || 'steam' })),
+      byMMR: sorted(null, calcMMR).slice(0, 3).map((m) => ({ name: m.nickname, value: calcMMR(m), server: m.pubgShardId || clan.shard || 'steam' })),
+      byDamage: sorted('avgDamage').slice(0, 3).map((m) => ({ name: m.nickname, value: Math.round(m.avgDamage), server: m.pubgShardId || clan.shard || 'steam' })),
+      byKills: sorted('avgKills').slice(0, 3).map((m) => ({ name: m.nickname, value: Number(m.avgKills).toFixed(1), server: m.pubgShardId || clan.shard || 'steam' })),
+      byWinRate: sorted('winRate').slice(0, 3).map((m) => ({ name: m.nickname, value: `${Number(m.winRate).toFixed(1)}%`, server: m.pubgShardId || clan.shard || 'steam' })),
+      byTop10: sorted('top10Rate').slice(0, 3).map((m) => ({ name: m.nickname, value: `${Number(m.top10Rate).toFixed(1)}%`, server: m.pubgShardId || clan.shard || 'steam' })),
     };
 
     // ── 플레이스타일 분포 ─────────────────────────────────────────────

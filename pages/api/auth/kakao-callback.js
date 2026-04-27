@@ -9,9 +9,14 @@ export default async function handler(req, res) {
     return res.redirect('/?kakao_error=cancelled');
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pkgg.vercel.app';
   const clientId = process.env.KAKAO_CLIENT_ID;
   const clientSecret = process.env.KAKAO_CLIENT_SECRET;
+
+  // 요청 호스트 기반 동적 baseUrl (kakao-login.js와 동일 로직)
+  const protocol = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`;
+
   const redirectUri = `${baseUrl}/api/auth/kakao-callback`;
 
   // 1. 인가 코드 → 액세스 토큰 교환
