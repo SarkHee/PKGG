@@ -29,9 +29,12 @@ export default function PlayerPercentileCard({ playerStats }) {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-gray-200 p-5 animate-pulse">
-        <div className="h-4 w-40 bg-gray-100 rounded mb-4" />
-        <div className="grid grid-cols-2 gap-2">
+      <div className="rounded-xl border border-gray-200 p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <p className="text-xs text-gray-400 font-medium">🌍 전 세계 유저와 비교 중...</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 animate-pulse">
           {[1, 2, 3, 4].map((i) => <div key={i} className="h-14 bg-gray-100 rounded-lg" />)}
         </div>
       </div>

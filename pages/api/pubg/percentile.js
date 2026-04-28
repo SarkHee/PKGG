@@ -20,7 +20,7 @@ export default async function handler(req, res) {
       prisma.playerCache.count({ where: { top10Rate: { lt: t, gt: 0 } } }),
     ])
 
-    if (total < 20) {
+    if (total < 5) {
       return res.status(200).json({ insufficient: true, total })
     }
 
@@ -34,8 +34,7 @@ export default async function handler(req, res) {
       top10Rate:  toTop(top10Below),
     })
   } catch (err) {
-    console.error('[percentile] DB 오류:', err.message)
-    // 500 대신 insufficient로 반환해 클라이언트 오류 방지
+    console.error('[percentile] DB 오류:', err.message, err.code ?? '')
     return res.status(200).json({ insufficient: true, total: 0 })
   }
 }

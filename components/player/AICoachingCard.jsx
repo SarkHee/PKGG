@@ -424,11 +424,11 @@ function getPUBGImprovements(stats, analysis) {
   return list;
 }
 
-export default function AICoachingCard({ playerStats, playerInfo }) {
+export default function AICoachingCard({ playerStats, rankedStats, playerInfo }) {
+  const [activeTab, setActiveTab] = useState('normal')
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const savedKeyRef = useRef('');
-
 
   // 유저 실제 무기 데이터 (AR·SR·DMR 최다 킬 무기)
   const [userWeaponRec, setUserWeaponRec] = useState(null);
@@ -439,7 +439,26 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     return isNaN(n) ? 0 : n;
   };
 
-  // 실제 수치 기반 stable key — 부모가 매 렌더마다 새 객체를 넘겨도 값이 같으면 동일한 문자열
+  const hasRanked = rankedStats && (rankedStats.games > 0 || rankedStats.roundsPlayed > 0)
+
+  // 현재 탭 기준 stats 계산
+  const currentSource = activeTab === 'ranked' && hasRanked ? rankedStats : playerStats
+  const isRankedTab = activeTab === 'ranked' && hasRanked
+
+  const rankedGames = getValue(rankedStats?.games ?? rankedStats?.roundsPlayed)
+  const rankedStatsObj = hasRanked ? {
+    avgKills: rankedGames > 0 ? parseFloat(((getValue(rankedStats?.kills)) / rankedGames).toFixed(2)) : 0,
+    avgDamage: getValue(rankedStats?.avgDamage),
+    avgSurvivalTime: 0,
+    avgAssists: rankedGames > 0 ? parseFloat(((getValue(rankedStats?.assists)) / rankedGames).toFixed(2)) : 0,
+    winRate: getValue(rankedStats?.winRate),
+    top10Rate: getValue(rankedStats?.top10Rate),
+    headshotRate: getValue(rankedStats?.headshotRate),
+    totalMatches: rankedGames,
+    kd: getValue(rankedStats?.kd),
+  } : null
+
+  // 실제 수치 기반 stable key
   const statsKey = playerStats
     ? [
         playerStats.avgKills ?? playerStats.averageKills ?? 0,
@@ -449,7 +468,7 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
       ].join('|')
     : '';
 
-  const stats = {
+  const normalStats = {
     avgKills: getValue(playerStats?.avgKills ?? playerStats?.averageKills),
     avgDamage: getValue(playerStats?.avgDamage ?? playerStats?.averageDamage),
     avgSurvivalTime: getValue(playerStats?.avgSurvivalTime ?? playerStats?.avgSurviveTime),
@@ -459,7 +478,9 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     headshotRate: getValue(playerStats?.headshotRate),
     totalMatches: getValue(playerStats?.totalMatches ?? playerStats?.roundsPlayed),
     kd: getValue(playerStats?.kd),
-  };
+  }
+
+  const stats = isRankedTab ? rankedStatsObj : normalStats
 
   // 유저 실제 무기 사용 통계 조회 → 최다 킬 AR / SR·DMR 추출
   useEffect(() => {
@@ -515,9 +536,8 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
   useEffect(() => {
     if (!statsKey) return;
     try {
-      const result = analyzePlayStyle(stats);
+      const result = analyzePlayStyle(normalStats);
       setAnalysis(result);
-      // 동일한 통계값으로는 API 1회만 호출
       if (savedKeyRef.current !== statsKey) {
         savedKeyRef.current = statsKey;
         fetch('/api/player/ai-analysis', {
@@ -541,11 +561,11 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     return (
       <div className="rounded-xl border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5">
-          <div className="animate-pulse flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/30 rounded-full" />
-            <div className="space-y-2">
-              <div className="h-4 w-32 bg-white/30 rounded" />
-              <div className="h-3 w-48 bg-white/20 rounded" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-full animate-pulse" />
+            <div className="space-y-1.5">
+              <p className="text-white font-bold text-sm">🔍 전적 분석 중...</p>
+              <p className="text-violet-200 text-xs">AI 코치가 보급품 상자 열고 있습니다</p>
             </div>
           </div>
         </div>
@@ -561,8 +581,15 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     );
   }
 
-  const hasData = stats.avgKills > 0 || stats.avgDamage > 0 || stats.winRate > 0;
-  if (!hasData || !analysis) {
+  const hasNormalData = normalStats.avgKills > 0 || normalStats.avgDamage > 0 || normalStats.winRate > 0
+  const hasRankedData = rankedStatsObj && (rankedStatsObj.avgDamage > 0 || rankedStatsObj.winRate > 0)
+
+  const currentStats = isRankedTab && hasRankedData ? rankedStatsObj : normalStats
+  const currentAnalysis = analysis ? (() => {
+    try { return isRankedTab && hasRankedData ? analyzePlayStyle(rankedStatsObj) : analysis } catch { return analysis }
+  })() : null
+
+  if (!hasNormalData || !analysis) {
     return (
       <div className="rounded-xl border border-gray-200 p-8 text-center">
         <div className="text-3xl mb-3">📊</div>
@@ -575,10 +602,13 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     );
   }
 
-  const strengths = getPUBGStrengths(stats, analysis);
-  const improvements = getPUBGImprovements(stats, analysis);
-  const actions = getPUBGActions(stats, analysis.playStyle);
-  const staticWeapons = WEAPON_RECOMMENDATIONS[analysis.playStyle] || WEAPON_RECOMMENDATIONS.BALANCED;
+  const displayStats = currentStats
+  const displayAnalysis = currentAnalysis || analysis
+
+  const strengths = getPUBGStrengths(displayStats, displayAnalysis);
+  const improvements = getPUBGImprovements(displayStats, displayAnalysis);
+  const actions = getPUBGActions(displayStats, displayAnalysis.playStyle);
+  const staticWeapons = WEAPON_RECOMMENDATIONS[displayAnalysis.playStyle] || WEAPON_RECOMMENDATIONS.BALANCED;
 
   // 유저 실제 사용 무기가 있으면 덮어씌움
   const dynPrimary = userWeaponRec?.bestARorSMG;
@@ -606,27 +636,27 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
   const statBenchmarks = [
     {
       label: '평균 킬',
-      value: stats.avgKills.toFixed(1),
+      value: displayStats.avgKills.toFixed(1),
       color: 'text-red-600',
-      pct:   getKillPercentile(stats.avgKills),
+      pct:   getKillPercentile(displayStats.avgKills),
     },
     {
       label: '평균 딜량',
-      value: Math.round(stats.avgDamage),
+      value: Math.round(displayStats.avgDamage),
       color: 'text-orange-600',
-      pct:   getDmgPercentile(stats.avgDamage),
+      pct:   getDmgPercentile(displayStats.avgDamage),
     },
     {
       label: '승률',
-      value: `${stats.winRate.toFixed(1)}%`,
+      value: `${displayStats.winRate.toFixed(1)}%`,
       color: 'text-green-600',
-      pct:   getWinPercentile(stats.winRate),
+      pct:   getWinPercentile(displayStats.winRate),
     },
     {
       label: 'Top 10',
-      value: `${stats.top10Rate.toFixed(1)}%`,
+      value: `${displayStats.top10Rate.toFixed(1)}%`,
       color: 'text-blue-600',
-      pct:   getTop10Percentile(stats.top10Rate),
+      pct:   getTop10Percentile(displayStats.top10Rate),
     },
   ];
 
@@ -634,7 +664,7 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     <div className="rounded-xl border border-gray-200 overflow-hidden">
       {/* 헤더 */}
       <div
-        className={`bg-gradient-to-r ${styleColor[analysis.playStyle] || 'from-violet-600 to-indigo-600'} px-6 py-5 text-white`}
+        className={`bg-gradient-to-r ${styleColor[displayAnalysis.playStyle] || 'from-violet-600 to-indigo-600'} px-6 py-5 text-white`}
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl flex-shrink-0">
@@ -643,28 +673,78 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
           <div className="min-w-0">
             <div className="font-bold text-sm">AI 맞춤 코칭 리포트</div>
             <div className="text-white/70 text-xs">
-              {playerInfo?.nickname}님의 {stats.totalMatches}경기 심층 분석
+              {playerInfo?.nickname}님의 {displayStats.totalMatches}경기 심층 분석
             </div>
           </div>
           <div className="ml-auto text-right flex-shrink-0">
             <div className="text-sm font-black">
-              {STYLE_ICONS[analysis.playStyle]} {STYLE_NAMES[analysis.playStyle]}
+              {STYLE_ICONS[displayAnalysis.playStyle]} {STYLE_NAMES[displayAnalysis.playStyle]}
             </div>
-            <div className="text-white/70 text-xs">신뢰도 {Math.round(analysis.playstyleScore)}%</div>
+            <div className="text-white/70 text-xs">신뢰도 {Math.round(displayAnalysis.playstyleScore)}%</div>
           </div>
+        </div>
+
+        {/* 일반전 / 경쟁전 탭 */}
+        <div className="flex gap-1 mt-3">
+          <button
+            onClick={() => setActiveTab('normal')}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+              activeTab === 'normal'
+                ? 'bg-white text-gray-800'
+                : 'bg-white/20 text-white/80 hover:bg-white/30'
+            }`}
+          >
+            일반전
+          </button>
+          <button
+            onClick={() => setActiveTab('ranked')}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+              activeTab === 'ranked'
+                ? 'bg-white text-gray-800'
+                : hasRanked
+                ? 'bg-white/20 text-white/80 hover:bg-white/30'
+                : 'bg-white/20 text-white/60 hover:bg-white/30'
+            }`}
+          >
+            경쟁전 {!hasRanked && <span className="text-[10px] opacity-70">(데이터 없음)</span>}
+          </button>
+          {isRankedTab && rankedStats?.tier && rankedStats.tier !== 'Unranked' && (
+            <span className="ml-auto px-2 py-1 bg-white/20 rounded-full text-[11px] text-white/90 font-semibold">
+              🏅 {rankedStats.tier} · RP {rankedStats.rp || 0}
+            </span>
+          )}
         </div>
       </div>
 
       <div className="p-5 space-y-4">
+        {/* 경쟁전 데이터 없음 안내 */}
+        {activeTab === 'ranked' && !hasRanked ? (
+          <div className="py-10 text-center">
+            <div className="text-3xl mb-3">🏅</div>
+            <div className="text-sm font-bold text-gray-600 mb-1">경쟁전 데이터가 없습니다</div>
+            <div className="text-xs text-gray-400 leading-relaxed">
+              이번 시즌 경쟁전 플레이 기록이 없거나,<br />데이터를 불러오지 못했습니다.
+            </div>
+            <div className="text-xs text-gray-400 mt-2">최신화 버튼을 눌러 최신 데이터를 확인하세요.</div>
+          </div>
+        ) : <>
+        {/* 경쟁전 탭 안내 */}
+        {isRankedTab && hasRankedData && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700 flex items-center gap-2">
+            <span>🏅</span>
+            <span>경쟁전 {displayStats.totalMatches}경기 기준 분석입니다. 생존시간은 경쟁전 API에서 제공되지 않습니다.</span>
+          </div>
+        )}
+
         {/* 플레이 스타일 설명 */}
         <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex items-start gap-3">
-          <span className="text-2xl flex-shrink-0">{STYLE_ICONS[analysis.playStyle]}</span>
+          <span className="text-2xl flex-shrink-0">{STYLE_ICONS[displayAnalysis.playStyle]}</span>
           <div>
             <div className="text-sm font-bold text-gray-800">
               {playerInfo?.nickname}님은{' '}
-              <span className="text-violet-700">{STYLE_NAMES[analysis.playStyle]} 플레이어</span>입니다
+              <span className="text-violet-700">{STYLE_NAMES[displayAnalysis.playStyle]} 플레이어</span>입니다
             </div>
-            <div className="text-xs text-gray-600 mt-0.5">{STYLE_DESCRIPTIONS[analysis.playStyle]}</div>
+            <div className="text-xs text-gray-600 mt-0.5">{STYLE_DESCRIPTIONS[displayAnalysis.playStyle]}</div>
           </div>
         </div>
 
@@ -688,37 +768,37 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
             {[
               {
                 label: '공격성',
-                value: analysis.aggressionIndex,
+                value: displayAnalysis.aggressionIndex,
                 barColor: 'bg-red-400',
                 icon: '⚔️',
                 desc:
-                  analysis.aggressionIndex > 70
+                  displayAnalysis.aggressionIndex > 70
                     ? '매우 공격적'
-                    : analysis.aggressionIndex > 45
+                    : displayAnalysis.aggressionIndex > 45
                     ? '적극적'
                     : '신중함',
               },
               {
                 label: '생존성',
-                value: analysis.survivalIndex,
+                value: displayAnalysis.survivalIndex,
                 barColor: 'bg-blue-400',
                 icon: '🛡️',
                 desc:
-                  analysis.survivalIndex > 70
+                  displayAnalysis.survivalIndex > 70
                     ? '생존 최우선'
-                    : analysis.survivalIndex > 45
+                    : displayAnalysis.survivalIndex > 45
                     ? '균형 잡힘'
                     : '개선 필요',
               },
               {
                 label: '일관성',
-                value: analysis.consistencyIndex,
+                value: displayAnalysis.consistencyIndex,
                 barColor: 'bg-green-400',
                 icon: '📈',
                 desc:
-                  analysis.consistencyIndex > 70
+                  displayAnalysis.consistencyIndex > 70
                     ? '매우 안정적'
-                    : analysis.consistencyIndex > 45
+                    : displayAnalysis.consistencyIndex > 45
                     ? '보통'
                     : '기복 심함',
               },
@@ -836,9 +916,10 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
         </div>
 
         <div className="text-center text-xs text-gray-400">
-          시즌 {stats.totalMatches}경기 데이터 기반 AI 분석 •{' '}
+          {isRankedTab ? '경쟁전' : '일반전'} {displayStats.totalMatches}경기 데이터 기반 AI 분석 •{' '}
           {new Date().toLocaleDateString('ko-KR')} 업데이트
         </div>
+        </> }
       </div>
     </div>
   );

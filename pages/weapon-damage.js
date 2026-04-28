@@ -77,6 +77,13 @@ const WEAPON_DATA = [
   { name: 'S12K',         type: 'SGN', damage: 24, rpm: 200, magBase: 5,  magExt: 8,   modes: '반자동',     caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
   { name: 'Sawed-Off',    type: 'SGN', damage: 21, rpm: 150, magBase: 2,  magExt: null, modes: '이중 총신',  caliber: '12게이지 ×9발',  dataFrom: 'Update 28.1' },
 
+  // ── 투척류 (GRD) ──
+  { name: 'Frag Grenade',     type: 'GRD', damage: 0, rpm: 0, magBase: 1, magExt: null, modes: '투척 · 폭발', caliber: '폭발반경 5m', dataFrom: 'Update 28.1' },
+  { name: 'Molotov Cocktail', type: 'GRD', damage: 0, rpm: 0, magBase: 1, magExt: null, modes: '투척 · 화염', caliber: '화염 3초 지속', dataFrom: 'Update 28.1' },
+  { name: 'Stun Grenade',     type: 'GRD', damage: 0, rpm: 0, magBase: 1, magExt: null, modes: '투척 · 섬광', caliber: '반경 5m 섬광', dataFrom: 'Update 28.1' },
+  { name: 'Smoke Grenade',    type: 'GRD', damage: 0, rpm: 0, magBase: 1, magExt: null, modes: '투척 · 연막', caliber: '연막 지속 30s', dataFrom: 'Update 28.1' },
+  { name: 'Decoy Grenade',    type: 'GRD', damage: 0, rpm: 0, magBase: 1, magExt: null, modes: '투척 · 기만', caliber: '총성 기만 음향', dataFrom: 'Update 28.1' },
+
   // ── 권총 (PST) ──
   { name: 'R45',          type: 'PST', damage: 65, rpm: 180,  magBase: 6,  magExt: null, modes: '단발',     caliber: '.45 ACP',   dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'R1895',        type: 'PST', damage: 64, rpm: 150,  magBase: 7,  magExt: null, modes: '단발',     caliber: '7.62mm',    dataFrom: 'Update 28.1' },
@@ -87,6 +94,75 @@ const WEAPON_DATA = [
   { name: 'Skorpion',     type: 'PST', damage: 22, rpm: 1100, magBase: 20, magExt: 35,  modes: '완전자동', caliber: '.32 ACP',   dataFrom: 'Update 28.1' },
 ];
 
+// ─── 무기 이미지 매핑 ─────────────────────────────────────
+const WEAPON_IMG = {
+  // ── AR ──
+  'AKM':          '/weapons/Item_Weapon_AK47_C.png',
+  'M416':         '/weapons/Item_Weapon_HK416_C.png',
+  'SCAR-L':       '/weapons/Item_Weapon_SCAR-L_C.png',
+  'M16A4':        '/weapons/Item_Weapon_M16A4_C.png',
+  'QBZ':          '/weapons/Item_Weapon_QBZ95_C.png',
+  'AUG A3':       '/weapons/Item_Weapon_AUG_C.png',
+  'Groza':        '/weapons/Item_Weapon_Groza_C.png',
+  'Beryl M762':   '/weapons/Item_Weapon_BerylM762_C.png',
+  'ACE32':        '/weapons/Item_Weapon_ACE32_C.png',
+  'G36C':         '/weapons/Item_Weapon_G36C_C.png',
+  'K2':           '/weapons/Item_Weapon_K2_C.png',
+  'Mk47 Mutant':  '/weapons/Item_Weapon_Mk47Mutant_C.png',
+  'FAMAS':        '/weapons/Item_Weapon_FAMASG2_C.png',
+  // ── DMR ──
+  'Mk14 EBR':     '/weapons/Item_Weapon_Mk14_C.png',
+  'SLR':          '/weapons/Item_Weapon_SLR_C.png',
+  'SKS':          '/weapons/Item_Weapon_SKS_C.png',
+  'Mini14':       '/weapons/Item_Weapon_Mini14_C.png',
+  'QBU':          '/weapons/Item_Weapon_QBU88_C.png',
+  'Dragunov':     '/weapons/Item_Weapon_Dragunov_C.png',
+  'Mk12':         '/weapons/Item_Weapon_Mk12_C.png',
+  'VSS':          '/weapons/Item_Weapon_VSS_C.png',
+  // ── SR ──
+  'AWM':          '/weapons/Item_Weapon_AWM_C.png',
+  'Crossbow':     '/weapons/Item_Weapon_Crossbow_C.png',
+  'Kar98k':       '/weapons/Item_Weapon_Kar98k_C.png',
+  'Mosin-Nagant': '/weapons/Item_Weapon_Mosin_C.png',
+  'M24':          '/weapons/Item_Weapon_M24_C.png',
+  'Win94':        '/weapons/Item_Weapon_Win1894_C.png',
+  'Lynx AMR':     '/weapons/Item_Weapon_L6_C.png',
+  // ── SMG ──
+  'UMP45':        '/weapons/Item_Weapon_UMP_C.png',
+  'Tommy Gun':    '/weapons/Item_Weapon_Thompson_C.png',
+  'PP-19 Bizon':  '/weapons/Item_Weapon_BizonPP19_C.png',
+  'P90':          '/weapons/Item_Weapon_P90_C.png',
+  'MP5K':         '/weapons/Item_Weapon_MP5K_C.png',
+  'MP9':          '/weapons/Item_Weapon_MP9_C.png',
+  'Vector':       '/weapons/Item_Weapon_Vector_C.png',
+  'Micro UZI':    '/weapons/Item_Weapon_UZI_C.png',
+  // ── LMG ──
+  'M249':         '/weapons/Item_Weapon_M249_C.png',
+  'DP-28':        '/weapons/Item_Weapon_DP28_C.png',
+  'MG3':          '/weapons/Item_Weapon_MG3_C.png',
+  // ── SGN ──
+  'O12':          '/weapons/Item_Weapon_OriginS12_C.png',
+  'DBS':          '/weapons/Item_Weapon_DP12_C.png',
+  'S1897':        '/weapons/Item_Weapon_S1897_C.png',
+  'S686':         '/weapons/Item_Weapon_Berreta686_C.png',
+  'S12K':         '/weapons/Item_Weapon_Saiga12_C.png',
+  'Sawed-Off':    '/weapons/Item_Weapon_Sawnoff_C.png',
+  // ── PST ──
+  'R45':          '/weapons/Item_Weapon_Rhino_C.png',
+  'R1895':        '/weapons/Item_Weapon_NagantM1895_C.png',
+  'Desert Eagle': '/weapons/Item_Weapon_DesertEagle_C.png',
+  'P1911':        '/weapons/Item_Weapon_M1911_C.png',
+  'P92':          '/weapons/Item_Weapon_M9_C.png',
+  'P18C':         '/weapons/Item_Weapon_G18_C.png',
+  'Skorpion':     '/weapons/Item_Weapon_Skorpion_C.png',
+  // ── 수류탄 ──
+  'Frag Grenade':     '/weapons/Item_Weapon_FragGrenade_C.png',
+  'Molotov Cocktail': '/weapons/Item_Weapon_Molotov_C.png',
+  'Stun Grenade':     '/weapons/Item_Weapon_StunGrenade_C.png',
+  'Smoke Grenade':    '/weapons/Item_Weapon_SmokeGrenade_C.png',
+  'Decoy Grenade':    '/weapons/Item_Weapon_DecoyGrenade_C.png',
+}
+
 const TYPE_TABS = [
   { key: 'ALL', label: '전체',       icon: '🔫' },
   { key: 'AR',  label: '돌격소총',   icon: '⚔️' },
@@ -96,6 +172,7 @@ const TYPE_TABS = [
   { key: 'LMG', label: '경기관총',   icon: '🔥' },
   { key: 'SGN', label: '산탄총',     icon: '💥' },
   { key: 'PST', label: '권총',       icon: '🔰' },
+  { key: 'GRD', label: '투척류',     icon: '💣' },
 ];
 
 const TYPE_BADGE = {
@@ -106,6 +183,7 @@ const TYPE_BADGE = {
   LMG: { bg: 'bg-orange-900/60', text: 'text-orange-300', border: 'border-orange-700/50' },
   SGN: { bg: 'bg-red-900/60',    text: 'text-red-300',    border: 'border-red-700/50' },
   PST: { bg: 'bg-green-900/60',  text: 'text-green-300',  border: 'border-green-700/50' },
+  GRD: { bg: 'bg-lime-900/60',   text: 'text-lime-300',   border: 'border-lime-700/50' },
 };
 
 // ─── 방어구 계산 상수 ──────────────────────────────────
@@ -144,6 +222,52 @@ function Tooltip({ text, children }) {
         >
           {text}
           <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-700" />
+        </span>
+      )}
+    </span>
+  )
+}
+
+function WeaponImgPopup({ name, children }) {
+  const [pos, setPos] = React.useState(null)
+  const ref = React.useRef(null)
+  const imgSrc = WEAPON_IMG[name]
+  if (!imgSrc) return children
+
+  const show = () => {
+    if (!ref.current) return
+    const r = ref.current.getBoundingClientRect()
+    setPos({ x: r.left + r.width / 2, y: r.top })
+  }
+
+  return (
+    <span ref={ref} className="inline-block" onMouseEnter={show} onMouseLeave={() => setPos(null)}>
+      {children}
+      {pos && (
+        <span
+          className="pointer-events-none z-[9999] flex flex-col items-center"
+          style={{
+            position: 'fixed',
+            left: pos.x,
+            top: pos.y - 12,
+            transform: 'translateX(-50%) translateY(-100%)',
+          }}
+        >
+          <span className="bg-gray-900 border border-gray-600 rounded-xl shadow-2xl overflow-hidden" style={{ minWidth: 180 }}>
+            <span className="block bg-gray-800/80 px-3 py-1.5 text-center">
+              <span className="text-xs font-bold text-gray-200">{name}</span>
+            </span>
+            <span className="block p-2 bg-gray-950">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imgSrc}
+                alt={name}
+                style={{ width: 200, height: 90, objectFit: 'contain' }}
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+            </span>
+          </span>
+          <span className="w-0 h-0" style={{ borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid #4b5563' }} />
         </span>
       )}
     </span>
@@ -586,9 +710,11 @@ export default function WeaponDamage() {
                         {/* 무기명 */}
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`font-semibold text-sm ${w.deletePending ? 'text-gray-400 line-through decoration-red-500' : 'text-white'}`}>
-                              {w.name}
-                            </span>
+                            <WeaponImgPopup name={w.name}>
+                              <span className={`font-semibold text-sm cursor-default underline decoration-dotted decoration-gray-600 underline-offset-2 ${w.deletePending ? 'text-gray-400 line-through decoration-red-500' : 'text-white'}`}>
+                                {w.name}
+                              </span>
+                            </WeaponImgPopup>
                             {w.deletePending && (
                               <Tooltip text={w.deletePendingNote || 'Update 42.1(2026년 6월)에서 삭제 예정'}>
                                 <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 rounded text-red-400 text-xs font-bold flex-shrink-0 cursor-help">
@@ -644,17 +770,15 @@ export default function WeaponDamage() {
                           <span className={`font-semibold ${armorLevel > 0 ? 'text-blue-300' : 'text-white'}`}>
                             {bodyDmg}
                           </span>
-                          {armorLevel > 0 && (
-                            <span className="text-gray-600 text-xs ml-1">
-                              ({w.damage})
-                            </span>
+                          {armorLevel > 0 && w.damage > 0 && (
+                            <span className="text-gray-600 text-xs ml-1">({w.damage})</span>
                           )}
                         </td>
 
                         {/* 몸통 킬샷 */}
                         <td className="px-4 py-2.5 text-right">
                           <span className={`text-lg font-bold ${stkColor(bodySTK)}`}>{bodySTK}</span>
-                          <span className="text-gray-600 text-xs ml-0.5">발</span>
+                          {bodySTK !== '∞' && <span className="text-gray-600 text-xs ml-0.5">발</span>}
                         </td>
 
                         {/* 헤드 실효 데미지 */}
@@ -667,7 +791,7 @@ export default function WeaponDamage() {
                         {/* 헤드 킬샷 */}
                         <td className="px-4 py-2.5 text-right">
                           <span className={`text-lg font-bold ${stkColor(headSTK)}`}>{headSTK}</span>
-                          <span className="text-gray-600 text-xs ml-0.5">발</span>
+                          {headSTK !== '∞' && <span className="text-gray-600 text-xs ml-0.5">발</span>}
                         </td>
 
                         {/* 탄창 */}

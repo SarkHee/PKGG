@@ -153,7 +153,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center shadow-sm">
         <div className="inline-block w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-gray-400 text-sm">성장 데이터 로딩 중…</p>
+        <p className="text-gray-400 text-sm">📈 성장 기록 수집 중... 블루존 피하는 중</p>
       </div>
     );
   }

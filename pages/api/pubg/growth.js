@@ -30,8 +30,8 @@ export default async function handler(req, res) {
     })
 
     return res.status(200).json({ snapshots })
-  } catch {
-    // 테이블 미존재 등 DB 오류 → 빈 배열로 안전하게 반환
+  } catch (err) {
+    console.error('[growth] DB 오류:', err.message, err.code ?? '')
     return res.status(200).json({ snapshots: [] })
   }
 }

@@ -78,8 +78,8 @@ export default function MatchListRow({
     if (mt === 'ranked' || mt === 'competitive') {
       return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
     }
-    if (mt === 'event' || mt === 'casual' || mt === 'airoyale') {
-      return { type: 'event', label: '이벤트', color: '#f59e0b' };
+    if (mt === 'event' || mt === 'casual' || mt === 'airoyale' || mt === 'custom') {
+      return { type: 'event', label: mt === 'custom' ? '사용자지정' : '이벤트', color: '#f59e0b' };
     }
     if (mt === 'official' || mt === 'training') {
       // official은 일반게임, mode로 서브 구분

@@ -18,10 +18,10 @@ const RankDistributionChart = dynamic(() => import('../../../components/charts/R
 const SynergyHeatmap        = dynamic(() => import('../../../components/charts/SynergyHeatmap'), { ssr: false });
 const EnhancedPlayerStats   = dynamic(() => import('../../../components/player/EnhancedPlayerStats'), { ssr: false });
 const MatchDetailExpandable = dynamic(() => import('../../../components/match/MatchDetailExpandable'), { ssr: false });
-const WeaponMasteryCard     = dynamic(() => import('../../../components/player/WeaponMasteryCard'), { ssr: false, loading: () => <div className="h-40 bg-gray-100 animate-pulse rounded-xl" /> });
-const GrowthChart           = dynamic(() => import('../../../components/player/GrowthChart'), { ssr: false, loading: () => <div className="h-48 bg-gray-100 animate-pulse rounded-xl" /> });
-const AICoachingCard        = dynamic(() => import('../../../components/player/AICoachingCard'), { ssr: false, loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-xl" /> });
-const PlayerPercentileCard  = dynamic(() => import('../../../components/player/PlayerPercentileCard'), { ssr: false, loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-xl" /> });
+const WeaponMasteryCard     = dynamic(() => import('../../../components/player/WeaponMasteryCard'), { ssr: false, loading: () => <div className="h-40 bg-gray-100 animate-pulse rounded-xl flex items-center justify-center text-xs text-gray-400">🔫 무기 데이터 불러오는 중...</div> });
+const GrowthChart           = dynamic(() => import('../../../components/player/GrowthChart'), { ssr: false, loading: () => <div className="h-48 bg-gray-100 animate-pulse rounded-xl flex items-center justify-center text-xs text-gray-400">📈 성장 기록 수집 중...</div> });
+const AICoachingCard        = dynamic(() => import('../../../components/player/AICoachingCard'), { ssr: false, loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-xl flex items-center justify-center text-xs text-gray-400">🤖 AI 코치 출동 준비 중...</div> });
+const PlayerPercentileCard  = dynamic(() => import('../../../components/player/PlayerPercentileCard'), { ssr: false, loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-xl flex items-center justify-center text-xs text-gray-400">🌍 전 세계 유저와 비교 중...</div> });
 
 // 반드시 export default 함수 바깥에 위치!
 function MatchList({ recentMatches, playerData }) {
@@ -98,6 +98,7 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
       top10Rate: summary?.top10Rate || 0,
       score: summary?.score || 0,
       style: summary?.playstyle || summary?.style || '-',
+      roundsPlayed: summary?.roundsPlayed || 0,
       lastUpdated: new Date(),
     };
 
@@ -184,6 +185,7 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
         avgSurviveTime: summary?.avgSurviveTime || 0,
         winRate: summary?.winRate || 0,
         top10Rate: summary?.top10Rate || 0,
+        roundsPlayed: summary?.roundsPlayed || 0,
         lastUpdated: new Date(),
       };
       await prisma.playerCache.upsert({
@@ -332,7 +334,21 @@ function ModeStatsTabs({ modeStats }) {
   );
 }
 
+const LOADING_MSGS = [
+  { icon: '🪂', text: '낙하산 펼치는 중...' },
+  { icon: '🗺️', text: '착지 지점 분석 중...' },
+  { icon: '🔫', text: '탄약 장전 중...' },
+  { icon: '📦', text: '보급품 확인 중...' },
+  { icon: '🏃', text: '블루존 피하는 중...' },
+  { icon: '🔭', text: '적 위치 스캔 중...' },
+  { icon: '💊', text: '진통제 먹는 중...' },
+  { icon: '🚗', text: '차량 수리 중...' },
+  { icon: '🩹', text: '팀원 부활시키는 중...' },
+  { icon: '🎯', text: '에임 조정 중...' },
+];
+
 function PlayerSkeleton() {
+  const msg = LOADING_MSGS[Math.floor(Math.random() * LOADING_MSGS.length)];
   return (
     <div className="min-h-screen bg-gray-900 animate-pulse">
       <div className="max-w-5xl mx-auto px-4 pt-6 space-y-4">
@@ -344,6 +360,16 @@ function PlayerSkeleton() {
             <div className="h-4 bg-gray-700 rounded w-24" />
           </div>
           <div className="h-10 w-24 bg-gray-700 rounded-lg" />
+        </div>
+        {/* 로딩 메시지 */}
+        <div className="flex items-center justify-center gap-2 py-2">
+          <span className="text-xl">{msg.icon}</span>
+          <span className="text-sm text-gray-500 font-medium">{msg.text}</span>
+          <span className="flex gap-0.5">
+            {[0,1,2].map(i => (
+              <span key={i} className="w-1 h-1 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+            ))}
+          </span>
         </div>
         {/* 스탯 카드 스켈레톤 */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
@@ -422,8 +448,10 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
   }, [ssrData, cacheKey]);
 
   // 클라이언트에서 초기 매치 로딩 (SSR에서 매치 제거로 LCP 개선)
+  // DB 캐시 데이터는 teammatesDetail이 없으므로 API에서 매치 재로드 (백그라운드)
   useEffect(() => {
-    if (ssrData?.recentMatches?.length > 0) {
+    const isDbCached = dataSource === 'database';
+    if (ssrData?.recentMatches?.length > 0 && !isDbCached) {
       setMatchesLoading(false);
       return;
     }
@@ -580,69 +608,41 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
   const filterMatches = (matches, filter) => {
     if (!matches || matches.length === 0) return [];
 
+    // 경쟁전 판별: matchType 우선, 없으면 mode로 fallback
+    const isRanked = (m) => {
+      const mt = (m.matchType || '').toLowerCase();
+      if (mt) return mt === 'ranked' || mt === 'competitive';
+      return (m.mode || '').toLowerCase().includes('ranked');
+    };
+    // 이벤트/사용자지정 판별
+    const isEvent = (m) => {
+      const mt = (m.matchType || '').toLowerCase();
+      if (mt) return mt === 'event' || mt === 'casual' || mt === 'airoyale' || mt === 'custom';
+      return (m.mode || '').toLowerCase().includes('event');
+    };
+    const mode = (m) => (m.mode || '').toLowerCase();
+
     switch (filter) {
       case '전체':
         return matches;
+      case '이벤트':
+        return matches.filter((m) => isEvent(m));
       case '경쟁전':
-        return matches.filter((match) => match.gameMode?.includes('ranked'));
+        return matches.filter((m) => isRanked(m));
       case '경쟁전 솔로':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('ranked') &&
-            match.gameMode?.includes('solo')
-        );
+        return matches.filter((m) => isRanked(m) && mode(m).includes('solo'));
       case '솔로':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('solo') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((m) => !isRanked(m) && !isEvent(m) && mode(m).includes('solo'));
       case '듀오':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('duo') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((m) => !isRanked(m) && !isEvent(m) && mode(m).includes('duo'));
       case '스쿼드':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('squad') &&
-            !match.gameMode?.includes('ranked')
-        );
-      case '경쟁전 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('ranked') &&
-            match.gameMode?.includes('fpp')
-        );
-      case '경쟁전 솔로 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('ranked') &&
-            match.gameMode?.includes('solo') &&
-            match.gameMode?.includes('fpp')
-        );
+        return matches.filter((m) => !isRanked(m) && !isEvent(m) && mode(m).includes('squad'));
       case '솔로 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('solo') &&
-            match.gameMode?.includes('fpp') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((m) => !isRanked(m) && !isEvent(m) && mode(m).includes('solo') && mode(m).includes('fpp'));
       case '듀오 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('duo') &&
-            match.gameMode?.includes('fpp') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((m) => !isRanked(m) && !isEvent(m) && mode(m).includes('duo') && mode(m).includes('fpp'));
       case '스쿼드 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('squad') &&
-            match.gameMode?.includes('fpp') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((m) => !isRanked(m) && !isEvent(m) && mode(m).includes('squad') && mode(m).includes('fpp'));
       default:
         return matches;
     }
@@ -653,9 +653,14 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
     if (refreshing || cooldown > 0) return;
     setRefreshing(true);
     setRefreshMsg('최신화 중...');
-    // ?force=1 쿼리 파라미터로 이동 → getServerSideProps에서 DB 캐시 무시하고 API 재호출
     const { server: srv, nickname: nick } = router.query;
-    router.push(`/player/${srv}/${nick}?force=1`).finally(() => {
+    const targetUrl = `/player/${srv}/${nick}?force=1`;
+    const currentUrl = `/player/${srv}/${nick}?force=1`;
+    // 이미 force=1 상태면 reload, 아니면 push
+    const navPromise = router.asPath === currentUrl
+      ? (window.location.reload(), Promise.resolve())
+      : router.push(targetUrl);
+    navPromise?.finally?.(() => {
       setRefreshing(false);
       setRefreshMsg('');
       setCooldown(30);
@@ -1085,12 +1090,11 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
   let synergyAnalysis;
 
   // 데이터 소스가 DB인지 PUBG API인지 확인
-  const isDbData = dataSource === 'database';
   const hasTeammatesDetail = recentMatches.some(
     (match) => match.teammatesDetail && match.teammatesDetail.length > 0
   );
 
-  if (isDbData || !hasTeammatesDetail) {
+  if (!hasTeammatesDetail) {
     // DB 데이터이거나 teammatesDetail이 없는 경우
     console.log('[시너지 분석] DB 전용 분석 모드 사용');
     synergyAnalysis = analyzeClanSynergyForDB(
@@ -1141,19 +1145,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
           <link rel="canonical" href={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
         </Head>
 
-        {/* 데이터 소스 알림 - 간결하게 */}
-        {(dataSource === 'db_with_api_enhancement' || dataSource === 'enhanced') && (
-          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm">
-            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></span>
-            <span className="font-medium">최신 데이터 반영 완료</span>
-          </div>
-        )}
-        {(dataSource === 'pubg_api' || dataSource === 'pubg_api_only') && (
-          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
-            <span className="font-medium">실시간 데이터 로드 완료</span>
-          </div>
-        )}
+        {/* 최신화 완료 알림 */}
         {dataSource === 'pubg_api_refreshed' && (
           <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
@@ -1175,6 +1167,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
           cooldown={cooldown}
           refreshMsg={refreshMsg}
           mmr={displayData?.mmr || 1000}
+          dataSource={dataSource}
         />
 
         {/* 광고 1: 플레이어 헤더 아래 (상단 배너) */}
@@ -1214,6 +1207,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
               }) &&
               false}
             <AICoachingCard
+              rankedStats={rankedSummary || null}
               playerStats={(() => {
                 // 시즌 통계에서 최신 데이터 추출 (전체 시즌 기준 분석)
                 const latestSeasonStats =
@@ -1417,7 +1411,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
           for (const m of recent) {
             const mt = (m.matchType || '').toLowerCase();
             if (mt === 'ranked' || mt === 'competitive') rankedCount++;
-            else if (mt === 'event' || mt === 'casual' || mt === 'airoyale') eventCount++;
+            else if (mt === 'event' || mt === 'casual' || mt === 'airoyale' || mt === 'custom') eventCount++;
             else normalCount++; // official 또는 matchType 없음 → 일반
           }
           const total = recent.length;
@@ -1512,6 +1506,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
                   { label: 'FPP 솔로', key: '솔로 FPP' },
                   { label: 'FPP 듀오', key: '듀오 FPP' },
                   { label: 'FPP 스쿼드', key: '스쿼드 FPP' },
+                  { label: '이벤트/사용자지정', key: '이벤트' },
                 ].map(({ label, key }) => (
                   <button
                     key={key}
@@ -1678,7 +1673,7 @@ function derivePlayStyle(stats) {
   return { playstyle, realPlayStyle };
 }
 
-// DB에서 플레이어 캐시 데이터 조회 (최근 2시간 이내만 유효)
+// DB에서 플레이어 캐시 데이터 조회 — 만료 없음, 항상 DB 우선 노출
 // 조회 순서: 1) PlayerCache → 2) ClanMember (하위 호환)
 async function getPlayerFromDB(nickname, server) {
   const { PrismaClient } = require('@prisma/client');
@@ -1696,20 +1691,19 @@ async function getPlayerFromDB(nickname, server) {
 
     if (cached) {
       const hoursSince = (Date.now() - new Date(cached.lastUpdated).getTime()) / 3600000;
-      if (hoursSince <= 2) {
-        console.log(`✅ PlayerCache 히트: ${nickname} (${Math.round(hoursSince * 60)}분 전)`);
-        // PlayerCache에는 매치/클랜 정보가 없으므로 ClanMember도 함께 조회
-        const member = await prisma.clanMember.findFirst({
-          where: { nickname: { equals: nickname, mode: 'insensitive' } },
-          include: {
-            clan: true,
-            matches: { orderBy: { createdAt: 'desc' }, take: 10 },
-          },
-        });
-        if (member) {
-          // ClanMember 데이터가 있으면 아래 기존 로직으로 처리 (member 사용)
-          // → 아래 로직으로 fall-through하기 위해 cached를 무시하고 member 경로로 진행
-        } else {
+      console.log(`✅ PlayerCache 히트: ${nickname} (${Math.round(hoursSince * 60)}분 전)`);
+      // PlayerCache에는 매치/클랜 정보가 없으므로 ClanMember도 함께 조회
+      const clanMemberForCache = await prisma.clanMember.findFirst({
+        where: { nickname: { equals: nickname, mode: 'insensitive' } },
+        include: {
+          clan: true,
+          matches: { orderBy: { createdAt: 'desc' }, take: 10 },
+        },
+      });
+      if (clanMemberForCache) {
+        // ClanMember 데이터가 있으면 아래 기존 로직으로 처리
+        // → fall-through, 2순위 로직에서 clanMember 재조회
+      } else {
           // ClanMember 없는 솔로 유저: PlayerCache 기본 데이터로 응답 구성
           const summaryBase = {
             avgDamage: cached.avgDamage || 0,
@@ -1719,6 +1713,7 @@ async function getPlayerFromDB(nickname, server) {
             winRate: cached.winRate || 0,
             top10Rate: cached.top10Rate || 0,
             score: cached.score || 0,
+            roundsPlayed: cached.roundsPlayed || 0,
           };
           const { playstyle, realPlayStyle } = derivePlayStyle(summaryBase);
           const summary = { ...summaryBase, playstyle, realPlayStyle, style: cached.style || playstyle };
@@ -1742,7 +1737,6 @@ async function getPlayerFromDB(nickname, server) {
           };
         }
       }
-    }
 
     // 2순위: ClanMember 테이블 (기존 로직)
     const member = await prisma.clanMember.findFirst({
@@ -1754,10 +1748,7 @@ async function getPlayerFromDB(nickname, server) {
     });
 
     if (!member) return null;
-
-    // 2시간 이상 지난 캐시는 무효 처리
-    const hoursSince = (Date.now() - new Date(member.lastUpdated).getTime()) / 3600000;
-    if (hoursSince > 2) return null;
+    // 캐시 만료 없음 — 항상 DB 데이터 우선 노출, 최신화는 force=1 버튼으로만
 
     // 클랜 멤버 목록 조회
     const rawClanMembers = member.clanId
@@ -1790,6 +1781,7 @@ async function getPlayerFromDB(nickname, server) {
       winRate: member.winRate || 0,
       top10Rate: member.top10Rate || 0,
       score: member.score || 0,
+      roundsPlayed: member.roundsPlayed || 0,
     };
     const { playstyle, realPlayStyle } = derivePlayStyle(summaryBase);
     const summary = {
@@ -1878,16 +1870,6 @@ export async function getServerSideProps({ params, query }) {
     const memCached = getPlayerDataCache(nickname, server);
     if (memCached) {
       return { props: { playerData: memCached, error: null, dataSource: 'memory_cache' } };
-    }
-  }
-
-  // ── 2순위: DB 캐시 (force=1이면 무조건 API 호출) ──
-  if (!forceRefresh) {
-    const cached = await getPlayerFromDB(nickname, server);
-    if (cached) {
-      console.log(`✅ DB 캐시 사용: ${nickname}`);
-      setPlayerDataCache(nickname, cached.profile?.shardId || server, cached);
-      return { props: { playerData: cached, error: null, dataSource: 'database' } };
     }
   }
 

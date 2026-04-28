@@ -6,8 +6,8 @@ export default async function handler(req, res) {
     try {
       const row = await prisma.donationCounter.findUnique({ where: { id: 1 } })
       return res.status(200).json({ count: row?.count ?? 0 })
-    } catch {
-      // 테이블 미존재 등 DB 오류 → 0으로 안전하게 반환
+    } catch (e) {
+      console.error('[donations/count GET]', e.message)
       return res.status(200).json({ count: 0 })
     }
   }

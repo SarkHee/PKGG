@@ -27,7 +27,7 @@ const WEAPON_MAP = {
   Item_Weapon_SKS_C:         { name: 'SKS',         category: 'DMR', img: 'Item_Weapon_SKS_C.png' },
   Item_Weapon_VSS_C:         { name: 'VSS',         category: 'DMR', img: 'Item_Weapon_VSS_C.png' },
   Item_Weapon_Mk14_C:        { name: 'Mk14 EBR',    category: 'DMR', img: 'Item_Weapon_Mk14_C.png' },
-  Item_Weapon_FNFal_C:       { name: 'SLR',         category: 'DMR', img: 'Item_Weapon_FNFal_C.png' },
+  Item_Weapon_FNFal_C:       { name: 'SLR',         category: 'DMR', img: 'Item_Weapon_SLR_C.png' },
   Item_Weapon_QBU88_C:       { name: 'QBU',         category: 'DMR', img: 'Item_Weapon_QBU88_C.png' },
   Item_Weapon_Mk12_C:        { name: 'Mk12',        category: 'DMR', img: 'Item_Weapon_Mk12_C.png' },
   Item_Weapon_Dragunov_C:    { name: 'Dragunov',    category: 'DMR', img: 'Item_Weapon_Dragunov_C.png' },
@@ -58,7 +58,7 @@ const WEAPON_MAP = {
   // ── Shotguns ──────────────────────────────────────────────────────
   Item_Weapon_OriginS12_C:   { name: 'O12',         category: 'SG',  img: 'Item_Weapon_OriginS12_C.png' },
   Item_Weapon_Berreta686_C:  { name: 'S686',        category: 'SG',  img: 'Item_Weapon_Berreta686_C.png' },
-  Item_Weapon_Winchester_C:  { name: 'S1897',       category: 'SG',  img: 'Item_Weapon_Winchester_C.png' },
+  Item_Weapon_Winchester_C:  { name: 'S1897',       category: 'SG',  img: 'Item_Weapon_S1897_C.png' },
   Item_Weapon_DP12_C:        { name: 'DBS',         category: 'SG',  img: 'Item_Weapon_DP12_C.png' },
   Item_Weapon_Saiga12_C:     { name: 'S12K',        category: 'SG',  img: 'Item_Weapon_Saiga12_C.png' },
 
@@ -73,6 +73,21 @@ const WEAPON_MAP = {
 
   // ── Special ───────────────────────────────────────────────────────
   Item_Weapon_Crossbow_C:    { name: 'Crossbow',    category: 'Special', img: 'Item_Weapon_Crossbow_C.png' },
+
+  // ── Pistols 추가 ──────────────────────────────────────────────────
+  Item_Weapon_Skorpion_C:    { name: 'Skorpion',    category: 'Pistol',  img: 'Item_Weapon_Skorpion_C.png' },
+
+  // ── Throwables ────────────────────────────────────────────────────
+  Item_Weapon_Grenade_C:         { name: '수류탄',     category: 'Throw', img: 'Item_Weapon_FragGrenade_C.png' },
+  Item_Weapon_FragGrenade_C:     { name: '수류탄',     category: 'Throw', img: 'Item_Weapon_FragGrenade_C.png' },
+  Item_Weapon_MolotovCocktail_C: { name: '화염병',     category: 'Throw', img: 'Item_Weapon_Molotov_C.png' },
+  Item_Weapon_Molotov_C:         { name: '화염병',     category: 'Throw', img: 'Item_Weapon_Molotov_C.png' },
+  Item_Weapon_FlashBang_C:       { name: '섬광탄',     category: 'Throw', img: 'Item_Weapon_StunGrenade_C.png' },
+  Item_Weapon_StunGrenade_C:     { name: '섬광탄',     category: 'Throw', img: 'Item_Weapon_StunGrenade_C.png' },
+  Item_Weapon_SmokeGrenade_C:    { name: '연막탄',     category: 'Throw', img: 'Item_Weapon_SmokeGrenade_C.png' },
+  Item_Weapon_Smoke_C:           { name: '연막탄',     category: 'Throw', img: 'Item_Weapon_SmokeGrenade_C.png' },
+  Item_Weapon_Decoy_C:           { name: '기만탄',     category: 'Throw', img: 'Item_Weapon_DecoyGrenade_C.png' },
+  Item_Weapon_DecoyGrenade_C:    { name: '기만탄',     category: 'Throw', img: 'Item_Weapon_DecoyGrenade_C.png' },
 };
 
 const CATEGORY_BAR = {
@@ -84,6 +99,7 @@ const CATEGORY_BAR = {
   SG:      'bg-red-500',
   Pistol:  'bg-amber-400',
   Special: 'bg-pink-500',
+  Throw:   'bg-lime-500',
   Other:   'bg-gray-400',
 };
 
@@ -96,6 +112,7 @@ const CATEGORY_BADGE = {
   SG:      'bg-red-50 text-red-600 border-red-200',
   Pistol:  'bg-amber-50 text-amber-600 border-amber-200',
   Special: 'bg-pink-50 text-pink-600 border-pink-200',
+  Throw:   'bg-lime-50 text-lime-600 border-lime-200',
   Other:   'bg-gray-50 text-gray-500 border-gray-200',
 };
 
@@ -111,6 +128,18 @@ function resolveWeapon(rawId) {
     lowerRaw.includes(k.toLowerCase().replace('item_weapon_', '').replace('_c', ''))
   );
   if (matchKey) return { key: matchKey, ...WEAPON_MAP[matchKey] };
+
+  // 투척류 키워드 폴백
+  if (lowerRaw.includes('grenade') || lowerRaw.includes('frag'))
+    return { key: rawId, name: '수류탄', category: 'Throw', img: 'Item_Weapon_FragGrenade_C.png' };
+  if (lowerRaw.includes('molotov'))
+    return { key: rawId, name: '화염병', category: 'Throw', img: 'Item_Weapon_Molotov_C.png' };
+  if (lowerRaw.includes('flash') || lowerRaw.includes('stun'))
+    return { key: rawId, name: '섬광탄', category: 'Throw', img: 'Item_Weapon_StunGrenade_C.png' };
+  if (lowerRaw.includes('smoke'))
+    return { key: rawId, name: '연막탄', category: 'Throw', img: 'Item_Weapon_SmokeGrenade_C.png' };
+  if (lowerRaw.includes('decoy'))
+    return { key: rawId, name: '기만탄', category: 'Throw', img: 'Item_Weapon_DecoyGrenade_C.png' };
 
   // 폴백: 내부 ID를 읽기 좋게 변환
   const name = rawId
@@ -225,6 +254,7 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
         const attrs = json.data?.attributes || {};
         const summaries = attrs.weaponsummaries || attrs.WeaponSummaries || attrs.weaponSummaries || {};
         console.log('[WeaponMastery] summaries count:', Object.keys(summaries).length);
+        console.log('[WeaponMastery] 이미지 없는 무기 ID:', Object.keys(summaries).filter(id => !resolveWeapon(id).img));
 
         const parsed = Object.entries(summaries)
           .map(([id, v]) => {

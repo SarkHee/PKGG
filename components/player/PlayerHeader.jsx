@@ -38,10 +38,12 @@ const PlayerHeader = ({
   cooldown,
   refreshMsg,
   mmr = 1000,
+  dataSource,
 }) => {
   const [showRankedDetails, setShowRankedDetails] = useState(false);
   const [showSeasonDetails, setShowSeasonDetails] = useState(false);
   const [showRecentDetails, setShowRecentDetails] = useState(false);
+  const [excludeEvents, setExcludeEvents] = useState(true);
   const router = useRouter();
   const shard = (router.query.server || 'steam');
   const nickname = profile?.nickname || '';
@@ -131,6 +133,15 @@ const PlayerHeader = ({
     score:       calculateMMR(summary),
   } : null);
 
+  // 이벤트 모드 필터
+  const EVENT_MODES = ['tdm', 'ibr', 'arcade', 'training']
+  const filteredRecentMatches = excludeEvents
+    ? (recentMatches || []).filter((m) => {
+        const gm = (m.gameMode || '').toLowerCase()
+        return !EVENT_MODES.some((ev) => gm.includes(ev))
+      })
+    : (recentMatches || [])
+
   // 최근 20경기 통계 계산
   const calculate20MatchStats = (matches) => {
     if (!matches || matches.length === 0) {
@@ -167,7 +178,7 @@ const PlayerHeader = ({
     };
   };
 
-  const recent20Stats = calculate20MatchStats(recentMatches);
+  const recent20Stats = calculate20MatchStats(filteredRecentMatches);
 
   const recent20Score = recent20Stats.totalMatches === 0
     ? 1000
@@ -200,7 +211,7 @@ const PlayerHeader = ({
     return { form: '급감', comment: '컨디션 회복이 필요해 보입니다.' };
   };
 
-  const recent20Form = calculateFormStatus(recentMatches);
+  const recent20Form = calculateFormStatus(filteredRecentMatches);
 
   // v4: 실제 스탯 기반 플레이스타일 분류
   const psResult = classifyPlaystyle({
@@ -222,6 +233,27 @@ const PlayerHeader = ({
 
   return (
     <>
+    {/* 최신화 로딩 오버레이 */}
+    {refreshing && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl px-8 py-7 flex flex-col items-center gap-4 shadow-2xl">
+          <div className="relative w-14 h-14">
+            <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
+            <span className="absolute inset-0 flex items-center justify-center text-xl">🔄</span>
+          </div>
+          <div className="text-center">
+            <div className="text-sm font-bold text-gray-800 mb-0.5">전적 최신화 중...</div>
+            <div className="text-xs text-gray-400">PUBG API에서 데이터를 불러오고 있습니다</div>
+          </div>
+          <div className="flex gap-1">
+            {[0,1,2].map(i => (
+              <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
     {/* 공유 카드 (화면 밖에 렌더링, PNG 캡처용) */}
     <PlayerShareCard
       cardRef={shareCardRef}
@@ -248,11 +280,21 @@ const PlayerHeader = ({
                 <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight truncate">
                   {profile?.nickname || '-'}
                 </h1>
-                {timeAgo(profile?.lastCachedAt) && (
-                  <span className="px-2 py-0.5 bg-gray-700/70 border border-gray-600/50 rounded-full text-[11px] text-gray-400 font-medium">
-                    {timeAgo(profile.lastCachedAt)} 업데이트
-                  </span>
-                )}
+                {timeAgo(profile?.lastCachedAt) && (() => {
+                  const isLive = dataSource === 'pubg_api_refreshed' || dataSource === 'pubg_api'
+                  const isDb = dataSource === 'database' || dataSource === 'memory_cache'
+                  return (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+                      isLive
+                        ? 'bg-emerald-900/50 border-emerald-600/50 text-emerald-300'
+                        : isDb
+                        ? 'bg-gray-700/70 border-gray-600/50 text-gray-400'
+                        : 'bg-gray-700/70 border-gray-600/50 text-gray-400'
+                    }`}>
+                      {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt)} 업데이트
+                    </span>
+                  )
+                })()}
               </div>
               {/* 플랫폼 배지 */}
               <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -294,95 +336,94 @@ const PlayerHeader = ({
             </div>
           </div>
 
-          {/* 우측 액션 버튼 */}
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* 즐겨찾기 버튼 */}
-            {nickname && (
-              <Tooltip content={isFav ? '즐겨찾기에서 제거' : '즐겨찾기에 추가'}>
-                <button
-                  onClick={toggleFavorite}
-                  className={`px-3 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
-                    isFav
-                      ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300 hover:bg-yellow-400/30'
-                      : 'bg-white/5 border-white/20 text-gray-400 hover:bg-white/10 hover:text-yellow-300'
-                  }`}
-                >
-                  {isFav ? '★' : '☆'}
-                </button>
-              </Tooltip>
-            )}
-            {/* 친구 비교 버튼 */}
-            {nickname && (
-              <Tooltip content="이 플레이어와 비교하기">
-                <button
-                  onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
-                  className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
-                >
-                  ⚔️<span className="hidden sm:inline"> 비교</span>
-                </button>
-              </Tooltip>
-            )}
-            {/* 공유 카드 저장 버튼 */}
-            {nickname && (
-              <Tooltip content="전적 카드 PNG 저장">
-                <button
-                  onClick={handleSaveCard}
-                  disabled={saving}
-                  className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white text-sm font-bold transition-all select-none disabled:opacity-50"
-                >
-                  {saving ? <span className="hidden sm:inline">저장 중...</span> : <>📷<span className="hidden sm:inline"> 카드</span></>}
-                </button>
-              </Tooltip>
-            )}
-            {/* MMR 배지 */}
-            {(() => {
-              const tier = getMMRTier(mmr);
-              return (
-                <Tooltip content={MMR_DISCLAIMER}>
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
-                    <span className="text-base leading-none">{tier.emoji}</span>
-                    <div className="flex flex-col leading-none">
-                      <span className={`text-xs font-black ${tier.textColor}`}>{mmr.toLocaleString()}</span>
-                      <span className={`text-[10px] font-semibold ${tier.textColor} opacity-70`}>{tier.label}</span>
-                    </div>
-                    <span className="text-xs text-gray-400 font-bold ml-0.5">?</span>
-                  </div>
+          {/* 우측 액션 버튼 — 2줄 */}
+          <div className="flex flex-col items-end gap-1.5">
+            {/* 1줄: 즐겨찾기 · 비교 · 카드 · 티어 */}
+            <div className="flex items-center gap-1.5">
+              {nickname && (
+                <Tooltip content={isFav ? '즐겨찾기에서 제거' : '즐겨찾기에 추가'}>
+                  <button
+                    onClick={toggleFavorite}
+                    className={`px-2.5 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
+                      isFav
+                        ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300 hover:bg-yellow-400/30'
+                        : 'bg-white/5 border-white/20 text-gray-400 hover:bg-white/10 hover:text-yellow-300'
+                    }`}
+                  >{isFav ? '★' : '☆'}</button>
                 </Tooltip>
-              );
-            })()}
-            <select
-              className="hidden sm:block px-3 py-2 bg-blue-800/60 border border-blue-600/50 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-700/60 transition-colors backdrop-blur-sm"
-              defaultValue="current"
-            >
-              <option value="current">현재 시즌</option>
-              <option value="season-31">시즌 31</option>
-              <option value="season-30">시즌 30</option>
-              <option value="season-29">시즌 29</option>
-              <option value="season-28">시즌 28</option>
-            </select>
-            <button
-              onClick={onRefresh}
-              disabled={refreshing || cooldown > 0}
-              className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-1.5 ${
-                refreshing || cooldown > 0
-                  ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
-                  : 'bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:shadow-lg'
-              }`}
-            >
-              {refreshing ? (
-                <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
-                  <span className="hidden sm:inline">최신화 중</span>
-                </>
-              ) : cooldown > 0 ? (
-                `${cooldown}s`
-              ) : (
-                <>
-                  <span>🔄</span>
-                  <span className="hidden sm:inline">최신화</span>
-                </>
               )}
-            </button>
+              {nickname && (
+                <Tooltip content="이 플레이어와 비교하기">
+                  <button
+                    onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
+                    className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
+                  >⚔️<span className="hidden sm:inline"> 비교</span></button>
+                </Tooltip>
+              )}
+              {nickname && (
+                <Tooltip content="전적 카드 PNG 저장">
+                  <button
+                    onClick={handleSaveCard}
+                    disabled={saving}
+                    className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white text-sm font-bold transition-all select-none disabled:opacity-50"
+                  >{saving ? '저장 중...' : <>📷<span className="hidden sm:inline"> 카드</span></>}</button>
+                </Tooltip>
+              )}
+              {(() => {
+                const tier = getMMRTier(mmr);
+                return (
+                  <Tooltip content={MMR_DISCLAIMER}>
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
+                      <span className="text-base leading-none">{tier.emoji}</span>
+                      <div className="flex flex-col leading-none">
+                        <span className={`text-xs font-black ${tier.textColor}`}>{mmr.toLocaleString()}</span>
+                        <span className={`text-[10px] font-semibold ${tier.textColor} opacity-70`}>{tier.label}</span>
+                      </div>
+                      <span className="text-xs text-gray-400 font-bold ml-0.5">?</span>
+                    </div>
+                  </Tooltip>
+                );
+              })()}
+            </div>
+            {/* 2줄: 현재시즌 · 이벤트제외 · 최신화 */}
+            <div className="flex items-center gap-1.5">
+              <select
+                className="hidden sm:block px-2.5 py-1.5 bg-blue-800/60 border border-blue-600/50 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-700/60 transition-colors"
+                defaultValue="current"
+              >
+                <option value="current">현재 시즌</option>
+                <option value="season-31">시즌 31</option>
+                <option value="season-30">시즌 30</option>
+                <option value="season-29">시즌 29</option>
+                <option value="season-28">시즌 28</option>
+              </select>
+              <button
+                onClick={() => setExcludeEvents(!excludeEvents)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  excludeEvents
+                    ? 'bg-white/10 border-white/30 text-white'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${excludeEvents ? 'bg-cyan-400' : 'bg-gray-500'}`} />
+                이벤트 제외
+              </button>
+              <button
+                onClick={onRefresh}
+                disabled={refreshing || cooldown > 0}
+                className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-1.5 ${
+                  refreshing || cooldown > 0
+                    ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
+                    : 'bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:shadow-lg'
+                }`}
+              >
+                {refreshing ? (
+                  <><div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent" /><span className="hidden sm:inline">최신화 중</span></>
+                ) : cooldown > 0 ? `${cooldown}s` : (
+                  <><span>🔄</span><span className="hidden sm:inline">최신화</span></>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -515,6 +556,9 @@ const PlayerHeader = ({
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-cyan-500 rounded-full"></div>
               <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">최근 {recent20Stats.totalMatches}경기</h2>
+              {excludeEvents && (
+                <span className="px-1.5 py-0.5 bg-cyan-50 border border-cyan-200 rounded-full text-[10px] text-cyan-500 font-medium">이벤트 제외</span>
+              )}
               {/* 폼 배지 + 말풍선 */}
               <div className="ml-auto relative flex flex-col items-end">
                 {recent20Form.comment && (
@@ -574,7 +618,7 @@ const PlayerHeader = ({
                 </button>
 
                 {showRecentDetails && (() => {
-                  const recent = (recentMatches || []).slice(0, recent20Stats.totalMatches);
+                  const recent = filteredRecentMatches.slice(0, recent20Stats.totalMatches);
                   const maxDmg = Math.max(...recent.map((m) => m.damage || 0));
                   const totalKills = recent.reduce((s, m) => s + (m.kills || 0), 0);
                   const totalDmg = recent.reduce((s, m) => s + (m.damage || 0), 0);

@@ -4,6 +4,17 @@ import Header from '../../components/layout/Header';
 
 const CHANGELOG = [
   {
+    date: '2026.04.28',
+    items: [
+      { icon: '🔧', text: '플레이어 조회 방식 개선 — 항상 PUBG API에서 최신 데이터 로드 (DB 캐시 우선 방식 제거)' },
+      { icon: '📊', text: 'AI 코칭 심층분석 수치 정상화 — 시즌 전체 경기수 및 랭크 데이터 정확히 반영' },
+      { icon: '👥', text: '최근 경기 팀원 정보 표시 정상화 — PUBG API 데이터 기반 팀원 상세 스탯 복원' },
+      { icon: '🏅', text: '경쟁전 탭 개선 — 데이터 없을 때 클릭 불가 대신 "경쟁전 데이터가 없습니다" 안내 메시지 표시' },
+      { icon: '🎮', text: '이벤트/사용자 지정 게임 분리 — 커스텀 게임 경기를 이벤트로 분류하여 필터링 지원' },
+      { icon: '🔄', text: '최신화 버튼 오류 수정 — 동일 URL 중복 이동 오류(Invariant hard navigate) 해결' },
+    ],
+  },
+  {
     date: '2026.04',
     items: [
       { icon: '🟡', text: '카카오 로그인 추가 — 카카오 배그 계정으로 로그인 가능' },

@@ -39,6 +39,7 @@ model ClanMember {
   avgSurviveTime Float             @default(0)
   winRate        Float             @default(0)
   top10Rate      Float             @default(0)
+  roundsPlayed   Int               @default(0)
   clanId         Int?
   pubgClanId     String?
   pubgPlayerId   String?
@@ -230,6 +231,7 @@ model PlayerCache {
   avgSurviveTime Float    @default(0)
   winRate        Float    @default(0)
   top10Rate      Float    @default(0)
+  roundsPlayed   Int      @default(0)
   lastUpdated    DateTime @default(now())
 
   @@unique([nickname, pubgShardId])

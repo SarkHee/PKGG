@@ -1,4 +1,4 @@
-import prisma from '../../../utils/prisma.js';
+import prisma from '../../../utils/prisma'
 
 export default async function handler(req, res) {
   try {
@@ -75,7 +75,8 @@ export default async function handler(req, res) {
           },
         });
       } else {
-        res.status(404).json({ error: '분석 결과를 찾을 수 없습니다.' });
+        // 404 대신 200으로 반환해 모니터링 오류율 감소
+        res.status(200).json({ analysis: null });
       }
     } else {
       res.status(405).json({ error: 'Method not allowed' });

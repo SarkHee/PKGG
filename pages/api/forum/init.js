@@ -1,4 +1,4 @@
-import prisma from '../../../utils/prisma.js';
+import prisma from '../../../utils/prisma'
 
 const VALID_CATEGORIES = [
   { id: 'strategy', name: '전략 & 팁', description: '게임 전략, 팁, 가이드를 공유하세요', icon: '🧠', color: '#3B82F6', order: 1 },

@@ -44,6 +44,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [server, setServer] = useState('steam');
   const [activeMajor, setActiveMajor] = useState('OFFENSIVE');
+  const [activeType, setActiveType]   = useState(null);
   const [searchMessage, setSearchMessage] = useState('');
   const [favorites, setFavorites]           = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
@@ -423,7 +424,7 @@ export default function Home() {
                 {Object.entries(MAJOR).map(([key, info]) => (
                   <button
                     key={key}
-                    onClick={() => setActiveMajor(key)}
+                    onClick={() => { setActiveMajor(key); setActiveType(null); }}
                     className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition-all border ${
                       activeMajor === key
                         ? `${info.bg} ${info.border} ${info.color}`
@@ -435,18 +436,35 @@ export default function Home() {
                 ))}
               </div>
               {/* 세부 유형 목록 */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
                 {Object.values(TYPES)
                   .filter(tp => tp.major === activeMajor && tp.label !== '❓ 분류 불가')
-                  .map(tp => (
-                    <div
-                      key={tp.label}
-                      className={`px-3 py-2.5 rounded-xl border text-center ${tp.bg} ${tp.border}`}
-                    >
-                      <span className={`text-xs font-semibold ${tp.color}`}>{tp.label}</span>
-                    </div>
-                  ))}
+                  .map(tp => {
+                    const isActive = activeType?.label === tp.label
+                    return (
+                      <button
+                        key={tp.label}
+                        onClick={() => setActiveType(isActive ? null : tp)}
+                        className={`px-3 py-2.5 rounded-xl border text-center transition-all ${tp.bg} ${tp.border} ${
+                          isActive ? 'ring-2 ring-offset-1 ring-offset-transparent opacity-100 scale-[1.03]' : 'opacity-80 hover:opacity-100'
+                        }`}
+                        style={isActive ? { '--tw-ring-color': 'currentColor' } : {}}
+                      >
+                        <span className={`text-xs font-semibold ${tp.color}`}>{tp.label}</span>
+                      </button>
+                    )
+                  })}
               </div>
+              {/* 선택된 유형 설명 */}
+              {activeType && (
+                <div className={`mt-2 px-4 py-3 rounded-xl border ${activeType.bg} ${activeType.border} transition-all`}>
+                  <div className="flex items-start gap-2">
+                    <span className={`text-sm font-bold ${activeType.color} flex-shrink-0`}>{activeType.label}</span>
+                    <span className="text-xs text-gray-400 leading-relaxed">{activeType.desc}</span>
+                  </div>
+                  <div className={`mt-1.5 text-[11px] ${activeType.color} opacity-70`}>💡 {activeType.tip}</div>
+                </div>
+              )}
             </div>
           </div>
 
