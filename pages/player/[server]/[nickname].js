@@ -614,13 +614,13 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
       if (mt) return mt === 'ranked' || mt === 'competitive';
       return (m.mode || '').toLowerCase().includes('ranked');
     };
-    // 이벤트/사용자지정 판별 — matchType 우선, gameMode fallback
+    // 이벤트/사용자지정 판별 — matchType OR gameMode 둘 다 체크
     const EVENT_MT = new Set(['event', 'casual', 'airoyale', 'custom']);
+    const EVENT_GM = ['tdm', 'ibr', 'arcade', 'training'];
     const isEvent = (m) => {
       const mt = (m.matchType || '').toLowerCase();
-      if (mt) return EVENT_MT.has(mt);
       const gm = (m.gameMode || '').toLowerCase();
-      return ['tdm', 'ibr', 'arcade', 'training'].some((k) => gm.includes(k));
+      return EVENT_MT.has(mt) || EVENT_GM.some((k) => gm.includes(k));
     };
     const mode = (m) => (m.mode || '').toLowerCase();
 

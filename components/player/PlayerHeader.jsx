@@ -133,16 +133,16 @@ const PlayerHeader = ({
     score:       calculateMMR(summary),
   } : null);
 
-  // 이벤트 모드 필터 — matchType 우선, gameMode fallback
+  // 이벤트 모드 필터 — matchType OR gameMode 둘 다 체크
   const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom'])
   const EVENT_GAME_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training']
+  const isEventMatch = (m) => {
+    const mt = (m.matchType || '').toLowerCase()
+    const gm = (m.gameMode || '').toLowerCase()
+    return EVENT_MATCH_TYPES.has(mt) || EVENT_GAME_MODE_KEYWORDS.some((k) => gm.includes(k))
+  }
   const filteredRecentMatches = excludeEvents
-    ? (recentMatches || []).filter((m) => {
-        const mt = (m.matchType || '').toLowerCase()
-        if (mt) return !EVENT_MATCH_TYPES.has(mt)
-        const gm = (m.gameMode || '').toLowerCase()
-        return !EVENT_GAME_MODE_KEYWORDS.some((ev) => gm.includes(ev))
-      })
+    ? (recentMatches || []).filter((m) => !isEventMatch(m))
     : (recentMatches || [])
 
   // 최근 20경기 통계 계산
