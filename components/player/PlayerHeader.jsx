@@ -133,12 +133,15 @@ const PlayerHeader = ({
     score:       calculateMMR(summary),
   } : null);
 
-  // 이벤트 모드 필터
-  const EVENT_MODES = ['tdm', 'ibr', 'arcade', 'training']
+  // 이벤트 모드 필터 — matchType 우선, gameMode fallback
+  const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom'])
+  const EVENT_GAME_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training']
   const filteredRecentMatches = excludeEvents
     ? (recentMatches || []).filter((m) => {
+        const mt = (m.matchType || '').toLowerCase()
+        if (mt) return !EVENT_MATCH_TYPES.has(mt)
         const gm = (m.gameMode || '').toLowerCase()
-        return !EVENT_MODES.some((ev) => gm.includes(ev))
+        return !EVENT_GAME_MODE_KEYWORDS.some((ev) => gm.includes(ev))
       })
     : (recentMatches || [])
 

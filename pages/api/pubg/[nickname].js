@@ -1720,8 +1720,9 @@ export default async function handler(req, res) {
       matches.push({
         matchId,
         mode: modeKor,
-        gameMode: matchData.data.attributes.gameMode, // 원본 gameMode 필드 추가
-        modeType: modeType, // 경쟁전/일반 구분 추가
+        gameMode: matchData.data.attributes.gameMode,
+        matchType: matchData.data.attributes.matchType,
+        modeType: modeType,
         playedAt: matchData.data.attributes.createdAt,
         matchTimestamp: new Date(matchData.data.attributes.createdAt).getTime(), // 타임스탬프로 변환
         playedAgo,

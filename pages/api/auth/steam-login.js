@@ -1,6 +1,8 @@
 // pages/api/auth/steam-login.js — Steam OpenID 2.0 redirect
 export default function handler(req, res) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pkgg.vercel.app';
+  const protocol = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const baseUrl = `${protocol}://${host}`;
   const returnTo = `${baseUrl}/api/auth/steam-callback`;
 
   const params = new URLSearchParams({
