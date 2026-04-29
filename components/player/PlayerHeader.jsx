@@ -43,7 +43,7 @@ const PlayerHeader = ({
   const [showRankedDetails, setShowRankedDetails] = useState(false);
   const [showSeasonDetails, setShowSeasonDetails] = useState(false);
   const [showRecentDetails, setShowRecentDetails] = useState(false);
-  const [excludeEvents, setExcludeEvents] = useState(true);
+  const excludeEvents = true;
   const router = useRouter();
   const shard = (router.query.server || 'steam');
   const nickname = profile?.nickname || '';
@@ -91,10 +91,12 @@ const PlayerHeader = ({
     }
   };
 
-  // ── 시즌 통계 전체 모드 통합 집계 ──
+  // ── 시즌 통계 전체 모드 통합 집계 (이벤트 모드 제외) ──
+  const SEASON_NORMAL_MODES = new Set(['squad', 'squad-fpp', 'duo', 'duo-fpp', 'solo', 'solo-fpp', 'ranked-squad', 'ranked-squad-fpp', 'ranked-duo', 'ranked-duo-fpp', 'ranked-solo', 'ranked-solo-fpp'])
   const seasonData = Object.values(seasonStats || {})[0] || {};
   let tR = 0, tW = 0, tT10 = 0, tDmg = 0, tKills = 0, tAssists = 0, tSurvival = 0;
-  for (const ms of Object.values(seasonData)) {
+  for (const [modeKey, ms] of Object.entries(seasonData)) {
+    if (!SEASON_NORMAL_MODES.has(modeKey)) continue;
     const r = ms.rounds || 0;
     if (r === 0) continue;
     tR += r; tW += ms.wins || 0; tT10 += ms.top10s || 0;
@@ -133,17 +135,19 @@ const PlayerHeader = ({
     score:       calculateMMR(summary),
   } : null);
 
-  // 이벤트 모드 필터 — matchType OR gameMode 둘 다 체크
-  const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom'])
+  // 이벤트 모드 필터 — matchType OR gameMode OR mapName 기반
+  const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom', 'arcade'])
   const EVENT_GAME_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training']
+  const EVENT_MAP_KEYWORDS = ['_tdm_', '_training_', 'range_main', 'pillarcompound', 'boardwalk']
   const isEventMatch = (m) => {
     const mt = (m.matchType || '').toLowerCase()
     const gm = (m.gameMode || '').toLowerCase()
-    return EVENT_MATCH_TYPES.has(mt) || EVENT_GAME_MODE_KEYWORDS.some((k) => gm.includes(k))
+    const mn = (m.mapName || '').toLowerCase()
+    return EVENT_MATCH_TYPES.has(mt)
+      || EVENT_GAME_MODE_KEYWORDS.some((k) => gm.includes(k))
+      || EVENT_MAP_KEYWORDS.some((k) => mn.includes(k))
   }
-  const filteredRecentMatches = excludeEvents
-    ? (recentMatches || []).filter((m) => !isEventMatch(m))
-    : (recentMatches || [])
+  const filteredRecentMatches = (recentMatches || []).filter((m) => !isEventMatch(m))
 
   // 최근 20경기 통계 계산
   const calculate20MatchStats = (matches) => {
@@ -287,7 +291,7 @@ const PlayerHeader = ({
                   const isLive = dataSource === 'pubg_api_refreshed' || dataSource === 'pubg_api'
                   const isDb = dataSource === 'database' || dataSource === 'memory_cache'
                   return (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+                    <span suppressHydrationWarning className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
                       isLive
                         ? 'bg-emerald-900/50 border-emerald-600/50 text-emerald-300'
                         : isDb
@@ -400,17 +404,6 @@ const PlayerHeader = ({
                 <option value="season-29">시즌 29</option>
                 <option value="season-28">시즌 28</option>
               </select>
-              <button
-                onClick={() => setExcludeEvents(!excludeEvents)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                  excludeEvents
-                    ? 'bg-white/10 border-white/30 text-white'
-                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-gray-300'
-                }`}
-              >
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${excludeEvents ? 'bg-cyan-400' : 'bg-gray-500'}`} />
-                이벤트 제외
-              </button>
               <button
                 onClick={onRefresh}
                 disabled={refreshing || cooldown > 0}
@@ -559,9 +552,7 @@ const PlayerHeader = ({
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-cyan-500 rounded-full"></div>
               <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">최근 {recent20Stats.totalMatches}경기</h2>
-              {excludeEvents && (
-                <span className="px-1.5 py-0.5 bg-cyan-50 border border-cyan-200 rounded-full text-[10px] text-cyan-500 font-medium">이벤트 제외</span>
-              )}
+              <span className="px-1.5 py-0.5 bg-cyan-50 border border-cyan-200 rounded-full text-[10px] text-cyan-500 font-medium">이벤트 제외</span>
               {/* 폼 배지 + 말풍선 */}
               <div className="ml-auto relative flex flex-col items-end">
                 {recent20Form.comment && (

@@ -75,7 +75,7 @@ function SettingsCard({ post }) {
             </span>
           )}
         </div>
-        <span className="text-xs text-gray-600 flex-shrink-0">{timeAgo(post.createdAt)}</span>
+        <span suppressHydrationWarning className="text-xs text-gray-600 flex-shrink-0">{timeAgo(post.createdAt)}</span>
       </div>
 
       {/* 제목 */}

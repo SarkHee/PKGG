@@ -53,10 +53,16 @@ function FloatingSearch() {
   const router = useRouter();
   const { t } = useT();
 
+  // 패널이 열릴 때마다 입력값 초기화
+  useEffect(() => {
+    if (open) setNick('');
+  }, [open]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (nick.trim()) {
-      router.push(`/player/${srv}/${encodeURIComponent(nick.trim())}`);
+    const trimmed = nick.trim();
+    if (trimmed) {
+      router.push(`/player/${srv}/${encodeURIComponent(trimmed)}`);
       setNick('');
       setOpen(false);
     }
@@ -83,6 +89,7 @@ function FloatingSearch() {
               value={nick}
               onChange={(e) => setNick(e.target.value)}
               className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1.5 text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-400"
+              autoComplete="off"
               autoFocus
             />
             <button

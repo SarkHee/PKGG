@@ -31,3 +31,5 @@ desktop-app/*.onnx
 
 # 테스트 파일
 public/video-test.html
+.vercel
+.env*.local

@@ -566,7 +566,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
       const json = await res.json();
       if (json.success && json.data?.gameModeStats) {
         const modeStats = json.data.gameModeStats;
-        const isEventMode = (m) => m.startsWith('normal') || m.includes('event') || m.includes('airoyale');
+        const isEventMode = (m) => m.startsWith('normal') || m.includes('event') || m.includes('airoyale') || m.includes('casual') || m.includes('arcade') || m.includes('training') || m.includes('custom') || m.includes('tdm') || m.includes('ibr');
         const transformed = {};
         for (const [mode, s] of Object.entries(modeStats)) {
           if (isEventMode(mode)) continue;
@@ -614,19 +614,21 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
       if (mt) return mt === 'ranked' || mt === 'competitive';
       return (m.mode || '').toLowerCase().includes('ranked');
     };
-    // 이벤트/사용자지정 판별 — matchType OR gameMode 둘 다 체크
-    const EVENT_MT = new Set(['event', 'casual', 'airoyale', 'custom']);
+    // 이벤트/사용자지정 판별 — matchType OR gameMode OR mapName 기반
+    const EVENT_MT = new Set(['event', 'casual', 'airoyale', 'custom', 'arcade']);
     const EVENT_GM = ['tdm', 'ibr', 'arcade', 'training'];
+    const EVENT_MAP = ['_tdm_', '_training_', 'range_main', 'pillarcompound', 'boardwalk'];
     const isEvent = (m) => {
       const mt = (m.matchType || '').toLowerCase();
       const gm = (m.gameMode || '').toLowerCase();
-      return EVENT_MT.has(mt) || EVENT_GM.some((k) => gm.includes(k));
+      const mn = (m.mapName || '').toLowerCase();
+      return EVENT_MT.has(mt) || EVENT_GM.some((k) => gm.includes(k)) || EVENT_MAP.some((k) => mn.includes(k));
     };
     const mode = (m) => (m.mode || '').toLowerCase();
 
     switch (filter) {
       case '전체':
-        return matches;
+        return matches.filter((m) => !isEvent(m));
       case '이벤트':
         return matches.filter((m) => isEvent(m));
       case '경쟁전':
@@ -1875,6 +1877,19 @@ export async function getServerSideProps({ params, query }) {
     }
   }
 
+  // ── 2순위: DB 캐시 (force=1 아닌 경우 PUBG API 호출 없이 바로 반환) ──
+  if (!forceRefresh) {
+    try {
+      const dbData = await getPlayerFromDB(nickname, server);
+      if (dbData) {
+        setPlayerDataCache(dbData.profile.nickname, dbData.profile.shardId || server, dbData);
+        return { props: { playerData: dbData, error: null, dataSource: 'database' } };
+      }
+    } catch (dbErr) {
+      console.warn('DB 캐시 조회 실패 (fallback to API):', dbErr.message);
+    }
+  }
+
   try {
     // Step 1: PUBG API로 플레이어 검색
     // 명시적으로 선택된 shard(steam/kakao/psn/xbox)면 해당 shard만 검색
@@ -1962,7 +1977,7 @@ export async function getServerSideProps({ params, query }) {
           const gameModeStats = statsResult.value.data?.attributes?.gameModeStats || {};
           const transformedModes = {};
           // 이벤트맵/사용자 지정/데스매치(normal-* 접두사) 제외 — 일반·경쟁전만 집계
-          const isEventMode = (m) => m.startsWith('normal') || m.includes('event') || m.includes('airoyale') || m.includes('deathmatch') || m.includes('casual');
+          const isEventMode = (m) => m.startsWith('normal') || m.includes('event') || m.includes('airoyale') || m.includes('deathmatch') || m.includes('casual') || m.includes('arcade') || m.includes('training') || m.includes('custom') || m.includes('tdm') || m.includes('ibr');
           for (const [mode, s] of Object.entries(gameModeStats)) {
             if (isEventMode(mode)) continue;
             const rounds = s.roundsPlayed || 0;

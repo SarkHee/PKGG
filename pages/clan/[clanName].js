@@ -612,7 +612,7 @@ export default function ClanDetail() {
                             <td className="px-4 py-3 text-right text-green-400 font-semibold">{s?.winRate != null ? `${s.winRate}%` : '—'}</td>
                             <td className="px-4 py-3 text-right text-purple-400 font-semibold">{s?.top10Rate != null ? `${s.top10Rate}%` : '—'}</td>
                             <td className="px-4 py-3 text-right text-gray-400">{s?.avgSurviveTime ? fmtTime(s.avgSurviveTime) : '—'}</td>
-                            <td className="px-4 py-3 text-right text-gray-600 text-xs">{timeAgo(member.lastActiveAt)}</td>
+                            <td suppressHydrationWarning className="px-4 py-3 text-right text-gray-600 text-xs">{timeAgo(member.lastActiveAt)}</td>
                           </tr>
                         );
                       })}

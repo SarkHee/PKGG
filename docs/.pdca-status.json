@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-04-28T12:54:47.898Z",
+  "lastUpdated": "2026-04-29T02:01:21.268Z",
   "activeFeatures": [
     "PKGG",
     "clan",
@@ -31,7 +31,8 @@
     "scripts",
     "donations",
     "pubg-news",
-    "ui"
+    "ui",
+    "PKGG-1"
   ],
   "primaryFeature": "PKGG",
   "features": {
@@ -57,9 +58,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:15:28.697Z",
-        "lastUpdated": "2026-04-27T01:26:10.145Z"
+        "lastUpdated": "2026-04-29T01:18:22.838Z"
       },
-      "lastFile": "/Users/mac/PKGG/pages/clan/[clanName].js"
+      "lastFile": "/Users/mac/PKGG-1/pages/clan/[clanName].js"
     },
     "layout": {
       "phase": "do",
@@ -161,9 +162,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-03T06:41:43.321Z",
-        "lastUpdated": "2026-04-28T12:47:52.027Z"
+        "lastUpdated": "2026-04-29T02:01:08.145Z"
       },
-      "lastFile": "/Users/bag-isag/Desktop/PKGG-1/components/player/PlayerHeader.jsx"
+      "lastFile": "/Users/mac/PKGG-1/components/player/PlayerHeader.jsx"
     },
     "charts": {
       "phase": "do",
@@ -239,9 +240,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-04T02:24:04.089Z",
-        "lastUpdated": "2026-04-28T12:48:02.337Z"
+        "lastUpdated": "2026-04-29T02:01:21.268Z"
       },
-      "lastFile": "/Users/bag-isag/Desktop/PKGG-1/pages/player/[server]/[nickname].js"
+      "lastFile": "/Users/mac/PKGG-1/pages/player/[server]/[nickname].js"
     },
     "clans": {
       "phase": "do",
@@ -424,6 +425,19 @@
         "lastUpdated": "2026-04-27T06:45:55.620Z"
       },
       "lastFile": "/Users/mac/PKGG/components/ui/Tooltip.js"
+    },
+    "PKGG-1": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-29T01:18:12.559Z",
+        "lastUpdated": "2026-04-29T02:00:52.525Z"
+      },
+      "lastFile": "/Users/mac/PKGG-1/pages/_app.js"
     }
   },
   "pipeline": {
@@ -434,7 +448,7 @@
   "session": {
     "startedAt": "2026-02-26T02:34:01.887Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-04-28T12:54:47.898Z"
+    "lastActivity": "2026-04-29T02:01:21.268Z"
   },
   "history": [
     {
@@ -8540,6 +8554,126 @@
     {
       "timestamp": "2026-04-28T12:54:47.898Z",
       "feature": "auth",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:18:05.581Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:18:12.559Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:18:16.297Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:18:22.838Z",
+      "feature": "clan",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:23:26.253Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:23:31.588Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:23:36.305Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:23:40.975Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:24:14.348Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:24:26.173Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:24:33.658Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:36:17.380Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:36:25.219Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:36:38.072Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T01:53:47.282Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T02:00:46.968Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T02:00:52.525Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T02:01:08.145Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T02:01:14.871Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-29T02:01:21.268Z",
+      "feature": "[server]",
       "phase": "do",
       "action": "updated"
     }
