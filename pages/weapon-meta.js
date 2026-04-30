@@ -49,9 +49,10 @@ const SORT_OPTIONS = [
 ];
 
 export default function WeaponMeta() {
+  const [platform, setPlatform] = useState('steam'); // steam | kakao
   const [typeFilter, setTypeFilter] = useState('전체');
   const [sort, setSort] = useState('pickRate');
-  const [sortDir, setSortDir] = useState(-1); // -1 내림차순
+  const [sortDir, setSortDir] = useState(-1);
   const [view, setView] = useState('table'); // table | tier
 
   const handleSort = (key) => {
@@ -69,10 +70,37 @@ export default function WeaponMeta() {
       <div style={{ minHeight: '100vh', background: '#030712', color: '#fff', padding: '24px 16px', fontFamily: 'sans-serif' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
 
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 16 }}>
             <a href="/" style={{ color: '#6b7280', fontSize: 13, textDecoration: 'none' }}>← 홈으로</a>
             <h1 style={{ fontSize: 22, fontWeight: 900, margin: '8px 0 4px' }}>📊 무기 메타 표</h1>
-            <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>Update 40.1 기준 픽률·승률·평균 킬 통계</p>
+          </div>
+
+          {/* 플랫폼 탭 */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            {[{ key: 'steam', label: '🎮 Steam' }, { key: 'kakao', label: '🟡 카카오' }].map(p => (
+              <button key={p.key} onClick={() => setPlatform(p.key)}
+                style={{ padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                  background: platform === p.key ? (p.key === 'kakao' ? '#ca8a04' : '#1d4ed8') : '#111827',
+                  color: platform === p.key ? '#fff' : '#6b7280' }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 데이터 출처 배너 */}
+          <div style={{ background: '#111827', border: '1px solid #1e3a5f', borderRadius: 10, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>ℹ️</span>
+            <div>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#93c5fd' }}>
+                {platform === 'kakao' ? '🟡 카카오배그' : '🎮 Steam'} · Update 40.1 기준 커뮤니티 추정 데이터
+              </p>
+              <p style={{ margin: '3px 0 0', fontSize: 11, color: '#4b5563', lineHeight: 1.5 }}>
+                픽률·승률·평균킬은 <strong style={{ color: '#6b7280' }}>공개 커뮤니티 통계 기반 추정치</strong>로 PUBG 공식 수치가 아닙니다.
+                데미지·RPM은 공식 패치노트 기준입니다.{' '}
+                <strong style={{ color: '#2563eb' }}>PK.GG 실사용자 데이터가 충분히 쌓이면 사이트 자체 통계로 대체</strong>될 예정이며,
+                Steam/카카오 플랫폼별 메타 차이도 함께 반영됩니다.
+              </p>
+            </div>
           </div>
 
           {/* 필터/뷰 */}

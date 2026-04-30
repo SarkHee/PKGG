@@ -381,3 +381,20 @@ model DonationCounter {
 
   @@map("donation_counter")
 }
+
+// 플레이어 무기 숙련도 통계 — 메타 분석용 데이터 수집
+model PlayerWeaponStat {
+  id         Int      @id @default(autoincrement())
+  playerId   String
+  shard      String   @default("steam")
+  weaponId   String
+  weaponName String   @default("")
+  kills      Int      @default(0)
+  damage     Float    @default(0)
+  headshots  Int      @default(0)
+  savedAt    DateTime @default(now())
+
+  @@unique([playerId, weaponId])
+  @@index([weaponId, shard])
+  @@map("player_weapon_stats")
+}

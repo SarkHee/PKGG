@@ -271,11 +271,15 @@ export default function ClanAnalytics() {
   const [isAdmin, setIsAdmin] = useState(false);
   const itemsPerPage = 10;
   const { t } = useT();
+  const [resolvedClanId, setResolvedClanId] = useState(null); // 동적 조회된 clanId
   const { user } = useAuth() || {};
   const canViewFull = user?.role === 'admin' || !!user;
   const isSteamAdmin = user?.role === 'admin';
-  const myClanId = user?.clanId ?? null;
-  const effectiveMyClanId = (isSteamAdmin || isAdmin) ? null : myClanId;
+  const myClanId = user?.clanId ?? resolvedClanId ?? null;
+  // 관리자 → null (전체 공개), 일반 유저 → 내 clanId, 로그인했지만 클랜 없으면 -1 (접근 차단)
+  const effectiveMyClanId = (isSteamAdmin || isAdmin)
+    ? null
+    : (user ? (myClanId ?? -1) : null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -289,8 +293,15 @@ export default function ClanAnalytics() {
     if (user === null) {
       setSelectedShard(prev => prev === null ? 'steam' : prev); // 비로그인 → steam 기본값
     } else {
-      // 카카오 유저는 'all'로 기본 설정 (DB에 kakao 클랜 데이터가 없을 경우 빈 화면 방지)
       setSelectedShard(user.platform === 'kakao' ? 'all' : (user.platform || 'steam'));
+
+      // users.clanId가 없으면 ClanMember에서 동적 조회
+      if (!user.clanId && user.role !== 'admin') {
+        fetch('/api/clan/my-clan')
+          .then((r) => r.json())
+          .then((d) => { if (d.clanId) setResolvedClanId(d.clanId); })
+          .catch(() => {});
+      }
     }
   }, [user]);
 

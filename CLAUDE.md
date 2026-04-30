@@ -207,17 +207,27 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - **능선 전략 시뮬레이터 추가** (`pages/battle-sim.js`): 12×8 그리드 턴제 전술 게임. setup(배치) → combat(전투) → result(분석) 화면 전환. 지형: 능선(▲ +25% 공격), 엄폐(🪨 -35% 피해). 이동/사격 액션, AI 자동 턴. Header 훈련 메뉴에 추가
 - **다크/라이트 테마 토글**: Header 🌙/☀️ 버튼. `pkgg_theme` localStorage 저장. `_app.js`에서 초기화 (저장값 → OS 설정 순). `tailwind.config.cjs` `darkMode: 'class'` 활용. `nav.playstyle_matchup` i18n 키 4개 언어 추가
 - **전체 페이지 모바일 최적화**: `_document.js` viewport meta 태그 추가(전체 사이트 핵심 수정). `PlayerHeader`: 패딩 `px-4 sm:px-8`, 아바타 `w-12 sm:w-16`, 닉네임 `text-xl sm:text-3xl`, 액션버튼 아이콘전용(모바일)/텍스트(sm+), 시즌선택 `hidden sm:block`, 스탯 그리드 `md:grid-cols-3`. `GrowthChart`: 지표카드 `min-w-[60px]`, 요약배너 flex-wrap, 차트 패딩 반응형. `compare.js`: 검색폼 `flex-col sm:flex-row`
+- **이벤트 게임 완전 제외 (3단계 필터링)**: `PlayerHeader.jsx` + `player/[server]/[nickname].js` 동시 적용
+  - matchType 블랙리스트: `EVENT_MATCH_TYPES = { 'event', 'casual', 'airoyale', 'custom', 'arcade' }`
+  - gameMode 키워드: `EVENT_GAME_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training']`
+  - mapName 키워드: `EVENT_MAP_KEYWORDS = ['_tdm_', '_training_', 'range_main', 'pillarcompound', 'boardwalk']`
+  - `excludeEvents` 토글 버튼 제거 → 항상 이벤트 제외 고정 (`const excludeEvents = true`)
+- **시즌 성과 이벤트 데이터 제외**: `PlayerHeader.jsx` 시즌 스탯 집계 시 화이트리스트 방식 적용
+  - `SEASON_NORMAL_MODES = { 'squad', 'squad-fpp', 'duo', 'duo-fpp', 'solo', 'solo-fpp', 'ranked-squad', 'ranked-squad-fpp', ... }`
+  - `Object.entries(seasonData)` 루프에서 화이트리스트 미포함 모드 키는 `continue` 처리
+- **TDM/이벤트 맵 표시명 추가** (`utils/mapUtils.js`): `Italy_TDM_Main`, `Tiger_TDM_Main`, `Baltic_TDM_Main`, `Boardwalk_Main`, `PillarCompound_Main` 5종 추가. 이제 이벤트 경기가 "일반" 대신 정확한 맵명 표시
+- **FloatingSearch 닉네임 입력 버그 수정** (`pages/_app.js`): 패널 열릴 때 입력값 초기화 (`useEffect(() => { if (open) setNick(''); }, [open])`), `autoComplete="off"` 추가. 이전 검색 유저로 이동하던 버그 해결
+- **React 하이드레이션 오류 수정**: 상대시간("방금 전"/"1분 전") 표시 요소에 `suppressHydrationWarning` 추가. 적용: `party.js`, `settings-share.js`, `clan/[clanName].js`, `PlayerHeader.jsx`
 
 ---
 
-## 알려진 버그 및 개선 대기 항목 (2026-04-24 피드백 기반)
+## 알려진 버그 및 개선 대기 항목 (2026-04-30 피드백 기반)
 
 ### 버그
 - **이동경로 맵 이미지 오류** (`utils/mapUtils.js`): 알 수 없는 맵코드 fallback이 항상 `/maps/erangel.jpg`. 사녹(Savage_Main) 경기에서도 에란겔 이미지 표시될 수 있음. `Heaven_Main`, `Summerland_Main`, `Chimera_Main`, `Range_Main`도 에란겔로 고정됨. `pages/api/pubg/match-telemetry.js`의 `MAP_MAX` 좌표계도 mapName 형식 불일치 시 에란겔 기준으로 계산되어 경로 좌표 오차 발생
 - **이동경로 기능 미완성**: `MatchDetailLog.jsx`에서 `match.telemetryUrl`을 사용하지만, `getServerSideProps`에서 recentMatches 데이터 구조에 `telemetryUrl` 필드가 없음 → 텔레메트리 데이터 항상 없음으로 표시됨
 
 ### 개선 대기 (구현 방향)
-- **플로팅 검색창 위치 변경** (`pages/_app.js:64`): 현재 `fixed bottom-0 left-0 right-0` 중앙 하단 전역 노출. 가독성 방해 → 우측 사이드 고정 패널(`fixed right-4 bottom-24`)로 이동 권장. 접힘/펼침 토글 버튼 추가 고려
 - **딜량 상위% 표시**: `AICoachingCard.jsx`에서 avgDamage를 "평균 이상" 대신 상위 몇% 인지 표시. PUBG 공식 통계 기준 일반 스쿼드 평균딜 약 200~250, 상위 10%가 약 500+ 기준으로 percentile 구간 적용 권장
 - **AI 코칭 추천무기 세밀화**: `AICoachingCard.jsx` 무기 추천 시 실제 mastery 데이터 없는 경우에도 플레이스타일(K/D·딜량·헤드샷률)에 따라 개인화된 추천 제공. 현재 mastery 없으면 정적 M416+UMP45로 고정되는 문제
 - **AI 코칭 개선포인트 추가**:

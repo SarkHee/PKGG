@@ -7,6 +7,7 @@
 //   force=1 쿼리 파라미터로 캐시 bypass 가능
 
 import { cachedPubgFetch, TTL, PubgApiError } from '../../../../utils/pubgApiCache';
+import prisma from '../../../../utils/prisma';
 
 const PUBG_BASE_URL = 'https://api.pubg.com/shards';
 
@@ -123,6 +124,14 @@ async function handleMasteryStats(req, res, shard, playerId, masteryType, force)
   const url      = `${PUBG_BASE_URL}/${shard}/players/${playerId}/${endpoint}`;
   const data     = await cachedPubgFetch(url, { ttl: TTL.PLAYER, force });
 
+  // weapon 데이터 fire-and-forget 저장 (메타 분석용)
+  if (masteryType === 'weapon') {
+    const summaries = data.data?.attributes?.weaponSummaries
+      ?? data.data?.attributes?.WeaponSummaries
+      ?? {}
+    saveWeaponStats(playerId, shard, summaries).catch(() => {})
+  }
+
   return res.status(200).json({
     success: true,
     type: `${masteryType}_mastery`,
@@ -135,6 +144,40 @@ async function handleMasteryStats(req, res, shard, playerId, masteryType, force)
         : 'Survival Mastery stats',
     },
   });
+}
+
+async function saveWeaponStats(playerId, shard, summaries) {
+  const entries = Object.entries(summaries)
+  if (entries.length === 0) return
+
+  const rows = entries.map(([weaponId, info]) => {
+    const stats = info.StatsTotal ?? info.statsTotal ?? {}
+    return {
+      playerId,
+      shard,
+      weaponId,
+      weaponName: info.XPTotal !== undefined ? weaponId : weaponId,
+      kills:     Math.round(stats.Kills ?? stats.kills ?? 0),
+      damage:    parseFloat(stats.DamagePlayer ?? stats.damagePlayer ?? 0),
+      headshots: Math.round(stats.HeadShots ?? stats.headShots ?? stats.headshots ?? 0),
+      savedAt:   new Date(),
+    }
+  })
+
+  // upsert: 기존 row 있으면 통계 업데이트
+  for (const row of rows) {
+    await prisma.playerWeaponStat.upsert({
+      where: { playerId_weaponId: { playerId: row.playerId, weaponId: row.weaponId } },
+      create: row,
+      update: {
+        kills:     row.kills,
+        damage:    row.damage,
+        headshots: row.headshots,
+        shard:     row.shard,
+        savedAt:   row.savedAt,
+      },
+    })
+  }
 }
 
 // ── 헬퍼 ─────────────────────────────────────────────────────────────────────

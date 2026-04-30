@@ -62,7 +62,7 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
             pubgClanLevel: attrs.clanLevel,
             pubgMemberCount: attrs.clanMemberCount,
             memberCount: attrs.clanMemberCount || 0,
-            shard,
+            // shard는 최초 등록 시에만 설정 — 카카오 유저 조회로 덮어써지는 버그 방지
             lastSynced: new Date(),
           },
           create: {
@@ -117,8 +117,13 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
 
     let memberId;
     if (byPlayerId) {
-      // pubgPlayerId로 찾은 레코드 → API 데이터로 완전 덮어쓰기
-      await prisma.clanMember.update({ where: { id: byPlayerId.id }, data: memberData });
+      // pubgPlayerId로 찾은 레코드 → 기존 shard가 있으면 유지 (다른 플랫폼 검색으로 덮어쓰기 방지)
+      const updateData = { ...memberData };
+      if (byPlayerId.pubgShardId && byPlayerId.pubgShardId !== shard) {
+        delete updateData.pubgShardId;
+        console.log(`⚠️ shard 보호: ${nickname} (${byPlayerId.pubgShardId} 유지, ${shard} 무시)`);
+      }
+      await prisma.clanMember.update({ where: { id: byPlayerId.id }, data: updateData });
       memberId = byPlayerId.id;
 
       // nickname만으로 생성된 중복 레코드 제거
@@ -173,10 +178,16 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
     }
 
     // PlayerCache upsert (모든 유저 캐싱)
+    // 이미 다른 shard로 등록된 플레이어라면 기존 shard로만 업데이트 (kakao → steam 덮어쓰기 방지)
     try {
+      const existingPlayerCache = await prisma.playerCache.findFirst({
+        where: { pubgPlayerId: pubgPlayer.id },
+        orderBy: { lastUpdated: 'desc' },
+      });
+      const targetShard = (existingPlayerCache?.pubgShardId) || shard;
       const cacheData = {
         pubgPlayerId: pubgPlayer.id,
-        pubgShardId: shard,
+        pubgShardId: targetShard,
         score: summary?.score || 0,
         style: summary?.playstyle || summary?.style || '',
         avgDamage: summary?.avgDamage || 0,
@@ -189,11 +200,11 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
         lastUpdated: new Date(),
       };
       await prisma.playerCache.upsert({
-        where: { nickname_pubgShardId: { nickname, pubgShardId: shard } },
+        where: { nickname_pubgShardId: { nickname, pubgShardId: targetShard } },
         update: cacheData,
         create: { nickname, ...cacheData },
       });
-      console.log(`✅ PlayerCache 저장: ${nickname} (${shard})`);
+      console.log(`✅ PlayerCache 저장: ${nickname} (${targetShard})`);
     } catch (cacheErr) {
       console.warn('PlayerCache upsert 실패:', cacheErr.message);
     }
@@ -419,7 +430,7 @@ function setCachedPlayer(key, data) {
   } catch {}
 }
 
-export default function PlayerPage({ playerData: ssrData, error, dataSource, availableSeasons = [], playerId, shardId }) {
+export default function PlayerPage({ playerData: ssrData, error, dataSource, availableSeasons = [], playerId, shardId, suggestion = null }) {
   const router = useRouter();
   const { server, nickname } = router.query;
   const cacheKey = `${server}_${nickname}`;
@@ -560,16 +571,17 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
     }
     if (!playerId || !shardId) return;
     setCurrentSeasonId(seasonId);
+    setCurrentSeasonData(null); // 이전 시즌 데이터 초기화
     setSeasonLoading(true);
     try {
       const res = await fetch(`/api/pubg/stats/season/${shardId}/${playerId}/${seasonId}`);
       const json = await res.json();
       if (json.success && json.data?.gameModeStats) {
         const modeStats = json.data.gameModeStats;
-        const isEventMode = (m) => m.startsWith('normal') || m.includes('event') || m.includes('airoyale') || m.includes('casual') || m.includes('arcade') || m.includes('training') || m.includes('custom') || m.includes('tdm') || m.includes('ibr');
+        const SEASON_WHITELIST = new Set(['squad', 'squad-fpp', 'duo', 'duo-fpp', 'solo', 'solo-fpp', 'ranked-squad', 'ranked-squad-fpp', 'ranked-duo', 'ranked-duo-fpp', 'ranked-solo', 'ranked-solo-fpp'])
         const transformed = {};
         for (const [mode, s] of Object.entries(modeStats)) {
-          if (isEventMode(mode)) continue;
+          if (!SEASON_WHITELIST.has(mode)) continue;
           const rounds = s.roundsPlayed || 0;
           if (rounds === 0) continue;
           transformed[mode] = {
@@ -601,8 +613,9 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
     }
   };
 
-  // 현재 표시할 데이터 결정 (시즌이 변경되었으면 시즌 데이터, 아니면 기본 데이터)
-  const displayData = currentSeasonData || playerData;
+  // 항상 playerData 기반으로 프로필/매치/요약 표시 (시즌 데이터만 별도 관리)
+  const displayData = playerData;
+  const displaySeasonStats = currentSeasonData || playerData?.seasonStats || {};
 
   // 경기 필터링 로직
   const filterMatches = (matches, filter) => {
@@ -671,6 +684,33 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
     });
   };
 
+  const SHARD_LABEL = { steam: 'Steam', kakao: 'Kakao', psn: 'Console (PS)', xbox: 'Console (Xbox)' }
+
+  if (error === 'private') {
+    return (
+      <>
+        <Header />
+        <div className="container mx-auto p-6 bg-gradient-to-br from-white via-gray-50 to-blue-50 min-h-screen">
+          <div className="max-w-2xl mx-auto mt-20">
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg text-center">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">🔒</span>
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">비공개 프로필</h1>
+              <p className="text-gray-500 mb-6">이 플레이어는 프로필을 비공개로 설정했습니다.</p>
+              <button
+                onClick={() => router.push('/')}
+                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+              >
+                홈으로 돌아가기
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   if (error) {
     return (
       <>
@@ -692,6 +732,24 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
                   닉네임확인 후 다시 검색해주세요.
                 </p>
               </div>
+
+              {suggestion && (
+                <div className="mb-4 bg-green-50 border border-green-200 rounded-xl p-4 text-left">
+                  <p className="text-sm font-semibold text-green-800 mb-1">
+                    혹시 이 유저를 찾으시나요?
+                  </p>
+                  <p className="text-sm text-green-700 mb-3">
+                    <span className="font-bold">{suggestion.nickname}</span> 님을{' '}
+                    <span className="font-bold">{SHARD_LABEL[suggestion.shard] || suggestion.shard}</span>에서 찾았어요.
+                  </p>
+                  <button
+                    onClick={() => router.push(`/player/${suggestion.shard}/${encodeURIComponent(suggestion.nickname)}`)}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm"
+                  >
+                    {SHARD_LABEL[suggestion.shard] || suggestion.shard} 페이지로 이동
+                  </button>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
@@ -1163,7 +1221,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
           profile={profile}
           summary={summary}
           rankedSummary={rankedSummary}
-          seasonStats={seasonStats}
+          seasonStats={displaySeasonStats}
           clanInfo={profile?.clan}
           recentMatches={recentMatches}
           onRefresh={handleRefresh}
@@ -1215,8 +1273,8 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
               playerStats={(() => {
                 // 시즌 통계에서 최신 데이터 추출 (전체 시즌 기준 분석)
                 const latestSeasonStats =
-                  seasonStats && Object.keys(seasonStats).length > 0
-                    ? Object.values(seasonStats)[0]
+                  displaySeasonStats && Object.keys(displaySeasonStats).length > 0
+                    ? Object.values(displaySeasonStats)[0]
                     : null;
 
                 // 스쿼드 모드 우선, 없으면 다른 모드
@@ -1372,7 +1430,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
               synergyTop={synergyTop}
               clanSynergyStatusList={clanSynergyStatusList}
               bestSquad={bestSquad}
-              seasonStats={seasonStats}
+              seasonStats={displaySeasonStats}
             />
 
             {/* 클랜원 시너지 히트맵 - 클랜 소속인 경우에만 표시 */}
@@ -1478,7 +1536,18 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
                   className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-50"
                 >
                   {availableSeasons.map(s => {
-                    const label = s.isCurrent ? '현재 시즌' : s.id.replace('division.bro.official.pc-', 'S').replace('-', ' ');
+                    let label = '현재 시즌';
+                    if (!s.isCurrent) {
+                      const yearMonth = s.id.match(/(\d{4})-(\d{2})$/);
+                      const seqNum = s.id.match(/-(\d+)$/);
+                      if (yearMonth) {
+                        label = `${yearMonth[1]}년 ${parseInt(yearMonth[2])}월`;
+                      } else if (seqNum) {
+                        label = `시즌 ${seqNum[1]}`;
+                      } else {
+                        label = s.id.replace(/^.*\./, '');
+                      }
+                    }
                     return <option key={s.id} value={s.id}>{label}</option>;
                   })}
                 </select>
@@ -1486,7 +1555,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource, ava
               </div>
             )}
           </div>
-          <SeasonStatsTabs seasonStatsBySeason={currentSeasonData || seasonStats || {}} />
+          <SeasonStatsTabs seasonStatsBySeason={displaySeasonStats} />
         </div>
 
         {/* 최근 경기 내역 섹션 */}
@@ -1698,7 +1767,10 @@ async function getPlayerFromDB(nickname, server) {
       console.log(`✅ PlayerCache 히트: ${nickname} (${Math.round(hoursSince * 60)}분 전)`);
       // PlayerCache에는 매치/클랜 정보가 없으므로 ClanMember도 함께 조회
       const clanMemberForCache = await prisma.clanMember.findFirst({
-        where: { nickname: { equals: nickname, mode: 'insensitive' } },
+        where: {
+          nickname: { equals: nickname, mode: 'insensitive' },
+          ...(server && server !== 'unknown' ? { pubgShardId: server } : {}),
+        },
         include: {
           clan: true,
           matches: { orderBy: { createdAt: 'desc' }, take: 10 },
@@ -1744,7 +1816,10 @@ async function getPlayerFromDB(nickname, server) {
 
     // 2순위: ClanMember 테이블 (기존 로직)
     const member = await prisma.clanMember.findFirst({
-      where: { nickname: { equals: nickname, mode: 'insensitive' } },
+      where: {
+        nickname: { equals: nickname, mode: 'insensitive' },
+        ...(server && server !== 'unknown' ? { pubgShardId: server } : {}),
+      },
       include: {
         clan: true,
         matches: { orderBy: { createdAt: 'desc' }, take: 10 },
@@ -1861,9 +1936,22 @@ async function getPlayerFromDB(nickname, server) {
   }
 }
 
+// shard 없이 닉네임만 등록하면 모든 플랫폼에서 비공개 처리
+const PRIVATE_PLAYERS = [
+  { nickname: 'X1ngDao' },
+]
+
 export async function getServerSideProps({ params, query }) {
   const { server, nickname } = params;
   const forceRefresh = query.force === '1';
+
+  // 비공개 플레이어 차단 (shard 무관)
+  if (PRIVATE_PLAYERS.some(
+    (p) => p.nickname.toLowerCase() === nickname.toLowerCase()
+  )) {
+    return { props: { playerData: null, error: 'private', dataSource: null, availableSeasons: [], playerId: null, shardId: server } };
+  }
+
   const { calculateMMR: calcMMR } = require('../../../utils/mmrCalculator');
   const { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache } = require('../../../utils/pubgApiCache');
   const PUBG_BASE = 'https://api.pubg.com/shards';
@@ -1872,7 +1960,8 @@ export async function getServerSideProps({ params, query }) {
   // ── 1순위: 인메모리 닉네임 캐시 (5분, PUBG API + DB 완전 스킵) ──
   if (!forceRefresh) {
     const memCached = getPlayerDataCache(nickname, server);
-    if (memCached) {
+    // shard 불일치 캐시는 무시 (잘못된 shard 데이터가 캐싱된 경우 방어)
+    if (memCached && (!server || server === 'unknown' || memCached.profile?.shardId === server)) {
       return { props: { playerData: memCached, error: null, dataSource: 'memory_cache' } };
     }
   }
@@ -1881,9 +1970,13 @@ export async function getServerSideProps({ params, query }) {
   if (!forceRefresh) {
     try {
       const dbData = await getPlayerFromDB(nickname, server);
+      // shard 불일치 데이터는 캐싱하지 않음
       if (dbData) {
-        setPlayerDataCache(dbData.profile.nickname, dbData.profile.shardId || server, dbData);
-        return { props: { playerData: dbData, error: null, dataSource: 'database' } };
+        const actualShard = dbData.profile.shardId;
+        if (!server || server === 'unknown' || actualShard === server) {
+          setPlayerDataCache(dbData.profile.nickname, actualShard || server, dbData);
+          return { props: { playerData: dbData, error: null, dataSource: 'database' } };
+        }
       }
     } catch (dbErr) {
       console.warn('DB 캐시 조회 실패 (fallback to API):', dbErr.message);
@@ -1909,6 +2002,29 @@ export async function getServerSideProps({ params, query }) {
           pubgPlayer = json.data[0];
           pubgShard = shard;
           console.log(`✅ 플레이어 발견: ${nickname} (${shard})`);
+
+          // DB에 다른 shard로 등록된 플레이어인지 확인 → 올바른 shard로 리다이렉트
+          if (shard === server) {
+            const { PrismaClient } = require('@prisma/client');
+            const _prismaCheck = new PrismaClient();
+            try {
+              const existingCache = await _prismaCheck.playerCache.findFirst({
+                where: { pubgPlayerId: pubgPlayer.id },
+                orderBy: { lastUpdated: 'desc' },
+              });
+              if (existingCache && existingCache.pubgShardId && existingCache.pubgShardId !== shard) {
+                console.log(`↩️ shard 불일치 리다이렉트: ${nickname} (${shard} → ${existingCache.pubgShardId})`);
+                return {
+                  redirect: {
+                    destination: `/player/${existingCache.pubgShardId}/${encodeURIComponent(nickname)}`,
+                    permanent: false,
+                  },
+                };
+              }
+            } finally {
+              await _prismaCheck.$disconnect();
+            }
+          }
           break;
         }
       } catch (e) {
@@ -1917,7 +2033,43 @@ export async function getServerSideProps({ params, query }) {
     }
 
     if (!pubgPlayer) {
-      throw new Error(`플레이어를 찾을 수 없습니다: ${nickname}`);
+      // 4번: 다른 플랫폼에서 닉네임 검색 후 제안
+      const otherShards = ['steam', 'kakao', 'psn', 'xbox'].filter(s => !searchShards.includes(s));
+      let suggestion = null;
+      for (const shard of otherShards) {
+        try {
+          const json = await cachedPubgFetch(
+            `${PUBG_BASE}/${shard}/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
+            { ttl: TTL.PLAYER }
+          );
+          if (json.data?.length > 0) {
+            suggestion = { shard, nickname: json.data[0].attributes.name };
+            break;
+          }
+        } catch (e) { /* 해당 플랫폼 없음 */ }
+      }
+      return {
+        props: {
+          playerData: null,
+          error: `선택한 플랫폼에서 플레이어를 찾을 수 없습니다: ${nickname}`,
+          dataSource: null,
+          suggestion,
+          availableSeasons: [],
+          playerId: null,
+          shardId: server,
+        },
+      };
+    }
+
+    // 3번: 닉네임 대소문자 교정 리다이렉트
+    const correctNickname = pubgPlayer.attributes.name;
+    if (correctNickname !== nickname) {
+      return {
+        redirect: {
+          destination: `/player/${pubgShard}/${encodeURIComponent(correctNickname)}`,
+          permanent: false,
+        },
+      };
     }
 
     // Step 2: 클랜 + 시즌 목록 병렬 조회 (캐시 + 중복제거 적용)
@@ -1950,10 +2102,14 @@ export async function getServerSideProps({ params, query }) {
     let availableSeasons = [];
     if (seasonResult.status === 'fulfilled') {
       const allSeasons = seasonResult.value.data || [];
-      availableSeasons = allSeasons
+      const sorted = allSeasons
         .filter(s => s.id && !s.id.includes('beta') && !s.id.includes('pre'))
-        .sort((a, b) => b.id.localeCompare(a.id))
-        .slice(0, 6)
+        .sort((a, b) => b.id.localeCompare(a.id));
+      // 현재 시즌 위치부터 5개 이전까지 표시
+      const curIdx = sorted.findIndex(s => s.attributes?.isCurrentSeason);
+      const startIdx = curIdx >= 0 ? curIdx : 0;
+      availableSeasons = sorted
+        .slice(startIdx, startIdx + 6)
         .map(s => ({ id: s.id, isCurrent: !!s.attributes?.isCurrentSeason }));
     }
     if (seasonResult.status === 'fulfilled') {
@@ -1976,10 +2132,9 @@ export async function getServerSideProps({ params, query }) {
         if (statsResult.status === 'fulfilled') {
           const gameModeStats = statsResult.value.data?.attributes?.gameModeStats || {};
           const transformedModes = {};
-          // 이벤트맵/사용자 지정/데스매치(normal-* 접두사) 제외 — 일반·경쟁전만 집계
-          const isEventMode = (m) => m.startsWith('normal') || m.includes('event') || m.includes('airoyale') || m.includes('deathmatch') || m.includes('casual') || m.includes('arcade') || m.includes('training') || m.includes('custom') || m.includes('tdm') || m.includes('ibr');
+          const SEASON_WHITELIST = new Set(['squad', 'squad-fpp', 'duo', 'duo-fpp', 'solo', 'solo-fpp', 'ranked-squad', 'ranked-squad-fpp', 'ranked-duo', 'ranked-duo-fpp', 'ranked-solo', 'ranked-solo-fpp'])
           for (const [mode, s] of Object.entries(gameModeStats)) {
-            if (isEventMode(mode)) continue;
+            if (!SEASON_WHITELIST.has(mode)) continue;
             const rounds = s.roundsPlayed || 0;
             if (rounds === 0) continue;
             transformedModes[mode] = {
@@ -2208,7 +2363,7 @@ export async function getServerSideProps({ params, query }) {
   } catch (error) {
     console.error('getServerSideProps error:', error);
     return {
-      props: { playerData: null, error: error.message, dataSource: null },
+      props: { playerData: null, error: error.message, dataSource: null, suggestion: null, availableSeasons: [], playerId: null, shardId: server },
     };
   }
 }

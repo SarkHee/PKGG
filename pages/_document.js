@@ -1,11 +1,20 @@
 import { Html, Head, Main, NextScript } from 'next/document';
 
 const GTM_ID = 'GTM-WD2DT98V';
+const GA_ID = 'G-1QZEW9N4S3';
 
 export default function Document() {
   return (
     <Html lang="ko">
       <Head>
+        {/* Google Analytics (gtag.js) */}
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} />
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${GA_ID}');
+        `}} />
         {/* Google Tag Manager */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':

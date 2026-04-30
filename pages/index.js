@@ -40,15 +40,25 @@ function saveRecentSearch(nickname, shard) {
   localStorage.setItem(SEARCH_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
 }
 
+const SHARD_LABEL = { steam: '🎮 Steam', kakao: '🟡 카카오', psn: '🎯 PS', xbox: '🎯 Xbox', console: '🎯 Console' }
+const SHARD_COLOR = {
+  steam: 'bg-[#1b2838] text-[#4a9eff] border border-[#4a9eff]/40',
+  kakao: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40',
+  psn: 'bg-blue-800/40 text-blue-300 border border-blue-500/40',
+  xbox: 'bg-green-800/40 text-green-300 border border-green-500/40',
+  console: 'bg-blue-800/40 text-blue-300 border border-blue-500/40',
+}
+
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [server, setServer] = useState('steam');
   const [activeMajor, setActiveMajor] = useState('OFFENSIVE');
   const [activeType, setActiveType]   = useState(null);
   const [searchMessage, setSearchMessage] = useState('');
   const [favorites, setFavorites]           = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
   const [showDropdown, setShowDropdown]     = useState(false);
+  const [searchResults, setSearchResults]   = useState(null); // null=미검색, []=결과없음, [...]
+  const [isSearching, setIsSearching]       = useState(false);
   const searchBoxRef = useRef(null);
   const router = useRouter();
   const { t } = useT();
@@ -84,13 +94,29 @@ export default function Home() {
     }
   }, [router.query, t]);
 
-  const handleSearch = (nick = searchTerm, shard = server) => {
+  const handleSearch = async (nick = searchTerm) => {
     const name = nick.trim();
     if (!name) return;
-    saveRecentSearch(name, shard);
+    setSearchResults(null);
+    setShowDropdown(true);
+    setIsSearching(true);
+    try {
+      const res = await fetch(`/api/pubg/search?nickname=${encodeURIComponent(name)}`);
+      const data = await res.json();
+      setSearchResults(data.results || []);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectResult = (nickname, shard) => {
+    saveRecentSearch(nickname, shard);
     setRecentSearches(loadRecentSearches());
     setShowDropdown(false);
-    router.push(`/player/${shard}/${encodeURIComponent(name)}`);
+    setSearchResults(null);
+    router.push(`/player/${shard}/${encodeURIComponent(nickname)}`);
   };
 
   const removeRecentSearch = (nickname, shard, e) => {
@@ -110,7 +136,7 @@ export default function Home() {
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') handleSearch();
-    if (e.key === 'Escape') setShowDropdown(false);
+    if (e.key === 'Escape') { setShowDropdown(false); setSearchResults(null); }
   };
 
   return (
@@ -201,14 +227,7 @@ export default function Home() {
         </div>
 
         {/* 헤더 */}
-        <Header
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          server={server}
-          setServer={setServer}
-          handleSearch={handleSearch}
-          handleKeyPress={handleKeyPress}
-        />
+        <Header />
 
         {/* 메인 콘텐츠 */}
         <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-3 pt-20 pb-10 sm:pt-24 sm:pb-16 sm:py-20">
@@ -263,64 +282,74 @@ export default function Home() {
             {/* 검색 섹션 */}
             <div className="w-full max-w-xl mx-auto px-0 sm:px-4 mb-4" ref={searchBoxRef}>
               <div className="bg-white/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-blue-900/30">
-                {/* 서버 선택 탭 */}
-                <div className="flex gap-1.5 sm:gap-2 mb-3">
-                  {[
-                    { key: 'steam',   label: '🎮 Steam',  mLabel: '🎮',  active: 'bg-[#1b2838] border border-[#4a9eff]/60 text-white' },
-                    { key: 'kakao',   label: '🟡 카카오배그', mLabel: '🟡 카카오', active: 'bg-yellow-500 text-gray-900' },
-                    { key: 'console', label: '🎯 Console', mLabel: '🎯',  active: 'bg-blue-600 text-white' },
-                  ].map(({ key, label, mLabel, active }) => (
-                    <button
-                      key={key}
-                      onClick={() => setServer(key)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                        server === key
-                          ? active
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300'
-                      }`}
-                    >
-                      <span className="hidden sm:inline">{label}</span>
-                      <span className="sm:hidden">{mLabel}</span>
-                    </button>
-                  ))}
-                </div>
-                {/* 선택된 플랫폼 안내 */}
-                <p className="text-[11px] text-gray-500 mb-2 px-0.5">
-                  {server === 'kakao' ? '🟡 카카오배그 닉네임으로 검색합니다' : server === 'console' ? '🎯 PS/Xbox 닉네임으로 검색합니다' : '🎮 Steam 배틀그라운드 닉네임으로 검색합니다'}
-                </p>
                 {/* 검색 입력 */}
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder={server === 'kakao' ? '카카오배그 닉네임 입력...' : server === 'console' ? 'Console 닉네임 입력...' : 'Steam 닉네임 입력...'}
+                    placeholder="닉네임으로 검색 (Steam/카카오/Console 자동 탐색)"
                     value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setShowDropdown(true); }}
+                    onChange={(e) => { setSearchTerm(e.target.value); if (!e.target.value) { setSearchResults(null); setShowDropdown(true); } }}
                     onFocus={() => setShowDropdown(true)}
                     onKeyDown={handleKeyPress}
                     className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
+                    autoComplete="off"
                   />
                   <button
                     onClick={() => handleSearch()}
-                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/30 hover:shadow-blue-500/40 flex items-center gap-2 text-sm"
+                    disabled={isSearching}
+                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/30 flex items-center gap-2 text-sm"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                    {isSearching
+                      ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    }
                     {t('search.button')}
                   </button>
                 </div>
 
-                {/* 최근 검색 드롭다운 */}
-                {showDropdown && recentSearches.length > 0 && (
+                {/* 검색 결과 드롭다운 */}
+                {showDropdown && searchResults !== null && (
+                  <div className="mt-2 border-t border-white/10 pt-2">
+                    {searchResults.length === 0 ? (
+                      <p className="text-xs text-gray-500 text-center py-3">모든 플랫폼에서 닉네임을 찾을 수 없습니다</p>
+                    ) : (
+                      <>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">검색 결과 ({searchResults.length}개 플랫폼)</p>
+                        <div className="space-y-1">
+                          {searchResults.map((r) => (
+                            <div
+                              key={`${r.shard}-${r.nickname}`}
+                              onClick={() => handleSelectResult(r.nickname, r.shard)}
+                              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 cursor-pointer transition-colors group"
+                            >
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${SHARD_COLOR[r.shard] || SHARD_COLOR.steam}`}>
+                                {SHARD_LABEL[r.shard] || r.shard}
+                              </span>
+                              <span className="text-sm text-white font-semibold flex-1 truncate">{r.nickname}</span>
+                              {r.stats ? (
+                                <div className="flex items-center gap-2 flex-shrink-0 text-[10px] text-gray-400">
+                                  <span>딜 {r.stats.avgDamage}</span>
+                                  <span>킬 {r.stats.avgKills}</span>
+                                  {r.stats.mmr > 0 && <span className="text-blue-400">MMR {r.stats.mmr}</span>}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-gray-600 flex-shrink-0">데이터 없음</span>
+                              )}
+                              <svg className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* 최근 검색 드롭다운 (검색 결과 없을 때만) */}
+                {showDropdown && searchResults === null && recentSearches.length > 0 && (
                   <div className="mt-2 border-t border-white/10 pt-2">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">🕐 최근 검색</span>
-                      <button
-                        onClick={clearAllRecent}
-                        className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
-                      >
-                        전체 삭제
-                      </button>
+                      <button onClick={clearAllRecent} className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors">전체 삭제</button>
                     </div>
                     <div className="space-y-0.5">
                       {recentSearches
@@ -328,20 +357,15 @@ export default function Home() {
                         .map((s) => (
                           <div
                             key={`${s.shard}-${s.nickname}`}
-                            onClick={() => { setSearchTerm(s.nickname); setServer(s.shard); handleSearch(s.nickname, s.shard); }}
+                            onClick={() => { setSearchTerm(s.nickname); handleSearch(s.nickname); }}
                             className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer group transition-colors"
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="text-gray-500 text-xs flex-shrink-0">🔍</span>
                               <span className="text-sm text-gray-300 truncate">{s.nickname}</span>
-                              <span className="text-[10px] text-gray-600 flex-shrink-0">{s.shard}</span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${SHARD_COLOR[s.shard] || ''}`}>{SHARD_LABEL[s.shard] || s.shard}</span>
                             </div>
-                            <button
-                              onClick={(e) => removeRecentSearch(s.nickname, s.shard, e)}
-                              className="text-gray-700 hover:text-gray-400 text-xs opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 ml-2"
-                            >
-                              ×
-                            </button>
+                            <button onClick={(e) => removeRecentSearch(s.nickname, s.shard, e)} className="text-gray-700 hover:text-gray-400 text-xs opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 ml-2">×</button>
                           </div>
                         ))}
                     </div>
