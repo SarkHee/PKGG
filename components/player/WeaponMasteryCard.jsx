@@ -71,8 +71,18 @@ const WEAPON_MAP = {
   Item_Weapon_Sawnoff_C:     { name: 'Sawed-Off',   category: 'Pistol', img: 'Item_Weapon_Sawnoff_C.png' },
   Item_Weapon_M9_C:          { name: 'P92',         category: 'Pistol', img: 'Item_Weapon_M9_C.png' },
 
+  // ── SMG (추가) ────────────────────────────────────────────────────
+  Item_Weapon_Skorpion_C:    { name: 'Skorpion',    category: 'SMG',      img: 'Item_Weapon_Skorpion_C.png' },
+
   // ── Special ───────────────────────────────────────────────────────
-  Item_Weapon_Crossbow_C:    { name: 'Crossbow',    category: 'Special', img: 'Item_Weapon_Crossbow_C.png' },
+  Item_Weapon_Crossbow_C:    { name: 'Crossbow',    category: 'Special',  img: 'Item_Weapon_Crossbow_C.png' },
+
+  // ── Throwables ────────────────────────────────────────────────────
+  Item_Weapon_FragGrenade_C:   { name: 'Frag Grenade',  category: 'Throwable', img: 'Item_Weapon_FragGrenade_C.png' },
+  Item_Weapon_DecoyGrenade_C:  { name: 'Decoy Grenade', category: 'Throwable', img: 'Item_Weapon_DecoyGrenade_C.png' },
+  Item_Weapon_Molotov_C:       { name: 'Molotov',       category: 'Throwable', img: 'Item_Weapon_Molotov_C.png' },
+  Item_Weapon_SmokeGrenade_C:  { name: 'Smoke Grenade', category: 'Throwable', img: 'Item_Weapon_SmokeGrenade_C.png' },
+  Item_Weapon_StunGrenade_C:   { name: 'Stun Grenade',  category: 'Throwable', img: 'Item_Weapon_StunGrenade_C.png' },
 };
 
 const CATEGORY_BAR = {
@@ -83,8 +93,9 @@ const CATEGORY_BAR = {
   LMG:     'bg-orange-500',
   SG:      'bg-red-500',
   Pistol:  'bg-amber-400',
-  Special: 'bg-pink-500',
-  Other:   'bg-gray-400',
+  Special:   'bg-pink-500',
+  Throwable: 'bg-yellow-500',
+  Other:     'bg-gray-400',
 };
 
 const CATEGORY_BADGE = {
@@ -95,8 +106,9 @@ const CATEGORY_BADGE = {
   LMG:     'bg-orange-50 text-orange-600 border-orange-200',
   SG:      'bg-red-50 text-red-600 border-red-200',
   Pistol:  'bg-amber-50 text-amber-600 border-amber-200',
-  Special: 'bg-pink-50 text-pink-600 border-pink-200',
-  Other:   'bg-gray-50 text-gray-500 border-gray-200',
+  Special:   'bg-pink-50 text-pink-600 border-pink-200',
+  Throwable: 'bg-yellow-50 text-yellow-600 border-yellow-200',
+  Other:     'bg-gray-50 text-gray-500 border-gray-200',
 };
 
 // API 무기 ID → WEAPON_MAP 키 해석
