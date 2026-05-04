@@ -233,84 +233,66 @@ export default async function handler(req, res) {
 
     console.log('📋 Where condition:', JSON.stringify(whereCondition, null, 2));
 
-    // 1. 전체 클랜 개요 (필터 적용)
-    // totalClans는 validClans.length로 대체 사용 (중복 제거 후 정확한 수치)
-    await prisma.clan.count({ where: whereCondition }); // DB 카운트 (참고용)
-    const totalMembers = await prisma.clanMember.count({
-      where: {
-        clan: whereCondition,
-      },
-    });
-
-    // 2. 클랜별 통계 (필터 적용)
-    const clanStats = await prisma.clan.findMany({
-      where: whereCondition,
-      include: {
-        _count: {
-          select: { members: true },
-        },
-        members: {
-          select: {
-            score: true,
-            avgDamage: true,
-            avgKills: true,
-            avgAssists: true,
-            avgSurviveTime: true,
-            winRate: true,
-            top10Rate: true,
-            pubgPlayerId: true,
-            nickname: true,
-            pubgClanId: true,
-            lastUpdated: true,
+    // 1. 전체 멤버 수 + 클랜 목록을 병렬 조회
+    const [totalMembers, clanStats] = await Promise.all([
+      prisma.clanMember.count({ where: { clan: whereCondition } }),
+      // 2. 클랜별 통계: 스탯 계산에 필요한 필드만 select (전체 include 제거)
+      // _count는 members.length로 대체 가능하므로 제거
+      prisma.clan.findMany({
+        where: whereCondition,
+        select: {
+          id: true,
+          name: true,
+          pubgClanTag: true,
+          pubgClanId: true,
+          pubgClanLevel: true,
+          pubgMemberCount: true,
+          region: true,
+          isKorean: true,
+          shard: true,
+          members: {
+            select: {
+              score: true,
+              avgDamage: true,
+              avgKills: true,
+              avgAssists: true,
+              avgSurviveTime: true,
+              winRate: true,
+              top10Rate: true,
+              pubgPlayerId: true,
+              nickname: true,
+              pubgClanId: true,
+              lastUpdated: true,
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
 
-    // 3. 클랜별 지역 정보 업데이트 (자동 분류)
-    // map 대신 for...of 루프 사용하여 비동기 작업 처리
-    for (const clan of clanStats) {
-      const members = clan.members;
-
-      // 지역이 없거나 'UNKNOWN'인 경우 지역 자동 분류 실행
-      if ((!clan.region || clan.region === 'UNKNOWN') && members.length > 0) {
-        try {
-          // 멤버 정보를 기반으로 지역 분석
-          const regionAnalysis = analyzeClanRegion(
-            {
-              name: clan.name,
-              pubgClanTag: clan.pubgClanTag,
-            },
-            members
-          );
-
-          if (
-            regionAnalysis &&
-            regionAnalysis.region &&
-            regionAnalysis.region !== 'UNKNOWN'
-          ) {
-            // 데이터베이스에 지역 정보 업데이트
-            await prisma.clan.update({
-              where: { id: clan.id },
-              data: {
-                region: regionAnalysis.region,
-                isKorean: regionAnalysis.region === 'KR',
-              },
-            });
-
-            // 현재 메모리 내 객체도 업데이트
-            clan.region = regionAnalysis.region;
-            clan.isKorean = regionAnalysis.region === 'KR';
-
-            console.log(
-              `클랜 '${clan.name}' 지역 자동 분류: ${regionAnalysis.region}`
+    // 3. 지역 미분류 클랜을 Promise.all로 병렬 업데이트 (순차 await 제거)
+    await Promise.all(
+      clanStats
+        .filter((clan) => (!clan.region || clan.region === 'UNKNOWN') && clan.members.length > 0)
+        .map(async (clan) => {
+          try {
+            const regionAnalysis = analyzeClanRegion(
+              { name: clan.name, pubgClanTag: clan.pubgClanTag },
+              clan.members
             );
+            if (regionAnalysis?.region && regionAnalysis.region !== 'UNKNOWN') {
+              await prisma.clan.update({
+                where: { id: clan.id },
+                data: { region: regionAnalysis.region, isKorean: regionAnalysis.region === 'KR' },
+              });
+              clan.region = regionAnalysis.region;
+              clan.isKorean = regionAnalysis.region === 'KR';
+              console.log(`클랜 '${clan.name}' 지역 자동 분류: ${regionAnalysis.region}`);
+            }
+          } catch (error) {
+            console.error(`클랜 '${clan.name}' 지역 분류 중 오류 발생:`, error);
           }
-        } catch (error) {
-          console.error(`클랜 '${clan.name}' 지역 분류 중 오류 발생:`, error);
-        }
-      }
-    }
+        })
+    );
 
     // 3-0. pubgClanId 기준 중복 클랜 제거 (동일 PUBG 클랜이 DB에 중복 저장된 경우)
     const seenPubgIds = new Map();

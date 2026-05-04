@@ -679,10 +679,28 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
   if (!playerData) {
     return (
-      <div className="container mx-auto p-4 text-center text-gray-600 dark:text-gray-400 mt-10">
-        <p className="text-lg">플레이어 데이터를 불러오는 중입니다...</p>
-        <div className="mt-4 animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-      </div>
+      <>
+        <Header />
+        <div className="container mx-auto p-4 text-center mt-20">
+          {error ? (
+            <>
+              <p className="text-xl font-bold text-red-500 mb-2">플레이어를 찾을 수 없습니다</p>
+              <p className="text-gray-400 mb-6">{error}</p>
+              <button
+                onClick={() => router.back()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                뒤로 가기
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-lg text-gray-600 dark:text-gray-400">플레이어 데이터를 불러오는 중입니다...</p>
+              <div className="mt-4 animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            </>
+          )}
+        </div>
+      </>
     );
   }
 
@@ -1816,17 +1834,16 @@ export async function getServerSideProps({ params, query }) {
     }
   }
 
-  // ── 2순위: DB 캐시 (force=1이면 무조건 API 호출) ──
-  if (!forceRefresh) {
-    const cached = await getPlayerFromDB(nickname, server);
-    if (cached) {
-      console.log(`✅ DB 캐시 사용: ${nickname}`);
-      setPlayerDataCache(nickname, cached.profile?.shardId || server, cached);
-      return { props: { playerData: cached, error: null, dataSource: 'database' } };
-    }
-  }
-
   try {
+    // ── 2순위: DB 캐시 (force=1이면 무조건 API 호출) ──
+    if (!forceRefresh) {
+      const cached = await getPlayerFromDB(nickname, server);
+      if (cached) {
+        console.log(`✅ DB 캐시 사용: ${nickname}`);
+        setPlayerDataCache(nickname, cached.profile?.shardId || server, cached);
+        return { props: { playerData: cached, error: null, dataSource: 'database' } };
+      }
+    }
     // Step 1: PUBG API로 플레이어 검색 (shard 우선순위 적용)
     let pubgPlayer = null;
     let pubgShard = server || 'steam';

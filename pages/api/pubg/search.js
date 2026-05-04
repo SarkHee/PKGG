@@ -1,0 +1,220 @@
+import { cachedPubgFetch, TTL } from '../../../utils/pubgApiCache'
+import prisma from '../../../utils/prisma.js'
+import { calculateMMR } from '../../../utils/mmrCalculator'
+import { redisGet, redisSet } from '../../../utils/redis.js'
+
+const SEARCH_TTL = 600 // 10분
+function searchCacheKey(shard, nickname) {
+  return `search:${shard}:${nickname.toLowerCase()}`
+}
+
+const PRIVATE_PLAYERS = [{ nickname: 'X1ngDao' }]
+function isPrivate(nickname) {
+  return PRIVATE_PLAYERS.some(p => p.nickname.toLowerCase() === nickname.toLowerCase())
+}
+
+// Steam·Kakao 우선, PSN·Xbox는 두 곳 모두 없을 때만
+const PRIMARY_SHARDS   = ['steam', 'kakao']
+const SECONDARY_SHARDS = ['psn', 'xbox']
+
+// returns { player } | { notFound: true } | { apiError: true }
+async function tryFetchPlayer(name, shard, pubgBase) {
+  try {
+    const json = await cachedPubgFetch(
+      `${pubgBase}/${shard}/players?filter[playerNames]=${encodeURIComponent(name)}`,
+      { ttl: TTL.PLAYER }
+    )
+    if (!json.data?.length) return { notFound: true }
+    const player = json.data[0]
+    if (isPrivate(player.attributes.name)) return { notFound: true }
+    const actualShard = player.attributes.shardId || shard
+    if (actualShard !== shard) return { notFound: true }
+    return {
+      player: {
+        shard:      actualShard,
+        nickname:   player.attributes.name,
+        accountId:  player.id,
+        matchCount: player.relationships?.matches?.data?.length ?? 0,
+      }
+    }
+  } catch {
+    return { apiError: true }
+  }
+}
+
+// 닉네임으로 플레이어 검색
+// 1단계: steam+kakao 병렬 → 2단계: 없으면 psn+xbox 병렬
+async function findPlayerByName(name, pubgBase) {
+  const primaryResults = await Promise.allSettled(
+    PRIMARY_SHARDS.map(shard => tryFetchPlayer(name, shard, pubgBase))
+  )
+  const found = primaryResults
+    .filter(r => r.status === 'fulfilled' && r.value?.player)
+    .map(r => r.value.player)
+
+  if (found.length === 0) {
+    const secondaryResults = await Promise.allSettled(
+      SECONDARY_SHARDS.map(shard => tryFetchPlayer(name, shard, pubgBase))
+    )
+    const secondary = secondaryResults
+      .filter(r => r.status === 'fulfilled' && r.value?.player)
+      .map(r => r.value.player)
+    return secondary
+  }
+
+  const byAccountId = new Map()
+  for (const entry of found) {
+    const existing = byAccountId.get(entry.accountId)
+    if (!existing || entry.matchCount > existing.matchCount) {
+      byAccountId.set(entry.accountId, entry)
+    }
+  }
+  return [...byAccountId.values()]
+}
+
+async function getClanInfo(nickname) {
+  try {
+    const member = await prisma.clanMember.findFirst({
+      where: { nickname: { equals: nickname, mode: 'insensitive' } },
+      select: { clan: { select: { name: true, pubgClanTag: true } } },
+    })
+    return member?.clan ? { clanName: member.clan.name, clanTag: member.clan.pubgClanTag || null } : null
+  } catch { return null }
+}
+
+function buildStats(row) {
+  return {
+    avgDamage:   Math.round(row.avgDamage || 0),
+    avgKills:    Number((row.avgKills || 0).toFixed(2)),
+    winRate:     Number((row.winRate || 0).toFixed(1)),
+    top10Rate:   Number((row.top10Rate || 0).toFixed(1)),
+    avgAssists:  Number((row.avgAssists || 0).toFixed(2)),
+    mmr: calculateMMR({
+      avgDamage:      row.avgDamage      || 0,
+      avgKills:       row.avgKills        || 0,
+      avgAssists:     row.avgAssists      || 0,
+      avgSurviveTime: row.avgSurviveTime  || 0,
+      winRate:        row.winRate         || 0,
+      top10Rate:      row.top10Rate       || 0,
+    }),
+    style:       row.style || null,
+    lastUpdated: row.lastUpdated,
+  }
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET') return res.status(405).end()
+
+  const { nickname } = req.query
+  if (!nickname || nickname.trim().length < 2) {
+    return res.status(400).json({ error: '닉네임을 2자 이상 입력하세요' })
+  }
+
+  const name      = nickname.trim()
+  const shardFilter = req.query.shard || null
+  const PUBG_BASE = 'https://api.pubg.com/shards'
+
+  // CDN 캐시 60초 신선 + 300초 stale-while-revalidate
+  // 같은 닉네임 검색: 60초간 Edge 즉시 반환, 60~360초는 stale 즉시 반환 + 백그라운드 갱신
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
+
+  try {
+    // ── Step 0: Redis 캐시 (TTL 10분, cold start 무관 전역 공유) ────────────
+    if (shardFilter) {
+      const redisKey = searchCacheKey(shardFilter, name)
+      const cached = await redisGet(redisKey)
+      if (cached) {
+        console.log(`[Redis/search] HIT: ${redisKey}`)
+        return res.json(cached)
+      }
+    }
+
+    // ── Step 1: DB-first → PUBG API fallback ─────────────────────────────
+    // DB에 이미 저장된 플레이어는 cold start와 무관하게 즉시 반환.
+    // DB에 없을 때만 PUBG API 호출. API 오류는 "찾을 수 없음"과 구분해서 전달.
+    let found = []
+
+    if (shardFilter) {
+      // DB hit check (known player → skip PUBG API entirely)
+      const dbHit = await prisma.playerCache.findFirst({
+        where: {
+          nickname: { equals: name, mode: 'insensitive' },
+          pubgShardId: shardFilter,
+          pubgPlayerId: { not: null },
+        },
+        orderBy: { lastUpdated: 'desc' },
+        select: { pubgPlayerId: true, pubgShardId: true, nickname: true },
+      })
+
+      if (dbHit?.pubgPlayerId) {
+        found = [{
+          shard:      dbHit.pubgShardId,
+          nickname:   dbHit.nickname,
+          accountId:  dbHit.pubgPlayerId,
+          matchCount: 0,
+        }]
+        // Background refresh so next call gets fresh shard data
+        tryFetchPlayer(name, shardFilter, PUBG_BASE).catch(() => {})
+      } else {
+        const result = await tryFetchPlayer(name, shardFilter, PUBG_BASE)
+        if (result.apiError) {
+          return res.status(503).json({ results: [], retry: true, error: 'PUBG API 연결 실패' })
+        }
+        if (result.player) found = [result.player]
+      }
+    } else {
+      found = await findPlayerByName(name, PUBG_BASE)
+    }
+
+    if (found.length === 0) return res.json({ results: [] })
+
+    // ── Step 2: DB 스탯 보강 + 결과 조합 ────────────────────────────────
+    const results = await Promise.all(found.map(async entry => {
+      const { accountId, shard, nickname: nick, matchCount } = entry
+
+      // DB에서 accountId 또는 닉네임으로 스탯 조회
+      const cache = await prisma.playerCache.findFirst({
+        where: {
+          OR: [
+            { pubgPlayerId: accountId },
+            { pubgPlayerId: null, nickname: { equals: nick, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { lastUpdated: 'desc' },
+        select: {
+          id: true, pubgPlayerId: true, pubgShardId: true,
+          avgDamage: true, avgKills: true, avgAssists: true, avgSurviveTime: true,
+          winRate: true, top10Rate: true, style: true, lastUpdated: true,
+        },
+      })
+
+      // accountId·shard 백필 — 잘못된 shard도 함께 수정 (fire-and-forget)
+      if (cache?.id && (!cache.pubgPlayerId || cache.pubgShardId !== shard)) {
+        prisma.playerCache.update({
+          where: { id: cache.id },
+          data: { pubgPlayerId: accountId, pubgShardId: shard, nickname: nick },
+        }).catch(() => {})
+      }
+
+      const clanInfo = await getClanInfo(nick)
+      return {
+        shard, nickname: nick, accountId, matchCount,
+        clanName: clanInfo?.clanName || null,
+        clanTag:  clanInfo?.clanTag  || null,
+        stats: cache ? buildStats(cache) : null,
+      }
+    }))
+
+    const payload = { results }
+
+    // Redis에 결과 저장 (fire-and-forget, shardFilter 있을 때만)
+    if (shardFilter && results.length > 0) {
+      redisSet(searchCacheKey(shardFilter, name), payload, SEARCH_TTL).catch(() => {})
+    }
+
+    return res.json(payload)
+  } catch (e) {
+    console.error('[search] 오류:', e.message)
+    return res.status(500).json({ error: 'search failed' })
+  }
+}
