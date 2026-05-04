@@ -44,8 +44,6 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [server, setServer] = useState('steam');
   const [searchMessage, setSearchMessage] = useState('');
-  const [recentNews, setRecentNews] = useState([]);
-  const [newsLoading, setNewsLoading] = useState(false);
   const [favorites, setFavorites]           = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
   const [showDropdown, setShowDropdown]     = useState(false);
@@ -84,33 +82,6 @@ export default function Home() {
     }
   }, [router.query, t]);
 
-  // PUBG 뉴스 가져오기
-  const loadRecentNews = async () => {
-    try {
-      setNewsLoading(true);
-      const response = await fetch('/api/pubg-news?limit=3');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && Array.isArray(data.data)) {
-          setRecentNews(data.data.slice(0, 3)); // 최대 3개만 가져오기
-        } else {
-          setRecentNews([]); // 실패 시 빈 배열
-        }
-      } else {
-        setRecentNews([]); // 응답 실패 시 빈 배열
-      }
-    } catch (error) {
-      console.error('뉴스 로드 실패:', error);
-      setRecentNews([]); // 오류 시 빈 배열
-    } finally {
-      setNewsLoading(false);
-    }
-  };
-
-  // 컴포넌트 마운트 시 뉴스 로드
-  useEffect(() => {
-    loadRecentNews();
-  }, []);
 
   const handleSearch = (nick = searchTerm, shard = server) => {
     const name = nick.trim();
@@ -399,87 +370,6 @@ export default function Home() {
             )}
           </div>
 
-          {/* PUBG 뉴스 섹션 */}
-          {Array.isArray(recentNews) && recentNews.length > 0 && (
-            <div className="w-full max-w-6xl mx-auto mb-10 sm:mb-14 px-4">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span className="w-1 h-5 bg-blue-500 rounded-full inline-block"></span>
-                  {t('home.news_title')}
-                </h2>
-                <Link href="/pubg-news" passHref>
-                  <span className="text-blue-400 hover:text-blue-300 text-sm font-medium cursor-pointer transition-colors">
-                    {t('home.news_all')}
-                  </span>
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {recentNews.map((news, index) => (
-                  <div
-                    key={news?.id || index}
-                    className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-blue-500/40 hover:bg-white/8 transition-all duration-300 group"
-                  >
-                    {news?.imageUrl ? (
-                      <div className="relative h-28 overflow-hidden">
-                        <img
-                          src={news.imageUrl}
-                          alt={news.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent" />
-                      </div>
-                    ) : (
-                      <div className="h-28 bg-gradient-to-br from-blue-800/50 to-blue-900/50 flex items-center justify-center">
-                        <span className="text-3xl opacity-50">📢</span>
-                      </div>
-                    )}
-
-                    <div className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        {news?.category && (
-                          <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                            news.category === '이벤트' ? 'bg-purple-500/20 text-purple-300' :
-                            news.category === '업데이트' ? 'bg-green-500/20 text-green-300' :
-                            'bg-blue-500/20 text-blue-300'
-                          }`}>
-                            {news.category}
-                          </span>
-                        )}
-                        {(news?.publishedAt || news?.publishDate) && (
-                          <span className="text-xs text-gray-500">
-                            {(() => {
-                              try {
-                                return new Date(news.publishedAt || news.publishDate).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-                              } catch { return ''; }
-                            })()}
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="font-semibold text-gray-100 text-sm mb-3 group-hover:text-blue-300 transition-colors line-clamp-2">
-                        {news?.title || t('home.no_title')}
-                      </h3>
-
-                      <a
-                        href={news?.link || news?.url || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs font-medium transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {t('home.news_detail')}
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* 특징 카드 섹션 */}
           <div className="w-full max-w-6xl mx-auto px-4">
