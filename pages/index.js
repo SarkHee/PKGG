@@ -134,6 +134,7 @@ export default function Home() {
   const [recentSearches, setRecentSearches] = useState([]);
   const [showDropdown, setShowDropdown]     = useState(false);
   const [isSearching, setIsSearching]       = useState(false);
+  const [navigating, setNavigating]         = useState(false);
   const [searchShard, setSearchShard]       = useState('steam');
   const [searchCard, setSearchCard]         = useState(null);
   const searchBoxRef = useRef(null);
@@ -172,6 +173,16 @@ export default function Home() {
   }, [router.query, t]);
 
   // 검색 → 플랫폼 지정 1회 호출 → 확인 카드 표시
+  useEffect(() => {
+    const handleDone = () => setNavigating(false);
+    router.events.on('routeChangeComplete', handleDone);
+    router.events.on('routeChangeError', handleDone);
+    return () => {
+      router.events.off('routeChangeComplete', handleDone);
+      router.events.off('routeChangeError', handleDone);
+    };
+  }, [router]);
+
   const handleSearch = async (nick = searchTerm) => {
     const name = nick.trim();
     if (!name || !searchShard) return;
@@ -188,11 +199,12 @@ export default function Home() {
       } else if (!r) {
         setSearchMessage(`"${name}" 플레이어를 ${SHARD_LABEL[searchShard] || searchShard}에서 찾을 수 없습니다.`);
       } else if (!r.stats && r.altShard) {
-        // 검색한 플랫폼엔 데이터 없고, 다른 플랫폼에 스탯 있음 → 자동 이동
         saveRecentSearch(r.nickname, r.altShard);
+        setNavigating(true);
         router.push(`/player/${r.altShard}/${encodeURIComponent(r.nickname)}`);
       } else {
         saveRecentSearch(r.nickname, r.shard);
+        setNavigating(true);
         router.push(`/player/${r.shard}/${encodeURIComponent(r.nickname)}`);
       }
     } catch {
@@ -232,6 +244,14 @@ export default function Home() {
 
   return (
     <>
+      {navigating && (
+        <div className="fixed inset-0 z-[9999] bg-gray-900/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4 bg-gray-900 border border-gray-700 rounded-2xl px-10 py-8 shadow-2xl">
+            <div className="w-10 h-10 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-white text-sm font-medium">플레이어 데이터 로딩 중...</span>
+          </div>
+        </div>
+      )}
       <Head>
         <title>{t('home.meta_title')}</title>
         <meta name="description" content={t('home.meta_desc')} />

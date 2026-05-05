@@ -78,11 +78,17 @@ const WEAPON_MAP = {
   Item_Weapon_Crossbow_C:    { name: 'Crossbow',    category: 'Special',  img: 'Item_Weapon_Crossbow_C.png' },
 
   // ── Throwables ────────────────────────────────────────────────────
-  Item_Weapon_FragGrenade_C:   { name: 'Frag Grenade',  category: 'Throwable', img: 'Item_Weapon_FragGrenade_C.png' },
-  Item_Weapon_DecoyGrenade_C:  { name: 'Decoy Grenade', category: 'Throwable', img: 'Item_Weapon_DecoyGrenade_C.png' },
-  Item_Weapon_Molotov_C:       { name: 'Molotov',       category: 'Throwable', img: 'Item_Weapon_Molotov_C.png' },
-  Item_Weapon_SmokeGrenade_C:  { name: 'Smoke Grenade', category: 'Throwable', img: 'Item_Weapon_SmokeGrenade_C.png' },
-  Item_Weapon_StunGrenade_C:   { name: 'Stun Grenade',  category: 'Throwable', img: 'Item_Weapon_StunGrenade_C.png' },
+  Item_Weapon_FragGrenade_C:          { name: 'Frag Grenade',  category: 'Throwable', img: 'Item_Weapon_FragGrenade_C.png' },
+  Item_Weapon_DecoyGrenade_C:         { name: 'Decoy Grenade', category: 'Throwable', img: 'Item_Weapon_DecoyGrenade_C.png' },
+  Item_Weapon_Molotov_C:              { name: 'Molotov',       category: 'Throwable', img: 'Item_Weapon_Molotov_C.png' },
+  Item_Weapon_SmokeGrenade_C:         { name: 'Smoke Grenade', category: 'Throwable', img: 'Item_Weapon_SmokeGrenade_C.png' },
+  Item_Weapon_StunGrenade_C:          { name: 'Stun Grenade',  category: 'Throwable', img: 'Item_Weapon_StunGrenade_C.png' },
+  // BP_ 접두어 변형 (PUBG API 일부 버전에서 사용)
+  BP_Item_Weapon_FragGrenade_C:        { name: 'Frag Grenade',  category: 'Throwable', img: 'Item_Weapon_FragGrenade_C.png' },
+  BP_Item_Weapon_DecoyGrenade_C:       { name: 'Decoy Grenade', category: 'Throwable', img: 'Item_Weapon_DecoyGrenade_C.png' },
+  BP_Item_Weapon_Molotov_C:            { name: 'Molotov',       category: 'Throwable', img: 'Item_Weapon_Molotov_C.png' },
+  BP_Item_Weapon_SmokeGrenade_C:       { name: 'Smoke Grenade', category: 'Throwable', img: 'Item_Weapon_SmokeGrenade_C.png' },
+  BP_Item_Weapon_StunGrenade_C:        { name: 'Stun Grenade',  category: 'Throwable', img: 'Item_Weapon_StunGrenade_C.png' },
 };
 
 const CATEGORY_BAR = {
@@ -125,11 +131,29 @@ function resolveWeapon(rawId) {
   if (matchKey) return { key: matchKey, ...WEAPON_MAP[matchKey] };
 
   // 폴백: 내부 ID를 읽기 좋게 변환
+  console.log('[WeaponMastery] 미매핑 ID:', rawId);
   const name = rawId
     .replace(/^Item_Weapon_/i, '')
     .replace(/_C$/i, '')
     .replace(/_/g, ' ');
   return { key: rawId, name, category: 'Other', img: null };
+}
+
+// 무기 이미지 — 로드 실패 시 🔫 이모지 fallback
+function WeaponImage({ img, name }) {
+  const [failed, setFailed] = useState(false);
+  if (!img || failed) return <span className="text-2xl">🔫</span>;
+  return (
+    <Image
+      src={`/weapons/${img}`}
+      alt={name}
+      width={80}
+      height={56}
+      className="object-contain w-full h-full p-1"
+      unoptimized
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 // 순위 배지 색상
@@ -352,19 +376,7 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
               >
                 {/* 무기 이미지 */}
                 <div className="relative w-20 h-14 flex-shrink-0 bg-white rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center">
-                  {w.img ? (
-                    <Image
-                      src={`/weapons/${w.img}`}
-                      alt={w.name}
-                      width={80}
-                      height={56}
-                      className="object-contain w-full h-full p-1"
-                      unoptimized
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  ) : (
-                    <span className="text-2xl">🔫</span>
-                  )}
+                  <WeaponImage img={w.img} name={w.name} />
                   {/* 순위 뱃지 */}
                   <span className={`absolute top-1 left-1 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold ${rankBadgeClass(i)}`}>
                     {i + 1}
