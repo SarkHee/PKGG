@@ -371,6 +371,34 @@ model PlayerReview {
   @@map("player_reviews")
 }
 
+// 구글 OAuth 인증 유저
+model AuthUser {
+  id            String        @id @default(cuid())
+  googleId      String        @unique
+  email         String
+  name          String?
+  image         String?
+  mainAccountId String?
+  createdAt     DateTime      @default(now())
+  pubgAccounts  PubgAccount[]
+
+  @@map("auth_users")
+}
+
+// PUBG 계정 연동 (1 AuthUser : N PubgAccount)
+model PubgAccount {
+  id            String   @id @default(cuid())
+  userId        String
+  user          AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nickname      String
+  pubgAccountId String
+  platform      String   @default("steam")
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, pubgAccountId])
+  @@map("pubg_accounts")
+}
+
 // 후원 카운터 (싱글톤 row, id=1)
 model DonationCounter {
   id        Int      @id @default(1)

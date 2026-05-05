@@ -1,27 +1,17 @@
-// utils/useAuth.js — 현재 로그인 유저 상태 hook
-import { useState, useEffect, createContext, useContext } from 'react';
+// utils/useAuth.js — next-auth 기반 인증 훅
+import { createContext, useContext } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 
 const AuthContext = createContext(null);
 
+// _app.js 호환성을 위해 유지 (SessionProvider가 실제 역할)
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(undefined); // undefined = 아직 로딩, null = 비로그인
-
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => r.json())
-      .then((d) => setUser(d.user || null))
-      .catch(() => setUser(null));
-  }, []);
-
-  const logout = async () => {
-    await fetch('/api/auth/logout');
-    setUser(null);
-    window.location.href = '/';
-  };
-
-  return <AuthContext.Provider value={{ user, setUser, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={null}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const { data: session, status } = useSession();
+  const user = status === 'loading' ? undefined : (session?.user || null);
+  const logout = () => signOut({ callbackUrl: '/' });
+  return { user, logout, status };
 }

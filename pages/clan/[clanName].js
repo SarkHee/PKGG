@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Layout from '../../components/layout/Layout';
 import { useT } from '../../utils/i18n';
 import { useAuth } from '../../utils/useAuth';
+import { getMMRTier } from '../../utils/mmrCalculator';
 
 // ─── 유틸 ──────────────────────────────────────────────────────────────────────
 
@@ -27,15 +28,24 @@ function getRankColor(i) {
   return rankColors[i] ?? 'text-white';
 }
 
-// 클랜 등급
-function clanGrade(mmr, t) {
-  const _t = (k, fallback) => (t ? t(k) : fallback);
-  if (mmr >= 1900) return { grade: 'S', color: 'text-purple-400', bg: 'bg-purple-400/10 border-purple-400/30', desc: `Master — ${_t('cd.grade_s_desc', '최상위 클랜')}` };
-  if (mmr >= 1700) return { grade: 'A', color: 'text-sky-400',    bg: 'bg-sky-400/10 border-sky-400/30',       desc: `Diamond — ${_t('cd.grade_a_desc', '상위 클랜')}` };
-  if (mmr >= 1500) return { grade: 'B', color: 'text-teal-400',   bg: 'bg-teal-400/10 border-teal-400/30',     desc: `Platinum — ${_t('cd.grade_b_desc', '고수 클랜')}` };
-  if (mmr >= 1350) return { grade: 'C', color: 'text-yellow-400', bg: 'bg-yellow-400/10 border-yellow-400/30', desc: `Gold — ${_t('cd.grade_c_desc', '평균 이상')}` };
-  if (mmr >= 1180) return { grade: 'D', color: 'text-gray-300',   bg: 'bg-gray-400/10 border-gray-400/30',     desc: `Silver — ${_t('cd.grade_d_desc', '평균 수준')}` };
-  return             { grade: 'E', color: 'text-amber-500',  bg: 'bg-amber-500/10 border-amber-500/30',   desc: `Bronze — ${_t('cd.grade_e_desc', '성장 중')}` };
+// 클랜 등급 — getMMRTier 기반 (clan-analytics와 동일 기준)
+const TIER_DARK = {
+  Legend:   { color: 'text-amber-400',  bg: 'bg-amber-400/10 border-amber-400/30'   },
+  Master:   { color: 'text-purple-400', bg: 'bg-purple-400/10 border-purple-400/30' },
+  Diamond:  { color: 'text-sky-400',    bg: 'bg-sky-400/10 border-sky-400/30'       },
+  Platinum: { color: 'text-teal-400',   bg: 'bg-teal-400/10 border-teal-400/30'     },
+  Gold:     { color: 'text-yellow-400', bg: 'bg-yellow-400/10 border-yellow-400/30' },
+  Silver:   { color: 'text-gray-300',   bg: 'bg-gray-400/10 border-gray-400/30'     },
+  Bronze:   { color: 'text-amber-500',  bg: 'bg-amber-500/10 border-amber-500/30'   },
+};
+const TIER_DESC = {
+  Legend: '최상위 클랜', Master: '마스터 클랜', Diamond: '상위 클랜',
+  Platinum: '고수 클랜', Gold: '평균 이상', Silver: '평균 수준', Bronze: '성장 중',
+};
+function clanGrade(mmr) {
+  const tier = getMMRTier(mmr);
+  const s = TIER_DARK[tier.label] || TIER_DARK.Bronze;
+  return { grade: tier.emoji, label: tier.label, ...s, desc: `${tier.label} — ${TIER_DESC[tier.label] || ''}` };
 }
 
 // ─── 소형 컴포넌트 ───────────────────────────────────────────────────────────
@@ -235,7 +245,7 @@ export default function ClanDetail() {
   }
 
   const { clan, ranking, members, stats, distribution, topPerformers, styleDistribution, strengths, weaknesses } = clanData;
-  const grade = stats?.avgMMR ? clanGrade(Number(stats.avgMMR), t) : null;
+  const grade = stats?.avgMMR ? clanGrade(Number(stats.avgMMR)) : null;
 
   // ── 접근 권한 계산 ───────────────────────────────────────────────────────────
   // 로그인 유저: 모든 클랜 전체 열람 가능
@@ -320,7 +330,7 @@ export default function ClanDetail() {
                   )}
                   {grade && (
                     <span className={`px-3 py-1 rounded-full text-sm font-black border ${grade.bg} ${grade.color}`}>
-                      {grade.grade} {t('cd.grade_suffix')}
+                      {grade.grade} {grade.label}
                     </span>
                   )}
                 </div>
@@ -449,12 +459,12 @@ export default function ClanDetail() {
                   {grade && (
                     <div className={`border rounded-xl p-6 ${grade.bg}`}>
                       <div className="flex items-center gap-4">
-                        <div className={`text-6xl font-black ${grade.color}`}>{grade.grade}</div>
+                        <div className={`text-6xl ${grade.color}`}>{grade.grade}</div>
                         <div>
                           <div className={`text-xl font-bold ${grade.color}`}>{grade.desc}</div>
                           <div className="text-sm text-gray-400 mt-1">{t('cd.avg_mmr')} {stats.avgMMR} {t('cd.mmr_basis')}</div>
                           <div className="text-xs text-gray-500 mt-0.5">
-                            S≥1600 · A≥1400 · B≥1200 · C≥1000 · D&lt;1000
+                            Legend≥2300 · Master≥2050 · Diamond≥1825 · Platinum≥1600 · Gold≥1375 · Silver≥1150
                           </div>
                         </div>
                       </div>
@@ -745,7 +755,7 @@ export default function ClanDetail() {
                       <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.analysis_title')}</h2>
                       <div className={`border rounded-xl p-6 ${grade.bg}`}>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                          <div className={`text-8xl font-black ${grade.color} leading-none`}>{grade.grade}</div>
+                          <div className={`text-7xl ${grade.color} leading-none`}>{grade.grade}</div>
                           <div>
                             <div className={`text-2xl font-bold ${grade.color}`}>{grade.desc}</div>
                             <div className="text-sm text-gray-400 mt-1">

@@ -11,6 +11,7 @@ import CookieBanner from '../components/CookieBanner';
 import Footer from '../components/layout/Footer';
 import { LanguageProvider, useT } from '../utils/i18n';
 import { AuthProvider } from '../utils/useAuth';
+import { SessionProvider } from 'next-auth/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 
@@ -334,6 +335,7 @@ function MyApp({ Component, pageProps }) {
   const showSearch = !pathname.startsWith('/admin') && pathname !== '/';
 
   return (
+    <SessionProvider session={pageProps.session}>
     <AuthProvider>
     <LanguageProvider>
       {/* 페이지 전환 로딩 바 */}
@@ -370,6 +372,7 @@ function MyApp({ Component, pageProps }) {
       <Analytics />
     </LanguageProvider>
     </AuthProvider>
+    </SessionProvider>
   );
 }
 

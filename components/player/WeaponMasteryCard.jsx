@@ -78,12 +78,15 @@ const WEAPON_MAP = {
   Item_Weapon_Crossbow_C:    { name: 'Crossbow',    category: 'Special',  img: 'Item_Weapon_Crossbow_C.png' },
 
   // ── Throwables ────────────────────────────────────────────────────
+  // PUBG API가 실제로 반환하는 ID
+  Item_Weapon_Grenade_C:              { name: 'Frag Grenade',  category: 'Throwable', img: 'Item_Weapon_FragGrenade_C.png' },
   Item_Weapon_FragGrenade_C:          { name: 'Frag Grenade',  category: 'Throwable', img: 'Item_Weapon_FragGrenade_C.png' },
   Item_Weapon_DecoyGrenade_C:         { name: 'Decoy Grenade', category: 'Throwable', img: 'Item_Weapon_DecoyGrenade_C.png' },
   Item_Weapon_Molotov_C:              { name: 'Molotov',       category: 'Throwable', img: 'Item_Weapon_Molotov_C.png' },
   Item_Weapon_SmokeGrenade_C:         { name: 'Smoke Grenade', category: 'Throwable', img: 'Item_Weapon_SmokeGrenade_C.png' },
   Item_Weapon_StunGrenade_C:          { name: 'Stun Grenade',  category: 'Throwable', img: 'Item_Weapon_StunGrenade_C.png' },
   // BP_ 접두어 변형 (PUBG API 일부 버전에서 사용)
+  BP_Item_Weapon_Grenade_C:            { name: 'Frag Grenade',  category: 'Throwable', img: 'Item_Weapon_FragGrenade_C.png' },
   BP_Item_Weapon_FragGrenade_C:        { name: 'Frag Grenade',  category: 'Throwable', img: 'Item_Weapon_FragGrenade_C.png' },
   BP_Item_Weapon_DecoyGrenade_C:       { name: 'Decoy Grenade', category: 'Throwable', img: 'Item_Weapon_DecoyGrenade_C.png' },
   BP_Item_Weapon_Molotov_C:            { name: 'Molotov',       category: 'Throwable', img: 'Item_Weapon_Molotov_C.png' },

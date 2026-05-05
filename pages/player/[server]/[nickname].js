@@ -43,7 +43,7 @@ function MatchList({ recentMatches, playerData }) {
 }
 
 // 플레이어 데이터 DB 저장/업데이트 (백그라운드 upsert)
-async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matches = []) {
+async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matches = [], modeStats = {}) {
   const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
   try {
@@ -169,6 +169,30 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
         })),
       });
       console.log(`✅ 매치 ${matches.length}개 DB 저장 완료`);
+    }
+
+    // PlayerModeStats 저장 (시즌 성과 경기수 DB 캐시 복원용)
+    if (Object.keys(modeStats).length > 0 && memberId) {
+      try {
+        await prisma.playerModeStats.deleteMany({ where: { clanMemberId: memberId } });
+        await prisma.playerModeStats.createMany({
+          data: Object.entries(modeStats).map(([mode, ms]) => ({
+            clanMemberId: memberId,
+            mode,
+            matches: ms.rounds || 0,
+            wins: ms.wins || 0,
+            top10s: ms.top10s || 0,
+            avgDamage: ms.avgDamage || 0,
+            avgKills: parseFloat(((ms.totalKills || 0) / Math.max(1, ms.rounds || 1)).toFixed(2)),
+            avgAssists: parseFloat(((ms.assists || 0) / Math.max(1, ms.rounds || 1)).toFixed(2)),
+            winRate: ms.winRate || 0,
+            top10Rate: ms.top10Rate || 0,
+          })),
+        });
+        console.log(`✅ PlayerModeStats 저장: ${nickname} (${Object.keys(modeStats).length}개 모드)`);
+      } catch (e) {
+        console.warn('PlayerModeStats 저장 실패:', e.message);
+      }
     }
 
     // PlayerCache upsert (모든 유저 캐싱)
@@ -1172,6 +1196,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
           cooldown={cooldown}
           refreshMsg={refreshMsg}
           mmr={displayData?.mmr || 1000}
+          dataSource={dataSource}
         />
 
         {/* 광고 1: 플레이어 헤더 아래 (상단 배너) */}
@@ -1695,6 +1720,7 @@ async function getPlayerFromDB(nickname, server) {
           include: {
             clan: true,
             matches: { orderBy: { createdAt: 'desc' }, take: 10 },
+            modeStats: true,
           },
         });
         if (member) {
@@ -1741,6 +1767,7 @@ async function getPlayerFromDB(nickname, server) {
       include: {
         clan: true,
         matches: { orderBy: { createdAt: 'desc' }, take: 10 },
+        modeStats: true,
       },
     });
 
@@ -1808,6 +1835,29 @@ async function getPlayerFromDB(nickname, server) {
     const normal = recentMatches.length - ranked - event;
     const total  = recentMatches.length || 1;
 
+    // PlayerModeStats → seasonStats 빌드 (DB 캐시에서도 시즌 성과 경기수 복원)
+    let seasonStatsFromDB = {};
+    if (member.modeStats && member.modeStats.length > 0) {
+      const modesObj = {};
+      for (const ms of member.modeStats) {
+        if (!ms.matches) continue;
+        modesObj[ms.mode] = {
+          rounds:          ms.matches,
+          wins:            ms.wins || 0,
+          top10s:          ms.top10s || 0,
+          avgDamage:       ms.avgDamage || 0,
+          totalKills:      Math.round((ms.avgKills || 0) * ms.matches),
+          avgKills:        ms.avgKills || 0,
+          assists:         Math.round((ms.avgAssists || 0) * ms.matches),
+          avgAssists:      ms.avgAssists || 0,
+          winRate:         ms.winRate || 0,
+          top10Rate:       ms.top10Rate || 0,
+          avgSurvivalTime: 0,
+        };
+      }
+      if (Object.keys(modesObj).length > 0) seasonStatsFromDB = { db_cache: modesObj };
+    }
+
     return {
       profile: {
         nickname: member.nickname,
@@ -1831,7 +1881,7 @@ async function getPlayerFromDB(nickname, server) {
         normal: Math.round((normal / total) * 100),
         event:  Math.round((event  / total) * 100),
       },
-      seasonStats: {},
+      seasonStats: seasonStatsFromDB,
       rankedSummary: null,
       clanMembers: clanMembers.map(m => ({
         id: m.id,
@@ -1936,6 +1986,7 @@ export async function getServerSideProps({ params, query }) {
     let pubgSummaryFromStats = null;
     let pubgRankedSummary = null;
     let pubgModeDistribution = { ranked: 0, normal: 0, event: 0 };
+    let currentSeasonModes = {};
 
     if (seasonResult.status === 'fulfilled') {
       const seasons = seasonResult.value.data || []; // cachedPubgFetch: json.data = 배열
@@ -1982,6 +2033,7 @@ export async function getServerSideProps({ params, query }) {
           }
           if (Object.keys(transformedModes).length > 0) {
             pubgSeasonStats = { [currentSeason.id]: transformedModes };
+            currentSeasonModes = transformedModes;
             console.log(`✅ 시즌 통계 모드: ${Object.keys(transformedModes).join(', ')}`);
 
             // modeDistribution 계산
@@ -2121,7 +2173,7 @@ export async function getServerSideProps({ params, query }) {
     };
 
     // Step 6: 백그라운드 DB 저장 (upsert + 매치 저장) + 클랜 멤버 조회
-    savePlayerToDatabase(pubgPlayer, pubgShard, pubgClan, pubgSummaryFromStats, recentMatches)
+    savePlayerToDatabase(pubgPlayer, pubgShard, pubgClan, pubgSummaryFromStats, recentMatches, currentSeasonModes)
       .catch(e => console.error('DB 저장 실패:', e.message));
 
     // 클랜 멤버 DB에서 조회 (클랜 소속인 경우)
