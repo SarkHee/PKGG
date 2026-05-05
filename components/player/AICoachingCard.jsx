@@ -78,44 +78,6 @@ function DescWithTerms({ text }) {
   return <>{parts}</>;
 }
 
-// 무기 카테고리 분류 (WeaponMasteryCard와 동일 기준)
-const WEAPON_CAT = {
-  Item_Weapon_HK416_C: { name: 'M416', cat: 'AR' },
-  Item_Weapon_AK47_C: { name: 'AKM', cat: 'AR' },
-  Item_Weapon_SCAR_L_C: { name: 'SCAR-L', cat: 'AR' },
-  Item_Weapon_M16A4_C: { name: 'M16A4', cat: 'AR' },
-  Item_Weapon_Groza_C: { name: 'Groza', cat: 'AR' },
-  Item_Weapon_G36C_C: { name: 'G36C', cat: 'AR' },
-  Item_Weapon_QBZ95_C: { name: 'QBZ-95', cat: 'AR' },
-  Item_Weapon_Mk47Mutant_C: { name: 'Mk47 Mutant', cat: 'AR' },
-  Item_Weapon_ACE32_C: { name: 'ACE32', cat: 'AR' },
-  Item_Weapon_BerylM762_C: { name: 'Beryl M762', cat: 'AR' },
-  Item_Weapon_AUG_C: { name: 'AUG A3', cat: 'AR' },
-  Item_Weapon_K2_C: { name: 'K2', cat: 'AR' },
-  Item_Weapon_FAMASG2_C: { name: 'FAMAS G2', cat: 'AR' },
-  Item_Weapon_Mini14_C: { name: 'Mini 14', cat: 'DMR' },
-  Item_Weapon_SKS_C: { name: 'SKS', cat: 'DMR' },
-  Item_Weapon_VSS_C: { name: 'VSS', cat: 'DMR' },
-  Item_Weapon_Mk14_C: { name: 'Mk14 EBR', cat: 'DMR' },
-  Item_Weapon_FNFal_C: { name: 'SLR', cat: 'DMR' },
-  Item_Weapon_QBU88_C: { name: 'QBU', cat: 'DMR' },
-  Item_Weapon_Mk12_C: { name: 'Mk12', cat: 'DMR' },
-  Item_Weapon_Dragunov_C: { name: 'Dragunov', cat: 'DMR' },
-  Item_Weapon_Kar98k_C: { name: 'Kar98k', cat: 'SR' },
-  Item_Weapon_M24_C: { name: 'M24', cat: 'SR' },
-  Item_Weapon_AWM_C: { name: 'AWM', cat: 'SR' },
-  Item_Weapon_Mosin_C: { name: 'Mosin', cat: 'SR' },
-  Item_Weapon_Win1894_C: { name: 'Win94', cat: 'SR' },
-  Item_Weapon_L6_C: { name: 'Lynx AMR', cat: 'SR' },
-  Item_Weapon_UMP_C: { name: 'UMP45', cat: 'SMG' },
-  Item_Weapon_Vector_C: { name: 'Vector', cat: 'SMG' },
-  Item_Weapon_UZI_C: { name: 'Micro UZI', cat: 'SMG' },
-  Item_Weapon_BizonPP19_C: { name: 'PP-19 Bizon', cat: 'SMG' },
-  Item_Weapon_MP5K_C: { name: 'MP5K', cat: 'SMG' },
-  Item_Weapon_MP9_C: { name: 'MP9', cat: 'SMG' },
-  Item_Weapon_Thompson_C: { name: 'Tommy Gun', cat: 'SMG' },
-  Item_Weapon_P90_C: { name: 'P90', cat: 'SMG' },
-};
 
 const STYLE_NAMES = {
   AGGRESSIVE: '공격형',
@@ -424,7 +386,7 @@ function getPUBGImprovements(stats, analysis) {
   return list;
 }
 
-export default function AICoachingCard({ playerStats, playerInfo }) {
+export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons }) {
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const savedKeyRef = useRef('');
@@ -461,56 +423,19 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
     kd: getValue(playerStats?.kd),
   };
 
-  // 유저 실제 무기 사용 통계 조회 → 최다 킬 AR / SR·DMR 추출
+  // 유저 실제 무기 사용 통계 → WeaponMasteryCard에서 prop으로 받으면 중복 fetch 스킵
   useEffect(() => {
-    if (!playerInfo?.nickname) return;
-    const shard = playerInfo.server || 'steam';
-    let cancelled = false;
-
-    const resolveId = playerInfo.playerId
-      ? Promise.resolve(playerInfo.playerId)
-      : fetch(`/api/pubg/player-id?nickname=${encodeURIComponent(playerInfo.nickname)}&shard=${shard}`)
-          .then((r) => r.json())
-          .then((d) => d.playerId || null)
-          .catch(() => null);
-
-    resolveId.then((pid) => {
-      if (!pid || cancelled) return;
-      return fetch(`/api/pubg/stats/mastery/${shard}/${pid}/weapon`)
-        .then((r) => r.json())
-        .then((json) => {
-          if (cancelled || !json?.success) return;
-          const attrs = json.data?.attributes || {};
-          const summaries = attrs.weaponsummaries || attrs.WeaponSummaries || attrs.weaponSummaries || {};
-          const parsed = Object.entries(summaries)
-            .map(([id, v]) => {
-              const info = WEAPON_CAT[id];
-              if (!info) return null;
-              const s = v.StatsTotal || {};
-              const o = v.OfficialStatsTotal || {};
-              const c = v.CompetitiveStatsTotal || {};
-              const kills = (s.Kills || 0) + (o.Kills || 0) + (c.Kills || 0);
-              return kills > 0 ? { name: info.name, cat: info.cat, kills } : null;
-            })
-            .filter(Boolean)
-            .sort((a, b) => b.kills - a.kills);
-
-          const bestAR    = parsed.find((w) => w.cat === 'AR');
-          const bestSMG   = parsed.find((w) => w.cat === 'SMG');
-          const bestSRDMR = parsed.find((w) => w.cat === 'SR' || w.cat === 'DMR');
-          // AR·SMG 중 킬수 1등
-          const bestARorSMG = (!bestAR && !bestSMG)
-            ? null
-            : (!bestSMG || (bestAR && bestAR.kills >= bestSMG.kills))
-              ? bestAR
-              : bestSMG;
-          if (bestARorSMG || bestSRDMR) setUserWeaponRec({ bestARorSMG, bestSRDMR });
-        })
-        .catch(() => {});
-    });
-
-    return () => { cancelled = true; };
-  }, [playerInfo?.nickname, playerInfo?.server, playerInfo?.playerId]);
+    if (!masteryWeapons) return;
+    const bestAR    = masteryWeapons.find((w) => w.cat === 'AR');
+    const bestSMG   = masteryWeapons.find((w) => w.cat === 'SMG');
+    const bestSRDMR = masteryWeapons.find((w) => w.cat === 'SR' || w.cat === 'DMR');
+    const bestARorSMG = (!bestAR && !bestSMG)
+      ? null
+      : (!bestSMG || (bestAR && bestAR.kills >= bestSMG.kills))
+        ? bestAR
+        : bestSMG;
+    if (bestARorSMG || bestSRDMR) setUserWeaponRec({ bestARorSMG, bestSRDMR });
+  }, [masteryWeapons]);
 
   useEffect(() => {
     if (!statsKey) return;
@@ -526,6 +451,7 @@ export default function AICoachingCard({ playerStats, playerInfo }) {
           body: JSON.stringify({
             playerNickname: playerInfo?.nickname,
             playerServer: playerInfo?.server,
+            playerId: playerInfo?.playerId || null,
             analysis: result,
           }),
         }).catch(() => {});

@@ -81,13 +81,30 @@ export default function Header() {
   const { lang, t, switchLang } = useT();
   const { user, logout } = useAuth() || {};
 
-  // 초기 테마 읽기 + 후원 수 로드
+  // 초기 테마 읽기 + 후원 수 로드 (localStorage 5분 캐시)
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
     setMyDonations(parseInt(localStorage.getItem('pkgg_my_donations') || '0', 10));
+
+    const DONATION_TTL = 5 * 60 * 1000;
+    try {
+      const raw = localStorage.getItem('pkgg_donation_cache');
+      if (raw) {
+        const { count, ts } = JSON.parse(raw);
+        if (Date.now() - ts < DONATION_TTL) {
+          setDonationCount(count);
+          return;
+        }
+      }
+    } catch {}
+
     fetch('/api/donations/count')
       .then((r) => r.json())
-      .then((d) => setDonationCount(d.count ?? 0))
+      .then((d) => {
+        const count = d.count ?? 0;
+        setDonationCount(count);
+        localStorage.setItem('pkgg_donation_cache', JSON.stringify({ count, ts: Date.now() }));
+      })
       .catch(() => {});
   }, []);
 
@@ -103,6 +120,7 @@ export default function Header() {
       setDonationCount(newTotal);
       setMyDonations(myNext);
       localStorage.setItem('pkgg_my_donations', String(myNext));
+      localStorage.setItem('pkgg_donation_cache', JSON.stringify({ count: newTotal, ts: Date.now() }));
 
       setThankMsg(`${newTotal}번째 후원자님 감사합니다! 🎉`);
 

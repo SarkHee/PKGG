@@ -53,6 +53,9 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `about.js` | PK.GG 소개 (주요 기능, 데이터 출처, 면책 고지) |
 | `terms.js` | 이용약관 |
 | `contact.js` | 문의 페이지 (이메일 복사/전송, 문의 유형별 안내) |
+| `_error.js` | SSR 에러 페이지 (Next.js 필수 — 없으면 "missing required error components" 루프 발생) |
+| `404.js` | 404 Not Found 페이지 |
+| `500.js` | 500 Internal Server Error 페이지 |
 
 ### pages/api/
 | 경로 | 설명 |
@@ -62,6 +65,8 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `pubg/player-id.js` | accountId 조회 |
 | `pubg/compare.js` | 두 플레이어 시즌 스탯 비교 (`GET ?a=A&b=B&shard=steam`). DB캐시→PUBG API 순으로 playerId 조회, 시즌 스탯 병렬 fetch. |
 | `pubg/playstyle.js` | 플레이스타일 분석 |
+| `pubg/search.js` | 플레이어 검색. DB 먼저 조회 후 PUBG API 폴백. Redis 캐시(`search:{shard}:{nick}`, TTL 600s). `Cache-Control: s-maxage=60, stale-while-revalidate=300` |
+| `player/ai-analysis.js` | AI 코칭 분석 결과 DB 저장/조회 (GROQ 아님 — 순수 DB 영속화). Redis 캐시(`ai-analysis:{playerId}:{shard}` 또는 `ai-analysis:nick:{nick}:{shard}`, TTL 3600s). POST: upsert → redisSet. GET: Redis HIT 우선, MISS → DB 조회 |
 | `clan/batch-update.js` | 클랜 멤버 일괄 업데이트 |
 | `clan/update-rankings.js` | 클랜 랭킹 업데이트 |
 | `clan/get-members.js` | 클랜 멤버 조회 |
@@ -71,7 +76,8 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 ### components/
 | 경로 | 설명 |
 |------|------|
-| `player/WeaponMasteryCard.jsx` | 무기 숙련도 카드 (force prop으로 캐시 우회) |
+| `player/WeaponMasteryCard.jsx` | 무기 숙련도 카드 (force prop으로 캐시 우회). `onReady(resolvedId, parsedWeapons[])` 콜백 prop — 로드 완료 시 상위 컴포넌트에 playerId + 무기 목록 전달 (AICoachingCard 중복 fetch 제거용) |
+| `player/AICoachingCard.jsx` | AI 코칭 카드. `playerStats`, `playerInfo`, `masteryWeapons` props. `masteryWeapons`는 WeaponMasteryCard `onReady`에서 받음 → 내부 `/api/pubg/player-id`, `/api/pubg/stats/mastery` 중복 호출 없음. 분석 결과는 `/api/player/ai-analysis` POST로 저장 |
 | `player/PlayerShareCard.jsx` | 플레이어 전적 공유 카드 (PNG 저장용, html-to-image 캡처). PlayerHeader에서 `cardRef` prop으로 연결 |
 | `player/GrowthChart.jsx` | 성장 추적 차트 (Line chart). `nickname` + `shard` props. 클랜 배치업데이트 시 스냅샷 저장, 5개 지표 탭(MMR/딜/킬/승률/Top10) |
 | `player/PlayerDashboard.jsx` | 플레이어 대시보드 |
@@ -92,6 +98,7 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `playstyleClassifier.js` | **통합 플레이스타일 분류기 (v3)**. `classifyPlaystyle(stats)` → `{ label, code, desc, color, bg, border, primary }`. 14가지 타입 (HYPER_CARRY~UNKNOWN). v3 신규: PRECISION_SNIPER(정밀 사수형)·EARLY_RUSHER(초반 러셔)·TACTICAL_LEADER(전술 리더형) 추가, `headshotRate` 입력 지원. `playstyle.js` / `aiCoaching.js` / `clan-analytics.js` 3곳에서 공용 사용 |
 | `mmrCalculator.js` | PKGG 커스텀 MMR 계산. `calculateMMR(summary)` → number. `getMMRTier(mmr)` → 티어 정보 객체 |
 | `aiCoaching.js` | AI 코칭 유틸. `analyzePlayStyle(stats)` — 내부적으로 `playstyleClassifier` 사용. `playStyle`(영문코드) + `playstyleLabel`(한국어) 반환 |
+| `redis.js` | Upstash Redis 클라이언트 싱글톤. `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` 환경변수 미설정 시 null → graceful fallback. `redisGet(key)`, `redisSet(key, value, ttlSeconds)` 헬퍼. TTL 상수: `REDIS_TTL.PLAYER=600`, `REDIS_TTL.AI_ANALYSIS=3600`. `playerCacheKey(shard, nickname)` 키 헬퍼 |
 
 ### locales/
 | 파일 | 설명 |
@@ -136,6 +143,48 @@ damage = (StatsTotal.DamageDealt||0) + (OfficialStatsTotal.DamageDealt||0) + (Co
 const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummaries ?? {};
 ```
 
+### Redis 캐싱 패턴
+- `utils/redis.js` 싱글톤 — 환경변수 없으면 null, 호출부는 null 체크 없이 `redisGet`/`redisSet` 사용 (내부 null 가드)
+- 캐시 키 규칙: `player:{shard}:{nick_lower}`, `search:{shard}:{nick_lower}`, `ai-analysis:{playerId}:{shard}`
+- playerId 없을 때 ai-analysis 키: `ai-analysis:nick:{nick_lower}:{shard}`
+
+### .next 캐시 주의사항
+`git reset --hard` 또는 브랜치 전환 이후 반드시 `.next` 삭제 후 재시작:
+```sh
+rm -rf .next && npm run dev
+```
+미삭제 시 ENOENT 오류 또는 "missing required error components, refreshing..." 무한루프 발생.
+
+### WeaponMasteryCard → AICoachingCard prop 연결
+`player/[server]/[nickname].js`에서 중복 API 호출 제거 패턴:
+```jsx
+// [server]/[nickname].js
+const [resolvedPlayerId, setResolvedPlayerId] = useState(null);
+const [masteryWeapons, setMasteryWeapons] = useState(null);
+
+<WeaponMasteryCard onReady={(id, weapons) => {
+  setResolvedPlayerId(id);
+  setMasteryWeapons(weapons);
+}} />
+
+<AICoachingCard
+  playerInfo={{ ..., playerId: resolvedPlayerId }}
+  masteryWeapons={masteryWeapons}
+/>
+```
+AICoachingCard 내부에서 `/api/pubg/player-id`, `/api/pubg/stats/mastery` 를 직접 호출하지 않음 — WeaponMasteryCard가 이미 호출했으므로.
+
+### localStorage 캐시 TTL 패턴 (Header donations/count)
+```js
+const TTL = 5 * 60 * 1000;
+const raw = localStorage.getItem('pkgg_donation_cache');
+if (raw) {
+  const { count, ts } = JSON.parse(raw);
+  if (Date.now() - ts < TTL) { setDonationCount(count); return; }
+}
+// fetch → localStorage.setItem('pkgg_donation_cache', JSON.stringify({ count, ts: Date.now() }))
+```
+
 ---
 
 ## 환경변수 (Vercel)
@@ -143,12 +192,28 @@ const ws = data?.weaponsummaries ?? data?.WeaponSummaries ?? data?.weaponSummari
 - `DATABASE_URL` — PostgreSQL 연결 문자열
 - `ADMIN_PASSWORD` — 관리자 패스워드 (admin/auth.js)
 - `CRON_SECRET` — Vercel cron 작업 인증
+- `UPSTASH_REDIS_REST_URL` — Upstash Redis REST URL (미설정 시 Redis 비활성화, graceful fallback)
+- `UPSTASH_REDIS_REST_TOKEN` — Upstash Redis REST 토큰
 
 > **중요**: `.env.local`은 로컬 전용. Vercel 배포 시 위 변수를 반드시 **Vercel 대시보드 → Settings → Environment Variables** 에 등록해야 함. 미등록 시 PUBG API 및 배치 업데이트 실패.
 
 ---
 
 ## 최근 주요 변경 이력
+
+### 2026-05-05 성능·안정성 개선
+- **SSR 에러 페이지 추가** (`pages/_error.js`, `pages/404.js`, `pages/500.js`): 없으면 플레이어 검색 시 "missing required error components, refreshing..." 무한루프 발생. Next.js 필수 파일
+- **`player/[server]/[nickname].js` 에러 처리 강화**: `getPlayerFromDB()` 호출을 main try-catch 블록 안으로 이동. `playerData` null + `error` prop 있을 때 스피너 대신 "뒤로 가기" 버튼 UI 표시
+- **`utils/redis.js` 복원 + AI_ANALYSIS TTL 추가**: backup/2026-05-05-before-rollback 브랜치에서 복원. `REDIS_TTL.AI_ANALYSIS = 3600` 추가
+- **`pages/api/pubg/search.js` 복원**: DB 먼저 조회 후 PUBG API 폴백. Redis 캐시(`search:{shard}:{nick}`, TTL 600s)
+- **`pages/api/clan-analytics.js` 복원**: DB 쓰기 `Promise.all` 병렬화, `select` 최소화로 쿼리 최적화
+- **메인 홈 뉴스 섹션 제거** (`pages/index.js`): `recentNews` 상태·로딩 함수·UI 블록 전체 삭제. 번들 6.57kB → 5.73kB
+- **WeaponMasteryCard `onReady` 콜백 추가**: 무기 파싱 완료 시 `onReady(resolvedId, parsedWeapons[])` 호출 → 상위 컴포넌트에 playerId + 무기 목록 전달
+- **AICoachingCard 중복 API 호출 제거**: `/api/pubg/player-id`, `/api/pubg/stats/mastery` 내부 fetch 제거. `masteryWeapons` prop으로 WeaponMasteryCard에서 데이터 수신. `WEAPON_CAT` 상수 38줄 제거. `playerId` POST body에 포함
+- **`/api/player/ai-analysis` Redis 캐싱**: POST: Redis HIT 시 DB write 스킵. MISS 시 upsert → `redisSet(..., 3600)`. GET: Redis HIT 우선. 키: `ai-analysis:{playerId}:{shard}` (playerId 없으면 `ai-analysis:nick:{nick}:{shard}`)
+- **Header `/api/donations/count` localStorage 5분 캐싱**: 매 페이지마다 DB 호출 방지. 키: `pkgg_donation_cache`, 값: `{ count, ts }`. `handleDonationComplete`도 캐시 갱신
+
+### (이전 변경 이력)
 - **신규 페이지 8종 추가**: 반동퀴즈·크로스헤어트레이너·일일목표·감도프리셋·무기메타·클랜내전·플레이어리뷰·매치히트맵. Header 훈련/nav 메뉴에 링크 추가. i18n 4개 언어 키 추가
 - **DB 스키마 추가**: `ClanWar`, `ClanWarPlayer`, `PlayerReview` 모델 (Supabase SQL Editor에서 `prisma migrate` 필요)
 - **API 추가**: `/api/clan-war` (GET/POST), `/api/clan-war/[id]` (GET/DELETE), `/api/player-review` (GET/POST/DELETE)

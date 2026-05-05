@@ -14,7 +14,8 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 export default redis;
 
 export const REDIS_TTL = {
-  PLAYER: 60 * 10, // 10분 (초 단위)
+  PLAYER:      60 * 10,   // 10분
+  AI_ANALYSIS: 60 * 60,   // 1시간
 };
 
 /** Redis GET — 미설정 또는 오류 시 null 반환 */

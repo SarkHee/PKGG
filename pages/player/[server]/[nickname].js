@@ -400,6 +400,8 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
   const [playerData, setPlayerData] = useState(ssrData);
   const [pageLoading, setPageLoading] = useState(false);
+  const [resolvedPlayerId, setResolvedPlayerId] = useState(ssrData?.profile?.playerId || null);
+  const [masteryWeapons, setMasteryWeapons] = useState(null);
   // SSR에서 매치를 빼고 클라이언트에서 로드 → LCP 개선
   const [matchesLoading, setMatchesLoading] = useState(
     !ssrData?.recentMatches?.length
@@ -1298,8 +1300,9 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
               playerInfo={{
                 nickname: profile?.nickname || router.query.nickname,
                 server: router.query.server || 'steam',
-                playerId: profile?.playerId || null,
+                playerId: resolvedPlayerId || profile?.playerId || null,
               }}
+              masteryWeapons={masteryWeapons}
             />
           </div>
         </div>
@@ -1321,6 +1324,10 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                 nickname={profile.nickname}
                 shard={profile.shardId || router.query.server || 'steam'}
                 force={router.query.force === '1'}
+                onReady={(id, weapons) => {
+                  setResolvedPlayerId(id);
+                  setMasteryWeapons(weapons);
+                }}
               />
             </div>
           </div>

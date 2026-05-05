@@ -1,12 +1,25 @@
 import prisma from '../../../utils/prisma.js';
+import { redisGet, redisSet, REDIS_TTL } from '../../../utils/redis.js';
+
+function aiCacheKey(playerId, shard, nickname) {
+  if (playerId) return `ai-analysis:${playerId}:${shard}`;
+  return `ai-analysis:nick:${(nickname || '').toLowerCase()}:${shard}`;
+}
 
 export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
-      const { playerNickname, playerServer, analysis, trainingPlan } = req.body;
+      const { playerNickname, playerServer, playerId, analysis, trainingPlan } = req.body;
 
       if (!playerNickname || !playerServer || !analysis) {
         return res.status(400).json({ error: '필수 정보가 누락되었습니다.' });
+      }
+
+      // Redis 캐시 HIT → DB write 스킵
+      const cacheKey = aiCacheKey(playerId, playerServer, playerNickname);
+      const cached = await redisGet(cacheKey);
+      if (cached) {
+        return res.status(200).json({ message: 'AI 분석 결과가 저장되었습니다.', analysis: cached, fromCache: true });
       }
 
       // 플레이어 분석 결과 저장
@@ -44,15 +57,25 @@ export default async function handler(req, res) {
         },
       });
 
-      res.status(200).json({
+      // Redis 캐시 저장 (1시간)
+      redisSet(cacheKey, savedAnalysis, REDIS_TTL.AI_ANALYSIS).catch(() => {});
+
+      return res.status(200).json({
         message: 'AI 분석 결과가 저장되었습니다.',
         analysis: savedAnalysis,
       });
     } else if (req.method === 'GET') {
-      const { nickname, server } = req.query;
+      const { nickname, server, playerId: qPlayerId } = req.query;
 
       if (!nickname || !server) {
         return res.status(400).json({ error: '플레이어 정보가 필요합니다.' });
+      }
+
+      // Redis 캐시 확인
+      const getCacheKey = aiCacheKey(qPlayerId, server, nickname);
+      const cachedGet = await redisGet(getCacheKey);
+      if (cachedGet) {
+        return res.status(200).json({ analysis: cachedGet, fromCache: true });
       }
 
       // 기존 분석 결과 조회
@@ -66,16 +89,16 @@ export default async function handler(req, res) {
       });
 
       if (existingAnalysis) {
-        res.status(200).json({
-          analysis: {
-            ...existingAnalysis,
-            strengths: JSON.parse(existingAnalysis.strengths),
-            weaknesses: JSON.parse(existingAnalysis.weaknesses),
-            trainingPlan: JSON.parse(existingAnalysis.trainingPlan),
-          },
-        });
+        const parsed = {
+          ...existingAnalysis,
+          strengths: JSON.parse(existingAnalysis.strengths),
+          weaknesses: JSON.parse(existingAnalysis.weaknesses),
+          trainingPlan: JSON.parse(existingAnalysis.trainingPlan),
+        };
+        redisSet(getCacheKey, parsed, REDIS_TTL.AI_ANALYSIS).catch(() => {});
+        return res.status(200).json({ analysis: parsed });
       } else {
-        res.status(404).json({ error: '분석 결과를 찾을 수 없습니다.' });
+        return res.status(404).json({ error: '분석 결과를 찾을 수 없습니다.' });
       }
     } else {
       res.status(405).json({ error: 'Method not allowed' });

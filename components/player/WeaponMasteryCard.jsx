@@ -179,7 +179,7 @@ async function fetchWithRetry(url, maxRetry = 2, delayMs = 800) {
   throw lastError || new Error('fetch failed');
 }
 
-export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam', force = false }) {
+export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam', force = false, onReady }) {
   const [weapons, setWeapons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState(null);
@@ -254,6 +254,7 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
           .sort((a, b) => b.kills - a.kills);
 
         setWeapons(parsed);
+        if (onReady) onReady(resolvedId, parsed);
       })
       .catch((e) => {
         if (cancelled) return;
