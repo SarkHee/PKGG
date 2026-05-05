@@ -7,7 +7,6 @@ import { Inter } from 'next/font/google';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 import Script from 'next/script';
-import { SessionProvider } from 'next-auth/react';
 import CookieBanner from '../components/CookieBanner';
 import Footer from '../components/layout/Footer';
 import { LanguageProvider, useT } from '../utils/i18n';
@@ -335,7 +334,6 @@ function MyApp({ Component, pageProps }) {
   const showSearch = !pathname.startsWith('/admin') && pathname !== '/';
 
   return (
-    <SessionProvider session={pageProps.session}>
     <AuthProvider>
     <LanguageProvider>
       {/* 페이지 전환 로딩 바 */}
@@ -372,7 +370,6 @@ function MyApp({ Component, pageProps }) {
       <Analytics />
     </LanguageProvider>
     </AuthProvider>
-    </SessionProvider>
   );
 }
 

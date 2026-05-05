@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import Header from '../components/layout/Header';
 import { useT } from '../utils/i18n';
 import { MAJOR, TYPES } from '../utils/playstyleClassifier';
@@ -140,8 +139,6 @@ export default function Home() {
   const searchBoxRef = useRef(null);
   const router = useRouter();
   const { t } = useT();
-
-  const { data: session } = useSession();
 
   // 즐겨찾기 + 최근 검색 로드 (클라이언트 전용)
   useEffect(() => {
