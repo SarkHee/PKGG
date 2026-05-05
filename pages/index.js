@@ -47,6 +47,8 @@ export default function Home() {
   const [favorites, setFavorites]           = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
   const [showDropdown, setShowDropdown]     = useState(false);
+  const [isSearching, setIsSearching]       = useState(false);
+  const [searchingNick, setSearchingNick]   = useState('');
   const searchBoxRef = useRef(null);
   const router = useRouter();
   const { t } = useT();
@@ -67,6 +69,18 @@ export default function Home() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // 라우트 변경 시 로딩 오버레이 제어
+  useEffect(() => {
+    const handleDone  = () => setIsSearching(false);
+    const handleError = () => setIsSearching(false);
+    router.events.on('routeChangeComplete', handleDone);
+    router.events.on('routeChangeError',    handleError);
+    return () => {
+      router.events.off('routeChangeComplete', handleDone);
+      router.events.off('routeChangeError',    handleError);
+    };
+  }, [router.events]);
 
   const removeFavorite = (nickname, shard) => {
     const next = loadFavs().filter(f => !(f.nickname === nickname && f.shard === shard));
@@ -89,6 +103,8 @@ export default function Home() {
     saveRecentSearch(name, shard);
     setRecentSearches(loadRecentSearches());
     setShowDropdown(false);
+    setSearchingNick(name);
+    setIsSearching(true);
     router.push(`/player/${shard}/${encodeURIComponent(name)}`);
   };
 
@@ -154,6 +170,58 @@ export default function Home() {
           rel="stylesheet"
         />
       </Head>
+
+      {/* 검색 로딩 오버레이 */}
+      {isSearching && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: 'rgba(6,6,20,0.92)', backdropFilter: 'blur(12px)' }}>
+          {/* 배경 글로우 */}
+          <div className="absolute w-96 h-96 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 70%)', filter: 'blur(40px)' }} />
+
+          {/* 메인 로딩 영역 */}
+          <div className="relative flex flex-col items-center gap-6 px-8 text-center">
+            {/* 스피너 + 아이콘 */}
+            <div className="relative w-20 h-20">
+              {/* 외부 회전 링 */}
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 border-r-blue-400 animate-spin" style={{ animationDuration: '0.9s' }} />
+              {/* 내부 회전 링 (반대 방향) */}
+              <div className="absolute inset-2 rounded-full border-2 border-transparent border-b-violet-500 border-l-violet-400 animate-spin" style={{ animationDuration: '1.4s', animationDirection: 'reverse' }} />
+              {/* 중앙 아이콘 */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* 닉네임 */}
+            <div>
+              <p className="text-2xl font-bold text-white mb-1 tracking-wide">{searchingNick}</p>
+              <p className="text-sm text-blue-300 font-medium">전적 정보를 불러오는 중...</p>
+            </div>
+
+            {/* 프로그레스 바 */}
+            <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full"
+                style={{
+                  animation: 'loadingProgress 3s ease-in-out infinite',
+                }}
+              />
+            </div>
+
+            <p className="text-xs text-gray-500">PUBG API에서 데이터를 가져오고 있습니다</p>
+          </div>
+
+          <style>{`
+            @keyframes loadingProgress {
+              0%   { width: 5%; opacity: 1; }
+              60%  { width: 80%; opacity: 1; }
+              90%  { width: 95%; opacity: 0.7; }
+              100% { width: 98%; opacity: 0.5; }
+            }
+          `}</style>
+        </div>
+      )}
 
       <div className="min-h-screen text-white relative overflow-hidden" style={{ background: '#060614' }}>
         {/* 오로라 그라디언트 배경 */}
@@ -291,11 +359,16 @@ export default function Home() {
                   />
                   <button
                     onClick={() => handleSearch()}
-                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/30 hover:shadow-blue-500/40 flex items-center gap-2 text-sm"
+                    disabled={isSearching}
+                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/30 hover:shadow-blue-500/40 flex items-center gap-2 text-sm"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                    {isSearching ? (
+                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    )}
                     {t('search.button')}
                   </button>
                 </div>

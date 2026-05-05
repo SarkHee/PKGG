@@ -490,6 +490,13 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
     }
   }, [cooldown]);
 
+  // 중요 정보 먼저 표시 후 무거운 컴포넌트 lazy mount
+  const [lazyVisible, setLazyVisible] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setLazyVisible(true), 100);
+    return () => clearTimeout(id);
+  }, []);
+
   if (pageLoading) {
     return (
       <>
@@ -1156,15 +1163,21 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
         {/* 퍼포먼스 백분위 리포트 */}
         <div className="mb-6">
-          <PlayerPercentileCard playerStats={summary || profile} />
+          {lazyVisible
+            ? <PlayerPercentileCard playerStats={summary || profile} />
+            : <div className="h-24 bg-gray-100 animate-pulse rounded-xl" />}
         </div>
 
         {/* 성장 추적 섹션 */}
         <div className="mb-8">
-          <GrowthChart
-            nickname={profile.nickname}
-            shard={profile.shardId || router.query.server || 'steam'}
-          />
+          {lazyVisible ? (
+            <GrowthChart
+              nickname={profile.nickname}
+              shard={profile.shardId || router.query.server || 'steam'}
+            />
+          ) : (
+            <div className="h-48 bg-gray-100 animate-pulse rounded-xl" />
+          )}
         </div>
 
         {/* 개인 맞춤형 AI 코칭 시스템 */}
@@ -1187,7 +1200,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                 avgDamage: summary?.avgDamage,
               }) &&
               false}
-            <AICoachingCard
+            {lazyVisible && <AICoachingCard
               playerStats={(() => {
                 // 시즌 통계에서 최신 데이터 추출 (전체 시즌 기준 분석)
                 const latestSeasonStats =
@@ -1303,7 +1316,8 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                 playerId: resolvedPlayerId || profile?.playerId || null,
               }}
               masteryWeapons={masteryWeapons}
-            />
+            />}
+            {!lazyVisible && <div className="h-32 bg-gray-100 animate-pulse rounded-xl" />}
           </div>
         </div>
 
@@ -1319,7 +1333,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
               <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">weapon mastery</span>
             </div>
             <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
-              <WeaponMasteryCard
+              {lazyVisible && <WeaponMasteryCard
                 playerId={profile.playerId || null}
                 nickname={profile.nickname}
                 shard={profile.shardId || router.query.server || 'steam'}
@@ -1328,7 +1342,8 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                   setResolvedPlayerId(id);
                   setMasteryWeapons(weapons);
                 }}
-              />
+              />}
+              {!lazyVisible && <div className="h-40 bg-gray-100 animate-pulse rounded-xl" />}
             </div>
           </div>
         )}
