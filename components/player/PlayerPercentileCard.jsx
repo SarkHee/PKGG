@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 
-export default function PlayerPercentileCard({ playerStats }) {
-  const [percentiles, setPercentiles] = useState(null)
-  const [loading, setLoading] = useState(true)
+export default function PlayerPercentileCard({ playerStats, percentileData }) {
+  const [percentiles, setPercentiles] = useState(percentileData ?? null)
+  const [loading, setLoading] = useState(!percentileData)
   const [tooltip, setTooltip] = useState(false)
   const tooltipRef = useRef(null)
 
@@ -12,6 +12,7 @@ export default function PlayerPercentileCard({ playerStats }) {
   const top10Rate  = Number(playerStats?.top10Rate  ?? 0)
 
   useEffect(() => {
+    if (percentileData) { setPercentiles(percentileData); setLoading(false); return; }
     if (avgDamage <= 0) { setLoading(false); return }
     fetch('/api/pubg/percentile', {
       method: 'POST',
@@ -25,7 +26,7 @@ export default function PlayerPercentileCard({ playerStats }) {
       .catch(() => {})
       .finally(() => setLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avgDamage, avgKills, winRate, top10Rate])
+  }, [percentileData, avgDamage, avgKills, winRate, top10Rate])
 
   if (loading) {
     return (

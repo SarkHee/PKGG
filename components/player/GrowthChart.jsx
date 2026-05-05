@@ -37,16 +37,17 @@ function fmtFull(iso) {
   return new Date(iso).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
 }
 
-export default function GrowthChart({ nickname, shard = 'steam' }) {
+export default function GrowthChart({ nickname, shard = 'steam', initialSnapshots }) {
   const canvasRef = useRef(null);
   const chartRef  = useRef(null);
-  const [snapshots, setSnapshots] = useState([]);
+  const [snapshots, setSnapshots] = useState(initialSnapshots ?? []);
   const [active,    setActive]    = useState('score');
   const [period,    setPeriod]    = useState('all');
-  const [loading,   setLoading]   = useState(true);
+  const [loading,   setLoading]   = useState(!initialSnapshots);
   const [error,     setError]     = useState('');
 
   useEffect(() => {
+    if (initialSnapshots) { setSnapshots(initialSnapshots); setLoading(false); return; }
     if (!nickname) return;
     setLoading(true);
     fetch(`/api/pubg/growth?nickname=${encodeURIComponent(nickname)}&shard=${shard}`)
@@ -57,7 +58,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [nickname, shard]);
+  }, [nickname, shard, initialSnapshots]);
 
   const filteredSnaps = useMemo(() => {
     if (period === 'all') return snapshots;

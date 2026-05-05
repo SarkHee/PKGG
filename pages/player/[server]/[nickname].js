@@ -497,6 +497,38 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
     return () => clearTimeout(id);
   }, []);
 
+  // 클라이언트 사이드 percentile + growth 호출 (SSR 제외)
+  const [percentileData, setPercentileData] = useState(null);
+  const [growthSnaps, setGrowthSnaps] = useState(null);
+  useEffect(() => {
+    if (!lazyVisible) return;
+    const s = playerData?.summary;
+    const p = playerData?.profile;
+    if (s?.avgDamage > 0) {
+      fetch('/api/pubg/percentile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          avgDamage: s.avgDamage,
+          avgKills: s.avgKills,
+          winRate: s.winRate,
+          top10Rate: s.top10Rate,
+        }),
+      })
+        .then((r) => r.json())
+        .then((data) => { if (!data.insufficient && !data.error) setPercentileData(data); })
+        .catch(() => {});
+    }
+    if (p?.nickname) {
+      const shard = p.shardId || server || 'steam';
+      fetch(`/api/pubg/growth?nickname=${encodeURIComponent(p.nickname)}&shard=${shard}`)
+        .then((r) => r.json())
+        .then(({ snapshots: s }) => { if (s) setGrowthSnaps(s); })
+        .catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lazyVisible]);
+
   if (pageLoading) {
     return (
       <>
@@ -1164,7 +1196,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
         {/* 퍼포먼스 백분위 리포트 */}
         <div className="mb-6">
           {lazyVisible
-            ? <PlayerPercentileCard playerStats={summary || profile} />
+            ? <PlayerPercentileCard playerStats={summary || profile} percentileData={percentileData} />
             : <div className="h-24 bg-gray-100 animate-pulse rounded-xl" />}
         </div>
 
@@ -1174,6 +1206,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
             <GrowthChart
               nickname={profile.nickname}
               shard={profile.shardId || router.query.server || 'steam'}
+              initialSnapshots={growthSnaps}
             />
           ) : (
             <div className="h-48 bg-gray-100 animate-pulse rounded-xl" />
