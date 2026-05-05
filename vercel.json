@@ -1,6 +1,7 @@
 {
   "version": 2,
   "name": "pk-gg",
+  "regions": ["icn1"],
   "env": {
     "npm_config_legacy_peer_deps": "true"
   },

@@ -502,28 +502,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
     return () => clearTimeout(id);
   }, []);
 
-  // 클라이언트 사이드 percentile 호출 (SSR 제외) — growth는 GrowthChart 내부에서 1회 호출
-  const [percentileData, setPercentileData] = useState(null);
-  useEffect(() => {
-    if (!lazyVisible) return;
-    const s = playerData?.summary;
-    if (s?.avgDamage > 0) {
-      fetch('/api/pubg/percentile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          avgDamage: s.avgDamage,
-          avgKills: s.avgKills,
-          winRate: s.winRate,
-          top10Rate: s.top10Rate,
-        }),
-      })
-        .then((r) => r.json())
-        .then((data) => { if (!data.insufficient && !data.error) setPercentileData(data); })
-        .catch(() => {});
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lazyVisible]);
+  // percentile: PlayerPercentileCard 내부에서 1회 호출 (중복 방지)
 
   if (pageLoading || !playerData) {
     return (
@@ -1201,7 +1180,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
         {/* 퍼포먼스 백분위 리포트 */}
         <div className="mb-6">
           {lazyVisible
-            ? <PlayerPercentileCard playerStats={summary || profile} percentileData={percentileData} />
+            ? <PlayerPercentileCard playerStats={summary || profile} />
             : <div className="h-24 bg-gray-100 animate-pulse rounded-xl" />}
         </div>
 
@@ -1898,10 +1877,11 @@ export async function getServerSideProps({ params, query }) {
     if (!forceRefresh) {
       const cached = await getPlayerFromDB(nickname, server);
       if (cached) {
-        console.log(`✅ DB 캐시 사용: ${nickname}`);
+        console.log(`[SSR] DB 캐시 HIT: ${nickname}`);
         setPlayerDataCache(nickname, cached.profile?.shardId || server, cached);
         return { props: { playerData: cached, error: null, dataSource: 'database' } };
       }
+      console.log(`[SSR] DB 캐시 MISS: ${nickname} — PUBG API 호출`);
     }
     // Step 1: PUBG API로 플레이어 검색 (shard 우선순위 적용)
     let pubgPlayer = null;
