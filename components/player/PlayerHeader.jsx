@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Tooltip from '../ui/Tooltip';
 import { calculateMMR, getMMRTier, MMR_DISCLAIMER } from '../../utils/mmrCalculator';
 import PlayerShareCard from './PlayerShareCard';
+import { classifyPlaystyle, MAJOR } from '../../utils/playstyleClassifier';
 
 // DB 캐시 업데이트 시간 → 상대 표시
 function timeAgo(isoString) {
@@ -37,10 +38,12 @@ const PlayerHeader = ({
   cooldown,
   refreshMsg,
   mmr = 1000,
+  dataSource,
 }) => {
   const [showRankedDetails, setShowRankedDetails] = useState(false);
   const [showSeasonDetails, setShowSeasonDetails] = useState(false);
   const [showRecentDetails, setShowRecentDetails] = useState(false);
+  const excludeEvents = true;
   const router = useRouter();
   const shard = (router.query.server || 'steam');
   const nickname = profile?.nickname || '';
@@ -88,10 +91,12 @@ const PlayerHeader = ({
     }
   };
 
-  // ── 시즌 통계 전체 모드 통합 집계 ──
+  // ── 시즌 통계 전체 모드 통합 집계 (이벤트 모드 제외) ──
+  const SEASON_NORMAL_MODES = new Set(['squad', 'squad-fpp', 'duo', 'duo-fpp', 'solo', 'solo-fpp', 'ranked-squad', 'ranked-squad-fpp', 'ranked-duo', 'ranked-duo-fpp', 'ranked-solo', 'ranked-solo-fpp'])
   const seasonData = Object.values(seasonStats || {})[0] || {};
   let tR = 0, tW = 0, tT10 = 0, tDmg = 0, tKills = 0, tAssists = 0, tSurvival = 0;
-  for (const ms of Object.values(seasonData)) {
+  for (const [modeKey, ms] of Object.entries(seasonData)) {
+    if (!SEASON_NORMAL_MODES.has(modeKey)) continue;
     const r = ms.rounds || 0;
     if (r === 0) continue;
     tR += r; tW += ms.wins || 0; tT10 += ms.top10s || 0;
@@ -130,6 +135,37 @@ const PlayerHeader = ({
     score:       calculateMMR(summary),
   } : null);
 
+  // 경쟁전 기반 PKGG 점수 계산
+  const rankedMmr = (rankedSummary && rankedSummary.games > 0)
+    ? calculateMMR({
+        avgDamage:      rankedSummary.avgDamage || 0,
+        avgKills:       (rankedSummary.kills || 0) / rankedSummary.games,
+        avgAssists:     (rankedSummary.assists || 0) / rankedSummary.games,
+        winRate:        rankedSummary.winRate || 0,
+        top10Rate:      rankedSummary.top10Rate || 0,
+        avgSurviveTime: 0,
+      })
+    : null;
+
+  // 헤더에 표시할 최종 PKGG 점수: 일반 vs 경쟁전 중 높은 것
+  const normalMmr = mmr || 1000;
+  const displayMmr = rankedMmr ? Math.max(normalMmr, rankedMmr) : normalMmr;
+  const mmrSource = rankedMmr && rankedMmr > normalMmr ? '경쟁전 기준' : '일반게임 기준';
+
+  // 이벤트 모드 필터 — matchType OR gameMode OR mapName 기반
+  const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom', 'arcade'])
+  const EVENT_GAME_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training']
+  const EVENT_MAP_KEYWORDS = ['_tdm_', '_training_', 'range_main', 'pillarcompound', 'boardwalk']
+  const isEventMatch = (m) => {
+    const mt = (m.matchType || '').toLowerCase()
+    const gm = (m.gameMode || '').toLowerCase()
+    const mn = (m.mapName || '').toLowerCase()
+    return EVENT_MATCH_TYPES.has(mt)
+      || EVENT_GAME_MODE_KEYWORDS.some((k) => gm.includes(k))
+      || EVENT_MAP_KEYWORDS.some((k) => mn.includes(k))
+  }
+  const filteredRecentMatches = (recentMatches || []).filter((m) => !isEventMatch(m))
+
   // 최근 20경기 통계 계산
   const calculate20MatchStats = (matches) => {
     if (!matches || matches.length === 0) {
@@ -166,7 +202,7 @@ const PlayerHeader = ({
     };
   };
 
-  const recent20Stats = calculate20MatchStats(recentMatches);
+  const recent20Stats = calculate20MatchStats(filteredRecentMatches);
 
   const recent20Score = recent20Stats.totalMatches === 0
     ? 1000
@@ -199,95 +235,19 @@ const PlayerHeader = ({
     return { form: '급감', comment: '컨디션 회복이 필요해 보입니다.' };
   };
 
-  const recent20Form = calculateFormStatus(recentMatches);
+  const recent20Form = calculateFormStatus(filteredRecentMatches);
 
-  const getStyleString = (summary) => {
-    const style = summary?.realPlayStyle || summary?.playstyle || summary?.style;
-    if (typeof style === 'string') {
-      return style.replace(/^[^\w\s가-힣]+\s*/, '').trim() || '일반 밸런스형';
-    }
-    if (typeof style === 'object' && style !== null) {
-      console.warn('PlayerHeader: style is an object, using default value', style);
-      return '일반 밸런스형';
-    }
-    return '일반 밸런스형';
-  };
-
-  const styleString = getStyleString(summary);
-
-  const getCleanStyleText = (text) => {
-    if (!text) return '';
-    return text.replace(/^[^\w\s가-힣]+\s*/, '').trim();
-  };
-
-  const basicStyleText = getCleanStyleText(summary?.playstyle);
-  const detailStyleText = getCleanStyleText(summary?.realPlayStyle);
-  const isDifferentStyles = basicStyleText !== detailStyleText;
-
-  const getStyleDescription = (style) => {
-    const cleanStyle = getCleanStyleText(style);
-    const descriptions = {
-      캐리형: '높은 점수와 딜량으로 팀을 이끄는 핵심 플레이어',
-      안정형: '균형잡힌 성과로 꾸준한 기여를 하는 플레이어',
-      수비형: '생존을 우선시하며 신중하게 플레이하는 타입',
-      '극단적 공격형': '매우 높은 딜량과 킬로 압도적인 공격력을 보이는 하드캐리형',
-      순간광폭형: '초반에 폭발적인 딜량을 뽑아내지만 빠르게 사망하는 하이리스크형',
-      '극단적 수비형': '최소한의 교전으로 최대한 오래 생존하는 완전 수비형',
-      '도박형 파밍러': '초반 파밍 실패로 즉사하는 경우가 많은 불안정한 타입',
-      '치명적 저격수': '장거리에서 정밀한 헤드샷으로 적을 제거하는 저격 전문가',
-      '고효율 승부사': '적은 딜량으로도 킬을 잘 따내는 마무리 전문가',
-      '전략적 어시스트러': '킬보다는 팀원 지원과 어시스트에 특화된 서포터형',
-      '유령 생존자': '교전을 완전히 피하며 은신으로 높은 순위를 달성하는 타입',
-      '지속 전투형': '높은 딜량과 긴 생존시간으로 지속적인 교전을 이어가는 타입',
-      교전형: '적극적인 교전으로 높은 딜량과 킬을 기록하는 공격적 플레이어',
-      '초반 돌격형': '게임 시작부터 적극적으로 교전에 나서는 어그로형',
-      '장거리 정찰러': '넓은 범위를 이동하며 정찰과 포지셔닝을 중시하는 타입',
-      '저격 위주': '원거리에서 저격으로 안정적인 딜량을 누적하는 스타일',
-      '후반 존버형': '초중반을 버티고 후반까지 생존하여 높은 순위를 노리는 타입',
-      '중거리 안정형': '중거리 교전을 선호하며 안정적인 성과를 보이는 밸런스형',
-      공격형: '평균 이상의 딜량으로 공격적인 플레이를 보이는 타입',
-      생존형: '생존시간을 우선시하며 신중한 플레이를 하는 타입',
-      이동형: '넓은 범위를 이동하며 포지셔닝을 중시하는 타입',
-    };
-    return descriptions[cleanStyle] || '플레이스타일 분석 중입니다.';
-  };
-
-  const getPlayerStyle = (style) => {
-    const styles = {
-      '극단적 공격형': { icon: '☠️', color: 'red', bg: 'from-red-500 to-red-600' },
-      '초반 돌격형': { icon: '🚀', color: 'orange', bg: 'from-orange-500 to-orange-600' },
-      '극단적 수비형': { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-      '후반 존버형': { icon: '🏕️', color: 'yellow', bg: 'from-yellow-500 to-yellow-600' },
-      '장거리 정찰러': { icon: '🏃', color: 'blue', bg: 'from-blue-500 to-blue-600' },
-      '저격 위주': { icon: '🎯', color: 'purple', bg: 'from-purple-500 to-purple-600' },
-      '중거리 안정형': { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      '지속 전투형': { icon: '🔥', color: 'red', bg: 'from-red-600 to-red-700' },
-      '일반 밸런스형': { icon: '📦', color: 'gray', bg: 'from-gray-400 to-gray-500' },
-      '☠️ 극단적 공격형': { icon: '☠️', color: 'red', bg: 'from-red-500 to-red-600' },
-      '🚀 초반 돌격형': { icon: '🚀', color: 'orange', bg: 'from-orange-500 to-orange-600' },
-      '🛡️ 극단적 수비형': { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-      '🏕️ 후반 존버형': { icon: '🏕️', color: 'yellow', bg: 'from-yellow-500 to-yellow-600' },
-      '🏃 장거리 정찰러': { icon: '🏃', color: 'blue', bg: 'from-blue-500 to-blue-600' },
-      '🎯 저격 위주': { icon: '🎯', color: 'purple', bg: 'from-purple-500 to-purple-600' },
-      '⚖️ 중거리 안정형': { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      '🔥 지속 전투형': { icon: '🔥', color: 'red', bg: 'from-red-600 to-red-700' },
-      '📦 일반 밸런스형': { icon: '📦', color: 'gray', bg: 'from-gray-400 to-gray-500' },
-      어그로: { icon: '⚔️', color: 'red', bg: 'from-red-500 to-red-600' },
-      서포터: { icon: '🤝', color: 'blue', bg: 'from-blue-500 to-blue-600' },
-      생존형: { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-      킬러: { icon: '💀', color: 'purple', bg: 'from-purple-500 to-purple-600' },
-      밸런스: { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      캐리형: { icon: '🔥', color: 'red', bg: 'from-red-500 to-red-600' },
-      안정형: { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      수비형: { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-      '🔥 캐리형': { icon: '🔥', color: 'red', bg: 'from-red-500 to-red-600' },
-      '⚖️ 안정형': { icon: '⚖️', color: 'gray', bg: 'from-gray-500 to-gray-600' },
-      '🛡️ 수비형': { icon: '🛡️', color: 'green', bg: 'from-green-500 to-green-600' },
-    };
-    return styles[style] || styles['일반 밸런스형'];
-  };
-
-  const playerStyleInfo = getPlayerStyle(summary?.playstyle || styleString);
+  // v4: 실제 스탯 기반 플레이스타일 분류
+  const psResult = classifyPlaystyle({
+    avgDamage:      summary?.avgDamage      || seasonStat?.avgDamage      || 0,
+    avgKills:       summary?.avgKills       || seasonStat?.avgKills       || 0,
+    avgAssists:     summary?.avgAssists     || seasonStat?.avgAssists     || 0,
+    avgSurviveTime: summary?.avgSurvivalTime || seasonStat?.avgSurvival   || 0,
+    winRate:        summary?.winRate        || seasonStat?.winRate        || 0,
+    top10Rate:      summary?.top10Rate      || seasonStat?.top10Rate      || 0,
+    headshotRate:   summary?.headshotRate   || 0,
+  })
+  const majorInfo = MAJOR[psResult.major] || MAJOR.BALANCED
 
   const getFormStyle = (form) => {
     if (form === '급상승' || form === '상승') return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
@@ -297,6 +257,27 @@ const PlayerHeader = ({
 
   return (
     <>
+    {/* 최신화 로딩 오버레이 */}
+    {refreshing && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl px-8 py-7 flex flex-col items-center gap-4 shadow-2xl">
+          <div className="relative w-14 h-14">
+            <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
+            <span className="absolute inset-0 flex items-center justify-center text-xl">🔄</span>
+          </div>
+          <div className="text-center">
+            <div className="text-sm font-bold text-gray-800 mb-0.5">전적 최신화 중...</div>
+            <div className="text-xs text-gray-400">PUBG API에서 데이터를 불러오고 있습니다</div>
+          </div>
+          <div className="flex gap-1">
+            {[0,1,2].map(i => (
+              <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
     {/* 공유 카드 (화면 밖에 렌더링, PNG 캡처용) */}
     <PlayerShareCard
       cardRef={shareCardRef}
@@ -304,7 +285,7 @@ const PlayerHeader = ({
       shard={shard}
       mmr={mmr}
       seasonStat={seasonStat}
-      playstyle={summary?.playstyle || styleString}
+      playstyle={psResult.label}
       clanInfo={clanInfo}
     />
     <div className="mb-8 rounded-2xl overflow-hidden shadow-xl">
@@ -323,125 +304,140 @@ const PlayerHeader = ({
                 <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight truncate">
                   {profile?.nickname || '-'}
                 </h1>
-                {timeAgo(profile?.lastCachedAt) && (
-                  <span className="px-2 py-0.5 bg-gray-700/70 border border-gray-600/50 rounded-full text-[11px] text-gray-400 font-medium">
-                    {timeAgo(profile.lastCachedAt)} 업데이트
-                  </span>
-                )}
+                {timeAgo(profile?.lastCachedAt) && (() => {
+                  const isLive = dataSource === 'pubg_api_refreshed' || dataSource === 'pubg_api'
+                  const isDb = dataSource === 'database' || dataSource === 'memory_cache'
+                  return (
+                    <span suppressHydrationWarning className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
+                      isLive
+                        ? 'bg-emerald-900/50 border-emerald-600/50 text-emerald-300'
+                        : isDb
+                        ? 'bg-gray-700/70 border-gray-600/50 text-gray-400'
+                        : 'bg-gray-700/70 border-gray-600/50 text-gray-400'
+                    }`}>
+                      {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt)} 업데이트
+                    </span>
+                  )
+                })()}
+              </div>
+              {/* 플랫폼 배지 */}
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {(() => {
+                  const PLATFORM = {
+                    steam:   { label: 'Steam',  icon: '🎮', cls: 'bg-[#1b2838]/80 border-[#2a475e] text-[#c7d5e0]' },
+                    kakao:   { label: '카카오배그', icon: '🟡', cls: 'bg-yellow-900/40 border-yellow-600/50 text-yellow-300' },
+                    psn:     { label: 'PlayStation', icon: '🎯', cls: 'bg-blue-900/60 border-blue-500/50 text-blue-300' },
+                    xbox:    { label: 'Xbox',   icon: '🟢', cls: 'bg-green-900/40 border-green-600/50 text-green-300' },
+                    console: { label: 'Console', icon: '🎯', cls: 'bg-gray-700/60 border-gray-500/50 text-gray-300' },
+                  };
+                  const p = PLATFORM[shard] || PLATFORM.steam;
+                  return (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${p.cls}`}>
+                      {p.icon} {p.label}
+                    </span>
+                  );
+                })()}
               </div>
               {/* 클랜 + 플레이스타일 */}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 {clanInfo && (
                   <span className="px-3 py-1 bg-blue-700/60 text-blue-200 border border-blue-600/50 rounded-full text-xs font-semibold backdrop-blur-sm">
                     [{clanInfo.tag || 'CLAN'}] {clanInfo.name || '클랜'}
                     {clanInfo.level ? ` Lv.${clanInfo.level}` : ''}
                   </span>
                 )}
-                <Tooltip content={getStyleDescription(summary?.playstyle)}>
-                  <span className={`px-3 py-1 bg-gradient-to-r ${playerStyleInfo.bg} text-white rounded-full text-xs font-semibold cursor-help shadow-sm`}>
-                    {summary?.playstyle || styleString}
+                <Tooltip content={`${psResult.desc}\n\n💡 ${psResult.tip}`}>
+                  <span className="flex items-center gap-1 cursor-help">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${majorInfo.bg} ${majorInfo.border} ${majorInfo.color}`}>
+                      {majorInfo.icon} {majorInfo.label}
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold text-white ${psResult.bg}`}>
+                      {psResult.label}
+                    </span>
                   </span>
                 </Tooltip>
-                {summary?.realPlayStyle && isDifferentStyles && (
-                  <Tooltip content={getStyleDescription(summary?.realPlayStyle)}>
-                    <span className="px-3 py-1 bg-purple-600/70 text-purple-100 border border-purple-500/50 rounded-full text-xs font-semibold cursor-help">
-                      {summary.realPlayStyle}
-                    </span>
-                  </Tooltip>
-                )}
               </div>
             </div>
           </div>
 
-          {/* 우측 액션 버튼 */}
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* 즐겨찾기 버튼 */}
-            {nickname && (
-              <Tooltip content={isFav ? '즐겨찾기에서 제거' : '즐겨찾기에 추가'}>
-                <button
-                  onClick={toggleFavorite}
-                  className={`px-3 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
-                    isFav
-                      ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300 hover:bg-yellow-400/30'
-                      : 'bg-white/5 border-white/20 text-gray-400 hover:bg-white/10 hover:text-yellow-300'
-                  }`}
-                >
-                  {isFav ? '★' : '☆'}
-                </button>
-              </Tooltip>
-            )}
-            {/* 친구 비교 버튼 */}
-            {nickname && (
-              <Tooltip content="이 플레이어와 비교하기">
-                <button
-                  onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
-                  className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
-                >
-                  ⚔️<span className="hidden sm:inline"> 비교</span>
-                </button>
-              </Tooltip>
-            )}
-            {/* 공유 카드 저장 버튼 */}
-            {nickname && (
-              <Tooltip content="전적 카드 PNG 저장">
-                <button
-                  onClick={handleSaveCard}
-                  disabled={saving}
-                  className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white text-sm font-bold transition-all select-none disabled:opacity-50"
-                >
-                  {saving ? <span className="hidden sm:inline">저장 중...</span> : <>📷<span className="hidden sm:inline"> 카드</span></>}
-                </button>
-              </Tooltip>
-            )}
-            {/* MMR 배지 */}
-            {(() => {
-              const tier = getMMRTier(mmr);
-              return (
-                <Tooltip content={MMR_DISCLAIMER}>
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
-                    <span className="text-base leading-none">{tier.emoji}</span>
-                    <div className="flex flex-col leading-none">
-                      <span className={`text-xs font-black ${tier.textColor}`}>{mmr.toLocaleString()}</span>
-                      <span className={`text-[10px] font-semibold ${tier.textColor} opacity-70`}>{tier.label}</span>
-                    </div>
-                    <span className="text-xs text-gray-400 font-bold ml-0.5">?</span>
-                  </div>
+          {/* 우측 액션 버튼 — 2줄 */}
+          <div className="flex flex-col items-end gap-1.5">
+            {/* 1줄: 즐겨찾기 · 비교 · 카드 · 티어 */}
+            <div className="flex items-center gap-1.5">
+              {nickname && (
+                <Tooltip content={isFav ? '즐겨찾기에서 제거' : '즐겨찾기에 추가'}>
+                  <button
+                    onClick={toggleFavorite}
+                    className={`px-2.5 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
+                      isFav
+                        ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300 hover:bg-yellow-400/30'
+                        : 'bg-white/5 border-white/20 text-gray-400 hover:bg-white/10 hover:text-yellow-300'
+                    }`}
+                  >{isFav ? '★' : '☆'}</button>
                 </Tooltip>
-              );
-            })()}
-            <select
-              className="hidden sm:block px-3 py-2 bg-blue-800/60 border border-blue-600/50 rounded-lg text-sm font-medium text-blue-100 hover:bg-blue-700/60 transition-colors backdrop-blur-sm"
-              defaultValue="current"
-            >
-              <option value="current">현재 시즌</option>
-              <option value="season-31">시즌 31</option>
-              <option value="season-30">시즌 30</option>
-              <option value="season-29">시즌 29</option>
-              <option value="season-28">시즌 28</option>
-            </select>
-            <button
-              onClick={onRefresh}
-              disabled={refreshing || cooldown > 0}
-              className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-1.5 ${
-                refreshing || cooldown > 0
-                  ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
-                  : 'bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:shadow-lg'
-              }`}
-            >
-              {refreshing ? (
-                <>
-                  <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
-                  <span className="hidden sm:inline">최신화 중</span>
-                </>
-              ) : cooldown > 0 ? (
-                `${cooldown}s`
-              ) : (
-                <>
-                  <span>🔄</span>
-                  <span className="hidden sm:inline">최신화</span>
-                </>
               )}
-            </button>
+              {nickname && (
+                <Tooltip content="이 플레이어와 비교하기">
+                  <button
+                    onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
+                    className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
+                  >⚔️<span className="hidden sm:inline"> 비교</span></button>
+                </Tooltip>
+              )}
+              {nickname && (
+                <Tooltip content="전적 카드 PNG 저장">
+                  <button
+                    onClick={handleSaveCard}
+                    disabled={saving}
+                    className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white text-sm font-bold transition-all select-none disabled:opacity-50"
+                  >{saving ? '저장 중...' : <>📷<span className="hidden sm:inline"> 카드</span></>}</button>
+                </Tooltip>
+              )}
+              {(() => {
+                const tier = getMMRTier(displayMmr);
+                const tooltipText = `PKGG 추정 점수 — 배그 공식 수치 아님\n\n계산 기준\n💥 평균 딜량   30%\n🎯 평균 킬수   25%\n🏆 승률        20%\n🛡️ Top10 진입  10%\n🤝 평균 어시   8%\n⏱️ 평균 생존   7%\n\n📌 ${mmrSource}\n일반게임: ${normalMmr.toLocaleString()}점${rankedMmr ? `\n경쟁전:   ${rankedMmr.toLocaleString()}점\n(두 값 중 높은 쪽 적용)` : ''}`;
+                return (
+                  <Tooltip content={tooltipText}>
+                    <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
+                      <span className="text-base leading-none">{tier.emoji}</span>
+                      <div className="flex flex-col leading-none">
+                        <span className={`text-xs font-black ${tier.textColor}`}>{displayMmr.toLocaleString()}</span>
+                        <span className={`text-[10px] font-semibold ${tier.textColor} opacity-70`}>{tier.label}</span>
+                      </div>
+                      <span className="text-xs text-gray-400 font-bold ml-0.5">?</span>
+                    </div>
+                  </Tooltip>
+                );
+              })()}
+            </div>
+            {/* 2줄: 현재시즌 · 이벤트제외 · 최신화 */}
+            <div className="flex items-center gap-1.5">
+              <select
+                className="hidden sm:block px-2.5 py-1.5 bg-blue-800/60 border border-blue-600/50 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-700/60 transition-colors"
+                defaultValue="current"
+              >
+                <option value="current">현재 시즌</option>
+                <option value="season-31">시즌 31</option>
+                <option value="season-30">시즌 30</option>
+                <option value="season-29">시즌 29</option>
+                <option value="season-28">시즌 28</option>
+              </select>
+              <button
+                onClick={onRefresh}
+                disabled={refreshing || cooldown > 0}
+                className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-1.5 ${
+                  refreshing || cooldown > 0
+                    ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
+                    : 'bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:shadow-lg'
+                }`}
+              >
+                {refreshing ? (
+                  <><div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent" /><span className="hidden sm:inline">최신화 중</span></>
+                ) : cooldown > 0 ? `${cooldown}s` : (
+                  <><span>🔄</span><span className="hidden sm:inline">최신화</span></>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -511,7 +507,14 @@ const PlayerHeader = ({
 
                 {showSeasonDetails && (() => {
                   const seasonData = Object.values(seasonStats || {})[0] || {};
-                  const modeLabels = { 'squad-fpp': 'Squad FPP', 'squad': 'Squad TPP', 'duo-fpp': 'Duo FPP', 'duo': 'Duo TPP', 'solo-fpp': 'Solo FPP', 'solo': 'Solo TPP' };
+                  const MODE_META = {
+                    'squad-fpp': { label: '스쿼드', view: '1인칭', fpp: true },
+                    'squad':     { label: '스쿼드', view: '3인칭', fpp: false },
+                    'duo-fpp':   { label: '듀오',   view: '1인칭', fpp: true },
+                    'duo':       { label: '듀오',   view: '3인칭', fpp: false },
+                    'solo-fpp':  { label: '솔로',   view: '1인칭', fpp: true },
+                    'solo':      { label: '솔로',   view: '3인칭', fpp: false },
+                  };
                   const activeModes = Object.entries(seasonData).filter(([, ms]) => (ms.rounds || 0) > 0);
                   return (
                     <div className="mt-3 rounded-xl border border-blue-100 overflow-hidden">
@@ -521,9 +524,16 @@ const PlayerHeader = ({
                       <div className="p-2 space-y-1.5">
                         {activeModes.length === 0 ? (
                           <div className="text-xs text-gray-400 text-center py-2">모드 데이터 없음</div>
-                        ) : activeModes.map(([mode, ms]) => (
-                          <div key={mode} className="rounded-lg bg-white border border-blue-100 p-2">
-                            <div className="text-xs font-bold text-blue-500 mb-1.5">{modeLabels[mode] || mode}</div>
+                        ) : activeModes.map(([mode, ms]) => {
+                          const meta = MODE_META[mode] || { label: mode, view: '', fpp: false };
+                          return (
+                          <div key={mode} className={`rounded-lg bg-white border p-2 ${meta.fpp ? 'border-orange-200' : 'border-blue-100'}`}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="text-xs font-bold text-gray-700">{meta.label}</span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${meta.fpp ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {meta.view}
+                              </span>
+                            </div>
                             <div className="grid grid-cols-4 gap-1">
                               {[
                                 { label: '게임', value: ms.rounds || 0 },
@@ -531,14 +541,15 @@ const PlayerHeader = ({
                                 { label: '평균킬', value: ((ms.totalKills || 0) / (ms.rounds || 1)).toFixed(1) },
                                 { label: '승률', value: (((ms.wins || 0) / (ms.rounds || 1)) * 100).toFixed(1) + '%' },
                               ].map(({ label, value }) => (
-                                <div key={label} className="bg-blue-50/60 rounded p-1.5 text-center">
-                                  <div className="text-[10px] text-blue-400 font-medium">{label}</div>
+                                <div key={label} className={`rounded p-1.5 text-center ${meta.fpp ? 'bg-orange-50/60' : 'bg-blue-50/60'}`}>
+                                  <div className={`text-[10px] font-medium ${meta.fpp ? 'text-orange-400' : 'text-blue-400'}`}>{label}</div>
                                   <div className="text-xs font-bold text-gray-800">{value}</div>
                                 </div>
                               ))}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -559,6 +570,7 @@ const PlayerHeader = ({
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-cyan-500 rounded-full"></div>
               <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">최근 {recent20Stats.totalMatches}경기</h2>
+              <span className="px-1.5 py-0.5 bg-cyan-50 border border-cyan-200 rounded-full text-[10px] text-cyan-500 font-medium">이벤트 제외</span>
               {/* 폼 배지 + 말풍선 */}
               <div className="ml-auto relative flex flex-col items-end">
                 {recent20Form.comment && (
@@ -618,7 +630,7 @@ const PlayerHeader = ({
                 </button>
 
                 {showRecentDetails && (() => {
-                  const recent = (recentMatches || []).slice(0, recent20Stats.totalMatches);
+                  const recent = filteredRecentMatches.slice(0, recent20Stats.totalMatches);
                   const maxDmg = Math.max(...recent.map((m) => m.damage || 0));
                   const totalKills = recent.reduce((s, m) => s + (m.kills || 0), 0);
                   const totalDmg = recent.reduce((s, m) => s + (m.damage || 0), 0);
@@ -689,7 +701,7 @@ const PlayerHeader = ({
                 </div>
 
                 {/* 보조 스탯 */}
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-4 gap-2 mb-3">
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">평균딜</div>
                     <div className="text-sm font-bold text-gray-700">{(rankedSummary.avgDamage || 0).toFixed(0)}</div>
@@ -704,6 +716,14 @@ const PlayerHeader = ({
                       {typeof rankedSummary.top10Ratio === 'number'
                         ? (rankedSummary.top10Ratio * 100).toFixed(1)
                         : (rankedSummary.top10Rate || 0).toFixed(1)}%
+                    </div>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-center">
+                    <div className="text-xs text-amber-500 mb-0.5">
+                      <Tooltip content="경쟁전 스탯 기반 PKGG 자체 산출 점수">PKGG ℹ️</Tooltip>
+                    </div>
+                    <div className={`text-sm font-black ${rankedMmr && rankedMmr > normalMmr ? 'text-amber-600' : 'text-gray-700'}`}>
+                      {rankedMmr ? rankedMmr.toLocaleString() : '-'}
                     </div>
                   </div>
                 </div>

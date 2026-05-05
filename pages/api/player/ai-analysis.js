@@ -19,8 +19,10 @@ export default async function handler(req, res) {
       const cacheKey = aiCacheKey(playerId, playerServer, playerNickname);
       const cached = await redisGet(cacheKey);
       if (cached) {
+        console.log('[AI] Redis HIT:', playerId);
         return res.status(200).json({ message: 'AI 분석 결과가 저장되었습니다.', analysis: cached, fromCache: true });
       }
+      console.log('[AI] Redis MISS - GROQ 호출:', playerId);
 
       // 플레이어 분석 결과 저장
       const savedAnalysis = await prisma.playerAnalysis.upsert({
@@ -75,8 +77,10 @@ export default async function handler(req, res) {
       const getCacheKey = aiCacheKey(qPlayerId, server, nickname);
       const cachedGet = await redisGet(getCacheKey);
       if (cachedGet) {
+        console.log('[AI] Redis HIT:', qPlayerId);
         return res.status(200).json({ analysis: cachedGet, fromCache: true });
       }
+      console.log('[AI] Redis MISS - GROQ 호출:', qPlayerId);
 
       // 기존 분석 결과 조회
       const existingAnalysis = await prisma.playerAnalysis.findUnique({

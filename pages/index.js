@@ -2,14 +2,91 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Link from 'next/link';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import Header from '../components/layout/Header';
 import { useT } from '../utils/i18n';
+import { MAJOR, TYPES } from '../utils/playstyleClassifier';
+import { getMMRTier } from '../utils/mmrCalculator';
 
 const FAV_KEY    = 'pkgg_favorites';
 const SEARCH_KEY = 'pkgg_recent_searches';
+
+const STYLE_LABEL = {
+  HYPER_CARRY: '하이퍼 캐리', ASSAULT: '공격형', SNIPER: '스나이퍼', SUPPORT: '서포터',
+  LURKER: '잠복형', RUSHER: '러셔', DEFENSIVE: '수비형', BALANCED: '밸런스형',
+  SCOUT: '스카우트', TACTICAL: '전술형', PRECISION_SNIPER: '정밀 사수', EARLY_RUSHER: '초반 러셔',
+  TACTICAL_LEADER: '전술 리더', UNKNOWN: '분석 중',
+}
+
+function PlayerResultCard({ result, onClose }) {
+  const { shard, nickname, clanName, clanTag, stats } = result
+  const tier = stats?.mmr ? getMMRTier(stats.mmr) : null
+  const styleLabel = stats?.style ? (STYLE_LABEL[stats.style] || stats.style) : null
+  const lastUpdated = stats?.lastUpdated
+    ? new Date(stats.lastUpdated).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+    : null
+  const playerUrl = `/player/${shard}/${encodeURIComponent(nickname)}`
+
+  return (
+    <div className="mt-3 bg-[#0b1120] border border-blue-500/25 rounded-2xl p-4 animate-in fade-in">
+      <div className="flex items-start gap-3 mb-3">
+        {/* 아바타 */}
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black text-lg flex-shrink-0">
+          {nickname.slice(0, 1).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold text-white text-base leading-tight">{nickname}</span>
+            {clanTag && <span className="text-xs text-gray-500">[{clanTag}]</span>}
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${SHARD_COLOR[shard] || 'bg-gray-700 text-gray-300 border border-gray-600'}`}>
+              {SHARD_LABEL[shard] || shard}
+            </span>
+          </div>
+          {tier && stats?.mmr ? (
+            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-bold mt-1 ${tier.bgColor} ${tier.borderColor}`}>
+              <span>{tier.emoji}</span>
+              <span className={tier.textColor}>{stats.mmr.toLocaleString()} PK · {tier.label}</span>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-600 mt-1">스탯 정보 없음</p>
+          )}
+        </div>
+        <button onClick={onClose} className="text-gray-600 hover:text-gray-400 text-lg flex-shrink-0">×</button>
+      </div>
+
+      {stats && (
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          {[
+            { label: '평균딜', value: Math.round(stats.avgDamage || 0).toLocaleString(), color: 'text-blue-300' },
+            { label: 'K/D',   value: (stats.avgKills || 0).toFixed(2),                   color: 'text-cyan-300' },
+            { label: '승률',  value: (stats.winRate || 0).toFixed(1) + '%',               color: 'text-yellow-300' },
+            { label: 'Top10', value: (stats.top10Rate || 0).toFixed(1) + '%',             color: 'text-green-300' },
+          ].map(s => (
+            <div key={s.label} className="bg-white/5 rounded-xl px-2 py-2 text-center">
+              <p className="text-[9px] text-gray-500 mb-0.5">{s.label}</p>
+              <p className={`text-sm font-black ${s.color}`}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {styleLabel && <span className="text-[10px] bg-white/5 text-gray-400 px-2 py-0.5 rounded-full border border-white/10">🧠 {styleLabel}</span>}
+          {clanName && <span className="text-[10px] text-purple-400">👥 {clanName}</span>}
+          {lastUpdated && <span className="text-[10px] text-gray-600">{lastUpdated} 기준</span>}
+        </div>
+        <Link href={playerUrl} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors">
+          전적 보기 →
+        </Link>
+      </div>
+    </div>
+  )
+}
 const MAX_RECENT = 8;
+
 
 function FaqItem({ q, a }) {
   return (
@@ -40,18 +117,31 @@ function saveRecentSearch(nickname, shard) {
   localStorage.setItem(SEARCH_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
 }
 
+const SHARD_LABEL = { steam: '🎮 Steam', kakao: '🟡 카카오', psn: '🎯 PS', xbox: '🎯 Xbox', console: '🎯 Console' }
+const SHARD_COLOR = {
+  steam: 'bg-[#1b2838] text-[#4a9eff] border border-[#4a9eff]/40',
+  kakao: 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40',
+  psn: 'bg-blue-800/40 text-blue-300 border border-blue-500/40',
+  xbox: 'bg-green-800/40 text-green-300 border border-green-500/40',
+  console: 'bg-blue-800/40 text-blue-300 border border-blue-500/40',
+}
+
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [server, setServer] = useState('steam');
+  const [activeMajor, setActiveMajor] = useState('OFFENSIVE');
+  const [activeType, setActiveType]   = useState(null);
   const [searchMessage, setSearchMessage] = useState('');
   const [favorites, setFavorites]           = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
   const [showDropdown, setShowDropdown]     = useState(false);
   const [isSearching, setIsSearching]       = useState(false);
-  const [searchingNick, setSearchingNick]   = useState('');
+  const [searchShard, setSearchShard]       = useState('steam');
+  const [searchCard, setSearchCard]         = useState(null);
   const searchBoxRef = useRef(null);
   const router = useRouter();
   const { t } = useT();
+
+  const { data: session } = useSession();
 
   // 즐겨찾기 + 최근 검색 로드 (클라이언트 전용)
   useEffect(() => {
@@ -70,18 +160,6 @@ export default function Home() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // 라우트 변경 시 로딩 오버레이 제어
-  useEffect(() => {
-    const handleDone  = () => setIsSearching(false);
-    const handleError = () => setIsSearching(false);
-    router.events.on('routeChangeComplete', handleDone);
-    router.events.on('routeChangeError',    handleError);
-    return () => {
-      router.events.off('routeChangeComplete', handleDone);
-      router.events.off('routeChangeError',    handleError);
-    };
-  }, [router.events]);
-
   const removeFavorite = (nickname, shard) => {
     const next = loadFavs().filter(f => !(f.nickname === nickname && f.shard === shard));
     localStorage.setItem(FAV_KEY, JSON.stringify(next));
@@ -96,16 +174,43 @@ export default function Home() {
     }
   }, [router.query, t]);
 
-
-  const handleSearch = (nick = searchTerm, shard = server) => {
+  // 검색 → 플랫폼 지정 1회 호출 → 확인 카드 표시
+  const handleSearch = async (nick = searchTerm) => {
     const name = nick.trim();
-    if (!name) return;
-    saveRecentSearch(name, shard);
-    setRecentSearches(loadRecentSearches());
+    if (!name || !searchShard) return;
+    setSearchMessage('');
+    setSearchCard(null);
     setShowDropdown(false);
-    setSearchingNick(name);
     setIsSearching(true);
-    router.push(`/player/${shard}/${encodeURIComponent(name)}`);
+    try {
+      const res = await fetch(`/api/pubg/search?nickname=${encodeURIComponent(name)}&shard=${searchShard}`);
+      const data = await res.json();
+      const r = data?.results?.[0];
+      if (data?.retry) {
+        setSearchMessage('서버 연결 중입니다. 잠시 후 다시 시도해주세요.');
+      } else if (!r) {
+        setSearchMessage(`"${name}" 플레이어를 ${SHARD_LABEL[searchShard] || searchShard}에서 찾을 수 없습니다.`);
+      } else if (!r.stats && r.altShard) {
+        // 검색한 플랫폼엔 데이터 없고, 다른 플랫폼에 스탯 있음 → 자동 이동
+        saveRecentSearch(r.nickname, r.altShard);
+        router.push(`/player/${r.altShard}/${encodeURIComponent(r.nickname)}`);
+      } else {
+        saveRecentSearch(r.nickname, r.shard);
+        router.push(`/player/${r.shard}/${encodeURIComponent(r.nickname)}`);
+      }
+    } catch {
+      setSearchMessage('검색 중 오류가 발생했습니다.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleDirectNavigate = (nickname, shard) => {
+    setShowDropdown(false);
+    setSearchCard(null);
+    saveRecentSearch(nickname, shard);
+    setRecentSearches(loadRecentSearches());
+    router.push(`/player/${shard}/${encodeURIComponent(nickname)}`);
   };
 
   const removeRecentSearch = (nickname, shard, e) => {
@@ -125,7 +230,7 @@ export default function Home() {
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') handleSearch();
-    if (e.key === 'Escape') setShowDropdown(false);
+    if (e.key === 'Escape') { setShowDropdown(false); }
   };
 
   return (
@@ -159,69 +264,7 @@ export default function Home() {
             }
           })}}
         />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="true"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
       </Head>
-
-      {/* 검색 로딩 오버레이 */}
-      {isSearching && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: 'rgba(6,6,20,0.92)', backdropFilter: 'blur(12px)' }}>
-          {/* 배경 글로우 */}
-          <div className="absolute w-96 h-96 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 70%)', filter: 'blur(40px)' }} />
-
-          {/* 메인 로딩 영역 */}
-          <div className="relative flex flex-col items-center gap-6 px-8 text-center">
-            {/* 스피너 + 아이콘 */}
-            <div className="relative w-20 h-20">
-              {/* 외부 회전 링 */}
-              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 border-r-blue-400 animate-spin" style={{ animationDuration: '0.9s' }} />
-              {/* 내부 회전 링 (반대 방향) */}
-              <div className="absolute inset-2 rounded-full border-2 border-transparent border-b-violet-500 border-l-violet-400 animate-spin" style={{ animationDuration: '1.4s', animationDirection: 'reverse' }} />
-              {/* 중앙 아이콘 */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-
-            {/* 닉네임 */}
-            <div>
-              <p className="text-2xl font-bold text-white mb-1 tracking-wide">{searchingNick}</p>
-              <p className="text-sm text-blue-300 font-medium">전적 정보를 불러오는 중...</p>
-            </div>
-
-            {/* 프로그레스 바 */}
-            <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full"
-                style={{
-                  animation: 'loadingProgress 3s ease-in-out infinite',
-                }}
-              />
-            </div>
-
-            <p className="text-xs text-gray-500">PUBG API에서 데이터를 가져오고 있습니다</p>
-          </div>
-
-          <style>{`
-            @keyframes loadingProgress {
-              0%   { width: 5%; opacity: 1; }
-              60%  { width: 80%; opacity: 1; }
-              90%  { width: 95%; opacity: 0.7; }
-              100% { width: 98%; opacity: 0.5; }
-            }
-          `}</style>
-        </div>
-      )}
 
       <div className="min-h-screen text-white relative overflow-hidden" style={{ background: '#060614' }}>
         {/* 오로라 그라디언트 배경 */}
@@ -268,50 +311,41 @@ export default function Home() {
         </div>
 
         {/* 헤더 */}
-        <Header
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          server={server}
-          setServer={setServer}
-          handleSearch={handleSearch}
-          handleKeyPress={handleKeyPress}
-        />
+        <Header />
 
         {/* 메인 콘텐츠 */}
-        <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 pt-10 pb-14 sm:py-20">
-          <div className="text-center max-w-4xl mx-auto mb-10 sm:mb-16">
+        <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-3 pt-20 pb-10 sm:pt-24 sm:pb-16 sm:py-20">
+          <div className="text-center w-full max-w-4xl mx-auto mb-6 sm:mb-16">
 
             {/* 배경 글로우 */}
             <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none" style={{ top: '12%', zIndex: -1 }}>
-              <div className="w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)' }} />
+              <div className="w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)' }} />
             </div>
 
             {/* 배지 */}
-            <div className="mb-6">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-xs font-bold tracking-widest text-blue-400 uppercase">
+            <div className="mb-4 sm:mb-6">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-[10px] sm:text-xs font-bold tracking-widest text-blue-400 uppercase">
                 <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
                 PUBG Stats &amp; Analytics
               </span>
             </div>
-
             {/* 로고 */}
-            <h1 className="mb-6">
+            <h1 className="mb-4 sm:mb-6">
               <Image
                 src="/logo.png"
                 alt="PKGG"
                 width={518}
                 height={295}
-                className="w-52 sm:w-80 md:w-[460px] h-auto mx-auto"
-                style={{ filter: 'drop-shadow(0 0 48px rgba(59,130,246,0.55)) drop-shadow(0 8px 24px rgba(0,0,0,0.6))' }}
+                className="w-44 sm:w-80 md:w-[460px] h-auto mx-auto"
+                style={{ filter: 'drop-shadow(0 0 36px rgba(59,130,246,0.55)) drop-shadow(0 6px 18px rgba(0,0,0,0.6))' }}
                 priority
               />
             </h1>
-
             {/* 서브타이틀 */}
-            <p className="text-lg sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-4">
+            <p className="text-base sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-2">
               {t('home.subtitle')}
             </p>
-            <p className="text-xs text-gray-600 mb-10">
+            <p className="text-xs text-gray-600 mb-6 sm:mb-10">
               {t('home.notice')}
             </p>
 
@@ -328,62 +362,64 @@ export default function Home() {
             )}
 
             {/* 검색 섹션 */}
-            <div className="max-w-xl mx-auto px-4 mb-4" ref={searchBoxRef}>
-              <div className="bg-white/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-4 shadow-2xl shadow-blue-900/30">
-                {/* 서버 선택 탭 */}
-                <div className="flex gap-2 mb-3">
-                  {['steam', 'kakao', 'console'].map((s) => (
+            <div className="w-full max-w-xl mx-auto px-0 sm:px-4 mb-4" ref={searchBoxRef}>
+              <div className="bg-white/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-blue-900/30">
+
+                {/* 플랫폼 선택 (필수) */}
+                <div className="flex gap-1.5 mb-2.5">
+                  {[
+                    { value: 'steam', label: 'Steam',  icon: '🎮' },
+                    { value: 'kakao', label: '카카오', icon: '💛' },
+                    { value: 'psn',   label: 'PS',     icon: '🕹️' },
+                    { value: 'xbox',  label: 'Xbox',   icon: '🟢' },
+                  ].map(({ value, label, icon }) => (
                     <button
-                      key={s}
-                      onClick={() => setServer(s)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                        server === s
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-gray-300'
-                      }`}
+                      key={value}
+                      onClick={() => { setSearchShard(value); setSearchMessage(''); setSearchCard(null); }}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border
+                        ${searchShard === value
+                          ? 'bg-blue-600 border-blue-500 text-white'
+                          : 'bg-white/5 border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
+                        }`}
                     >
-                      {s === 'steam' ? '🎮 Steam' : s === 'kakao' ? '🟡 Kakao' : '🎯 Console'}
+                      <span>{icon}</span>
+                      <span>{label}</span>
                     </button>
                   ))}
                 </div>
-                {/* 검색 입력 */}
+
+                {/* 닉네임 입력 */}
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder={t('search.player_placeholder')}
+                    placeholder={`${searchShard === 'kakao' ? '카카오' : searchShard === 'psn' ? 'PS' : searchShard === 'xbox' ? 'Xbox' : 'Steam'} 닉네임 입력`}
                     value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setShowDropdown(true); }}
+                    onChange={(e) => { setSearchTerm(e.target.value); setSearchCard(null); if (!e.target.value) setShowDropdown(true); }}
                     onFocus={() => setShowDropdown(true)}
                     onKeyDown={handleKeyPress}
                     className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
+                    autoComplete="off"
                   />
                   <button
                     onClick={() => handleSearch()}
-                    disabled={isSearching}
-                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/30 hover:shadow-blue-500/40 flex items-center gap-2 text-sm"
+                    disabled={isSearching || !searchTerm.trim()}
+                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/30 flex items-center gap-2 text-sm"
                   >
-                    {isSearching ? (
-                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    )}
-                    {t('search.button')}
+                    {isSearching
+                      ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+                      : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    }
+                    {isSearching ? '검색 중...' : '검색'}
                   </button>
                 </div>
+
 
                 {/* 최근 검색 드롭다운 */}
                 {showDropdown && recentSearches.length > 0 && (
                   <div className="mt-2 border-t border-white/10 pt-2">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">🕐 최근 검색</span>
-                      <button
-                        onClick={clearAllRecent}
-                        className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
-                      >
-                        전체 삭제
-                      </button>
+                      <button onClick={clearAllRecent} className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors">전체 삭제</button>
                     </div>
                     <div className="space-y-0.5">
                       {recentSearches
@@ -391,20 +427,15 @@ export default function Home() {
                         .map((s) => (
                           <div
                             key={`${s.shard}-${s.nickname}`}
-                            onClick={() => { setSearchTerm(s.nickname); setServer(s.shard); handleSearch(s.nickname, s.shard); }}
+                            onClick={() => handleDirectNavigate(s.nickname, s.shard)}
                             className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer group transition-colors"
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="text-gray-500 text-xs flex-shrink-0">🔍</span>
                               <span className="text-sm text-gray-300 truncate">{s.nickname}</span>
-                              <span className="text-[10px] text-gray-600 flex-shrink-0">{s.shard}</span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${SHARD_COLOR[s.shard] || ''}`}>{SHARD_LABEL[s.shard] || s.shard}</span>
                             </div>
-                            <button
-                              onClick={(e) => removeRecentSearch(s.nickname, s.shard, e)}
-                              className="text-gray-700 hover:text-gray-400 text-xs opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 ml-2"
-                            >
-                              ×
-                            </button>
+                            <button onClick={(e) => removeRecentSearch(s.nickname, s.shard, e)} className="text-gray-700 hover:text-gray-400 text-xs opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 ml-2">×</button>
                           </div>
                         ))}
                     </div>
@@ -424,7 +455,7 @@ export default function Home() {
                   {favorites.map((fav) => (
                     <div key={`${fav.shard}-${fav.nickname}`} className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-3 py-1 group">
                       <button
-                        onClick={() => router.push(`/player/${fav.shard}/${encodeURIComponent(fav.nickname)}`)}
+                        onClick={() => handleDirectNavigate(fav.nickname, fav.shard)}
                         className="text-xs text-gray-300 hover:text-white transition-colors font-medium"
                       >
                         {fav.nickname}
@@ -442,7 +473,6 @@ export default function Home() {
               </div>
             )}
           </div>
-
 
           {/* 특징 카드 섹션 */}
           <div className="w-full max-w-6xl mx-auto px-4">
@@ -469,6 +499,66 @@ export default function Home() {
                   <p className="text-gray-500 text-xs leading-relaxed">{t(item.descKey)}</p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* PKGG 플레이 분석 카드 */}
+          <div className="w-full max-w-4xl mx-auto px-4 mt-8 sm:mt-12">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
+              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">PKGG 플레이 분석</h2>
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
+            </div>
+            <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-4 sm:p-6">
+              <p className="text-xs text-gray-500 text-center mb-4">
+                실제 전적 데이터를 기반으로 <strong className="text-gray-300">25가지 세부 유형</strong>으로 플레이스타일을 분석합니다
+              </p>
+              {/* 대카테고리 탭 */}
+              <div className="flex gap-2 mb-5 flex-wrap justify-center">
+                {Object.entries(MAJOR).map(([key, info]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setActiveMajor(key); setActiveType(null); }}
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition-all border ${
+                      activeMajor === key
+                        ? `${info.bg} ${info.border} ${info.color}`
+                        : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10 hover:text-gray-300'
+                    }`}
+                  >
+                    {info.icon} {info.label}
+                  </button>
+                ))}
+              </div>
+              {/* 세부 유형 목록 */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
+                {Object.values(TYPES)
+                  .filter(tp => tp.major === activeMajor && tp.label !== '❓ 분류 불가')
+                  .map(tp => {
+                    const isActive = activeType?.label === tp.label
+                    return (
+                      <button
+                        key={tp.label}
+                        onClick={() => setActiveType(isActive ? null : tp)}
+                        className={`px-3 py-2.5 rounded-xl border text-center transition-all ${tp.bg} ${tp.border} ${
+                          isActive ? 'ring-2 ring-offset-1 ring-offset-transparent opacity-100 scale-[1.03]' : 'opacity-80 hover:opacity-100'
+                        }`}
+                        style={isActive ? { '--tw-ring-color': 'currentColor' } : {}}
+                      >
+                        <span className={`text-xs font-semibold ${tp.color}`}>{tp.label}</span>
+                      </button>
+                    )
+                  })}
+              </div>
+              {/* 선택된 유형 설명 */}
+              {activeType && (
+                <div className={`mt-2 px-4 py-3 rounded-xl border ${activeType.bg} ${activeType.border} transition-all`}>
+                  <div className="flex items-start gap-2">
+                    <span className={`text-sm font-bold ${activeType.color} flex-shrink-0`}>{activeType.label}</span>
+                    <span className="text-xs text-gray-400 leading-relaxed">{activeType.desc}</span>
+                  </div>
+                  <div className={`mt-1.5 text-[11px] ${activeType.color} opacity-70`}>💡 {activeType.tip}</div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -510,7 +600,7 @@ export default function Home() {
                 },
                 {
                   q: '어떤 플랫폼을 지원하나요?',
-                  a: 'Steam, Kakao, Console(PS·Xbox) 세 가지 플랫폼을 지원합니다. 검색창에서 플랫폼을 선택한 뒤 닉네임을 입력하면 해당 플랫폼의 데이터를 불러옵니다.',
+                  a: 'Steam, Kakao, Console(PS·Xbox) 세 가지 플랫폼을 지원합니다. 닉네임만 입력하면 플랫폼을 자동으로 감지해 결과를 보여줍니다. 같은 닉네임이 여러 플랫폼에 있는 경우 선택 화면이 나타납니다.',
                 },
                 {
                   q: 'PKGG MMR(PPS)은 어떻게 계산되나요?',
