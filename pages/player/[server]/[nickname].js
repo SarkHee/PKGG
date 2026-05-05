@@ -400,6 +400,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
   const [playerData, setPlayerData] = useState(ssrData);
   const [pageLoading, setPageLoading] = useState(false);
+  const [navLoading, setNavLoading] = useState(false);
   const [resolvedPlayerId, setResolvedPlayerId] = useState(ssrData?.profile?.playerId || null);
   const [masteryWeapons, setMasteryWeapons] = useState(null);
   // SSR에서 매치를 빼고 클라이언트에서 로드 → LCP 개선
@@ -463,9 +464,13 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
   useEffect(() => {
     const handleStart = (url) => {
+      setNavLoading(true);
       if (url !== router.asPath) setPageLoading(true);
     };
-    const handleDone = () => setPageLoading(false);
+    const handleDone = () => {
+      setNavLoading(false);
+      setPageLoading(false);
+    };
     router.events.on('routeChangeStart', handleStart);
     router.events.on('routeChangeComplete', handleDone);
     router.events.on('routeChangeError', handleDone);
@@ -529,7 +534,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lazyVisible]);
 
-  if (pageLoading) {
+  if (pageLoading || !playerData) {
     return (
       <>
         <Header />
@@ -1136,6 +1141,15 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
   return (
     <>
+      {/* 네비게이션 로딩 오버레이 */}
+      {navLoading && (
+        <div className="fixed inset-0 z-[9999] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4 bg-gray-900 border border-gray-700 rounded-2xl px-10 py-8 shadow-2xl">
+            <div className="w-10 h-10 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-white text-sm font-medium">로딩 중...</span>
+          </div>
+        </div>
+      )}
       <Header />
       <div className="bg-gray-50 min-h-screen text-gray-900">
         <div className="max-w-screen-xl mx-auto px-4 py-6">
