@@ -130,7 +130,7 @@ export default function SynergyHeatmap({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {synergyArr.map((user, index) => (
+          {synergyArr.slice(0, 4).map((user, index) => (
             <div
               key={user.name}
               style={{

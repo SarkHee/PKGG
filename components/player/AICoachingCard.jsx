@@ -140,10 +140,10 @@ function getDynamicTip(dynPrimary, dynSecondary, playStyle) {
   if (!dynPrimary) return null
 
   const p  = dynPrimary.name
-  const pC = dynPrimary.cat
+  const pC = dynPrimary.cat || dynPrimary.category
   const pK = dynPrimary.kills
   const s  = dynSecondary?.name
-  const sC = dynSecondary?.cat
+  const sC = dynSecondary?.cat || dynSecondary?.category
   const sK = dynSecondary?.kills
   const pDesc = WEAPON_CHARS[p]?.tip || ''
 
@@ -561,9 +561,11 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
   // 유저 실제 무기 사용 통계 → WeaponMasteryCard에서 prop으로 받으면 중복 fetch 스킵
   useEffect(() => {
     if (!masteryWeapons) return;
-    const bestAR    = masteryWeapons.find((w) => w.cat === 'AR');
-    const bestSMG   = masteryWeapons.find((w) => w.cat === 'SMG');
-    const bestSRDMR = masteryWeapons.find((w) => w.cat === 'SR' || w.cat === 'DMR');
+    // WeaponMasteryCard는 category 필드를 사용, cat은 하위 호환용
+    const getcat = (w) => w.cat || w.category || '';
+    const bestAR    = masteryWeapons.find((w) => getcat(w) === 'AR');
+    const bestSMG   = masteryWeapons.find((w) => getcat(w) === 'SMG');
+    const bestSRDMR = masteryWeapons.find((w) => getcat(w) === 'SR' || getcat(w) === 'DMR');
     const bestARorSMG = (!bestAR && !bestSMG)
       ? null
       : (!bestSMG || (bestAR && bestAR.kills >= bestSMG.kills))
@@ -648,7 +650,7 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
   const weapons = {
     ...staticWeapons,
     primary: dynPrimary
-      ? { name: dynPrimary.name, note: `${dynPrimary.cat === 'SMG' ? 'SMG' : 'AR'} 중 ${dynPrimary.kills}킬 1위 — 실전 검증된 주무기`, attach: staticWeapons.primary.attach }
+      ? { name: dynPrimary.name, note: `${(dynPrimary.cat || dynPrimary.category) === 'SMG' ? 'SMG' : 'AR'} 중 ${dynPrimary.kills}킬 1위 — 실전 검증된 주무기`, attach: staticWeapons.primary.attach }
       : staticWeapons.primary,
     secondary: dynSecondary
       ? { name: dynSecondary.name, note: `SR/DMR 중 ${dynSecondary.kills}킬 1위 — 실전 검증된 보조무기`, attach: staticWeapons.secondary.attach }

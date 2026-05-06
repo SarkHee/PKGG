@@ -134,29 +134,6 @@ export default function PlayerDashboard({
             />
           </div>
 
-          {/* 함께한 클랜원 TOP */}
-          {hasSynergyData && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-              <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-                함께한 클랜원 TOP {synergyTop.length}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {synergyTop.map((p, index) => (
-                  <Link key={p.name} href={`/player/steam/${encodeURIComponent(p.name)}`}>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-sm font-medium text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all cursor-pointer shadow-sm">
-                      <span className="text-gray-400 text-xs">{index + 1}.</span>
-                      {p.name}
-                      {(p.count ?? p.togetherCount ?? 0) > 0 && (
-                        <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
-                          {p.count ?? p.togetherCount}회
-                        </span>
-                      )}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
 
         </div>
       ) : hasValidClan ? (

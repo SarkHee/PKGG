@@ -1,52 +1,68 @@
-// components/Tooltip.js
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function Tooltip({ children, content }) {
   const [show, setShow] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const wrapRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    if (wrapRef.current) {
+      const rect = wrapRef.current.getBoundingClientRect();
+      const tooltipWidth = 280;
+      let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+
+      // 왼쪽 뷰포트 벗어남 방지
+      if (left < 8) left = 8;
+      // 오른쪽 뷰포트 벗어남 방지
+      if (left + tooltipWidth > window.innerWidth - 8) left = window.innerWidth - tooltipWidth - 8;
+
+      setCoords({ top: rect.bottom + 8, left });
+    }
+    setShow(true);
+  };
+
+  const tooltip = show ? createPortal(
+    <span style={{ ...styles.tooltip, top: coords.top, left: coords.left }}>
+      {content}
+    </span>,
+    document.body
+  ) : null;
 
   return (
     <span
-      style={tooltipStyles.wrapper}
-      onMouseEnter={() => setShow(true)}
+      ref={wrapRef}
+      style={styles.wrapper}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setShow(false)}
     >
       {children}
-      {show && <span style={tooltipStyles.tooltip}>{content}</span>}
+      {tooltip}
     </span>
   );
 }
 
-const tooltipStyles = {
+const styles = {
   wrapper: {
     position: 'relative',
     display: 'inline-block',
     cursor: 'help',
-    borderBottom: '1px dashed #ccc', // 툴팁이 있음을 시각적으로 표시
+    borderBottom: '1px dashed #555',
   },
   tooltip: {
-    position: 'absolute',
-    bottom: '100%', // 위로 띄우기
-    left: '50%',
-    transform: 'translateX(-50%)',
-    marginBottom: '10px', // 아이콘과 툴팁 사이 간격
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    color: 'white',
-    padding: '5px 10px',
-    borderRadius: '4px',
-    fontSize: '0.8em',
-    whiteSpace: 'nowrap',
-    zIndex: 100,
-    pointerEvents: 'none', // 툴팁 자체가 마우스 이벤트를 가로채지 않도록
-    // 삼각형 꼬리 (선택 사항)
-    '::after': {
-      content: '""', // CSS 가상 요소는 JavaScript 객체에서 직접 정의하기 어려우므로, 이 부분은 별도의 CSS 파일 (globals.css 또는 모듈 CSS)에 추가하는 것이 좋습니다. 여기서는 주석 처리하거나, `content: '""'`까지만 남깁니다.
-      // position: 'absolute',
-      // top: '100%',
-      // left: '50%',
-      // marginLeft: '-5px',
-      // borderWidth: '5px',
-      // borderStyle: 'solid',
-      // borderColor: 'rgba(0, 0, 0, 0.8) transparent transparent transparent',
-    },
+    position: 'fixed',
+    backgroundColor: 'rgba(15, 15, 20, 0.95)',
+    color: '#e5e7eb',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    fontSize: '0.75rem',
+    lineHeight: '1.6',
+    whiteSpace: 'pre-line',
+    wordBreak: 'keep-all',
+    width: '280px',
+    zIndex: 9999,
+    pointerEvents: 'none',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+    border: '1px solid rgba(255,255,255,0.08)',
   },
 };
