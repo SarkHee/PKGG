@@ -218,42 +218,83 @@ function StatRow({ label, valA, valB, format }) {
   );
 }
 
+// ── 플랫폼 뱃지 ──────────────────────────────────────────────────────────────
+const PLATFORM_META = {
+  steam:   { label: 'Steam',       style: { background: '#1b2838', color: '#c7d5e0', border: '1px solid #4a6fa5' } },
+  kakao:   { label: 'Kakao',       style: { background: '#fee500', color: '#000',    border: '1px solid #e6ce00' } },
+  psn:     { label: 'PlayStation', style: { background: '#003087', color: '#fff',    border: '1px solid #0050d8' } },
+  xbox:    { label: 'Xbox',        style: { background: '#107c10', color: '#fff',    border: '1px solid #0d6b0d' } },
+}
+
+function PlatformBadge({ shard }) {
+  const meta = PLATFORM_META[shard] || { label: shard, style: { background: '#374151', color: '#9ca3af' } }
+  return (
+    <span style={{ ...meta.style, fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', letterSpacing: '0.02em' }}>
+      {meta.label}
+    </span>
+  )
+}
+
+// ── 경쟁전 티어 표시 ─────────────────────────────────────────────────────────
+const RANK_TIER_COLOR = {
+  Bronze:   '#cd7f32', Silver: '#a8a9ad', Gold: '#ffd700',
+  Platinum: '#00b4d8', Diamond: '#b9f2ff', Master: '#e040fb',
+}
+
+function RankBadge({ tier, subTier, rankPoint }) {
+  const color = RANK_TIER_COLOR[tier] || '#94a3b8'
+  return (
+    <div style={{ color, fontSize: '12px', fontWeight: 700 }}>
+      {tier} {subTier} · {rankPoint?.toLocaleString()}RP
+    </div>
+  )
+}
+
 // ── 플레이어 카드 ──────────────────────────────────────────────────────────────
-function PlayerCard({ player, side }) {
-  const tier = getMMRTier(player.mmr);
+function PlayerCard({ player, activeMode, side }) {
+  const stats = player[activeMode] || {}
+  const tier = getMMRTier(stats.mmr ?? 1000);
   const color = side === 'A' ? 'border-blue-500 bg-blue-900/20' : 'border-red-500 bg-red-900/20';
   const textColor = side === 'A' ? 'text-blue-400' : 'text-red-400';
-  const surv = Math.floor(player.avgSurviveTime / 60);
-  const survSec = player.avgSurviveTime % 60;
+  const surv = Math.floor((stats.avgSurviveTime || 0) / 60);
+  const survSec = (stats.avgSurviveTime || 0) % 60;
 
   return (
     <div className={`rounded-xl border-2 ${color} p-5 flex flex-col items-center gap-3 flex-1`}>
-      {/* 닉네임 */}
-      <Link
-        href={`/player/steam/${encodeURIComponent(player.nickname)}`}
-        className={`text-xl font-bold ${textColor} hover:underline`}
-      >
-        {player.nickname}
-      </Link>
+      {/* 닉네임 + 플랫폼 뱃지 */}
+      <div className="flex flex-col items-center gap-1.5">
+        <Link
+          href={`/player/${player.shard || 'steam'}/${encodeURIComponent(player.nickname)}`}
+          className={`text-xl font-bold ${textColor} hover:underline`}
+        >
+          {player.nickname}
+        </Link>
+        {player.shard && <PlatformBadge shard={player.shard} />}
+      </div>
 
       {/* MMR 배지 */}
       <div
         className="px-4 py-1 rounded-full text-sm font-semibold"
         style={{ backgroundColor: tier.color + '30', color: tier.color, border: `1px solid ${tier.color}60` }}
       >
-        {tier.emoji} {tier.label} {player.mmr.toLocaleString()}
+        {tier.emoji} {tier.label} {(stats.mmr ?? 1000).toLocaleString()}
       </div>
 
+      {/* 경쟁전 티어 */}
+      {activeMode === 'ranked' && stats.tier && (
+        <RankBadge tier={stats.tier} subTier={stats.subTier} rankPoint={stats.rankPoint} />
+      )}
+
       {/* 주요 스탯 요약 */}
-      {player.hasData ? (
+      {stats.hasData ? (
         <div className="w-full grid grid-cols-3 gap-2 text-center">
           {[
-            { label: '평균딜', value: player.avgDamage.toLocaleString() },
-            { label: '평균킬', value: player.avgKills.toFixed(2) },
-            { label: '승률',   value: player.winRate.toFixed(1) + '%' },
-            { label: 'Top10',  value: player.top10Rate.toFixed(1) + '%' },
+            { label: '평균딜', value: (stats.avgDamage || 0).toLocaleString() },
+            { label: '평균킬', value: (stats.avgKills  || 0).toFixed(2) },
+            { label: '승률',   value: (stats.winRate   || 0).toFixed(1) + '%' },
+            { label: 'Top10',  value: (stats.top10Rate || 0).toFixed(1) + '%' },
             { label: '생존',   value: `${surv}m${String(Math.round(survSec)).padStart(2,'0')}s` },
-            { label: '게임수', value: player.roundsPlayed.toLocaleString() },
+            { label: '게임수', value: (stats.roundsPlayed || 0).toLocaleString() },
           ].map(({ label, value }) => (
             <div key={label} className="bg-gray-800/60 rounded-lg py-2 px-1">
               <div className="text-xs text-gray-400">{label}</div>
@@ -262,11 +303,11 @@ function PlayerCard({ player, side }) {
           ))}
         </div>
       ) : (
-        <div className="text-gray-500 text-sm">이번 시즌 데이터 없음</div>
+        <div className="text-gray-500 text-sm text-center px-2">분석할 경기의 수가 부족합니다</div>
       )}
 
-      {player.primaryMode && (
-        <div className="text-xs text-gray-500">주 모드: {player.primaryMode}</div>
+      {stats.primaryMode && (
+        <div className="text-xs text-gray-500">주 모드: {stats.primaryMode}</div>
       )}
     </div>
   );
@@ -274,17 +315,19 @@ function PlayerCard({ player, side }) {
 
 // ── 배틀 공유 카드 (이미지 캡처용, 화면 밖 렌더링) ─────────────────────────
 function BattleShareCard({ playerA, playerB, cardRef }) {
-  const tierA = getMMRTier(playerA.mmr);
-  const tierB = getMMRTier(playerB.mmr);
-  const winner = playerA.mmr > playerB.mmr ? playerA.nickname
-               : playerB.mmr > playerA.mmr ? playerB.nickname
+  const mmrA = playerA.mmr ?? 1000;
+  const mmrB = playerB.mmr ?? 1000;
+  const tierA = getMMRTier(mmrA);
+  const tierB = getMMRTier(mmrB);
+  const winner = mmrA > mmrB ? playerA.nickname
+               : mmrB > mmrA ? playerB.nickname
                : null;
 
   const stats = [
-    { label: '평균딜', dispA: Math.round(playerA.avgDamage).toLocaleString(), dispB: Math.round(playerB.avgDamage).toLocaleString(), rawA: playerA.avgDamage, rawB: playerB.avgDamage },
-    { label: '평균킬', dispA: playerA.avgKills?.toFixed(2), dispB: playerB.avgKills?.toFixed(2), rawA: playerA.avgKills, rawB: playerB.avgKills },
-    { label: '승률',   dispA: playerA.winRate?.toFixed(1) + '%', dispB: playerB.winRate?.toFixed(1) + '%', rawA: playerA.winRate, rawB: playerB.winRate },
-    { label: 'Top10',  dispA: playerA.top10Rate?.toFixed(1) + '%', dispB: playerB.top10Rate?.toFixed(1) + '%', rawA: playerA.top10Rate, rawB: playerB.top10Rate },
+    { label: '평균딜', dispA: Math.round(playerA.avgDamage || 0).toLocaleString(), dispB: Math.round(playerB.avgDamage || 0).toLocaleString(), rawA: playerA.avgDamage || 0, rawB: playerB.avgDamage || 0 },
+    { label: '평균킬', dispA: (playerA.avgKills ?? 0).toFixed(2), dispB: (playerB.avgKills ?? 0).toFixed(2), rawA: playerA.avgKills || 0, rawB: playerB.avgKills || 0 },
+    { label: '승률',   dispA: (playerA.winRate ?? 0).toFixed(1) + '%', dispB: (playerB.winRate ?? 0).toFixed(1) + '%', rawA: playerA.winRate || 0, rawB: playerB.winRate || 0 },
+    { label: 'Top10',  dispA: (playerA.top10Rate ?? 0).toFixed(1) + '%', dispB: (playerB.top10Rate ?? 0).toFixed(1) + '%', rawA: playerA.top10Rate || 0, rawB: playerB.top10Rate || 0 },
   ];
 
   const s = (obj) => obj; // inline style helper
@@ -301,15 +344,17 @@ function BattleShareCard({ playerA, playerB, cardRef }) {
       {/* 플레이어 카드 */}
       <div style={s({ display: 'flex', padding: '14px 16px', gap: '10px', alignItems: 'center' })}>
         <div style={s({ flex: 1, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.35)', borderRadius: '10px', padding: '12px', textAlign: 'center' })}>
-          <div style={s({ color: '#60a5fa', fontWeight: 700, fontSize: '15px', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>{playerA.nickname}</div>
+          <div style={s({ color: '#60a5fa', fontWeight: 700, fontSize: '15px', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>{playerA.nickname}</div>
+          {playerA.shard && <div style={s({ color: '#64748b', fontSize: '9px', marginBottom: '4px' })}>{(PLATFORM_META[playerA.shard] || {}).label || playerA.shard}</div>}
           <div style={s({ color: tierA.color, fontSize: '11px', fontWeight: 600 })}>{tierA.emoji} {tierA.label}</div>
-          <div style={s({ color: tierA.color, fontSize: '20px', fontWeight: 900 })}>{playerA.mmr.toLocaleString()}</div>
+          <div style={s({ color: tierA.color, fontSize: '20px', fontWeight: 900 })}>{mmrA.toLocaleString()}</div>
         </div>
         <div style={s({ color: '#475569', fontWeight: 900, fontSize: '18px' })}>VS</div>
         <div style={s({ flex: 1, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '10px', padding: '12px', textAlign: 'center' })}>
-          <div style={s({ color: '#f87171', fontWeight: 700, fontSize: '15px', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>{playerB.nickname}</div>
+          <div style={s({ color: '#f87171', fontWeight: 700, fontSize: '15px', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>{playerB.nickname}</div>
+          {playerB.shard && <div style={s({ color: '#64748b', fontSize: '9px', marginBottom: '4px' })}>{(PLATFORM_META[playerB.shard] || {}).label || playerB.shard}</div>}
           <div style={s({ color: tierB.color, fontSize: '11px', fontWeight: 600 })}>{tierB.emoji} {tierB.label}</div>
-          <div style={s({ color: tierB.color, fontSize: '20px', fontWeight: 900 })}>{playerB.mmr.toLocaleString()}</div>
+          <div style={s({ color: tierB.color, fontSize: '20px', fontWeight: 900 })}>{mmrB.toLocaleString()}</div>
         </div>
       </div>
 
@@ -355,13 +400,15 @@ function BattleShareCard({ playerA, playerB, cardRef }) {
 }
 
 // ── AI 비교 요약 컴포넌트 ─────────────────────────────────────────────────────
-function AiComparison({ playerA, playerB }) {
+function AiComparison({ playerA, playerB, activeMode }) {
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
+  const hasData = playerA?.hasData && playerB?.hasData;
+
   useEffect(() => {
-    if (!playerA?.hasData || !playerB?.hasData) return;
+    if (!hasData) return;
     let cancelled = false;
     setLoading(true);
     setSummary('');
@@ -382,9 +429,15 @@ function AiComparison({ playerA, playerB }) {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [playerA?.nickname, playerB?.nickname]);
+  // activeMode 변경 시 재분석 + hasData 상태가 false→true 되는 경우도 재실행
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerA?.nickname, playerB?.nickname, activeMode, hasData]);
 
-  if (!playerA?.hasData || !playerB?.hasData) return null;
+  if (!hasData) return (
+    <div className="text-center text-gray-500 text-sm py-6 mb-8">
+      해당 모드의 경기 데이터가 없어 AI 분석을 제공할 수 없습니다
+    </div>
+  );
 
   return (
     <div className="relative rounded-xl mb-8 overflow-hidden border border-indigo-500/30 bg-gradient-to-br from-indigo-950/60 via-gray-900/80 to-blue-950/40">
@@ -452,7 +505,7 @@ export default function ComparePage() {
   const { t }        = useT();
   const [inputA, setInputA] = useState('');
   const [inputB, setInputB] = useState('');
-  const [shard, setShard]   = useState('steam');
+  const [activeMode, setActiveMode] = useState('normal'); // 'normal' | 'ranked'
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -462,24 +515,23 @@ export default function ComparePage() {
   // URL 파라미터에서 초기값 세팅
   useEffect(() => {
     if (!router.isReady) return;
-    const { a, b, shard: s } = router.query;
+    const { a, b } = router.query;
     if (a) setInputA(a);
     if (b) setInputB(b);
-    if (s) setShard(s);
-    if (a && b) fetchCompare(a, b, s || 'steam');
+    if (a && b) fetchCompare(a, b);
   }, [router.isReady]);
 
-  async function fetchCompare(a, b, sh) {
+  async function fetchCompare(a, b) {
     setLoading(true);
     setError('');
     setData(null);
     try {
-      const res  = await fetch(`/api/pubg/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}&shard=${sh}`);
+      const res  = await fetch(`/api/pubg/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || '비교 실패');
       setData(json);
       // URL 업데이트 (공유 가능)
-      router.replace(`/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}&shard=${sh}`, undefined, { shallow: true });
+      router.replace(`/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`, undefined, { shallow: true });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -490,7 +542,7 @@ export default function ComparePage() {
   function handleSubmit(e) {
     e.preventDefault();
     if (!inputA.trim() || !inputB.trim()) return;
-    fetchCompare(inputA.trim(), inputB.trim(), shard);
+    fetchCompare(inputA.trim(), inputB.trim());
   }
 
   const swapPlayers = () => {
@@ -542,7 +594,7 @@ export default function ComparePage() {
             <h1 className="text-3xl font-bold mb-2">
               ⚔️ 플레이어 비교
             </h1>
-            <p className="text-gray-400 text-sm">두 플레이어의 이번 시즌 통계를 나란히 비교합니다</p>
+            <p className="text-gray-400 text-sm">두 플레이어의 이번 시즌 통계를 나란히 비교합니다 · 플랫폼 자동 감지</p>
           </div>
 
           {/* ── 검색 폼 ── */}
@@ -567,24 +619,13 @@ export default function ComparePage() {
                 placeholder="플레이어 B"
                 className="flex-1 bg-gray-700 border border-red-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400"
               />
-              <div className="flex gap-2">
-                <select
-                  value={shard}
-                  onChange={(e) => setShard(e.target.value)}
-                  className="flex-1 sm:flex-none bg-gray-700 border border-gray-600 rounded-lg px-3 py-3 text-white focus:outline-none focus:border-blue-400"
-                >
-                  <option value="steam">Steam</option>
-                  <option value="kakao">Kakao</option>
-                  <option value="console">Console</option>
-                </select>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-                >
-                  {loading ? '조회 중…' : '비교하기'}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+              >
+                {loading ? '조회 중…' : '비교하기'}
+              </button>
             </div>
           </form>
         </div>
@@ -619,98 +660,86 @@ export default function ComparePage() {
           {/* 비교 결과 */}
           {data && !loading && (
             <>
+              {/* 모드 탭 */}
+              <div className="flex gap-2 mb-6 justify-center">
+                {[
+                  { key: 'normal', label: '🎮 일반게임' },
+                  { key: 'ranked', label: '🏆 경쟁전' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveMode(key)}
+                    className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
+                      activeMode === key
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
+                        : 'bg-gray-700/60 text-gray-400 hover:text-white hover:bg-gray-600'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               {/* 플레이어 카드 */}
               <div className="flex gap-4 mb-8 flex-col sm:flex-row">
-                <PlayerCard player={data.playerA} side="A" />
+                <PlayerCard player={data.playerA} activeMode={activeMode} side="A" />
                 <div className="flex items-center justify-center text-2xl font-black text-gray-500">VS</div>
-                <PlayerCard player={data.playerB} side="B" />
+                <PlayerCard player={data.playerB} activeMode={activeMode} side="B" />
               </div>
 
               {/* 스탯 비교 바 + 레이더 차트 */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {/* 스탯 비교 바 */}
-                <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6">
-                  <h2 className="text-lg font-bold mb-4 text-gray-200">📊 스탯 비교</h2>
+              {(() => {
+                const sA = data.playerA[activeMode] || {}
+                const sB = data.playerB[activeMode] || {}
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    {/* 스탯 비교 바 */}
+                    <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6">
+                      <h2 className="text-lg font-bold mb-4 text-gray-200">📊 스탯 비교</h2>
 
-                  {/* 상단 플레이어 레이블 */}
-                  <div className="flex justify-between mb-3 text-sm font-semibold">
-                    <span className="text-blue-400">{data.playerA.nickname}</span>
-                    <span className="text-red-400">{data.playerB.nickname}</span>
-                  </div>
-
-                  <StatRow
-                    label="PKGG MMR"
-                    valA={data.playerA.mmr}
-                    valB={data.playerB.mmr}
-                    format={(v) => v.toLocaleString()}
-                  />
-                  <StatRow
-                    label="평균 딜량"
-                    valA={data.playerA.avgDamage}
-                    valB={data.playerB.avgDamage}
-                    format={(v) => v.toLocaleString()}
-                  />
-                  <StatRow
-                    label="평균 킬"
-                    valA={data.playerA.avgKills}
-                    valB={data.playerB.avgKills}
-                    format={(v) => v.toFixed(2)}
-                  />
-                  <StatRow
-                    label="승률 (%)"
-                    valA={data.playerA.winRate}
-                    valB={data.playerB.winRate}
-                    format={(v) => v.toFixed(1) + '%'}
-                  />
-                  <StatRow
-                    label="Top 10% 진입률"
-                    valA={data.playerA.top10Rate}
-                    valB={data.playerB.top10Rate}
-                    format={(v) => v.toFixed(1) + '%'}
-                  />
-                  <StatRow
-                    label="평균 생존시간"
-                    valA={data.playerA.avgSurviveTime}
-                    valB={data.playerB.avgSurviveTime}
-                    format={(v) => {
-                      const m = Math.floor(v / 60);
-                      const s = Math.round(v % 60);
-                      return `${m}m ${String(s).padStart(2, '0')}s`;
-                    }}
-                  />
-                  <StatRow
-                    label="평균 어시스트"
-                    valA={data.playerA.avgAssists}
-                    valB={data.playerB.avgAssists}
-                    format={(v) => v.toFixed(2)}
-                  />
-                  <StatRow
-                    label="총 게임 수"
-                    valA={data.playerA.roundsPlayed}
-                    valB={data.playerB.roundsPlayed}
-                    format={(v) => v.toLocaleString()}
-                  />
-                </div>
-
-                {/* 레이더 차트 */}
-                <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 flex flex-col">
-                  <h2 className="text-lg font-bold mb-4 text-gray-200">🕸️ 능력치 레이더</h2>
-                  <div className="flex-1 flex items-center justify-center">
-                    {data.playerA.hasData && data.playerB.hasData ? (
-                      <div className="w-full max-w-sm mx-auto">
-                        <RadarChart playerA={data.playerA} playerB={data.playerB} />
+                      <div className="flex justify-between mb-3 text-sm font-semibold">
+                        <span className="text-blue-400">{data.playerA.nickname}</span>
+                        <span className="text-red-400">{data.playerB.nickname}</span>
                       </div>
-                    ) : (
-                      <div className="text-gray-500 text-sm text-center">
-                        한 명 이상 데이터가 없어 레이더 차트를 표시할 수 없습니다
+
+                      <StatRow label="PKGG MMR"       valA={sA.mmr}          valB={sB.mmr}          format={(v) => v.toLocaleString()} />
+                      <StatRow label="평균 딜량"       valA={sA.avgDamage}    valB={sB.avgDamage}    format={(v) => v.toLocaleString()} />
+                      <StatRow label="평균 킬"         valA={sA.avgKills}     valB={sB.avgKills}     format={(v) => v.toFixed(2)} />
+                      <StatRow label="승률 (%)"        valA={sA.winRate}      valB={sB.winRate}      format={(v) => v.toFixed(1) + '%'} />
+                      <StatRow label="Top 10% 진입률"  valA={sA.top10Rate}    valB={sB.top10Rate}    format={(v) => v.toFixed(1) + '%'} />
+                      <StatRow label="평균 생존시간"   valA={sA.avgSurviveTime} valB={sB.avgSurviveTime} format={(v) => {
+                        const m = Math.floor(v / 60); const s = Math.round(v % 60);
+                        return `${m}m ${String(s).padStart(2, '0')}s`;
+                      }} />
+                      <StatRow label="평균 어시스트"   valA={sA.avgAssists}   valB={sB.avgAssists}   format={(v) => v.toFixed(2)} />
+                      <StatRow label="총 게임 수"      valA={sA.roundsPlayed} valB={sB.roundsPlayed} format={(v) => v.toLocaleString()} />
+                    </div>
+
+                    {/* 레이더 차트 */}
+                    <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 flex flex-col">
+                      <h2 className="text-lg font-bold mb-4 text-gray-200">🕸️ 능력치 레이더</h2>
+                      <div className="flex-1 flex items-center justify-center">
+                        {sA.hasData && sB.hasData ? (
+                          <div className="w-full max-w-sm mx-auto">
+                            <RadarChart playerA={{ ...sA, nickname: data.playerA.nickname }} playerB={{ ...sB, nickname: data.playerB.nickname }} />
+                          </div>
+                        ) : (
+                          <div className="text-gray-500 text-sm text-center">
+                            분석할 경기의 수가 부족합니다
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                )
+              })()}
 
               {/* AI 비교 분석 */}
-              <AiComparison playerA={data.playerA} playerB={data.playerB} />
+              <AiComparison
+                playerA={{ ...data.playerA, ...data.playerA[activeMode] }}
+                playerB={{ ...data.playerB, ...data.playerB[activeMode] }}
+                activeMode={activeMode}
+              />
 
               {/* 공유 버튼 */}
               <div className="bg-gray-800/40 rounded-xl border border-gray-700 p-5 text-center">
@@ -745,7 +774,11 @@ export default function ComparePage() {
               </div>
 
               {/* 이미지 캡처용 카드 (화면 밖) */}
-              <BattleShareCard playerA={data.playerA} playerB={data.playerB} cardRef={cardRef} />
+              <BattleShareCard
+                playerA={{ ...data.playerA, ...data.playerA[activeMode] }}
+                playerB={{ ...data.playerB, ...data.playerB[activeMode] }}
+                cardRef={cardRef}
+              />
             </>
           )}
         </div>
