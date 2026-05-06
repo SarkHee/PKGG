@@ -123,6 +123,18 @@ export default async function handler(req, res) {
   const shardFilter = req.query.shard || null
   const PUBG_BASE = 'https://api.pubg.com/shards'
 
+  // DB에 저장된 정확한 케이스 닉네임 조회 (PUBG API는 대소문자 구별)
+  async function resolveCorrectCase(inputName) {
+    try {
+      const hit = await prisma.playerCache.findFirst({
+        where: { nickname: { equals: inputName, mode: 'insensitive' } },
+        orderBy: { lastUpdated: 'desc' },
+        select: { nickname: true },
+      })
+      return hit?.nickname || inputName
+    } catch { return inputName }
+  }
+
   // CDN 캐시 60초 신선 + 300초 stale-while-revalidate
   // 같은 닉네임 검색: 60초간 Edge 즉시 반환, 60~360초는 stale 즉시 반환 + 백그라운드 갱신
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
@@ -165,11 +177,12 @@ export default async function handler(req, res) {
         }]
         tryFetchPlayer(name, shardFilter, PUBG_BASE).catch(() => {})
       } else {
-        // 신규 유저: steam·kakao 병렬로 플랫폼 자동 감지
-        found = await findPlayerByName(name, PUBG_BASE)
+        // 신규 유저: DB에서 올바른 케이스 조회 후 steam·kakao 병렬 자동 감지
+        const correctName = await resolveCorrectCase(name)
+        found = await findPlayerByName(correctName, PUBG_BASE)
         if (found.length === 0) {
           // 자동 감지 실패 시 지정 샤드 단독 시도
-          const result = await tryFetchPlayer(name, shardFilter, PUBG_BASE)
+          const result = await tryFetchPlayer(correctName, shardFilter, PUBG_BASE)
           if (result.apiError) {
             return res.status(503).json({ results: [], retry: true, error: 'PUBG API 연결 실패' })
           }
@@ -179,8 +192,9 @@ export default async function handler(req, res) {
         for (const p of found) savePlayerCache(p.accountId, p.nickname, p.shard)
       }
     } else {
-      // shardFilter 없음: 자동 감지 후 DB 저장
-      found = await findPlayerByName(name, PUBG_BASE)
+      // shardFilter 없음: DB에서 올바른 케이스 조회 후 자동 감지
+      const correctName = await resolveCorrectCase(name)
+      found = await findPlayerByName(correctName, PUBG_BASE)
       for (const p of found) savePlayerCache(p.accountId, p.nickname, p.shard)
     }
 
