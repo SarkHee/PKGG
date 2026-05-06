@@ -135,7 +135,6 @@ export default function Home() {
   const [showDropdown, setShowDropdown]     = useState(false);
   const [isSearching, setIsSearching]       = useState(false);
   const [navigating, setNavigating]         = useState(false);
-  const [searchShard, setSearchShard]       = useState('steam');
   const [searchCard, setSearchCard]         = useState(null);
   const searchBoxRef = useRef(null);
   const router = useRouter();
@@ -185,23 +184,19 @@ export default function Home() {
 
   const handleSearch = async (nick = searchTerm) => {
     const name = nick.trim();
-    if (!name || !searchShard) return;
+    if (!name) return;
     setSearchMessage('');
     setSearchCard(null);
     setShowDropdown(false);
     setIsSearching(true);
     try {
-      const res = await fetch(`/api/pubg/search?nickname=${encodeURIComponent(name)}&shard=${searchShard}`);
+      const res = await fetch(`/api/pubg/search?nickname=${encodeURIComponent(name)}`);
       const data = await res.json();
       const r = data?.results?.[0];
       if (data?.retry) {
         setSearchMessage('서버 연결 중입니다. 잠시 후 다시 시도해주세요.');
       } else if (!r) {
-        setSearchMessage(`"${name}" 플레이어를 ${SHARD_LABEL[searchShard] || searchShard}에서 찾을 수 없습니다.`);
-      } else if (!r.stats && r.altShard) {
-        saveRecentSearch(r.nickname, r.altShard);
-        setNavigating(true);
-        router.push(`/player/${r.altShard}/${encodeURIComponent(r.nickname)}`);
+        setSearchMessage(`"${name}" 플레이어를 찾을 수 없습니다.`);
       } else {
         saveRecentSearch(r.nickname, r.shard);
         setNavigating(true);
@@ -382,34 +377,11 @@ export default function Home() {
             <div className="w-full max-w-xl mx-auto px-0 sm:px-4 mb-4" ref={searchBoxRef}>
               <div className="bg-white/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-blue-900/30">
 
-                {/* 플랫폼 선택 (필수) */}
-                <div className="flex gap-1.5 mb-2.5">
-                  {[
-                    { value: 'steam', label: 'Steam',  icon: '🎮' },
-                    { value: 'kakao', label: '카카오', icon: '💛' },
-                    { value: 'psn',   label: 'PS',     icon: '🕹️' },
-                    { value: 'xbox',  label: 'Xbox',   icon: '🟢' },
-                  ].map(({ value, label, icon }) => (
-                    <button
-                      key={value}
-                      onClick={() => { setSearchShard(value); setSearchMessage(''); setSearchCard(null); }}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border
-                        ${searchShard === value
-                          ? 'bg-blue-600 border-blue-500 text-white'
-                          : 'bg-white/5 border-white/10 text-gray-400 hover:text-gray-200 hover:border-white/20'
-                        }`}
-                    >
-                      <span>{icon}</span>
-                      <span>{label}</span>
-                    </button>
-                  ))}
-                </div>
-
                 {/* 닉네임 입력 */}
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder={`${searchShard === 'kakao' ? '카카오' : searchShard === 'psn' ? 'PS' : searchShard === 'xbox' ? 'Xbox' : 'Steam'} 닉네임 입력`}
+                    placeholder="닉네임 입력 (플랫폼 자동 감지)"
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setSearchCard(null); if (!e.target.value) setShowDropdown(true); }}
                     onFocus={() => setShowDropdown(true)}

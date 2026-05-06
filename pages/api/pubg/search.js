@@ -72,6 +72,15 @@ async function findPlayerByName(name, pubgBase) {
   return [...byAccountId.values()]
 }
 
+// 플랫폼 감지 결과를 기존 PlayerCache 레코드에 백필 (fire-and-forget)
+// 빈 스탯 레코드를 새로 생성하지 않음 — 신규 유저는 플레이어 페이지 방문 시 full 저장됨
+function savePlayerCache(accountId, nickname, shard) {
+  prisma.playerCache.updateMany({
+    where: { nickname: { equals: nickname, mode: 'insensitive' } },
+    data:  { pubgPlayerId: accountId, pubgShardId: shard, lastUpdated: new Date() },
+  }).catch(e => console.warn('[search] PlayerCache 백필 실패:', e.message))
+}
+
 async function getClanInfo(nickname) {
   try {
     const member = await prisma.clanMember.findFirst({
@@ -147,23 +156,32 @@ export default async function handler(req, res) {
       })
 
       if (dbHit?.pubgPlayerId) {
+        // 기존 유저: DB 그대로 반환 + 백그라운드 갱신
         found = [{
           shard:      dbHit.pubgShardId,
           nickname:   dbHit.nickname,
           accountId:  dbHit.pubgPlayerId,
           matchCount: 0,
         }]
-        // Background refresh so next call gets fresh shard data
         tryFetchPlayer(name, shardFilter, PUBG_BASE).catch(() => {})
       } else {
-        const result = await tryFetchPlayer(name, shardFilter, PUBG_BASE)
-        if (result.apiError) {
-          return res.status(503).json({ results: [], retry: true, error: 'PUBG API 연결 실패' })
+        // 신규 유저: steam·kakao 병렬로 플랫폼 자동 감지
+        found = await findPlayerByName(name, PUBG_BASE)
+        if (found.length === 0) {
+          // 자동 감지 실패 시 지정 샤드 단독 시도
+          const result = await tryFetchPlayer(name, shardFilter, PUBG_BASE)
+          if (result.apiError) {
+            return res.status(503).json({ results: [], retry: true, error: 'PUBG API 연결 실패' })
+          }
+          if (result.player) found = [result.player]
         }
-        if (result.player) found = [result.player]
+        // accountId + nickname + platform DB 저장
+        for (const p of found) savePlayerCache(p.accountId, p.nickname, p.shard)
       }
     } else {
+      // shardFilter 없음: 자동 감지 후 DB 저장
       found = await findPlayerByName(name, PUBG_BASE)
+      for (const p of found) savePlayerCache(p.accountId, p.nickname, p.shard)
     }
 
     if (found.length === 0) return res.json({ results: [] })

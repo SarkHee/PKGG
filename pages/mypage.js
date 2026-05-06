@@ -7,218 +7,307 @@ import Link from 'next/link';
 import Layout from '../components/layout/Layout';
 
 // ── 일일 목표 ────────────────────────────────────────────────────────────────
-const PRESET_GOALS = [
-  { id: 'kd',       icon: '💀', label: 'K/D 비율',      unit: '',    target: 2.0,  step: 0.1, min: 0.5, max: 10,   type: 'float' },
-  { id: 'damage',   icon: '💥', label: '평균 데미지',    unit: '',    target: 400,  step: 10,  min: 100, max: 2000,  type: 'int' },
-  { id: 'kills',    icon: '🔫', label: '킬 수',          unit: '킬',  target: 5,    step: 1,   min: 1,   max: 50,    type: 'int' },
-  { id: 'top10',    icon: '🏅', label: 'Top10 진입',    unit: '회',  target: 3,    step: 1,   min: 1,   max: 20,    type: 'int' },
-  { id: 'win',      icon: '🏆', label: '치킨 먹기',     unit: '회',  target: 1,    step: 1,   min: 1,   max: 5,     type: 'int' },
-  { id: 'headshot', icon: '🎯', label: '헤드샷 비율',   unit: '%',   target: 20,   step: 5,   min: 5,   max: 80,    type: 'int' },
-  { id: 'survive',  icon: '⏱️', label: '평균 생존시간',  unit: '분', target: 15,   step: 1,   min: 5,   max: 40,    type: 'int' },
-  { id: 'games',    icon: '🎮', label: '게임 수',        unit: '판',  target: 10,   step: 1,   min: 1,   max: 50,    type: 'int' },
-];
+const GOAL_META = {
+  damage: { icon: '💥', label: '단판 최고 딜량', unit: '',   step: 50,  type: 'int' },
+  kills:  { icon: '🔫', label: '단판 최고 킬',   unit: '킬', step: 1,   type: 'int' },
+  top10:  { icon: '🏅', label: 'Top10 횟수',     unit: '회', step: 1,   type: 'int' },
+  win:    { icon: '🏆', label: '치킨 횟수',       unit: '회', step: 1,   type: 'int' },
+};
+
+const DIFF_META = {
+  easy:   { label: '이지', emoji: '🟢', accent: 'green',  desc: '현재 실력보다 살짝 낮게 — 부담 없이 달성' },
+  medium: { label: '중간', emoji: '🟡', accent: 'yellow', desc: '현재 실력의 120% — 집중하면 가능' },
+  hell:   { label: '헬',   emoji: '🔴', accent: 'red',    desc: '현재 실력의 180% — 최고의 컨디션 필요' },
+};
+
+const DIFF_ACCENT = {
+  green:  { border: 'border-green-500/50',  bg: 'bg-green-500/10',  text: 'text-green-400',  bar: 'bg-green-500',  btn: 'bg-green-600 hover:bg-green-500' },
+  yellow: { border: 'border-yellow-500/50', bg: 'bg-yellow-500/10', text: 'text-yellow-400', bar: 'bg-yellow-500', btn: 'bg-yellow-600 hover:bg-yellow-500' },
+  red:    { border: 'border-red-500/50',    bg: 'bg-red-500/10',    text: 'text-red-400',    bar: 'bg-red-500',    btn: 'bg-red-600 hover:bg-red-500' },
+};
+
+function buildGoalTargets(stats, diff) {
+  const dmg  = stats?.avgDamage || 200;
+  const kill = stats?.avgKills  || 2;
+  const wr   = stats?.winRate   || 2;
+  const sets = {
+    easy:   { damage: Math.max(100, Math.round(dmg  * 0.85 / 50) * 50), kills: Math.max(1, Math.round(kill * 0.9)), top10: 2, win: 1 },
+    medium: { damage: Math.round(dmg  * 1.2  / 50) * 50,                kills: Math.max(2, Math.round(kill * 1.3)), top10: 3, win: wr > 5 ? 2 : 1 },
+    hell:   { damage: Math.round(dmg  * 1.8  / 50) * 50,                kills: Math.max(4, Math.round(kill * 2.0)), top10: 5, win: 2 },
+  };
+  return sets[diff];
+}
+
 const GOAL_KEY = 'pkgg_daily_goals';
 const today = () => new Date().toISOString().slice(0, 10);
 
-function recommendGoals(stats) {
-  if (!stats) return null;
-  return [
-    { id: 'damage', target: Math.round(((stats.avgDamage || 300) * 1.1) / 10) * 10 },
-    { id: 'kills',  target: Math.max(1, Math.round((stats.avgKills || 2) * 1.2)) },
-    { id: 'win',    target: (stats.winRate || 0) > 5 ? 2 : 1 },
-  ];
-}
-
-function DailyGoals({ playerStats }) {
-  const [phase, setPhase]               = useState('loading');
+function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
+  const [phase,         setPhase]       = useState('loading');
   const [date]                          = useState(today());
-  const [selectedGoals, setSelectedGoals] = useState([]);
-  const [targets, setTargets]           = useState({});
-  const [progress, setProgress]         = useState({});
-  const [inputVal, setInputVal]         = useState({});
+  const [difficulty,    setDiff]        = useState(null);
+  const [targets,       setTargets]     = useState({});
+  const [progress,      setProgress]    = useState({});
+  const [startTime,     setStartTime]   = useState(null);
+  const [refreshing,    setRefreshing]  = useState(false);
+  const [lastRefresh,   setLastRefresh] = useState(null);
+  const [newMatchCount, setNewMatchCount] = useState(0);
+  const [showDelayHint, setShowDelayHint] = useState(false);
+
+  const GOAL_IDS = ['damage', 'kills', 'top10', 'win'];
 
   useEffect(() => {
     try {
       const data = JSON.parse(localStorage.getItem(GOAL_KEY) || 'null');
-      if (data?.date === date && data?.phase) {
-        setSelectedGoals(data.selectedGoals || []);
+      if (data?.date === date && data?.phase && data?.difficulty) {
+        setDiff(data.difficulty);
         setTargets(data.targets || {});
         setProgress(data.progress || {});
-        setInputVal(data.progress || {});
+        setStartTime(data.startTime || null);
         setPhase(data.phase);
       } else {
-        setPhase('setup');
+        setPhase('select');
       }
-    } catch { setPhase('setup'); }
+    } catch { setPhase('select'); }
   }, [date]);
 
-  const save = (ph, sel, tgt, prog) =>
-    localStorage.setItem(GOAL_KEY, JSON.stringify({ date, phase: ph, selectedGoals: sel, targets: tgt, progress: prog }));
+  // 트래킹 중이면 마운트 시 자동 1회 조회
+  useEffect(() => {
+    if (phase === 'track' && nickname && shard) fetchProgress();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, nickname, shard]);
 
-  const toggleGoal = (id) =>
-    setSelectedGoals((prev) => prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]);
+  const save = (ph, diff, tgt, prog, sTime) =>
+    localStorage.setItem(GOAL_KEY, JSON.stringify({
+      date, phase: ph, difficulty: diff, targets: tgt, progress: prog,
+      startTime: sTime ?? startTime,
+    }));
 
-  const startTracking = () => {
-    if (!selectedGoals.length) return;
-    const init = Object.fromEntries(selectedGoals.map((id) => [id, 0]));
-    setProgress(init); setInputVal(init); setPhase('track');
-    save('track', selectedGoals, targets, init);
+  const startTracking = (diff) => {
+    if (!playerStats) return;
+    const tgt  = buildGoalTargets(playerStats, diff);
+    const init = Object.fromEntries(GOAL_IDS.map(id => [id, 0]));
+    const now  = new Date().toISOString();
+    setDiff(diff); setTargets(tgt); setProgress(init); setStartTime(now); setPhase('track');
+    save('track', diff, tgt, init, now);
   };
 
-  const updateProgress = (id, val) => {
-    const next = { ...progress, [id]: val };
-    setProgress(next); setInputVal(next);
-    save('track', selectedGoals, targets, next);
-    const allDone = selectedGoals.every((sid) => {
-      const g = PRESET_GOALS.find((p) => p.id === sid);
-      return (sid === id ? val : next[sid] || 0) >= (targets[sid] ?? g?.target ?? 0);
-    });
-    if (allDone && selectedGoals.length) { setPhase('done'); save('done', selectedGoals, targets, next); }
+  // 전적 API로 진행상황 자동 계산
+  const fetchProgress = async (currentProgress = null) => {
+    if (!nickname || !shard) return;
+    setRefreshing(true);
+    try {
+      const r = await fetch(`/api/matches/load-more?nickname=${encodeURIComponent(nickname)}&shard=${shard}&offset=0&limit=20`);
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!d.matches?.length) return;
+
+      // 목표 시작 이후 경기만 필터
+      const base = startTime ? new Date(startTime) : new Date(date);
+      const newMatches = d.matches.filter(m =>
+        m.matchTimestamp && new Date(m.matchTimestamp) > base
+      );
+      setNewMatchCount(newMatches.length);
+      if (!newMatches.length) return;
+
+      // 딜량·킬: 단판 최고값 / Top10·치킨: 누적 횟수
+      const fromMatches = {
+        damage: Math.max(...newMatches.map(m => Math.round(m.damage || 0))),
+        kills:  Math.max(...newMatches.map(m => m.kills || 0)),
+        top10:  newMatches.filter(m => {
+          const rank = m.rank ?? m.placement ?? 100;
+          return rank > 0 && rank <= 10;
+        }).length,
+        win: newMatches.filter(m => {
+          const rank = m.rank ?? m.placement ?? 100;
+          return rank === 1;
+        }).length,
+      };
+
+      // 수동 입력보다 전적 값이 높으면 전적 우선, 낮으면 유지
+      const prev = currentProgress || progress;
+      const merged = Object.fromEntries(
+        GOAL_IDS.map(id => [id, Math.max(prev[id] || 0, fromMatches[id] || 0)])
+      );
+
+      setProgress(merged);
+      setLastRefresh(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
+
+      const storedDiff = JSON.parse(localStorage.getItem(GOAL_KEY) || '{}').difficulty;
+      save('track', storedDiff || difficulty, targets, merged);
+
+      const storedTargets = JSON.parse(localStorage.getItem(GOAL_KEY) || '{}').targets || targets;
+      const allDone = GOAL_IDS.every(id => (merged[id] || 0) >= (storedTargets[id] ?? 0));
+      if (allDone) {
+        setPhase('done');
+        save('done', storedDiff || difficulty, storedTargets, merged);
+      }
+    } catch (e) {
+      console.warn('[DailyGoals] 전적 조회 실패:', e.message);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const reset = () => {
     localStorage.removeItem(GOAL_KEY);
-    setPhase('setup'); setSelectedGoals([]); setTargets({}); setProgress({}); setInputVal({});
+    setPhase('select'); setDiff(null); setTargets({}); setProgress({});
+    setStartTime(null); setLastRefresh(null); setNewMatchCount(0);
   };
 
-  const recommended = recommendGoals(playerStats);
-
   if (phase === 'loading') return (
-    <div className="h-24 flex items-center justify-center">
+    <div className="h-20 flex items-center justify-center">
       <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
-  if (phase === 'done') return (
-    <div className="text-center py-10">
-      <div className="text-5xl mb-3">🎉</div>
-      <p className="text-xl font-bold text-white mb-1">오늘의 목표 달성!</p>
-      <p className="text-sm text-gray-400 mb-5">수고하셨습니다. 내일도 화이팅!</p>
-      <button onClick={reset} className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-semibold transition-colors">초기화</button>
-    </div>
-  );
+  if (phase === 'done') {
+    const ac = DIFF_ACCENT[DIFF_META[difficulty]?.accent || 'green'];
+    return (
+      <div className="text-center py-10">
+        <div className="text-5xl mb-3">🎉</div>
+        <p className="text-xl font-bold text-white mb-1">오늘의 목표 달성!</p>
+        <p className="text-sm text-gray-400 mb-1">
+          난이도 <span className={`font-bold ${ac.text}`}>{DIFF_META[difficulty]?.emoji} {DIFF_META[difficulty]?.label}</span> 클리어
+        </p>
+        <p className="text-xs text-gray-600 mb-6">수고하셨습니다. 내일도 화이팅!</p>
+        <button onClick={reset} className={`px-5 py-2 ${ac.btn} text-white rounded-lg text-sm font-semibold transition-colors`}>다시 시작</button>
+      </div>
+    );
+  }
 
-  if (phase === 'setup') return (
-    <div className="space-y-4">
-      {recommended && (
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
-          <p className="text-xs font-semibold text-blue-400 mb-2">📊 내 PUBG 스탯 기반 추천 목표</p>
-          <div className="flex flex-wrap gap-2">
-            {recommended.map((r) => {
-              const g = PRESET_GOALS.find((p) => p.id === r.id);
-              return (
-                <button key={r.id}
-                  onClick={() => { setSelectedGoals((prev) => prev.includes(r.id) ? prev : [...prev, r.id]); setTargets((t) => ({ ...t, [r.id]: r.target })); }}
-                  className="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-xs font-semibold transition-colors"
-                >
-                  {g?.icon} {g?.label} {r.target}{g?.unit} 추가
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {PRESET_GOALS.map((g) => {
-          const sel = selectedGoals.includes(g.id);
+  if (phase === 'select') {
+    if (statsLoading) return (
+      <div className="h-20 flex items-center justify-center gap-2 text-gray-500 text-sm">
+        <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+        스탯 불러오는 중...
+      </div>
+    );
+    if (!playerStats) return (
+      <div className="text-center py-8 text-gray-600 text-sm">
+        <p className="text-2xl mb-2">🎮</p>
+        대표 PUBG 계정을 연동하면<br />스탯 기반 목표를 추천해드립니다.
+      </div>
+    );
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-gray-500 text-center">
+          내 평균 딜량 <span className="text-gray-300 font-bold">{Math.round(playerStats.avgDamage)}</span> · 평균 킬 <span className="text-gray-300 font-bold">{(playerStats.avgKills || 0).toFixed(1)}</span> 기준 추천
+        </p>
+        {Object.entries(DIFF_META).map(([diff, meta]) => {
+          const tgt = buildGoalTargets(playerStats, diff);
+          const ac  = DIFF_ACCENT[meta.accent];
           return (
-            <button key={g.id} onClick={() => toggleGoal(g.id)}
-              className={`p-3 rounded-xl border text-left transition-all ${
-                sel ? 'border-blue-500/60 bg-blue-500/10' : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
-              }`}
+            <button key={diff} onClick={() => startTracking(diff)}
+              className={`w-full text-left p-4 rounded-xl border ${ac.border} ${ac.bg} hover:opacity-90 transition-all`}
             >
-              <div className="text-xl mb-1">{g.icon}</div>
-              <div className="text-xs font-semibold text-gray-300">{g.label}</div>
-              {sel && (
-                <div className="mt-2 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => setTargets((t) => ({ ...t, [g.id]: Math.max(g.min, (t[g.id] ?? g.target) - g.step) }))}
-                    className="w-5 h-5 rounded bg-gray-700 text-gray-300 text-xs flex items-center justify-center hover:bg-gray-600">−</button>
-                  <span className="text-xs font-bold text-blue-400 min-w-[2rem] text-center">
-                    {g.type === 'float' ? (targets[g.id] ?? g.target).toFixed(1) : (targets[g.id] ?? g.target)}{g.unit}
-                  </span>
-                  <button onClick={() => setTargets((t) => ({ ...t, [g.id]: Math.min(g.max, (t[g.id] ?? g.target) + g.step) }))}
-                    className="w-5 h-5 rounded bg-gray-700 text-gray-300 text-xs flex items-center justify-center hover:bg-gray-600">+</button>
-                </div>
-              )}
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-base font-black ${ac.text}`}>{meta.emoji} {meta.label}</span>
+                <span className="text-[10px] text-gray-500">{meta.desc}</span>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {GOAL_IDS.map(id => {
+                  const g = GOAL_META[id];
+                  return (
+                    <span key={id} className="text-xs text-gray-400">
+                      {g.icon} {g.label} <span className={`font-bold ${ac.text}`}>{tgt[id]}{g.unit}</span>
+                    </span>
+                  );
+                })}
+              </div>
             </button>
           );
         })}
       </div>
-      {selectedGoals.length > 0 && (
-        <button onClick={startTracking} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-colors">
-          목표 {selectedGoals.length}개 설정 → 트래킹 시작
-        </button>
-      )}
-    </div>
-  );
+    );
+  }
 
-  // track 단계
-  const completedCount = selectedGoals.filter((id) => {
-    const g = PRESET_GOALS.find((p) => p.id === id);
-    return (progress[id] || 0) >= (targets[id] ?? g?.target ?? 0);
-  }).length;
+  // ── track 단계 ──────────────────────────────────────────────────────────────
+  const ac = DIFF_ACCENT[DIFF_META[difficulty]?.accent || 'green'];
+  const completedCount = GOAL_IDS.filter(id => (progress[id] || 0) >= (targets[id] ?? 0)).length;
 
   return (
     <div className="space-y-3">
-      {/* 전체 진행 */}
-      <div className="flex items-center justify-between bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 flex-shrink-0">
-            <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
-              <circle cx="18" cy="18" r="15" fill="none" stroke="#374151" strokeWidth="3" />
-              <circle cx="18" cy="18" r="15" fill="none" stroke="#3B82F6" strokeWidth="3"
-                strokeDasharray={`${(completedCount / selectedGoals.length) * 94.2} 94.2`} strokeLinecap="round" />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
-              {completedCount}/{selectedGoals.length}
-            </span>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">
-              {completedCount === selectedGoals.length ? '🎉 모든 목표 달성!' : `${selectedGoals.length - completedCount}개 남음`}
-            </p>
-            <p className="text-xs text-gray-500">{date}</p>
-          </div>
-        </div>
-        <button onClick={reset} className="text-xs text-gray-500 hover:text-gray-300 border border-gray-700 hover:border-gray-600 px-3 py-1.5 rounded-lg transition-colors">초기화</button>
-      </div>
-
-      {selectedGoals.map((id) => {
-        const g   = PRESET_GOALS.find((p) => p.id === id);
-        if (!g) return null;
-        const cur  = progress[id] || 0;
-        const tgt  = targets[id] ?? g.target;
-        const pct  = Math.min(100, Math.round((cur / tgt) * 100));
-        const done = cur >= tgt;
-        return (
-          <div key={id} className={`p-4 rounded-xl border transition-all ${done ? 'border-green-500/30 bg-green-500/5' : 'border-gray-700 bg-gray-800/50'}`}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-base">{g.icon}</span>
-                <span className="text-sm font-semibold text-gray-200">{g.label}</span>
-                {done && <span className="text-xs text-green-400 font-bold">✓ 달성!</span>}
-              </div>
-              <span className={`text-sm font-bold ${done ? 'text-green-400' : 'text-blue-400'}`}>
-                {g.type === 'float' ? cur.toFixed(1) : cur}{g.unit} / {g.type === 'float' ? tgt.toFixed(1) : tgt}{g.unit}
+      {/* 헤더 */}
+      <div className={`${ac.bg} border ${ac.border} rounded-xl px-4 py-3`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative w-10 h-10 flex-shrink-0">
+              <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="15" fill="none" stroke="#374151" strokeWidth="3" />
+                <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3"
+                  strokeDasharray={`${(completedCount / GOAL_IDS.length) * 94.2} 94.2`} strokeLinecap="round"
+                  style={{ stroke: difficulty === 'easy' ? '#22c55e' : difficulty === 'medium' ? '#eab308' : '#ef4444' }} />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
+                {completedCount}/{GOAL_IDS.length}
               </span>
             </div>
-            <div className="w-full bg-gray-700 rounded-full h-1.5 mb-3">
-              <div className={`h-1.5 rounded-full transition-all ${done ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${pct}%` }} />
+            <div>
+              <p className={`text-sm font-bold ${ac.text}`}>
+                {DIFF_META[difficulty]?.emoji} {DIFF_META[difficulty]?.label} 도전 중
+              </p>
+              <p className="text-xs text-gray-500">
+                {newMatchCount > 0 ? `목표 시작 후 ${newMatchCount}경기 감지` : `목표 시작 후 신규 경기 없음`} · {date}
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => updateProgress(id, Math.max(0, cur - g.step))}
-                className="w-7 h-7 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-bold transition-colors">−</button>
-              <input type="number" value={inputVal[id] ?? cur}
-                onChange={(e) => setInputVal((v) => ({ ...v, [id]: e.target.value }))}
-                onBlur={(e) => updateProgress(id, Math.max(0, g.type === 'float' ? parseFloat(e.target.value) || 0 : parseInt(e.target.value) || 0))}
-                className="flex-1 text-center text-sm font-bold border border-gray-600 rounded-lg py-1 bg-gray-900 text-white focus:outline-none focus:border-blue-500"
-              />
-              <button onClick={() => updateProgress(id, cur + g.step)}
-                className="w-7 h-7 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-bold transition-colors">+</button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => { fetchProgress(); setShowDelayHint(true); }}
+              disabled={refreshing || !nickname}
+              className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                refreshing
+                  ? 'border-gray-700 text-gray-600 cursor-not-allowed'
+                  : 'border-gray-600 text-gray-400 hover:text-gray-200 hover:border-gray-500'
+              }`}
+            >
+              {refreshing
+                ? <span className="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin inline-block" />
+                : '↻'}
+              {refreshing ? '조회 중' : '전적 반영'}
+            </button>
+            <button onClick={reset} className="text-xs text-gray-500 hover:text-gray-300 border border-gray-700 hover:border-gray-600 px-3 py-1.5 rounded-lg transition-colors">초기화</button>
+          </div>
+        </div>
+        {(lastRefresh || showDelayHint) && (
+          <p className="text-[10px] text-gray-600 mt-1.5 text-right">
+            {lastRefresh && `마지막 반영: ${lastRefresh} · `}최대 10~15분 뒤 반영됩니다
+          </p>
+        )}
+      </div>
+
+      {/* 목표 카드들 */}
+      {GOAL_IDS.map((id) => {
+        const g    = GOAL_META[id];
+        const cur  = progress[id] || 0;
+        const tgt  = targets[id] ?? 0;
+        const pct  = Math.min(100, tgt > 0 ? Math.round((cur / tgt) * 100) : 0);
+        const done = cur >= tgt;
+        const isCountGoal = id === 'top10' || id === 'win';
+        return (
+          <div key={id} className={`p-4 rounded-xl border transition-all ${done ? 'border-green-500/30 bg-green-500/5' : 'border-gray-700 bg-gray-800/50'}`}>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-base">{g.icon}</span>
+                <div>
+                  <span className="text-sm font-semibold text-gray-200">{g.label}</span>
+                  <span className="text-[10px] text-gray-600 ml-1.5">{isCountGoal ? '누적 횟수' : '단판 최고'}</span>
+                </div>
+                {done && <span className="text-xs text-green-400 font-bold">✓ 달성!</span>}
+              </div>
+              <span className={`text-sm font-bold ${done ? 'text-green-400' : ac.text}`}>
+                {cur}{g.unit} / {tgt}{g.unit}
+              </span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-1.5">
+              <div className={`h-1.5 rounded-full transition-all duration-500 ${done ? 'bg-green-500' : ac.bar}`} style={{ width: `${pct}%` }} />
             </div>
           </div>
         );
       })}
+
+      {!nickname && (
+        <p className="text-xs text-gray-600 text-center">대표 계정이 없으면 자동 반영이 되지 않습니다.</p>
+      )}
     </div>
   );
 }
@@ -233,7 +322,8 @@ export default function MyPage() {
   const [linking, setLinking]     = useState(false);
   const [linkMsg, setLinkMsg]     = useState(null);
   const [settingMain, setSettingMain] = useState(false);
-  const [playerStats, setPlayerStats] = useState(null);
+  const [playerStats, setPlayerStats]   = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   useEffect(() => { if (status === 'authenticated') fetchUser(); }, [status]);
 
@@ -248,10 +338,16 @@ export default function MyPage() {
   const fetchMainStats = async (user) => {
     const main = user?.pubgAccounts?.find((a) => a.id === user.mainAccountId);
     if (!main) return;
+    setStatsLoading(true);
     try {
       const r = await fetch(`/api/pubg/search?nickname=${encodeURIComponent(main.nickname)}&shard=${main.platform}`);
-      if (r.ok) { const d = await r.json(); if (d.player) setPlayerStats({ avgDamage: d.player.avgDamage, avgKills: d.player.avgKills, winRate: d.player.winRate }); }
+      if (r.ok) {
+        const d = await r.json();
+        const s = d.results?.[0]?.stats;
+        if (s) setPlayerStats({ avgDamage: s.avgDamage || 0, avgKills: s.avgKills || 0, winRate: s.winRate || 0 });
+      }
     } catch {}
+    finally { setStatsLoading(false); }
   };
 
   const handleLinkPubg = async (e) => {
@@ -425,11 +521,13 @@ export default function MyPage() {
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
             <h2 className="text-sm font-bold text-gray-200 mb-4 flex items-center gap-2">
               📅 <span>일일 목표</span>
-              {mainAccount && playerStats && (
-                <span className="text-xs font-normal text-gray-500">({mainAccount.nickname} 기준 추천)</span>
+              {mainAccount && (
+                <span className="text-xs font-normal text-gray-500">
+                  {playerStats ? `${mainAccount.nickname} 스탯 기반 자동 추천` : statsLoading ? '스탯 로딩 중...' : `${mainAccount.nickname}`}
+                </span>
               )}
             </h2>
-            <DailyGoals playerStats={playerStats} />
+            <DailyGoals playerStats={playerStats} statsLoading={statsLoading} nickname={mainAccount?.nickname} shard={mainAccount?.platform} />
           </div>
 
         </div>

@@ -449,21 +449,28 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
   // 클라이언트에서 초기 매치 로딩 (SSR에서 매치 제거로 LCP 개선)
   useEffect(() => {
-    if (ssrData?.recentMatches?.length > 0) {
-      setMatchesLoading(false);
-      return;
-    }
     const nick = ssrData?.profile?.nickname;
     const shard = ssrData?.profile?.shardId || server || 'steam';
     if (!nick) { setMatchesLoading(false); return; }
 
+    // DB 캐시 매치는 teammatesDetail이 없음 → load-more로 보완 필요
+    const hasTeamData = ssrData?.recentMatches?.some(m => m.teammatesDetail?.length > 0);
+    if (hasTeamData) {
+      setMatchesLoading(false);
+      return;
+    }
+
+    // 세션 캐시 (load-more 결과가 저장된 경우 팀원 데이터 있음)
     const matchCacheKey = `matches_${shard}_${nick}`;
     const cachedMatches = getCachedPlayer(matchCacheKey);
-    if (cachedMatches) {
+    if (cachedMatches?.some(m => m.teammatesDetail?.length > 0)) {
       setPlayerData(prev => prev ? { ...prev, recentMatches: cachedMatches } : prev);
       setMatchesLoading(false);
       return;
     }
+
+    // DB 매치가 있으면 스피너 없이 백그라운드로 교체
+    if (ssrData?.recentMatches?.length > 0) setMatchesLoading(false);
 
     fetch(`/api/matches/load-more?nickname=${encodeURIComponent(nick)}&shard=${shard}&offset=0&limit=10`)
       .then(r => r.json())
@@ -843,15 +850,15 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
       clanAverage = playerAvgDamage;
     }
 
-    // 클랜 내 티어 계산
-    const currentPlayerScore = summary?.score || 0;
-    const higherScoreMembers = clanMembers.filter(
-      (member) => member.score > currentPlayerScore
+    // 클랜 내 티어 계산 (MMR 기준 — 클랜 분석/클랜 상세 페이지와 동일 기준)
+    const currentPlayerMMR = displayData?.mmr || 0;
+    const higherMMRMembers = clanMembers.filter(
+      (member) => (member.mmr || 0) > currentPlayerMMR
     ).length;
 
     let clanTier = '-';
     if (clanMembers.length > 1) {
-      const rank = higherScoreMembers + 1;
+      const rank = higherMMRMembers + 1;
       const total = clanMembers.length;
 
       if (rank === 1) clanTier = `🥇 1위 (${rank}/${total})`;
@@ -1050,15 +1057,15 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
       synergyStatus = '나쁨';
     }
 
-    // 클랜 내 티어 계산 (클랜원들 중에서 순위)
-    const currentPlayerScore = summary?.score || 0;
-    const higherScoreMembers = clanMembers.filter(
-      (member) => member.score > currentPlayerScore
+    // 클랜 내 티어 계산 (MMR 기준 — 클랜 분석/클랜 상세 페이지와 동일 기준)
+    const currentPlayerMMR = displayData?.mmr || 0;
+    const higherMMRMembers = clanMembers.filter(
+      (member) => (member.mmr || 0) > currentPlayerMMR
     ).length;
 
     let clanTier = '-';
     if (clanMembers.length > 1) {
-      const rank = higherScoreMembers + 1;
+      const rank = higherMMRMembers + 1;
       const total = clanMembers.length;
 
       if (rank === 1) clanTier = `🥇 1위 (${rank}/${total})`;
@@ -1357,6 +1364,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                 playerId: resolvedPlayerId || profile?.playerId || null,
               }}
               masteryWeapons={masteryWeapons}
+              rankedStats={rankedSummary}
             />}
             {!lazyVisible && <div className="h-32 bg-gray-100 animate-pulse rounded-xl" />}
           </div>
@@ -1712,7 +1720,8 @@ async function getPlayerFromDB(nickname, server) {
 
     if (cached) {
       const hoursSince = (Date.now() - new Date(cached.lastUpdated).getTime()) / 3600000;
-      if (hoursSince <= 2) {
+      const hasRealStats = (cached.avgDamage > 0 || cached.avgKills > 0 || (cached.roundsPlayed ?? 0) > 0);
+      if (hoursSince <= 2 && hasRealStats) {
         console.log(`✅ PlayerCache 히트: ${nickname} (${Math.round(hoursSince * 60)}분 전)`);
         // PlayerCache에는 매치/클랜 정보가 없으므로 ClanMember도 함께 조회
         const member = await prisma.clanMember.findFirst({

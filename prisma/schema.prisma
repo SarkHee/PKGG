@@ -44,6 +44,7 @@ model ClanMember {
   pubgPlayerId   String?
   pubgShardId    String?
   lastUpdated    DateTime          @default(now())
+  roundsPlayed   Int               @default(0)
   clan           Clan?             @relation(fields: [clanId], references: [id])
   matches        PlayerMatch[]
   modeStats      PlayerModeStats[]
@@ -231,6 +232,8 @@ model PlayerCache {
   winRate        Float    @default(0)
   top10Rate      Float    @default(0)
   lastUpdated    DateTime @default(now())
+  roundsPlayed   Int?     @default(0)
+  ranked_json    String?
 
   @@unique([nickname, pubgShardId])
   @@map("player_cache")
@@ -272,16 +275,25 @@ model CoachingTip {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  steamId       String?  @unique
-  kakaoId       String?  @unique
-  platform      String   @default("steam")
-  pubgNickname  String?
-  pubgAccountId String?
-  clanId        Int?
-  role          String   @default("user")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  steamId           String?  @unique
+  pubgNickname      String?
+  pubgAccountId     String?
+  clanId            Int?
+  role              String   @default("user")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  kakaoId           String?  @unique
+  platform          String   @default("steam")
+  email             String?  @unique @db.VarChar(255)
+  nickname          String?  @db.VarChar(100)
+  steamNickname     String?  @db.VarChar(100)
+  kakaoNickname     String?  @db.VarChar(100)
+  consoleNickname   String?  @db.VarChar(100)
+  defaultPlatform   String?  @default("steam") @db.VarChar(20)
+  dashboardSettings Json?
+  googleId          String?  @unique @db.VarChar(255)
+  avatarUrl         String?
 
   @@map("users")
 }
@@ -302,7 +314,6 @@ model TrainingSession {
   @@map("training_sessions")
 }
 
-// 플레이어 스탯 스냅샷 — 성장 추적용 히스토리
 model PlayerStatSnapshot {
   id             Int      @id @default(autoincrement())
   nickname       String
@@ -320,58 +331,54 @@ model PlayerStatSnapshot {
   @@map("player_stat_snapshots")
 }
 
-// 클랜 내전 기록
 model ClanWar {
-  id          Int      @id @default(autoincrement())
-  clanA       String
-  clanB       String
-  scoreA      Int      @default(0)
-  scoreB      Int      @default(0)
-  map         String   @default("")
-  mode        String   @default("squad-fpp")
-  note        String   @default("")
-  password    String   @default("")
-  playedAt    DateTime @default(now())
-  createdAt   DateTime @default(now())
-
-  players     ClanWarPlayer[]
+  id        Int             @id @default(autoincrement())
+  clanA     String
+  clanB     String
+  scoreA    Int             @default(0)
+  scoreB    Int             @default(0)
+  map       String          @default("")
+  mode      String          @default("squad-fpp")
+  note      String          @default("")
+  password  String          @default("")
+  playedAt  DateTime        @default(now())
+  createdAt DateTime        @default(now())
+  players   ClanWarPlayer[]
 
   @@index([clanA, clanB])
   @@map("clan_wars")
 }
 
 model ClanWarPlayer {
-  id        Int      @id @default(autoincrement())
-  warId     Int
-  war       ClanWar  @relation(fields: [warId], references: [id], onDelete: Cascade)
-  nickname  String
-  team      String   // 'A' | 'B'
-  kills     Int      @default(0)
-  damage    Int      @default(0)
-  survived  Boolean  @default(false)
+  id       Int     @id @default(autoincrement())
+  warId    Int
+  nickname String
+  team     String
+  kills    Int     @default(0)
+  damage   Int     @default(0)
+  survived Boolean @default(false)
+  war      ClanWar @relation(fields: [warId], references: [id], onDelete: Cascade)
 
   @@index([warId])
   @@map("clan_war_players")
 }
 
-// 플레이어 리뷰
 model PlayerReview {
-  id          Int      @id @default(autoincrement())
-  targetNick  String
-  shard       String   @default("steam")
-  authorNick  String
-  rating      Int                      // 1~5
-  teamplay    Int      @default(3)     // 1~5
-  communication Int    @default(3)     // 1~5
-  comment     String   @default("")
-  password    String   @default("")
-  createdAt   DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  targetNick    String
+  shard         String   @default("steam")
+  authorNick    String
+  rating        Int
+  teamplay      Int      @default(3)
+  communication Int      @default(3)
+  comment       String   @default("")
+  password      String   @default("")
+  createdAt     DateTime @default(now())
 
   @@index([targetNick, shard])
   @@map("player_reviews")
 }
 
-// 구글 OAuth 인증 유저
 model AuthUser {
   id            String        @id @default(cuid())
   googleId      String        @unique
@@ -379,31 +386,52 @@ model AuthUser {
   name          String?
   image         String?
   mainAccountId String?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime?     @default(now()) @db.Timestamptz(6)
   pubgAccounts  PubgAccount[]
 
   @@map("auth_users")
 }
 
-// PUBG 계정 연동 (1 AuthUser : N PubgAccount)
 model PubgAccount {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   userId        String
-  user          AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
   nickname      String
   pubgAccountId String
-  platform      String   @default("steam")
-  createdAt     DateTime @default(now())
+  platform      String    @default("steam")
+  createdAt     DateTime? @default(now()) @db.Timestamptz(6)
+  user          AuthUser  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([userId, pubgAccountId])
   @@map("pubg_accounts")
 }
 
-// 후원 카운터 (싱글톤 row, id=1)
 model DonationCounter {
   id        Int      @id @default(1)
   count     Int      @default(0)
   updatedAt DateTime @updatedAt
 
   @@map("donation_counter")
+}
+
+model feedbacks {
+  id         Int      @id @default(autoincrement())
+  type       String
+  message    String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model player_weapon_stats {
+  id         Int      @id @default(autoincrement())
+  playerId   String
+  shard      String   @default("steam")
+  weaponId   String
+  weaponName String   @default("")
+  kills      Int      @default(0)
+  damage     Float    @default(0)
+  headshots  Int      @default(0)
+  savedAt    DateTime @default(now())
+
+  @@unique([playerId, weaponId], map: "player_weapon_stats_playerid_weaponid_key")
+  @@index([weaponId, shard], map: "player_weapon_stats_weaponid_shard_idx")
 }

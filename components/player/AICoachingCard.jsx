@@ -386,7 +386,142 @@ function getPUBGImprovements(stats, analysis) {
   return list;
 }
 
-export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons }) {
+// ── 경쟁전 티어 정보 ──────────────────────────────────────────────────────────
+const RANKED_TIER_ORDER = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Grandmaster'];
+const RANKED_TIER_COLOR = {
+  Bronze: 'text-amber-700',
+  Silver: 'text-slate-400',
+  Gold: 'text-yellow-400',
+  Platinum: 'text-cyan-400',
+  Diamond: 'text-blue-400',
+  Master: 'text-violet-400',
+  Grandmaster: 'text-red-400',
+};
+const RANKED_TIER_GRADIENT = {
+  Bronze:       'from-amber-900 to-amber-700',
+  Silver:       'from-slate-700 to-slate-500',
+  Gold:         'from-yellow-700 to-yellow-500',
+  Platinum:     'from-cyan-800 to-cyan-600',
+  Diamond:      'from-blue-800 to-blue-600',
+  Master:       'from-violet-800 to-violet-600',
+  Grandmaster:  'from-red-800 to-red-600',
+};
+
+function getRankedKdaPercentile(kda) {
+  if (kda >= 4.0) return { label: '상위 5%',  color: 'text-red-500' };
+  if (kda >= 3.0) return { label: '상위 10%', color: 'text-orange-500' };
+  if (kda >= 2.0) return { label: '상위 25%', color: 'text-yellow-600' };
+  if (kda >= 1.5) return { label: '상위 40%', color: 'text-green-500' };
+  if (kda >= 1.0) return { label: '상위 55%', color: 'text-blue-500' };
+  return               { label: '하위 45%', color: 'text-gray-400' };
+}
+function getRankedDmgPercentile(dmg) {
+  if (dmg >= 500) return { label: '상위 5%',  color: 'text-red-500' };
+  if (dmg >= 380) return { label: '상위 10%', color: 'text-orange-500' };
+  if (dmg >= 300) return { label: '상위 20%', color: 'text-yellow-600' };
+  if (dmg >= 220) return { label: '상위 35%', color: 'text-green-500' };
+  if (dmg >= 160) return { label: '상위 50%', color: 'text-blue-500' };
+  return                 { label: '하위 50%', color: 'text-gray-400' };
+}
+function getRankedHsPercentile(hs) {
+  if (hs >= 35) return { label: '상위 5%',  color: 'text-red-500' };
+  if (hs >= 28) return { label: '상위 15%', color: 'text-orange-500' };
+  if (hs >= 20) return { label: '상위 30%', color: 'text-yellow-600' };
+  if (hs >= 12) return { label: '상위 50%', color: 'text-blue-500' };
+  return              { label: '하위 50%', color: 'text-gray-400' };
+}
+
+function getRankedStrengths(r) {
+  const list = [];
+  const avgKills = r.kills / Math.max(1, r.games);
+  if (r.kda >= 2.5)
+    list.push({ title: 'KDA 우수', desc: `KDA ${r.kda.toFixed(2)} — 킬+어시스트 합산 기여가 탁월, 팀 교전 주도` });
+  else if (r.kda >= 1.5)
+    list.push({ title: '안정적인 KDA', desc: `KDA ${r.kda.toFixed(2)} — 죽음 대비 기여도가 균형잡힌 수준` });
+
+  if (r.avgDamage >= 350)
+    list.push({ title: '화력 기여 탁월', desc: `경쟁전 평균딜 ${r.avgDamage} — 팀 교전에서 핵심 화력 역할` });
+  else if (r.avgDamage >= 230)
+    list.push({ title: '안정적인 딜 기여', desc: `평균딜 ${r.avgDamage} — 매 교전에서 꾸준히 기여` });
+
+  if (r.winRate >= 15)
+    list.push({ title: '랭크 치킨 능력', desc: `승률 ${r.winRate.toFixed(1)}% — 압박 속 엔드게임 운영 탁월` });
+  else if (r.winRate >= 8)
+    list.push({ title: '엔드게임 실력', desc: `승률 ${r.winRate.toFixed(1)}% — 경쟁전 후반 생존 안정적` });
+
+  if (r.headshotRate >= 25)
+    list.push({ title: '헤드샷 정확도', desc: `헤드샷 비율 ${r.headshotRate.toFixed(0)}% — 빠른 처치로 팀 부담 감소` });
+
+  const dbnoPer = r.dBNOs / Math.max(1, r.games);
+  if (dbnoPer >= 2.0)
+    list.push({ title: '팀 기여 (DBNOs)', desc: `경기당 ${dbnoPer.toFixed(1)} DBNOs — 팀원 처치를 위한 넉다운 기여 높음` });
+
+  if (list.length === 0)
+    list.push({ title: '경쟁전 도전 중', desc: `${r.games}경기 데이터 — 꾸준한 플레이로 랭크 상승 가능` });
+  return list;
+}
+
+function getRankedImprovements(r) {
+  const list = [];
+
+  if (r.kda < 1.0)
+    list.push({ title: 'KDA 개선', desc: `KDA ${r.kda.toFixed(2)} — 불리한 교전은 과감히 이탈하세요. 랭크에서 죽음 1번은 일반전보다 팀에 훨씬 큰 손해입니다` });
+  else if (r.kda < 1.5)
+    list.push({ title: 'KDA 1.5 목표', desc: `KDA ${r.kda.toFixed(2)} → 1.5 목표. 교전 전 팀원 위치 확인 후 2:1 유리한 상황에서만 진입하는 습관을 들이세요` });
+  else
+    list.push({ title: 'KDA 극대화', desc: `KDA ${r.kda.toFixed(2)} 양호. 넉다운 후 즉시 어시스트를 챙기는 포지션 유지로 KDA를 더 높일 수 있습니다` });
+
+  if (r.avgDamage < 200)
+    list.push({ title: '딜량 향상 (경쟁전 기준)', desc: `평균딜 ${r.avgDamage} — 랭크 매치는 상대가 강해 교전 개시가 어렵습니다. 블루존 이동 중인 적을 미리 자리잡고 기다리는 안전한 딜 루트를 찾으세요` });
+  else if (r.avgDamage < 300)
+    list.push({ title: '딜량 300 돌파', desc: `평균딜 ${r.avgDamage} → 300 목표. 교전 직후 다운된 적에게 마무리 딜을 넣는 습관이 딜량과 KDA를 동시에 올립니다` });
+
+  if (r.winRate < 5)
+    list.push({ title: '엔드게임 생존 전략', desc: `승률 ${r.winRate.toFixed(1)}% — Top5 진입 시 먼저 교전하지 마세요. 상대가 소모되길 기다렸다가 최후에 승부하는 것이 랭크 치킨의 핵심입니다` });
+  else if (r.winRate < 10)
+    list.push({ title: '최후 결전 포지션', desc: `승률 ${r.winRate.toFixed(1)}% — 마지막 원에서 고지대·건물 우선 확보. 조준선 우위가 랭크 최종 교전 승패를 결정합니다` });
+
+  if (r.headshotRate < 15)
+    list.push({ title: '헤드샷 비율 향상', desc: `헤드샷 ${r.headshotRate.toFixed(0)}% — 랭크에서 레벨3 헬멧 상대를 빠르게 처치하려면 헤드샷이 필수. 에임 트레이너로 매일 5분 훈련하세요` });
+
+  const dbnoPer = r.dBNOs / Math.max(1, r.games);
+  if (dbnoPer < 1.0)
+    list.push({ title: 'DBNOs 기여 향상', desc: `경기당 DBNOs ${dbnoPer.toFixed(1)} — 처치 마무리보다 팀원이 처치하도록 먼저 넉다운시키는 역할 분담이 랭크 팀플레이 핵심입니다` });
+
+  if (list.length < 3)
+    list.push({ title: '정보전 강화', desc: '랭크에서는 적 위치 콜링이 승패를 결정합니다. "3시 건물 1명", "이동 중" 같은 간결한 콜을 습관화하세요' });
+
+  return list;
+}
+
+function getRankedActions(r) {
+  const actions = [];
+  const tierIdx = RANKED_TIER_ORDER.indexOf(r.tier || 'Bronze');
+
+  if (r.kd < 1.0)
+    actions.push({ priority: '긴급', action: '교전 전 반드시 팀원 위치 확인 — 단독 진입은 랭크에서 가장 빠른 RP 손실 원인입니다. 팀원 2명 이상 확인 후 진입하세요' });
+  else
+    actions.push({ priority: '중요', action: `KDA ${r.kda.toFixed(2)} 유지 중. 팀 교전 시 후방 엄호 포지션을 먼저 잡고 적이 집중될 때 진입하면 생존율이 올라갑니다` });
+
+  if (r.avgDamage < 250)
+    actions.push({ priority: '긴급', action: `평균딜 ${r.avgDamage} — 블루존 이동 중인 적을 미리 포지션 잡고 기다리세요. 랭크에서 가장 안전하고 확실한 딜 루트입니다` });
+  else
+    actions.push({ priority: '중요', action: `딜량 ${r.avgDamage} 유지. 교전 후 즉시 포지션 이탈로 역공을 피하고, 다음 교전에서도 딜을 유지하세요` });
+
+  if (tierIdx <= 1)
+    actions.push({ priority: '중요', action: `${r.tier || 'Bronze'} 티어 탈출을 위해 스쿼드 팀플레이를 강화하세요. KDA보다 팀 기여(어시스트·DBNOs)가 티어 상승에 중요합니다` });
+  else if (tierIdx <= 3)
+    actions.push({ priority: '권장', action: `${r.tier} 이상 유지 중. 연막탄 1~2개 상시 소지로 불리한 포지션 탈출 루트를 만들면 Top5 생존율이 크게 오릅니다` });
+  else
+    actions.push({ priority: '권장', action: `${r.tier} 고티어 유지 중. 팀 콜링 주도와 정보 공유로 팀 전체 RP 관리를 이끄세요` });
+
+  actions.push({ priority: '권장', action: `랭크 매치 전 Training Grounds 5분 워밍업을 루틴화하세요. 컨디션 편차를 줄이면 최악의 경기 빈도가 줄고 RP 손실이 감소합니다` });
+
+  return actions;
+}
+
+export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons, rankedStats }) {
+  const [activeTab, setActiveTab] = useState('normal');
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(true);
   const savedKeyRef = useRef('');
@@ -556,8 +691,179 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
     },
   ];
 
+  const hasRanked = rankedStats && rankedStats.games > 0;
+
+  // 경쟁전 탭 렌더 (데이터 없을 때도 탭은 보여줌)
+  if (activeTab === 'ranked') {
+    if (!hasRanked) {
+      return (
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <div className="flex border-b border-gray-200 bg-gray-50">
+            <button onClick={() => setActiveTab('normal')}
+              className="flex-1 py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+              일반게임
+            </button>
+            <button className="flex-1 py-2.5 text-xs font-bold text-violet-700 border-b-2 border-violet-600 bg-white">
+              경쟁전
+            </button>
+          </div>
+          <div className="p-10 text-center">
+            <div className="text-4xl mb-3">🏆</div>
+            <div className="text-sm font-bold text-gray-600 mb-1">이번 시즌 경쟁전 기록 없음</div>
+            <div className="text-xs text-gray-400">경쟁전 게임을 플레이하면 전문 코칭이 제공됩니다.</div>
+          </div>
+        </div>
+      );
+    }
+
+    const r = rankedStats;
+    const tierColor = RANKED_TIER_COLOR[r.tier] || 'text-gray-400';
+    const tierGrad  = RANKED_TIER_GRADIENT[r.tier] || 'from-gray-700 to-gray-600';
+    const rStrengths    = getRankedStrengths(r);
+    const rImprovements = getRankedImprovements(r);
+    const rActions      = getRankedActions(r);
+    const avgKills = (r.kills / Math.max(1, r.games)).toFixed(2);
+    const rankedBenchmarks = [
+      { label: 'KDA',     value: r.kda.toFixed(2),         color: 'text-purple-600', pct: getRankedKdaPercentile(r.kda) },
+      { label: '평균딜',   value: r.avgDamage.toLocaleString(), color: 'text-orange-600', pct: getRankedDmgPercentile(r.avgDamage) },
+      { label: '승률',     value: `${r.winRate.toFixed(1)}%`, color: 'text-green-600',  pct: getWinPercentile(r.winRate) },
+      { label: '헤드샷',   value: `${r.headshotRate.toFixed(0)}%`, color: 'text-red-600', pct: getRankedHsPercentile(r.headshotRate) },
+    ];
+
+    return (
+      <div className="rounded-xl border border-gray-200 overflow-hidden">
+        {/* 탭 */}
+        <div className="flex border-b border-gray-200 bg-gray-50">
+          <button onClick={() => setActiveTab('normal')}
+            className="flex-1 py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+            일반게임
+          </button>
+          <button onClick={() => setActiveTab('ranked')}
+            className="flex-1 py-2.5 text-xs font-bold text-violet-700 border-b-2 border-violet-600 bg-white">
+            경쟁전
+          </button>
+        </div>
+
+        {/* 경쟁전 헤더 */}
+        <div className={`bg-gradient-to-r ${tierGrad} px-6 py-5 text-white`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-xl flex-shrink-0">🏆</div>
+            <div className="min-w-0">
+              <div className="font-bold text-sm">경쟁전 전문 코칭 리포트</div>
+              <div className="text-white/70 text-xs">{playerInfo?.nickname}님의 경쟁전 {r.games}경기 심층 분석</div>
+            </div>
+            <div className="ml-auto text-right flex-shrink-0">
+              <div className={`text-sm font-black ${tierColor}`}>{r.tier} {r.subTier ? `${r.subTier}티어` : ''}</div>
+              <div className="text-white/70 text-xs">RP {r.rp.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* 티어 진행 */}
+          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex items-center gap-4">
+            <div className="text-center">
+              <div className={`text-lg font-black ${tierColor}`}>{r.tier}</div>
+              <div className="text-xs text-gray-400">현재</div>
+            </div>
+            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all"
+                style={{ width: `${Math.min(100, Math.round((r.rp % 1000) / 10))}%` }} />
+            </div>
+            <div className="text-center">
+              <div className="text-sm font-bold text-gray-600">{r.rp.toLocaleString()} RP</div>
+              <div className="text-xs text-gray-400">최고 {r.bestTier}</div>
+            </div>
+          </div>
+
+          {/* 핵심 4개 지표 */}
+          <div className="grid grid-cols-4 gap-2">
+            {rankedBenchmarks.map(({ label, value, color, pct }) => (
+              <div key={label} className="bg-white rounded-lg p-2.5 text-center border border-gray-200">
+                <div className={`text-xl font-black ${color}`}>{value}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                <div className={`text-[11px] font-semibold mt-0.5 ${pct.color}`}>{pct.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* 강점 & 개선 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-emerald-600 text-sm">🏆</span>
+                <span className="text-xs font-bold text-emerald-800">경쟁전 강점</span>
+              </div>
+              <div className="space-y-2">
+                {rStrengths.slice(0, 3).map((s, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="w-4 h-4 bg-emerald-500 text-white rounded-full text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">{i + 1}</span>
+                    <div>
+                      <div className="text-xs font-bold text-emerald-800">{s.title}</div>
+                      <div className="text-xs text-emerald-600">{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-orange-600 text-sm">⚡</span>
+                <span className="text-xs font-bold text-orange-800">랭크 개선 우선순위</span>
+              </div>
+              <div className="space-y-2">
+                {rImprovements.slice(0, 3).map((imp, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="w-4 h-4 bg-orange-500 text-white rounded-full text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">{i + 1}</span>
+                    <div>
+                      <div className="text-xs font-bold text-orange-800">{imp.title}</div>
+                      <div className="text-xs text-orange-600 leading-relaxed">{imp.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 랭크 액션 플랜 */}
+          <div className="bg-violet-50 rounded-lg p-4 border border-violet-100">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-violet-600 text-sm">🚀</span>
+              <span className="text-xs font-bold text-violet-800">다음 랭크 게임 바로 적용할 전략</span>
+            </div>
+            <div className="space-y-2">
+              {rActions.map((item, i) => (
+                <div key={i} className="flex items-start gap-2 bg-white/80 rounded-lg px-3 py-2.5 border border-violet-100">
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 ${PRIORITY_BADGE[item.priority]}`}>
+                    {item.priority}
+                  </span>
+                  <span className="text-xs text-gray-700 leading-relaxed">{item.action}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-center text-xs text-gray-400">
+            경쟁전 {r.games}경기 데이터 기반 • {new Date().toLocaleDateString('ko-KR')} 업데이트
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-gray-200 overflow-hidden">
+      {/* 탭 — 항상 표시 */}
+      <div className="flex border-b border-gray-200 bg-gray-50">
+        <button className="flex-1 py-2.5 text-xs font-bold text-violet-700 border-b-2 border-violet-600 bg-white">
+          일반게임
+        </button>
+        <button onClick={() => setActiveTab('ranked')}
+          className="flex-1 py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+          경쟁전
+        </button>
+      </div>
+
       {/* 헤더 */}
       <div
         className={`bg-gradient-to-r ${styleColor[analysis.playStyle] || 'from-violet-600 to-indigo-600'} px-6 py-5 text-white`}

@@ -354,6 +354,98 @@ function BattleShareCard({ playerA, playerB, cardRef }) {
   );
 }
 
+// ── AI 비교 요약 컴포넌트 ─────────────────────────────────────────────────────
+function AiComparison({ playerA, playerB }) {
+  const [summary, setSummary] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState('');
+
+  useEffect(() => {
+    if (!playerA?.hasData || !playerB?.hasData) return;
+    let cancelled = false;
+    setLoading(true);
+    setSummary('');
+    setError('');
+
+    fetch('/api/pubg/compare-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerA, playerB }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        if (d.error) setError(d.error);
+        else setSummary(d.summary);
+      })
+      .catch((e) => { if (!cancelled) setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [playerA?.nickname, playerB?.nickname]);
+
+  if (!playerA?.hasData || !playerB?.hasData) return null;
+
+  return (
+    <div className="relative rounded-xl mb-8 overflow-hidden border border-indigo-500/30 bg-gradient-to-br from-indigo-950/60 via-gray-900/80 to-blue-950/40">
+      {/* 상단 컬러 바 */}
+      <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-violet-500 to-red-500" />
+
+      <div className="p-6">
+        <h2 className="text-sm font-semibold text-indigo-300 uppercase tracking-widest mb-4">🤖 AI 비교 분석</h2>
+
+        {loading && (
+          <div className="flex items-center gap-3 text-gray-400 text-sm">
+            <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
+            AI가 두 플레이어를 분석 중입니다…
+          </div>
+        )}
+
+        {error && (
+          <p className="text-red-400 text-sm">{error}</p>
+        )}
+
+        {summary && (() => {
+          const lines = summary.split('\n').filter(Boolean);
+          const titleLine  = lines.find((l) => l.startsWith('제목:'))?.replace('제목:', '').trim() || '';
+          const reasonLine = lines.find((l) => l.startsWith('이유:'))?.replace('이유:', '').trim() || '';
+          const highlight = (text, size = 'base') =>
+            text
+              .replace(playerA.nickname, `__A__${playerA.nickname}__A__`)
+              .replace(playerB.nickname, `__B__${playerB.nickname}__B__`)
+              .split(/(__A__.*?__A__|__B__.*?__B__)/)
+              .map((chunk, j) => {
+                if (chunk.startsWith('__A__')) return (
+                  <span key={j} className={`${size === 'lg' ? 'text-lg' : 'text-sm'} font-extrabold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent`}>
+                    {playerA.nickname}
+                  </span>
+                );
+                if (chunk.startsWith('__B__')) return (
+                  <span key={j} className={`${size === 'lg' ? 'text-lg' : 'text-sm'} font-extrabold bg-gradient-to-r from-red-400 to-orange-300 bg-clip-text text-transparent`}>
+                    {playerB.nickname}
+                  </span>
+                );
+                return chunk;
+              });
+          return (
+            <div className="space-y-3">
+              {/* 제목 */}
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 text-yellow-400 text-lg">⚡</span>
+                <p className="text-lg font-bold text-white leading-snug">{highlight(titleLine, 'lg')}</p>
+              </div>
+              {/* 구분선 */}
+              <div className="h-px bg-gradient-to-r from-indigo-500/40 via-violet-400/20 to-transparent" />
+              {/* 이유 */}
+              <p className="text-sm text-gray-300 leading-relaxed pl-7">{highlight(reasonLine)}</p>
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
 export default function ComparePage() {
   const router       = useRouter();
@@ -616,6 +708,9 @@ export default function ComparePage() {
                   </div>
                 </div>
               </div>
+
+              {/* AI 비교 분석 */}
+              <AiComparison playerA={data.playerA} playerB={data.playerB} />
 
               {/* 공유 버튼 */}
               <div className="bg-gray-800/40 rounded-xl border border-gray-700 p-5 text-center">
