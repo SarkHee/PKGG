@@ -324,6 +324,8 @@ export default function MyPage() {
   const [settingMain, setSettingMain] = useState(false);
   const [playerStats, setPlayerStats]   = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [clanLeaderLoading, setClanLeaderLoading] = useState(false);
+  const [clanLeaderMsg, setClanLeaderMsg] = useState(null);
 
   useEffect(() => { if (status === 'authenticated') fetchUser(); }, [status]);
 
@@ -366,6 +368,25 @@ export default function MyPage() {
     setSettingMain(true);
     try { await fetch('/api/user/set-main-account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId }) }); fetchUser(); }
     finally { setSettingMain(false); }
+  };
+
+  const handleSetClanLeader = async () => {
+    setClanLeaderLoading(true);
+    setClanLeaderMsg(null);
+    try {
+      const r = await fetch('/api/user/set-clan-leader', { method: 'POST' });
+      const d = await r.json();
+      if (r.ok) {
+        setClanLeaderMsg({ ok: true, text: `${d.clanName} 클랜 리더로 등록됐습니다.` });
+        fetchUser();
+      } else {
+        setClanLeaderMsg({ ok: false, text: d.error || '등록 실패' });
+      }
+    } catch {
+      setClanLeaderMsg({ ok: false, text: '네트워크 오류' });
+    } finally {
+      setClanLeaderLoading(false);
+    }
   };
 
   // ── 로딩 ──
@@ -516,6 +537,68 @@ export default function MyPage() {
               </div>
             )}
           </div>
+
+          {/* ── 클랜 정보 ── */}
+          {userData?.clan && (
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+              <h2 className="text-sm font-bold text-gray-200 mb-4 flex items-center gap-2">
+                🏰 <span>소속 클랜</span>
+              </h2>
+              <div className="flex items-start gap-4">
+                {/* 클랜 아이콘 */}
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white text-xl font-black flex-shrink-0">
+                  {userData.clan.pubgClanTag ? userData.clan.pubgClanTag.charAt(0).toUpperCase() : '🏰'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {userData.clan.pubgClanTag && (
+                      <span className="text-xs font-bold text-blue-400">[{userData.clan.pubgClanTag}]</span>
+                    )}
+                    <span className="text-base font-bold text-white">{userData.clan.name}</span>
+                    {userData.clan.pubgClanLevel && (
+                      <span className="text-[10px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded">Lv.{userData.clan.pubgClanLevel}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+                    <span>👥 {userData.clan.memberCount}명</span>
+                    {userData.clan.avgScore > 0 && <span>⚡ 평균 {userData.clan.avgScore} MMR</span>}
+                    {userData.clan.region && <span>🌏 {userData.clan.region}</span>}
+                  </div>
+                  {userData.clan.leader && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      리더: <span className="text-gray-300">{userData.clan.leader}</span>
+                    </div>
+                  )}
+                  {userData.clan.description && (
+                    <p className="mt-2 text-xs text-gray-400 leading-relaxed line-clamp-2">{userData.clan.description}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* 리더 등록 버튼 */}
+              <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between gap-3">
+                <div className="text-xs text-gray-500">
+                  {userData.clan.leader === mainAccount?.nickname
+                    ? '✅ 현재 이 클랜의 리더입니다.'
+                    : '대표 계정을 이 클랜의 리더로 등록할 수 있습니다.'}
+                </div>
+                {userData.clan.leader !== mainAccount?.nickname && (
+                  <button
+                    onClick={handleSetClanLeader}
+                    disabled={clanLeaderLoading || !mainAccount}
+                    className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    {clanLeaderLoading ? '등록 중...' : '클랜 리더 등록'}
+                  </button>
+                )}
+              </div>
+              {clanLeaderMsg && (
+                <p className={`mt-2 text-xs font-medium ${clanLeaderMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
+                  {clanLeaderMsg.ok ? '✅' : '❌'} {clanLeaderMsg.text}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* ── 일일 목표 ── */}
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">

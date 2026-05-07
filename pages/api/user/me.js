@@ -16,24 +16,35 @@ export default async function handler(req, res) {
     });
     if (!authUser) return res.status(404).json({ error: 'User not found' });
 
-    // 대표 계정의 클랜 ID 조회
-    let clanId = null;
-    let clanName = null;
+    // 대표 계정의 클랜 정보 조회
+    let clanData = null;
     if (authUser.mainAccountId) {
       const mainAcc = authUser.pubgAccounts.find((a) => a.id === authUser.mainAccountId);
       if (mainAcc?.pubgAccountId) {
         const member = await prisma.clanMember.findFirst({
           where: { pubgPlayerId: mainAcc.pubgAccountId },
-          include: { clan: { select: { id: true, name: true } } },
+          include: {
+            clan: {
+              select: {
+                id: true, name: true, leader: true, description: true,
+                pubgClanTag: true, pubgClanLevel: true,
+                memberCount: true, avgScore: true, region: true,
+              },
+            },
+          },
         });
-        if (member?.clan) {
-          clanId   = member.clan.id;
-          clanName = member.clan.name;
-        }
+        if (member?.clan) clanData = member.clan;
       }
     }
 
-    return res.status(200).json({ user: { ...authUser, clanId, clanName } });
+    return res.status(200).json({
+      user: {
+        ...authUser,
+        clanId:   clanData?.id   ?? null,
+        clanName: clanData?.name ?? null,
+        clan:     clanData,
+      },
+    });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
