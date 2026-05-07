@@ -29,6 +29,7 @@ function FloatingInquiryPanel() {
   const [inquiries, setInquiries] = useState([])
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(null)
+  const [deleting, setDeleting] = useState(null)
 
   // 관리자 이메일이 아니면 렌더하지 않음
   if (!session?.user?.isAdmin) return null
@@ -45,6 +46,18 @@ function FloatingInquiryPanel() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDelete = async (id) => {
+    setDeleting(id)
+    try {
+      const res = await fetch(`/api/admin/delete-inquiry?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setInquiries((prev) => prev.filter((inq) => inq.id !== id))
+        if (expanded === id) setExpanded(null)
+      }
+    } catch {}
+    finally { setDeleting(null) }
   }
 
   const handleOpen = () => {
@@ -89,18 +102,29 @@ function FloatingInquiryPanel() {
             ) : (
               inquiries.map((inq) => (
                 <div key={inq.id} className="rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                  <button
-                    onClick={() => setExpanded(expanded === inq.id ? null : inq.id)}
-                    className="w-full px-3 py-2.5 flex items-start gap-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">
-                      {TOPIC_LABEL_PANEL[inq.topic] || inq.topic}
-                    </span>
-                    <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">{inq.message}</span>
-                    <span className="text-[10px] text-gray-400 flex-shrink-0">
-                      {new Date(inq.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </button>
+                  <div className="flex items-start">
+                    <button
+                      onClick={() => setExpanded(expanded === inq.id ? null : inq.id)}
+                      className="flex-1 px-3 py-2.5 flex items-start gap-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-w-0"
+                    >
+                      <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">
+                        {TOPIC_LABEL_PANEL[inq.topic] || inq.topic}
+                      </span>
+                      <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">{inq.message}</span>
+                      <span className="text-[10px] text-gray-400 flex-shrink-0">
+                        {new Date(inq.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </button>
+                    {/* 삭제 버튼 */}
+                    <button
+                      onClick={() => handleDelete(inq.id)}
+                      disabled={deleting === inq.id}
+                      className="flex-shrink-0 px-2.5 py-2.5 text-gray-300 dark:text-gray-600 hover:text-red-400 dark:hover:text-red-400 transition-colors disabled:opacity-40"
+                      title="삭제"
+                    >
+                      {deleting === inq.id ? '…' : '🗑'}
+                    </button>
+                  </div>
                   {expanded === inq.id && (
                     <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-700 pt-2 space-y-2">
                       <p className="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
@@ -111,9 +135,18 @@ function FloatingInquiryPanel() {
                           ✉️ {inq.email}
                         </a>
                       )}
-                      <p className="text-[10px] text-gray-400">
-                        {new Date(inq.createdAt).toLocaleString('ko-KR')}
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-gray-400">
+                          {new Date(inq.createdAt).toLocaleString('ko-KR')}
+                        </p>
+                        <button
+                          onClick={() => handleDelete(inq.id)}
+                          disabled={deleting === inq.id}
+                          className="text-xs text-red-400 hover:text-red-500 disabled:opacity-40 transition-colors"
+                        >
+                          {deleting === inq.id ? '삭제 중...' : '삭제'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
