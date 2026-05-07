@@ -31,12 +31,18 @@ export const authOptions = {
       return true;
     },
     async jwt({ token, user }) {
-      if (user) token.googleId = user.id;
+      if (user) {
+        token.googleId = user.id;
+        token.email = user.email;
+      }
       return token;
     },
     async session({ session, token }) {
       if (token?.googleId) {
         session.user.googleId = token.googleId;
+        // 관리자 이메일 체크
+        const ADMIN_EMAIL = 'sssyck123@gmail.com';
+        session.user.isAdmin = token.email === ADMIN_EMAIL;
         // DB에서 AuthUser 조회해 mainAccountId 포함
         try {
           const dbUser = await prisma.authUser.findUnique({

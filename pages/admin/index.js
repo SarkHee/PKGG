@@ -1,38 +1,29 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
-const COOLDOWN_MS = 10 * 60 * 1000; // 10분
-
-function getCooldownLeft(clanName) {
-  if (typeof window === 'undefined') return 0;
-  const saved = localStorage.getItem(`clan_refresh_${clanName}`);
-  if (!saved) return 0;
-  const elapsed = Date.now() - Number(saved);
-  return Math.max(0, COOLDOWN_MS - elapsed);
-}
-
-function setCooldown(clanName) {
-  localStorage.setItem(`clan_refresh_${clanName}`, String(Date.now()));
-}
-
-function formatMs(ms) {
-  const min = Math.floor(ms / 60000);
-  const sec = Math.floor((ms % 60000) / 1000);
-  return `${min}:${sec.toString().padStart(2, '0')}`;
-}
+const TOPIC_LABEL = {
+  bug:     '🐛 버그/오류',
+  feature: '💡 기능 제안',
+  data:    '📊 데이터 오류',
+  forum:   '🚨 포럼 신고',
+  other:   '📬 기타',
+};
 
 export default function AdminDashboard() {
-  const [authed, setAuthed] = useState(false);
+  const [authed,   setAuthed]   = useState(false);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  const [clans, setClans] = useState([]);
-  const [clansLoading, setClansLoading] = useState(false);
+  const [tab, setTab] = useState('inquiries'); // 'inquiries' | 'users'
 
-  // 갱신 상태: { [clanName]: { loading, result, cooldownLeft } }
-  const [refreshState, setRefreshState] = useState({});
+  const [inquiries,   setInquiries]   = useState([]);
+  const [inqLoading,  setInqLoading]  = useState(false);
+  const [inqExpanded, setInqExpanded] = useState(null);
+
+  const [users,      setUsers]      = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   // 저장된 인증 복원
   useEffect(() => {
@@ -40,46 +31,29 @@ export default function AdminDashboard() {
     if (saved === 'true') setAuthed(true);
   }, []);
 
-  // 클랜 목록 로드
+  const adminPw = () => sessionStorage.getItem('admin_pw') || '';
+
+  // 문의 목록 로드
   useEffect(() => {
-    if (!authed) return;
-    setClansLoading(true);
-    fetch('/api/clan')
+    if (!authed || tab !== 'inquiries') return;
+    setInqLoading(true);
+    fetch('/api/admin/inquiries', { headers: { 'x-admin-token': adminPw() } })
       .then((r) => r.json())
-      .then((data) => {
-        const list = data.clans || [];
-        setClans(list);
+      .then((d) => setInquiries(d.inquiries || []))
+      .catch(() => setInquiries([]))
+      .finally(() => setInqLoading(false));
+  }, [authed, tab]);
 
-        // 쿨타임 초기화
-        const initial = {};
-        list.forEach((c) => {
-          initial[c.name] = { loading: false, result: null, cooldownLeft: getCooldownLeft(c.name) };
-        });
-        setRefreshState(initial);
-      })
-      .catch(() => setClans([]))
-      .finally(() => setClansLoading(false));
-  }, [authed]);
-
-  // 쿨타임 카운트다운
+  // 구글 유저 목록 로드
   useEffect(() => {
-    if (!authed) return;
-    const timer = setInterval(() => {
-      setRefreshState((prev) => {
-        const next = { ...prev };
-        let changed = false;
-        for (const name of Object.keys(next)) {
-          const left = getCooldownLeft(name);
-          if (next[name].cooldownLeft !== left) {
-            next[name] = { ...next[name], cooldownLeft: left };
-            changed = true;
-          }
-        }
-        return changed ? next : prev;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [authed]);
+    if (!authed || tab !== 'users') return;
+    setUsersLoading(true);
+    fetch('/api/admin/users', { headers: { 'x-admin-token': adminPw() } })
+      .then((r) => r.json())
+      .then((d) => setUsers(d.users || []))
+      .catch(() => setUsers([]))
+      .finally(() => setUsersLoading(false));
+  }, [authed, tab]);
 
   // 로그인
   const handleLogin = async (e) => {
@@ -106,53 +80,6 @@ export default function AdminDashboard() {
       setAuthLoading(false);
     }
   };
-
-  // 클랜 갱신
-  const handleRefresh = useCallback(async (clan) => {
-    const adminPw = sessionStorage.getItem('admin_pw');
-    const memberNames = (clan.members || []).map((m) => m.nickname).filter(Boolean);
-
-    if (memberNames.length === 0) {
-      setRefreshState((p) => ({ ...p, [clan.name]: { ...p[clan.name], result: { error: '멤버 없음' } } }));
-      return;
-    }
-
-    setRefreshState((p) => ({ ...p, [clan.name]: { ...p[clan.name], loading: true, result: null } }));
-
-    try {
-      const res = await fetch('/api/clan/batch-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-token': adminPw,
-        },
-        body: JSON.stringify({ clanName: clan.name, memberNames, shard: 'steam' }),
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        setCooldown(clan.name);
-        setRefreshState((p) => ({
-          ...p,
-          [clan.name]: {
-            loading: false,
-            result: { ok: true, updated: data.results?.updated, errors: data.results?.errors },
-            cooldownLeft: COOLDOWN_MS,
-          },
-        }));
-      } else {
-        setRefreshState((p) => ({
-          ...p,
-          [clan.name]: { ...p[clan.name], loading: false, result: { error: data.error || '오류' } },
-        }));
-      }
-    } catch {
-      setRefreshState((p) => ({
-        ...p,
-        [clan.name]: { ...p[clan.name], loading: false, result: { error: '네트워크 오류' } },
-      }));
-    }
-  }, []);
 
   // ── 비밀번호 화면 ─────────────────────────────────────────────
   if (!authed) {
@@ -219,88 +146,137 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-6 py-8">
-          {/* 클랜 갱신 섹션 */}
-          <div className="mb-6 flex items-center gap-3">
-            <h1 className="text-xl font-bold">클랜 데이터 갱신</h1>
-            <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">클랜당 쿨타임 10분</span>
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          {/* 탭 */}
+          <div className="flex gap-2 mb-6">
+            {[
+              { key: 'inquiries', label: '📬 문의함' },
+              { key: 'users',     label: '👤 구글 로그인 유저' },
+            ].map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                  tab === t.key
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
 
-          {clansLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-gray-800 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : clans.length === 0 ? (
-            <div className="bg-gray-900 rounded-xl border border-gray-700 p-8 text-center text-gray-500">
-              등록된 클랜이 없습니다.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {clans.map((clan) => {
-                const state = refreshState[clan.name] || {};
-                const onCooldown = state.cooldownLeft > 0;
-                const memberCount = (clan.members || []).length;
+          {/* 문의함 탭 */}
+          {tab === 'inquiries' && (
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <h1 className="text-xl font-bold">문의함</h1>
+                <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                  총 {inquiries.length}건
+                </span>
+              </div>
 
-                return (
-                  <div
-                    key={clan.name}
-                    className="bg-gray-900 border border-gray-700 rounded-xl px-5 py-4 flex items-center gap-4"
-                  >
-                    {/* 클랜 정보 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-white truncate">{clan.name}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">멤버 {memberCount}명</div>
-                    </div>
+              {inqLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-gray-800 rounded-xl animate-pulse" />)}
+                </div>
+              ) : inquiries.length === 0 ? (
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-8 text-center text-gray-500">
+                  접수된 문의가 없습니다.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {inquiries.map((inq) => (
+                    <div key={inq.id} className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => setInqExpanded(inqExpanded === inq.id ? null : inq.id)}
+                        className="w-full px-5 py-4 flex items-center gap-3 text-left hover:bg-gray-800 transition-colors"
+                      >
+                        <span className="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300 flex-shrink-0">
+                          {TOPIC_LABEL[inq.topic] || inq.topic}
+                        </span>
+                        <span className="text-sm text-white flex-1 truncate">{inq.message}</span>
+                        <span className="text-xs text-gray-500 flex-shrink-0">
+                          {new Date(inq.createdAt).toLocaleDateString('ko-KR', {
+                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                          })}
+                        </span>
+                        <span className="text-gray-500 text-xs ml-1">{inqExpanded === inq.id ? '▲' : '▼'}</span>
+                      </button>
 
-                    {/* 결과 표시 */}
-                    <div className="text-xs text-right min-w-[100px]">
-                      {state.result?.ok && (
-                        <span className="text-emerald-400">
-                          ✓ {state.result.updated}명 갱신
-                          {state.result.errors > 0 && (
-                            <span className="text-red-400 ml-1">/ {state.result.errors}실패</span>
+                      {inqExpanded === inq.id && (
+                        <div className="px-5 pb-5 border-t border-gray-700 pt-4 space-y-3">
+                          <div className="whitespace-pre-wrap text-sm text-gray-200 leading-relaxed bg-gray-800 rounded-lg p-4">
+                            {inq.message}
+                          </div>
+                          {inq.email && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-gray-400">답변 이메일:</span>
+                              <a href={`mailto:${inq.email}`} className="text-blue-400 hover:underline">
+                                {inq.email}
+                              </a>
+                            </div>
                           )}
-                        </span>
-                      )}
-                      {state.result?.error && (
-                        <span className="text-red-400">{state.result.error}</span>
-                      )}
-                      {onCooldown && !state.loading && (
-                        <span className="text-gray-500">{formatMs(state.cooldownLeft)}</span>
+                          <div className="text-xs text-gray-500">
+                            접수: {new Date(inq.createdAt).toLocaleString('ko-KR')}
+                          </div>
+                        </div>
                       )}
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                    {/* 갱신 버튼 */}
-                    <button
-                      onClick={() => handleRefresh(clan)}
-                      disabled={state.loading || onCooldown}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex-shrink-0 ${
-                        state.loading
-                          ? 'bg-gray-700 text-gray-400 cursor-wait'
-                          : onCooldown
-                          ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                          : 'bg-blue-600 hover:bg-blue-500 text-white'
-                      }`}
-                    >
-                      {state.loading ? (
-                        <span className="flex items-center gap-2">
-                          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                          </svg>
-                          갱신 중
-                        </span>
-                      ) : onCooldown ? (
-                        '쿨타임'
-                      ) : (
-                        '갱신'
+          {/* 구글 유저 탭 */}
+          {tab === 'users' && (
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <h1 className="text-xl font-bold">구글 로그인 유저</h1>
+                <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                  총 {users.length}명
+                </span>
+              </div>
+
+              {usersLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => <div key={i} className="h-14 bg-gray-800 rounded-xl animate-pulse" />)}
+                </div>
+              ) : users.length === 0 ? (
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-8 text-center text-gray-500">
+                  구글 로그인 유저가 없습니다.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {users.map((u) => (
+                    <div key={u.id} className="bg-gray-900 border border-gray-700 rounded-xl px-5 py-3 flex items-center gap-4">
+                      {u.image && (
+                        <img src={u.image} alt="" className="w-8 h-8 rounded-full flex-shrink-0" />
                       )}
-                    </button>
-                  </div>
-                );
-              })}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-white truncate">{u.name || '이름 없음'}</div>
+                        <div className="text-xs text-gray-400 truncate">{u.email}</div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        {u.pubgAccounts?.length > 0 ? (
+                          <div className="text-xs text-blue-400">
+                            {u.pubgAccounts.map((a) => a.nickname).join(', ')}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-600">PUBG 미연결</div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {u.createdAt
+                            ? new Date(u.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
+                            : '-'}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
