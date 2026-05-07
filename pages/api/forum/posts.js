@@ -1,3 +1,5 @@
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth].js';
 import prisma from '../../../utils/prisma.js';
 import { hashPassword, checkProfanity, LIMITS } from '../../../utils/forumUtils.js'
 
@@ -80,6 +82,8 @@ export default async function handler(req, res) {
 
     } else if (req.method === 'POST') {
       const { title, content, preview, author, categoryId, password } = req.body;
+      const session = await getServerSession(req, res, authOptions);
+      const googleId = session?.user?.googleId ?? null;
 
       if (!title || !content || !author || !categoryId) {
         return res.status(400).json({ error: '필수 필드가 누락되었습니다.' });
@@ -113,6 +117,7 @@ export default async function handler(req, res) {
           author,
           categoryId,
           password: password ? hashPassword(password) : null,
+          googleId,
         },
         select: {
           id: true, title: true, author: true, categoryId: true,

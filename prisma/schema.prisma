@@ -105,6 +105,7 @@ model ForumPost {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   password   String?
+  googleId   String?
   likedBy    ForumLike[]
   category   ForumCategory @relation(fields: [categoryId], references: [id])
   replies    ForumReply[]

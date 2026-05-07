@@ -713,6 +713,26 @@ export default function MyPage() {
             </div>
           )}
 
+          {/* ── 커뮤니티 활동 ── */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+            <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
+              ✏️ <span>커뮤니티 활동</span>
+            </h2>
+            <Link
+              href="/mypage/posts"
+              className="flex items-center justify-between w-full px-4 py-3 bg-gray-800 hover:bg-gray-750 border border-gray-700 hover:border-blue-500/50 rounded-xl transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">📋</span>
+                <div>
+                  <p className="text-sm font-medium text-gray-200">내가 쓴 글 확인하기</p>
+                  <p className="text-xs text-gray-500 mt-0.5">커뮤니티 포럼에 작성한 글 목록</p>
+                </div>
+              </div>
+              <span className="text-gray-500 group-hover:text-blue-400 transition-colors">→</span>
+            </Link>
+          </div>
+
           {/* ── 일일 목표 ── */}
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
             <h2 className="text-sm font-bold text-gray-200 mb-4 flex items-center gap-2">

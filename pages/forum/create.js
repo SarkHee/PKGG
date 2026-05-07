@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -14,6 +15,7 @@ const CATEGORY_OPTIONS = [
 
 export default function CreatePost() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { category: urlCategory } = router.query;
   const fileInputRef = useRef(null);
 
@@ -28,6 +30,7 @@ export default function CreatePost() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState({});
+  const [linkedNickname, setLinkedNickname] = useState(null);
   const contentRef = useRef(null);
 
   useEffect(() => {
@@ -35,6 +38,21 @@ export default function CreatePost() {
       setFormData((prev) => ({ ...prev, categoryId: urlCategory }));
     }
   }, [urlCategory]);
+
+  // 로그인 사용자: 대표 계정 닉네임 자동입력
+  useEffect(() => {
+    if (!session?.user?.googleId) return;
+    fetch('/api/user/me')
+      .then((r) => r.json())
+      .then((d) => {
+        const nick = d.mainAccount?.nickname;
+        if (nick) {
+          setLinkedNickname(nick);
+          setFormData((prev) => ({ ...prev, author: nick }));
+        }
+      })
+      .catch(() => {});
+  }, [session]);
 
   const validate = () => {
     const e = {};
@@ -215,16 +233,23 @@ export default function CreatePost() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     닉네임 <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={formData.author}
-                    onChange={(e) => handleChange('author', e.target.value)}
-                    placeholder="작성자 닉네임"
-                    maxLength={20}
-                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${
-                      errors.author ? 'border-red-400' : 'border-gray-300'
-                    }`}
-                  />
+                  {linkedNickname ? (
+                    <div className="flex items-center gap-2 px-3 py-2.5 border border-blue-200 bg-blue-50 rounded-lg">
+                      <span className="text-sm font-medium text-blue-800">{linkedNickname}</span>
+                      <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.author}
+                      onChange={(e) => handleChange('author', e.target.value)}
+                      placeholder="작성자 닉네임"
+                      maxLength={20}
+                      className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                        errors.author ? 'border-red-400' : 'border-gray-300'
+                      }`}
+                    />
+                  )}
                   {errors.author && <p className="mt-1 text-xs text-red-600">{errors.author}</p>}
                 </div>
                 <div>
