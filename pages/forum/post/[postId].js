@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -75,10 +76,12 @@ function formatContent(content) {
 export default function PostDetail() {
   const router = useRouter();
   const { postId } = router.query;
+  const { data: session } = useSession();
 
   const [post, setPost] = useState(null);
   const [replies, setReplies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [linkedNickname, setLinkedNickname] = useState(null);
   const [replyForm, setReplyForm] = useState({ content: '', author: '', password: '' });
   const [submittingReply, setSubmittingReply] = useState(false);
   const [replyError, setReplyError] = useState('');
@@ -89,6 +92,14 @@ export default function PostDetail() {
   useEffect(() => {
     if (postId) fetchPost();
   }, [postId]);
+
+  useEffect(() => {
+    if (!session?.user?.googleId) return;
+    fetch('/api/user/me').then((r) => r.json()).then((d) => {
+      const nick = d.mainAccount?.nickname;
+      if (nick) { setLinkedNickname(nick); setReplyForm((prev) => ({ ...prev, author: nick })); }
+    }).catch(() => {});
+  }, [session]);
 
   const fetchPost = async () => {
     setLoading(true);
@@ -332,14 +343,21 @@ export default function PostDetail() {
                     <label className="block text-xs font-medium text-gray-500 mb-1">
                       닉네임 <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={replyForm.author}
-                      onChange={(e) => setReplyForm((p) => ({ ...p, author: e.target.value }))}
-                      placeholder="닉네임"
-                      maxLength={20}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
-                    />
+                    {linkedNickname ? (
+                      <div className="flex items-center gap-2 px-3 py-2 border border-blue-200 bg-blue-50 rounded-lg">
+                        <span className="text-sm font-medium text-blue-800">{linkedNickname}</span>
+                        <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={replyForm.author}
+                        onChange={(e) => setReplyForm((p) => ({ ...p, author: e.target.value }))}
+                        placeholder="닉네임"
+                        maxLength={20}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">

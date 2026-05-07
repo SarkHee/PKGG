@@ -1,5 +1,6 @@
 // pages/party/create.js — 파티 모집글 작성
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -49,8 +50,10 @@ const inputCls  = "w-full px-4 py-2.5 bg-gray-800 border border-gray-700 text-gr
 
 export default function PartyCreate() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [linkedNickname, setLinkedNickname] = useState(null);
   const [form, setForm] = useState({
     author:      '',
     password:    '',
@@ -64,6 +67,14 @@ export default function PartyCreate() {
     mmrMax:      '',
     description: '',
   });
+
+  useEffect(() => {
+    if (!session?.user?.googleId) return;
+    fetch('/api/user/me').then((r) => r.json()).then((d) => {
+      const nick = d.mainAccount?.nickname;
+      if (nick) { setLinkedNickname(nick); setForm((prev) => ({ ...prev, author: nick })); }
+    }).catch(() => {});
+  }, [session]);
 
   const set = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -145,14 +156,21 @@ export default function PartyCreate() {
           {/* 작성자 + 비밀번호 */}
           <div className="grid grid-cols-2 gap-4">
             <Field label="닉네임" required error={errors.author}>
-              <input
-                type="text"
-                placeholder="게임 닉네임"
-                maxLength={20}
-                value={form.author}
-                onChange={(e) => set('author', e.target.value)}
-                className={inputCls}
-              />
+              {linkedNickname ? (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-700 border border-blue-500/50 rounded-xl">
+                  <span className="text-sm font-medium text-gray-200">{linkedNickname}</span>
+                  <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  placeholder="게임 닉네임"
+                  maxLength={20}
+                  value={form.author}
+                  onChange={(e) => set('author', e.target.value)}
+                  className={inputCls}
+                />
+              )}
             </Field>
             <Field label="삭제 비밀번호" required error={errors.password}>
               <input
