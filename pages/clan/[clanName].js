@@ -274,10 +274,10 @@ export default function ClanDetail() {
     { id: 'custom', name: '커스텀', icon: '⚡' },
   ];
 
-  const clanTitle = clan?.name ? `${clan.name} | PKGG` : '클랜 정보 | PKGG';
+  const clanTitle = clan?.name ? `${clan.name} 배그 클랜 분석 | PKGG` : '배그 클랜 분석 | PKGG';
   const clanDesc = clan?.name
-    ? `${clan.name} 클랜의 멤버 통계, MMR 랭킹, 플레이스타일 분석 정보를 확인하세요.`
-    : 'PUBG 클랜 통계 및 분석 정보.';
+    ? `${clan.name} 클랜 멤버 전적, 시너지, 스쿼드 분석`
+    : '배틀그라운드 클랜 멤버 전적, 시너지, 스쿼드 분석';
   const clanUrl = `https://pkgg.vercel.app/clan/${encodeURIComponent(clan?.name || '')}`;
 
   return (

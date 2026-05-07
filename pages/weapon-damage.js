@@ -375,8 +375,8 @@ export default function WeaponDamage() {
   return (
     <>
       <Head>
-        <title>무기 데미지 표 | PKGG</title>
-        <meta name="description" content="PUBG 무기별 기본 데미지, 연사속도, 탄창 수치 비교표. 최신 패치 기준으로 업데이트됩니다." />
+        <title>배그 무기 데미지 표 최신판 | PKGG</title>
+        <meta name="description" content="배틀그라운드 전 무기 데미지, DPS, 방어구별 피해량 완벽 정리" />
         <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />

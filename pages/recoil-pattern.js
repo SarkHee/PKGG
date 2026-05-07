@@ -657,9 +657,9 @@ export default function RecoilPattern() {
   return (
     <div className="min-h-screen bg-gray-950">
       <Head>
-        <title>반동 패턴 시뮬레이터 | PKGG</title>
-        <meta name="description" content="PUBG 총기별 반동 패턴 시각화 — M416, AKM, SCAR-L, Beryl, Groza 등 8종. 어태치먼트 효과 비교. 직접 반동을 제어해보는 연습 모드 제공." />
-        <meta property="og:title" content="반동 패턴 시뮬레이터 | PKGG" />
+        <title>배그 반동 패턴 시뮬레이터 | PKGG</title>
+        <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
+        <meta property="og:title" content="배그 반동 패턴 시뮬레이터 | PKGG" />
         <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />

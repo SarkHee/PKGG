@@ -431,10 +431,10 @@ export default function AimTrainerPage() {
   return (
     <div className="min-h-screen bg-gray-950">
       <Head>
-        <title>에임 트레이너 | PKGG</title>
-        <meta name="description" content="PUBG 에임 트레이너 — 반응속도 테스트, 플리커 에임, 이동 타겟 클릭 연습" />
-        <meta property="og:title" content="에임 트레이너 | PKGG" />
-        <meta property="og:description" content="반응속도 · 플리커 에임 · 이동 타겟 — 브라우저에서 바로 플레이" />
+        <title>배그 에임 트레이너 | PKGG</title>
+        <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
+        <meta property="og:title" content="배그 에임 트레이너 | PKGG" />
+        <meta property="og:description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
         <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />

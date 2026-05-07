@@ -1212,8 +1212,8 @@ export default function SensitivityAnalyzer() {
   return (
     <>
       <Head>
-        <title>감도 분석기 — PK.GG</title>
-        <meta name="description" content="PUBG 감도 설정을 분석하고 스코프별 최적 감도를 추천합니다." />
+        <title>배그 감도 분석기 | PKGG</title>
+        <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
       </Head>
       <div className="min-h-screen bg-gray-950 text-white">
         <Header />

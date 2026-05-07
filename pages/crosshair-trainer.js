@@ -206,7 +206,10 @@ export default function CrosshairTrainer() {
 
   return (
     <>
-      <Head><title>크로스헤어 배치 트레이너 — PK.GG</title></Head>
+      <Head>
+        <title>배그 크로스헤어 트레이너 | PKGG</title>
+        <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
+      </Head>
       <div style={{ minHeight: '100vh', background: '#030712', color: '#fff', padding: '24px 16px', fontFamily: 'sans-serif' }}>
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <div style={{ marginBottom: 20 }}>

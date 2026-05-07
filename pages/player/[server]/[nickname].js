@@ -1155,16 +1155,16 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
       <div className="bg-gray-50 min-h-screen text-gray-900">
         <div className="max-w-screen-xl mx-auto px-4 py-6">
         <Head>
-          <title>{`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`}</title>
-          <meta name="description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 및 클랜 시너지 분석 정보.`} />
+          <title>{`${profile?.nickname || '플레이어'} 배그 전적 | PKGG`}</title>
+          <meta name="description" content={`${profile?.nickname || '플레이어'}의 배틀그라운드 전적, PKGG 점수, 플레이스타일 분석`} />
           <meta property="og:type" content="profile" />
           <meta property="og:url" content={`https://pkgg.vercel.app/player/${router.query.server}/${profile?.nickname}`} />
-          <meta property="og:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`} />
-          <meta property="og:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
+          <meta property="og:title" content={`${profile?.nickname || '플레이어'} 배그 전적 | PKGG`} />
+          <meta property="og:description" content={`${profile?.nickname || '플레이어'}의 배틀그라운드 전적, PKGG 점수, 플레이스타일 분석`} />
           <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
           <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`} />
-          <meta name="twitter:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
+          <meta name="twitter:title" content={`${profile?.nickname || '플레이어'} 배그 전적 | PKGG`} />
+          <meta name="twitter:description" content={`${profile?.nickname || '플레이어'}의 배틀그라운드 전적, PKGG 점수, 플레이스타일 분석`} />
           <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
           <link rel="canonical" href={`https://pkgg.vercel.app/player/${router.query.server}/${profile?.nickname}`} />
         </Head>

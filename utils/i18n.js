@@ -35,8 +35,8 @@ const translations = {
     'home.news_detail': '자세히 보기',
     'home.features': 'Features',
     'home.no_title': '제목 없음',
-    'home.meta_title': 'PKGG - PUBG 플레이어 검색 및 통계',
-    'home.meta_desc': 'PUBG 플레이어 통계를 확인하고 클랜 정보를 검색해보세요. MMR, 플레이스타일, 최근 매치, 클랜 랭킹을 한눈에.',
+    'home.meta_title': '배그 전적 조회 & 클랜 분석 | PKGG',
+    'home.meta_desc': '배틀그라운드 전적 검색, 클랜 분석, AI 코칭을 무료로. 닉네임 하나로 스팀·카카오·콘솔 전적 확인',
     // ── Feature cards
     'feat.stats_title': '실시간 통계',
     'feat.stats_desc': 'PUBG API 연동으로 정확한 플레이어 통계',

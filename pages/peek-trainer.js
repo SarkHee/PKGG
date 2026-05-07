@@ -551,7 +551,10 @@ export default function PeekTrainer() {
   // ── 메뉴 ─────────────────────────────────────────
   if (screen === 'menu') return (
     <>
-      <Head><title>피킹 트레이너 | PKGG</title></Head>
+      <Head>
+        <title>배그 피킹 트레이너 | PKGG</title>
+        <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
+      </Head>
       <Header />
       <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-8 px-4">
         <div className="text-center">
