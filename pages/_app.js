@@ -11,9 +11,134 @@ import CookieBanner from '../components/CookieBanner';
 import Footer from '../components/layout/Footer';
 import { LanguageProvider, useT } from '../utils/i18n';
 import { AuthProvider } from '../utils/useAuth';
-import { SessionProvider } from 'next-auth/react';
+import { SessionProvider, useSession } from 'next-auth/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
+
+const TOPIC_LABEL_PANEL = {
+  bug:     '🐛 버그/오류',
+  feature: '💡 기능 제안',
+  data:    '📊 데이터 오류',
+  forum:   '🚨 포럼 신고',
+  other:   '📬 기타',
+}
+
+function FloatingInquiryPanel() {
+  const { data: session } = useSession()
+  const [open, setOpen] = useState(false)
+  const [inquiries, setInquiries] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [expanded, setExpanded] = useState(null)
+
+  // 관리자 이메일이 아니면 렌더하지 않음
+  if (!session?.user?.isAdmin) return null
+
+  const loadInquiries = async () => {
+    if (loading) return
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/inquiries-panel')
+      const data = await res.json()
+      setInquiries(data.inquiries || [])
+    } catch {
+      setInquiries([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOpen = () => {
+    setOpen((v) => {
+      if (!v) loadInquiries()
+      return !v
+    })
+  }
+
+  return (
+    <div className="fixed left-4 bottom-32 z-50 flex flex-col items-start gap-2">
+      {open && (
+        <div className="w-80 sm:w-96 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl flex flex-col max-h-[70vh]">
+          {/* 패널 헤더 */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+            <span className="text-sm font-bold text-gray-800 dark:text-gray-100">
+              📬 문의함 {inquiries.length > 0 && <span className="text-blue-500">({inquiries.length})</span>}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={loadInquiries}
+                className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
+                title="새로고침"
+              >
+                🔄
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          {/* 목록 */}
+          <div className="overflow-y-auto flex-1 p-2 space-y-1">
+            {loading ? (
+              <div className="text-center py-8 text-sm text-gray-400">불러오는 중...</div>
+            ) : inquiries.length === 0 ? (
+              <div className="text-center py-8 text-sm text-gray-400">접수된 문의가 없습니다.</div>
+            ) : (
+              inquiries.map((inq) => (
+                <div key={inq.id} className="rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                  <button
+                    onClick={() => setExpanded(expanded === inq.id ? null : inq.id)}
+                    className="w-full px-3 py-2.5 flex items-start gap-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">
+                      {TOPIC_LABEL_PANEL[inq.topic] || inq.topic}
+                    </span>
+                    <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 truncate">{inq.message}</span>
+                    <span className="text-[10px] text-gray-400 flex-shrink-0">
+                      {new Date(inq.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </button>
+                  {expanded === inq.id && (
+                    <div className="px-3 pb-3 border-t border-gray-100 dark:border-gray-700 pt-2 space-y-2">
+                      <p className="text-xs text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
+                        {inq.message}
+                      </p>
+                      {inq.email && (
+                        <a href={`mailto:${inq.email}`} className="text-xs text-blue-500 hover:underline block">
+                          ✉️ {inq.email}
+                        </a>
+                      )}
+                      <p className="text-[10px] text-gray-400">
+                        {new Date(inq.createdAt).toLocaleString('ko-KR')}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 트리거 버튼 */}
+      <button
+        onClick={handleOpen}
+        className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-2.5 rounded-full shadow-lg transition-colors border border-blue-500"
+      >
+        <span>📬</span>
+        <span>피드백 확인</span>
+        {inquiries.length > 0 && (
+          <span className="bg-white text-blue-600 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center ml-0.5">
+            {inquiries.length > 99 ? '99+' : inquiries.length}
+          </span>
+        )}
+      </button>
+    </div>
+  )
+}
 
 function FloatingFeedback() {
   const [open, setOpen] = useState(false)
@@ -368,6 +493,7 @@ function MyApp({ Component, pageProps }) {
       <FloatingFavorites />
       {showSearch && <FloatingSearch />}
       <FloatingFeedback />
+      <FloatingInquiryPanel />
       <SpeedInsights sampleRate={0.1} />
       <Analytics />
     </LanguageProvider>
