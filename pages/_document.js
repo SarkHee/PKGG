@@ -20,8 +20,9 @@ export default function Document() {
         <meta property="og:title" content="PKGG - PUBG 전적 분석 & 클랜 분석" />
         <meta property="og:description" content="클랜 순위, PKGG 점수, AI 코치 무료 제공" />
         <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image:secure_url" content="https://pkgg.vercel.app/og-image.png" />
+        <meta property="og:image:width" content="800" />
+        <meta property="og:image:height" content="400" />
         <meta property="og:image:type" content="image/png" />
         <meta property="og:image:alt" content="PKGG - PUBG 전적 분석 & 클랜 분석" />
         <meta name="twitter:card" content="summary_large_image" />
