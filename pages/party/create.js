@@ -71,7 +71,9 @@ export default function PartyCreate() {
   useEffect(() => {
     if (!session?.user?.googleId) return;
     fetch('/api/user/me').then((r) => r.json()).then((d) => {
-      const nick = d.mainAccount?.nickname;
+      const user = d.user;
+      const mainAcc = user?.pubgAccounts?.find((a) => a.id === user.mainAccountId);
+      const nick = mainAcc?.nickname;
       if (nick) { setLinkedNickname(nick); setForm((prev) => ({ ...prev, author: nick })); }
     }).catch(() => {});
   }, [session]);

@@ -45,7 +45,9 @@ export default function CreatePost() {
     fetch('/api/user/me')
       .then((r) => r.json())
       .then((d) => {
-        const nick = d.mainAccount?.nickname;
+        const user = d.user;
+        const mainAcc = user?.pubgAccounts?.find((a) => a.id === user.mainAccountId);
+        const nick = mainAcc?.nickname;
         if (nick) {
           setLinkedNickname(nick);
           setFormData((prev) => ({ ...prev, author: nick }));
