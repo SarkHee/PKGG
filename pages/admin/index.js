@@ -156,6 +156,7 @@ export default function AdminDashboard() {
                 {session.user.email}
               </span>
             )}
+            <Link href="/" className="text-sm text-gray-400 hover:text-white">← 메인</Link>
             <Link href="/admin/notices" className="text-sm text-gray-400 hover:text-white">공지 관리</Link>
             <Link href="/admin/moderation" className="text-sm text-gray-400 hover:text-white">모더레이션</Link>
             <button
