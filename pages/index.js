@@ -252,26 +252,26 @@ export default function Home() {
         <meta name="description" content={t('home.meta_desc')} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://pk.gg/" />
+        <meta property="og:url" content="https://pkgg.vercel.app/" />
         <meta property="og:title" content={t('home.meta_title')} />
         <meta property="og:description" content={t('home.meta_desc')} />
-        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={t('home.meta_title')} />
         <meta name="twitter:description" content={t('home.meta_desc')} />
-        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
-        <link rel="canonical" href="https://pk.gg/" />
+        <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
+        <link rel="canonical" href="https://pkgg.vercel.app/" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebSite",
             "name": "PKGG",
-            "url": "https://pk.gg",
+            "url": "https://pkgg.vercel.app",
             "description": "PUBG 플레이어 전적 검색, 클랜 분석, 무기 성향 테스트",
             "potentialAction": {
               "@type": "SearchAction",
-              "target": { "@type": "EntryPoint", "urlTemplate": "https://pk.gg/?q={search_term_string}" },
+              "target": { "@type": "EntryPoint", "urlTemplate": "https://pkgg.vercel.app/?q={search_term_string}" },
               "query-input": "required name=search_term_string"
             }
           })}}

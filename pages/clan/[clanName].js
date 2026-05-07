@@ -278,7 +278,7 @@ export default function ClanDetail() {
   const clanDesc = clan?.name
     ? `${clan.name} 클랜의 멤버 통계, MMR 랭킹, 플레이스타일 분석 정보를 확인하세요.`
     : 'PUBG 클랜 통계 및 분석 정보.';
-  const clanUrl = `https://pk.gg/clan/${encodeURIComponent(clan?.name || '')}`;
+  const clanUrl = `https://pkgg.vercel.app/clan/${encodeURIComponent(clan?.name || '')}`;
 
   return (
     <Layout>
@@ -289,11 +289,11 @@ export default function ClanDetail() {
         <meta property="og:url" content={clanUrl} />
         <meta property="og:title" content={clanTitle} />
         <meta property="og:description" content={clanDesc} />
-        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={clanTitle} />
         <meta name="twitter:description" content={clanDesc} />
-        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
+        <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
         <link rel="canonical" href={clanUrl} />
       </Head>
       <div className="min-h-screen bg-gray-950 text-white" style={{ marginTop: '-5rem' }}>

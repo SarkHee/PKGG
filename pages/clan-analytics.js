@@ -355,15 +355,15 @@ export default function ClanAnalytics() {
         <title>클랜 분석 | PKGG</title>
         <meta name="description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://pk.gg/clan-analytics" />
+        <meta property="og:url" content="https://pkgg.vercel.app/clan-analytics" />
         <meta property="og:title" content="클랜 분석 | PKGG" />
         <meta property="og:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
-        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="클랜 분석 | PKGG" />
         <meta name="twitter:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지." />
-        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
-        <link rel="canonical" href="https://pk.gg/clan-analytics" />
+        <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
+        <link rel="canonical" href="https://pkgg.vercel.app/clan-analytics" />
       </Head>
         <Header />
         <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -383,15 +383,15 @@ export default function ClanAnalytics() {
         <title>클랜 분석 | PKGG</title>
         <meta name="description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://pk.gg/clan-analytics" />
+        <meta property="og:url" content="https://pkgg.vercel.app/clan-analytics" />
         <meta property="og:title" content="클랜 분석 | PKGG" />
         <meta property="og:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
-        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="클랜 분석 | PKGG" />
         <meta name="twitter:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지." />
-        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
-        <link rel="canonical" href="https://pk.gg/clan-analytics" />
+        <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
+        <link rel="canonical" href="https://pkgg.vercel.app/clan-analytics" />
       </Head>
         <Header />
         <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -457,15 +457,15 @@ export default function ClanAnalytics() {
         <title>클랜 분석 | PKGG</title>
         <meta name="description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://pk.gg/clan-analytics" />
+        <meta property="og:url" content="https://pkgg.vercel.app/clan-analytics" />
         <meta property="og:title" content="클랜 분석 | PKGG" />
         <meta property="og:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지. 클랜 MMR, 멤버 수, 플레이스타일 분포를 확인하세요." />
-        <meta property="og:image" content="https://pk.gg/og-image.png" />
+        <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="클랜 분석 | PKGG" />
         <meta name="twitter:description" content="PUBG 클랜 랭킹 및 통계 분석 페이지." />
-        <meta name="twitter:image" content="https://pk.gg/og-image.png" />
-        <link rel="canonical" href="https://pk.gg/clan-analytics" />
+        <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
+        <link rel="canonical" href="https://pkgg.vercel.app/clan-analytics" />
       </Head>
       <Header />
 

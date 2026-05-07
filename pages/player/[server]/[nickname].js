@@ -1158,15 +1158,15 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
           <title>{`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`}</title>
           <meta name="description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 및 클랜 시너지 분석 정보.`} />
           <meta property="og:type" content="profile" />
-          <meta property="og:url" content={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
+          <meta property="og:url" content={`https://pkgg.vercel.app/player/${router.query.server}/${profile?.nickname}`} />
           <meta property="og:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`} />
           <meta property="og:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
-          <meta property="og:image" content="https://pk.gg/og-image.png" />
+          <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적 | PKGG`} />
           <meta name="twitter:description" content={`${profile?.nickname || '플레이어'}님의 PUBG 전적, MMR 추이, 플레이스타일 분석.`} />
-          <meta name="twitter:image" content="https://pk.gg/og-image.png" />
-          <link rel="canonical" href={`https://pk.gg/player/${router.query.server}/${profile?.nickname}`} />
+          <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
+          <link rel="canonical" href={`https://pkgg.vercel.app/player/${router.query.server}/${profile?.nickname}`} />
         </Head>
 
         {/* 데이터 소스 알림 - 간결하게 */}
