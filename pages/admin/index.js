@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   // Google 관리자 세션이 있으면 자동 인증
   const isAuthed = googleAuthed || authed;
 
-  const [tab, setTab] = useState('inquiries'); // 'inquiries' | 'users'
+  const [tab, setTab] = useState('inquiries'); // 'inquiries' | 'users' | 'leaderRequests'
 
   const [inquiries,   setInquiries]   = useState([]);
   const [inqLoading,  setInqLoading]  = useState(false);
@@ -31,6 +31,10 @@ export default function AdminDashboard() {
 
   const [users,      setUsers]      = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
+
+  const [leaderReqs,      setLeaderReqs]      = useState([]);
+  const [leaderReqLoading, setLeaderReqLoading] = useState(false);
+  const [leaderReqAction,  setLeaderReqAction]  = useState({}); // { [id]: 'loading' | 'done' }
 
   // 저장된 인증 복원
   useEffect(() => {
@@ -49,6 +53,17 @@ export default function AdminDashboard() {
       .then((d) => setInquiries(d.inquiries || []))
       .catch(() => setInquiries([]))
       .finally(() => setInqLoading(false));
+  }, [isAuthed, tab]);
+
+  // 리더 변경 요청 목록 로드
+  useEffect(() => {
+    if (!isAuthed || tab !== 'leaderRequests') return;
+    setLeaderReqLoading(true);
+    fetch('/api/admin/clan-leader-requests', { headers: { 'x-admin-token': adminPw() } })
+      .then((r) => r.json())
+      .then((d) => setLeaderReqs(d.requests || []))
+      .catch(() => setLeaderReqs([]))
+      .finally(() => setLeaderReqLoading(false));
   }, [isAuthed, tab]);
 
   // 구글 유저 목록 로드
@@ -85,6 +100,23 @@ export default function AdminDashboard() {
       setAuthError('서버 오류가 발생했습니다.');
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleLeaderReqAction = async (id, action) => {
+    setLeaderReqAction((p) => ({ ...p, [id]: 'loading' }));
+    try {
+      const res = await fetch('/api/admin/clan-leader-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminPw() },
+        body: JSON.stringify({ id, action }),
+      });
+      if (res.ok) {
+        setLeaderReqs((prev) => prev.map((r) => r.id === id ? { ...r, status: action === 'approve' ? 'approved' : 'rejected' } : r));
+        setLeaderReqAction((p) => ({ ...p, [id]: 'done' }));
+      }
+    } catch {
+      setLeaderReqAction((p) => ({ ...p, [id]: null }));
     }
   };
 
@@ -172,8 +204,9 @@ export default function AdminDashboard() {
           {/* 탭 */}
           <div className="flex gap-2 mb-6">
             {[
-              { key: 'inquiries', label: '📬 문의함' },
-              { key: 'users',     label: '👤 구글 로그인 유저' },
+              { key: 'inquiries',      label: '📬 문의함' },
+              { key: 'leaderRequests', label: '👑 리더 변경 요청' },
+              { key: 'users',          label: '👤 구글 로그인 유저' },
             ].map((t) => (
               <button
                 key={t.key}
@@ -245,6 +278,82 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 리더 변경 요청 탭 */}
+          {tab === 'leaderRequests' && (
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <h1 className="text-xl font-bold">클랜 리더 변경 요청</h1>
+                <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                  총 {leaderReqs.filter((r) => r.status === 'pending').length}건 대기 중
+                </span>
+              </div>
+
+              {leaderReqLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-gray-800 rounded-xl animate-pulse" />)}
+                </div>
+              ) : leaderReqs.length === 0 ? (
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-8 text-center text-gray-500">
+                  접수된 요청이 없습니다.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {leaderReqs.map((req) => (
+                    <div key={req.id} className={`bg-gray-900 border rounded-xl px-5 py-4 ${
+                      req.status === 'pending' ? 'border-gray-700' :
+                      req.status === 'approved' ? 'border-green-800/50' : 'border-red-900/50'
+                    }`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          {/* 클랜 + 리더 변경 표시 */}
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300">{req.clanName}</span>
+                            <span className="text-sm text-gray-400">{req.currentLeader}</span>
+                            <span className="text-gray-600">→</span>
+                            <span className="text-sm text-blue-400 font-semibold">{req.requestNickname}</span>
+                          </div>
+                          {/* 사유 */}
+                          <p className="text-xs text-gray-400 leading-relaxed">{req.reason}</p>
+                          <p className="text-[10px] text-gray-600 mt-1.5">
+                            {new Date(req.createdAt).toLocaleString('ko-KR')}
+                          </p>
+                        </div>
+
+                        {/* 상태 / 버튼 */}
+                        <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                          {req.status === 'pending' ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleLeaderReqAction(req.id, 'approve')}
+                                disabled={leaderReqAction[req.id] === 'loading'}
+                                className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
+                              >
+                                승인
+                              </button>
+                              <button
+                                onClick={() => handleLeaderReqAction(req.id, 'reject')}
+                                disabled={leaderReqAction[req.id] === 'loading'}
+                                className="px-3 py-1.5 bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition-colors"
+                              >
+                                거절
+                              </button>
+                            </div>
+                          ) : (
+                            <span className={`text-xs font-bold px-2 py-1 rounded ${
+                              req.status === 'approved' ? 'bg-green-900/40 text-green-400' : 'bg-red-900/40 text-red-400'
+                            }`}>
+                              {req.status === 'approved' ? '✓ 승인됨' : '✕ 거절됨'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

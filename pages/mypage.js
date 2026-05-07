@@ -326,6 +326,10 @@ export default function MyPage() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [clanLeaderLoading, setClanLeaderLoading] = useState(false);
   const [clanLeaderMsg, setClanLeaderMsg] = useState(null);
+  const [showLeaderRequestPopup, setShowLeaderRequestPopup] = useState(false);
+  const [leaderRequestReason, setLeaderRequestReason] = useState('');
+  const [leaderRequestLoading, setLeaderRequestLoading] = useState(false);
+  const [leaderRequestMsg, setLeaderRequestMsg] = useState(null);
 
   useEffect(() => { if (status === 'authenticated') fetchUser(); }, [status]);
 
@@ -386,6 +390,34 @@ export default function MyPage() {
       setClanLeaderMsg({ ok: false, text: '네트워크 오류' });
     } finally {
       setClanLeaderLoading(false);
+    }
+  };
+
+  const handleLeaderRequest = async () => {
+    if (leaderRequestReason.trim().length < 5) {
+      setLeaderRequestMsg({ ok: false, text: '변경 사유를 5자 이상 입력해주세요.' });
+      return;
+    }
+    setLeaderRequestLoading(true);
+    setLeaderRequestMsg(null);
+    try {
+      const r = await fetch('/api/user/request-clan-leader', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: leaderRequestReason }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setLeaderRequestMsg({ ok: true, text: '변경 요청이 접수됐습니다. 관리자 검토 후 처리됩니다.' });
+        setLeaderRequestReason('');
+        setTimeout(() => { setShowLeaderRequestPopup(false); setLeaderRequestMsg(null); }, 2500);
+      } else {
+        setLeaderRequestMsg({ ok: false, text: d.error || '요청 실패' });
+      }
+    } catch {
+      setLeaderRequestMsg({ ok: false, text: '네트워크 오류' });
+    } finally {
+      setLeaderRequestLoading(false);
     }
   };
 
@@ -575,27 +607,102 @@ export default function MyPage() {
                 </div>
               </div>
 
-              {/* 리더 등록 버튼 */}
+              {/* 리더 등록 / 변경 문의 버튼 */}
               <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between gap-3">
                 <div className="text-xs text-gray-500">
                   {userData.clan.leader === mainAccount?.nickname
                     ? '✅ 현재 이 클랜의 리더입니다.'
-                    : '대표 계정을 이 클랜의 리더로 등록할 수 있습니다.'}
+                    : userData.clan.leader
+                      ? `현재 리더: ${userData.clan.leader}`
+                      : '대표 계정을 이 클랜의 리더로 등록할 수 있습니다.'}
                 </div>
-                {userData.clan.leader !== mainAccount?.nickname && (
-                  <button
-                    onClick={handleSetClanLeader}
-                    disabled={clanLeaderLoading || !mainAccount}
-                    className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
-                  >
-                    {clanLeaderLoading ? '등록 중...' : '클랜 리더 등록'}
-                  </button>
-                )}
+                {userData.clan.leader === mainAccount?.nickname ? null
+                  : !userData.clan.leader ? (
+                    // 리더 미등록 — 첫 등록 버튼
+                    <button
+                      onClick={handleSetClanLeader}
+                      disabled={clanLeaderLoading || !mainAccount}
+                      className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      {clanLeaderLoading ? '등록 중...' : '클랜 리더 등록'}
+                    </button>
+                  ) : (
+                    // 이미 다른 리더 존재 — 변경 문의 버튼
+                    <button
+                      onClick={() => { setShowLeaderRequestPopup(true); setLeaderRequestMsg(null); }}
+                      className="flex-shrink-0 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+                    >
+                      리더 변경 문의
+                    </button>
+                  )
+                }
               </div>
               {clanLeaderMsg && (
                 <p className={`mt-2 text-xs font-medium ${clanLeaderMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
                   {clanLeaderMsg.ok ? '✅' : '❌'} {clanLeaderMsg.text}
                 </p>
+              )}
+
+              {/* 리더 변경 문의 팝업 */}
+              {showLeaderRequestPopup && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+                  <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-white">리더 변경 문의</span>
+                      <button onClick={() => setShowLeaderRequestPopup(false)} className="text-gray-400 hover:text-white text-lg leading-none">×</button>
+                    </div>
+
+                    {/* 현재 → 변경 표시 */}
+                    <div className="bg-gray-800 rounded-xl p-4 space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400 w-16 flex-shrink-0">현 리더</span>
+                        <span className="text-white font-semibold">{userData.clan.leader}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <span className="w-16"></span>
+                        <span>↓</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-400 w-16 flex-shrink-0">변경 리더</span>
+                        <span className="text-blue-400 font-semibold">{mainAccount?.nickname}</span>
+                      </div>
+                    </div>
+
+                    {/* 사유 입력 */}
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1.5 block">변경 사유</label>
+                      <textarea
+                        value={leaderRequestReason}
+                        onChange={(e) => setLeaderRequestReason(e.target.value)}
+                        rows={3}
+                        placeholder="변경 사유를 입력해주세요..."
+                        className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500 resize-none"
+                      />
+                    </div>
+
+                    {leaderRequestMsg && (
+                      <p className={`text-xs font-medium ${leaderRequestMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
+                        {leaderRequestMsg.ok ? '✅' : '❌'} {leaderRequestMsg.text}
+                      </p>
+                    )}
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowLeaderRequestPopup(false)}
+                        className="flex-1 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-semibold rounded-xl transition-colors"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={handleLeaderRequest}
+                        disabled={leaderRequestLoading}
+                        className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-semibold rounded-xl transition-colors"
+                      >
+                        {leaderRequestLoading ? '제출 중...' : '변경 요청'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}

@@ -420,6 +420,19 @@ model feedbacks {
   created_at DateTime @default(now()) @db.Timestamptz(6)
 }
 
+model ClanLeaderRequest {
+  id           Int      @id @default(autoincrement())
+  clanId       Int
+  clanName     String
+  currentLeader String
+  requestNickname String
+  reason       String
+  status       String   @default("pending") // pending | approved | rejected
+  createdAt    DateTime @default(now())
+
+  @@map("clan_leader_requests")
+}
+
 model Inquiry {
   id        Int      @id @default(autoincrement())
   topic     String
