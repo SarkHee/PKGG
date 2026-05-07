@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 const TOPIC_LABEL = {
   bug:     '🐛 버그/오류',
@@ -11,10 +12,16 @@ const TOPIC_LABEL = {
 };
 
 export default function AdminDashboard() {
+  const { data: session, status } = useSession();
+  const googleAuthed = session?.user?.isAdmin === true;
+
   const [authed,   setAuthed]   = useState(false);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Google 관리자 세션이 있으면 자동 인증
+  const isAuthed = googleAuthed || authed;
 
   const [tab, setTab] = useState('inquiries'); // 'inquiries' | 'users'
 
@@ -35,25 +42,25 @@ export default function AdminDashboard() {
 
   // 문의 목록 로드
   useEffect(() => {
-    if (!authed || tab !== 'inquiries') return;
+    if (!isAuthed || tab !== 'inquiries') return;
     setInqLoading(true);
     fetch('/api/admin/inquiries', { headers: { 'x-admin-token': adminPw() } })
       .then((r) => r.json())
       .then((d) => setInquiries(d.inquiries || []))
       .catch(() => setInquiries([]))
       .finally(() => setInqLoading(false));
-  }, [authed, tab]);
+  }, [isAuthed, tab]);
 
   // 구글 유저 목록 로드
   useEffect(() => {
-    if (!authed || tab !== 'users') return;
+    if (!isAuthed || tab !== 'users') return;
     setUsersLoading(true);
     fetch('/api/admin/users', { headers: { 'x-admin-token': adminPw() } })
       .then((r) => r.json())
       .then((d) => setUsers(d.users || []))
       .catch(() => setUsers([]))
       .finally(() => setUsersLoading(false));
-  }, [authed, tab]);
+  }, [isAuthed, tab]);
 
   // 로그인
   const handleLogin = async (e) => {
@@ -81,8 +88,17 @@ export default function AdminDashboard() {
     }
   };
 
-  // ── 비밀번호 화면 ─────────────────────────────────────────────
-  if (!authed) {
+  // ── 로딩 중 ──────────────────────────────────────────────────
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-gray-500 text-sm">확인 중...</div>
+      </div>
+    );
+  }
+
+  // ── 비밀번호 화면 (Google 관리자 아닐 때) ──────────────────────
+  if (!isAuthed) {
     return (
       <>
         <Head>
@@ -135,6 +151,11 @@ export default function AdminDashboard() {
             <span className="ml-3 text-xs text-gray-500">대시보드</span>
           </div>
           <div className="flex items-center gap-3">
+            {googleAuthed && (
+              <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded-lg">
+                {session.user.email}
+              </span>
+            )}
             <Link href="/admin/notices" className="text-sm text-gray-400 hover:text-white">공지 관리</Link>
             <Link href="/admin/moderation" className="text-sm text-gray-400 hover:text-white">모더레이션</Link>
             <button
