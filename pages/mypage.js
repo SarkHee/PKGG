@@ -573,8 +573,14 @@ export default function MyPage() {
           {/* ── 클랜 정보 ── */}
           {userData?.clan && (
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-              <h2 className="text-sm font-bold text-gray-200 mb-4 flex items-center gap-2">
-                🏰 <span>소속 클랜</span>
+              <h2 className="text-sm font-bold text-gray-200 mb-4 flex items-center justify-between">
+                <span className="flex items-center gap-2">🏰 소속 클랜</span>
+                <Link
+                  href={`/clan/${encodeURIComponent(userData.clan.name)}`}
+                  className="text-xs text-blue-400 hover:text-blue-300 font-semibold transition-colors"
+                >
+                  상세보기 →
+                </Link>
               </h2>
               <div className="flex items-start gap-4">
                 {/* 클랜 아이콘 */}
