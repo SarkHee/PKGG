@@ -49,10 +49,11 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `forum/create.js` | 글 작성 (이미지 드래그 앤 드롭 업로드 지원) |
 | `admin/moderation.js` | 관리자: 신고 처리 |
 | `admin/notices.js` | 관리자: 공지 관리 |
-| `admin/index.js` | 관리자 대시보드 |
+| `admin/index.js` | 관리자 대시보드. Google 세션(`sssyck123@gmail.com`) 자동 인증 + 비밀번호 폴백. 탭: 📬 문의함 / 👑 리더 변경 요청 / 👤 구글 로그인 유저. 헤더에 "← 메인" 버튼 |
 | `about.js` | PK.GG 소개 (주요 기능, 데이터 출처, 면책 고지) |
 | `terms.js` | 이용약관 |
-| `contact.js` | 문의 페이지 (이메일 복사/전송, 문의 유형별 안내) |
+| `contact.js` | 문의 폼. 유형 선택(5종) + 메시지 + 선택적 이메일. POST `/api/contact/submit` → `inquiries` 테이블 저장. 성공 시 "추가 문의하기" 리셋 |
+| `mypage.js` | 마이페이지. 소속 클랜 카드: 태그·레벨·멤버수·평균MMR·지역·리더 표시. "상세보기 →" 링크(`/clan/[name]`). 클랜 리더 등록/변경 문의 UI |
 | `_error.js` | SSR 에러 페이지 (Next.js 필수 — 없으면 "missing required error components" 루프 발생) |
 | `404.js` | 404 Not Found 페이지 |
 | `500.js` | 500 Internal Server Error 페이지 |
@@ -70,7 +71,13 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `clan/batch-update.js` | 클랜 멤버 일괄 업데이트 |
 | `clan/update-rankings.js` | 클랜 랭킹 업데이트 |
 | `clan/get-members.js` | 클랜 멤버 조회 |
-| `admin/auth.js` | 관리자 인증 |
+| `admin/auth.js` | 관리자 인증 (비밀번호 토큰) |
+| `admin/clan-leader-requests.js` | 클랜 리더 변경 요청 관리. GET: 요청 목록. POST: `action=approve`(트랜잭션: 요청 승인 + clan.leader 업데이트) / `action=reject`. Google 세션 or 비밀번호 토큰 인증 |
+| `admin/inquiries-panel.js` | 관리자 문의 목록 조회 (GET). Google 세션 인증 전용 |
+| `admin/delete-inquiry.js` | 문의 삭제 (DELETE). Google 세션 인증 전용 |
+| `user/set-clan-leader.js` | 클랜 리더 최초 등록. 이미 리더 있으면 409 `alreadyHasLeader: true` 반환 |
+| `user/request-clan-leader.js` | 클랜 리더 변경 문의 제출. reason 5자 이상 필수. pending 중복 방지. `ClanLeaderRequest` 생성 |
+| `contact/submit.js` | 문의 폼 제출. POST → `prisma.inquiry` 생성 |
 | `cron/` | Vercel cron 작업들 |
 
 ### components/
@@ -83,7 +90,7 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `player/PlayerDashboard.jsx` | 플레이어 대시보드 |
 | `player/PlayerHeader.jsx` | 플레이어 헤더 |
 | `player/EnhancedPlayerStats.jsx` | 향상된 플레이어 통계 |
-| `layout/Footer.jsx` | 공통 푸터 |
+| `layout/Footer.jsx` | 공통 푸터. `useSession` — `session?.user?.isAdmin`일 때 "관리자 모드 보기" 버튼 표시. 숨겨진 admin 링크 제거됨 |
 | `AdUnit.jsx` | 광고 유닛 |
 
 ### utils/
@@ -174,6 +181,27 @@ const [masteryWeapons, setMasteryWeapons] = useState(null);
 ```
 AICoachingCard 내부에서 `/api/pubg/player-id`, `/api/pubg/stats/mastery` 를 직접 호출하지 않음 — WeaponMasteryCard가 이미 호출했으므로.
 
+### 관리자 인증 패턴 (이중 인증)
+모든 admin API는 비밀번호 토큰 OR Google 세션 둘 다 허용:
+```js
+const ADMIN_EMAIL = 'sssyck123@gmail.com'
+async function checkAdmin(req, res) {
+  const pw = req.headers['x-admin-token'] || req.query.pw
+  if (pw && pw === process.env.ADMIN_PASSWORD) return true
+  const session = await getServerSession(req, res, authOptions)
+  return session?.user?.email === ADMIN_EMAIL
+}
+```
+- `pages/api/auth/[...nextauth].js` JWT 콜백에서 `token.email = user.email` 저장
+- 세션 콜백에서 `session.user.isAdmin = token.email === ADMIN_EMAIL`
+- 프론트엔드에서 `session?.user?.isAdmin`으로 관리자 UI 분기
+
+### 클랜 리더 시스템
+- **최초 등록**: `set-clan-leader.js` — `clan.leader`가 비어있으면 현재 사용자로 등록
+- **변경 요청**: `request-clan-leader.js` — 이미 리더 있으면 `ClanLeaderRequest` 생성(pending)
+- **관리자 승인**: `admin/clan-leader-requests.js` POST approve → `prisma.$transaction`으로 요청 상태 + clan.leader 동시 업데이트
+- **마이페이지 UI**: 리더 없으면 "클랜 리더 등록" 버튼, 타인이 리더면 "리더 변경 문의" 팝업
+
 ### localStorage 캐시 TTL 패턴 (Header donations/count)
 ```js
 const TTL = 5 * 60 * 1000;
@@ -184,6 +212,20 @@ if (raw) {
 }
 // fetch → localStorage.setItem('pkgg_donation_cache', JSON.stringify({ count, ts: Date.now() }))
 ```
+
+---
+
+## Prisma 스키마 주요 모델
+
+| 모델 | 테이블 | 설명 |
+|------|--------|------|
+| `Inquiry` | `inquiries` | 문의 내역. `topic`, `message`, `email?`, `createdAt` |
+| `ClanLeaderRequest` | `clan_leader_requests` | 클랜 리더 변경 요청. `clanId`, `clanName`, `currentLeader`, `requestNickname`, `reason`, `status`(pending/approved/rejected) |
+| `ClanWar` | `clan_wars` | 클랜 내전 기록 |
+| `ClanWarPlayer` | `clan_war_players` | 내전 선수별 기록 |
+| `PlayerStatSnapshot` | `player_stat_snapshots` | 성장 추적 스냅샷 (하루 1회 자동 저장) |
+
+> **스키마 변경 후 필수**: `npx prisma generate` + 개발서버 재시작 + Supabase SQL Editor에서 테이블 생성(migrate 미사용)
 
 ---
 
@@ -200,6 +242,21 @@ if (raw) {
 ---
 
 ## 최근 주요 변경 이력
+
+### 2026-05-07 관리자·인증·클랜 리더 시스템
+- **관리자 Google 인증 통합**: `pages/api/auth/[...nextauth].js` — JWT/세션 콜백에서 `isAdmin` 플래그(`sssyck123@gmail.com`). Footer에 관리자 모드 보기 버튼(조건부 노출). Footer 숨겨진 admin 링크 제거
+- **관리자 대시보드 탭 개편**: 탭 3종 (📬 문의함 / 👑 리더 변경 요청 / 👤 구글 로그인 유저). "← 메인" 버튼 추가. Google 세션 자동 인증 (비밀번호 입력 불필요)
+- **관리자 API 이중 인증**: `admin/inquiries.js`, `admin/users.js`, `admin/clan-leader-requests.js` — 비밀번호 토큰 OR Google 세션 모두 허용하는 `checkAdmin(req, res)` 패턴
+- **FloatingInquiryPanel 추가** (`pages/_app.js`): 관리자(`isAdmin`) 로그인 시 좌측 하단 "피드백확인" 플로팅 버튼. 클릭 시 문의 목록 패널 (항목별 펼침/접힘, 🗑 삭제). `/api/admin/inquiries-panel` + `/api/admin/delete-inquiry` API 신규
+- **문의 폼 실제 기능화** (`pages/contact.js`): 유형 선택 + 메시지 + 선택 이메일 폼. `/api/contact/submit` → `inquiries` 테이블. 성공 상태 UI
+- **FloatingFeedback → inquiries 저장**: `/api/feedback.js` — 버그/제안 피드백을 `inquiries` 테이블에 저장
+- **Prisma 스키마 추가**: `Inquiry` (`inquiries`) + `ClanLeaderRequest` (`clan_leader_requests`) 모델. Supabase SQL Editor로 직접 테이블 생성
+- **클랜 리더 시스템**:
+  - `set-clan-leader.js`: 최초 등록 전용 (이미 리더 있으면 409)
+  - `request-clan-leader.js`: 리더 변경 문의 생성 (reason 5자↑, pending 중복 방지)
+  - `admin/clan-leader-requests.js`: 승인 시 `$transaction`으로 요청 상태 + `clan.leader` 동시 업데이트
+- **마이페이지 클랜 카드** (`pages/mypage.js`): 태그·레벨·멤버수·평균MMR·지역·리더 표시. "상세보기 →" 링크(`/clan/[name]`). 리더 없으면 "클랜 리더 등록", 타인이 리더면 "리더 변경 문의" 팝업(현 리더 → 신청자 표시 + 사유 입력)
+- **`/api/user/me.js` 확장**: clan 쿼리에 `pubgClanTag`, `pubgClanLevel`, `memberCount`, `avgScore`, `region`, `leader`, `description` 포함
 
 ### 2026-05-05 성능·안정성 개선
 - **SSR 에러 페이지 추가** (`pages/_error.js`, `pages/404.js`, `pages/500.js`): 없으면 플레이어 검색 시 "missing required error components, refreshing..." 무한루프 발생. Next.js 필수 파일

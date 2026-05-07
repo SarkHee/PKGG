@@ -4,6 +4,8 @@ export default function Document() {
   return (
     <Html lang="ko">
       <Head>
+        {/* 구글 서치콘솔 인증 */}
+        <meta name="google-site-verification" content="QaNQmdHD828G0WSKpwzQwod9meUv6ng67cq0D0aBb9o" />
         {/* 모바일 뷰포트 */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         {/* 파비콘 */}
