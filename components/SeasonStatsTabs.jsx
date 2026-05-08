@@ -177,7 +177,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
           {renderStatRow('승 %', winRate, true)}
           {renderStatRow('Top 10 %', top10Rate)}
           {renderStatRow('헤드샷 비율', headshotRate)}
-          {renderStatRow('총 킬수', `${totalKills}개`)}
+          {renderStatRow('킬', `${totalKills}킬`)}
           {renderStatRow('최대 킬', `${maxKills}킬`)}
           {renderStatRow('평균 등수', `#${avgRank}`)}
           {renderStatRow('평균 생존시간', avgSurvival)}

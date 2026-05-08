@@ -319,7 +319,7 @@ function ModeStatsTabs({ modeStats }) {
               </span>
             </li>
             <li>
-              총 킬수:{' '}
+              킬:{' '}
               <span className="font-medium text-blue-600">
                 {stats.totalKills}
               </span>
@@ -581,69 +581,83 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
   const filterMatches = (matches, filter) => {
     if (!matches || matches.length === 0) return [];
 
+    // 매치 필드명: mode (= PUBG API gameMode), matchType
     switch (filter) {
       case '전체':
         return matches;
       case '경쟁전':
-        return matches.filter((match) => match.gameMode?.includes('ranked'));
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mt === 'ranked' || mt === 'competitive' || mode.includes('ranked');
+        });
       case '경쟁전 솔로':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('ranked') &&
-            match.gameMode?.includes('solo')
-        );
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return (mt === 'ranked' || mt === 'competitive' || mode.includes('ranked')) && mode.includes('solo');
+        });
       case '솔로':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('solo') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mode.includes('solo') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
+        });
       case '듀오':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('duo') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mode.includes('duo') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
+        });
       case '스쿼드':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('squad') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mode.includes('squad') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
+        });
       case '경쟁전 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('ranked') &&
-            match.gameMode?.includes('fpp')
-        );
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return (mt === 'ranked' || mt === 'competitive' || mode.includes('ranked')) && mode.includes('fpp');
+        });
       case '경쟁전 솔로 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('ranked') &&
-            match.gameMode?.includes('solo') &&
-            match.gameMode?.includes('fpp')
-        );
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return (mt === 'ranked' || mt === 'competitive' || mode.includes('ranked')) && mode.includes('solo') && mode.includes('fpp');
+        });
       case '솔로 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('solo') &&
-            match.gameMode?.includes('fpp') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mode.includes('solo') && mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
+        });
       case '듀오 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('duo') &&
-            match.gameMode?.includes('fpp') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mode.includes('duo') && mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
+        });
       case '스쿼드 FPP':
-        return matches.filter(
-          (match) =>
-            match.gameMode?.includes('squad') &&
-            match.gameMode?.includes('fpp') &&
-            !match.gameMode?.includes('ranked')
-        );
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mode.includes('squad') && mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
+        });
+      case '이벤트': {
+        const EVENT_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom']);
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          if (EVENT_TYPES.has(mt)) return true;
+          if (mt === 'official' || mt === '') {
+            const mode = (match.mode || '').toLowerCase();
+            const mapN = (match.mapName || '').toLowerCase();
+            return mode.includes('event') || mode.includes('arcade') || mode.includes('tdm') || mode.includes('training') || mapN.includes('range_main');
+          }
+          return false;
+        });
+      }
       default:
         return matches;
     }
@@ -1256,12 +1270,22 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                     ? Object.values(seasonStats)[0]
                     : null;
 
-                // 스쿼드 모드 우선, 없으면 다른 모드
+                // 이벤트 모드 제외 후 FPP/일반 순서로 우선 선택
+                const nonEventModes = latestSeasonStats
+                  ? Object.fromEntries(
+                      Object.entries(latestSeasonStats).filter(
+                        ([mode]) => !mode.startsWith('normal') && !mode.includes('event')
+                      )
+                    )
+                  : {};
                 const bestModeStats =
-                  latestSeasonStats?.squad ||
-                  latestSeasonStats?.duo ||
-                  latestSeasonStats?.solo ||
-                  Object.values(latestSeasonStats || {})[0];
+                  nonEventModes['squad-fpp'] ||
+                  nonEventModes['squad'] ||
+                  nonEventModes['duo-fpp'] ||
+                  nonEventModes['duo'] ||
+                  nonEventModes['solo-fpp'] ||
+                  nonEventModes['solo'] ||
+                  Object.values(nonEventModes)[0];
 
                 // 경쟁전 포함 시즌 전체 경기 수 계산
                 const totalSeasonMatches = latestSeasonStats
@@ -1536,13 +1560,14 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                   { label: 'FPP 솔로', key: '솔로 FPP' },
                   { label: 'FPP 듀오', key: '듀오 FPP' },
                   { label: 'FPP 스쿼드', key: '스쿼드 FPP' },
+                  { label: '🎉 이벤트', key: '이벤트' },
                 ].map(({ label, key }) => (
                   <button
                     key={key}
                     onClick={() => setSelectedMatchFilter(key)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                       selectedMatchFilter === key
-                        ? 'bg-blue-500 text-white'
+                        ? key === '이벤트' ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white'
                         : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                     }`}
                   >
@@ -2060,10 +2085,13 @@ export async function getServerSideProps({ params, query }) {
               event: Math.round((eventGames / totalForDist) * 100),
             };
 
-            // summary 계산 (시즌 전체 합산)
+            // summary 계산 (일반 + 경쟁전 기준, 이벤트/캐주얼 모드 제외)
+            // normal-* 으로 시작하는 모드 = 이벤트/캐주얼 → 제외
             let totalRounds = 0, totalWins = 0, totalTop10s = 0;
             let totalDamage = 0, totalKills = 0, totalAssists = 0, totalSurvivalTime = 0;
-            for (const ms of Object.values(transformedModes)) {
+            let totalHeadshotKills = 0;
+            for (const [mode, ms] of Object.entries(transformedModes)) {
+              if (mode.startsWith('normal') || mode.includes('event')) continue;
               const r = ms.rounds || 0;
               if (r === 0) continue;
               totalRounds += r;
@@ -2073,6 +2101,7 @@ export async function getServerSideProps({ params, query }) {
               totalKills += ms.totalKills || 0;
               totalAssists += ms.assists || 0;
               totalSurvivalTime += (ms.avgSurvivalTime || 0) * r;
+              totalHeadshotKills += ms.headshots || 0;
             }
             if (totalRounds > 0) {
               const avgDamage = Math.round(totalDamage / totalRounds);
@@ -2092,6 +2121,8 @@ export async function getServerSideProps({ params, query }) {
                 score: Math.round(avgDamage * 0.4 + avgKills * 40 + top10Rate + 1000),
                 roundsPlayed: totalRounds,
                 kills: totalKills,
+                headshots: totalHeadshotKills,
+                headshotKillRatio: totalKills > 0 ? parseFloat((totalHeadshotKills / totalKills * 100).toFixed(1)) : 0,
                 playstyle,
                 realPlayStyle,
                 style: playstyle,
@@ -2143,6 +2174,122 @@ export async function getServerSideProps({ params, query }) {
         } else {
           console.warn('랭크 통계 조회 실패:', rankedResult.reason?.message);
         }
+      }
+    }
+
+    // Kakao 샤드 폴백: Kakao PUBG 서비스 종료로 현재 시즌 데이터가 없는 경우
+    // Steam 샤드에서 동일 닉네임 플레이어 데이터 재조회
+    if (pubgShard === 'kakao' && pubgSummaryFromStats === null) {
+      try {
+        console.log(`[Kakao fallback] Steam 샤드에서 ${nickname} 재조회 시도`);
+        const steamSearch = await cachedPubgFetch(
+          `${PUBG_BASE}/steam/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
+          { ttl: TTL.PLAYER, force: forceRefresh }
+        );
+        if (steamSearch.data?.length > 0) {
+          const steamPlayer = steamSearch.data[0];
+          const steamSeasonsRes = await cachedPubgFetch(
+            `${PUBG_BASE}/steam/seasons`,
+            { ttl: TTL.SEASON, force: false }
+          );
+          const steamSeasons = steamSeasonsRes.data || [];
+          const steamCurrentSeason = steamSeasons.find(s => s.attributes?.isCurrentSeason);
+          if (steamCurrentSeason) {
+            const [steamStatsRes, steamRankedRes] = await Promise.allSettled([
+              cachedPubgFetch(
+                `${PUBG_BASE}/steam/players/${steamPlayer.id}/seasons/${steamCurrentSeason.id}`,
+                { ttl: TTL.PLAYER, force: forceRefresh }
+              ),
+              cachedPubgFetch(
+                `${PUBG_BASE}/steam/players/${steamPlayer.id}/seasons/${steamCurrentSeason.id}/ranked`,
+                { ttl: TTL.PLAYER, force: forceRefresh }
+              ),
+            ]);
+            if (steamStatsRes.status === 'fulfilled') {
+              const steamModeStats = steamStatsRes.value.data?.attributes?.gameModeStats || {};
+              const steamTransformed = {};
+              for (const [mode, s] of Object.entries(steamModeStats)) {
+                const rounds = s.roundsPlayed || 0;
+                if (rounds === 0) continue;
+                steamTransformed[mode] = {
+                  rounds,
+                  wins: s.wins || 0,
+                  top10s: s.top10s || 0,
+                  kd: parseFloat(((s.kills || 0) / Math.max(1, rounds - (s.wins || 0))).toFixed(2)),
+                  avgDamage: Math.round((s.damageDealt || 0) / rounds),
+                  winRate: Math.round(((s.wins || 0) / rounds) * 100),
+                  top10Rate: Math.round(((s.top10s || 0) / rounds) * 100),
+                  headshotRate: (s.kills || 0) > 0 ? Math.round(((s.headshotKills || 0) / s.kills) * 100) : 0,
+                  headshots: s.headshotKills || 0,
+                  totalKills: s.kills || 0,
+                  avgSurvivalTime: Math.round((s.timeSurvived || 0) / rounds),
+                  avgAssists: parseFloat(((s.assists || 0) / rounds).toFixed(1)),
+                  assists: s.assists || 0,
+                };
+              }
+              // 이벤트 모드 제외한 summary 계산
+              let sr = 0, sw = 0, st10 = 0, sd = 0, sk = 0, sa = 0, ss = 0, shs = 0;
+              for (const [mode, ms] of Object.entries(steamTransformed)) {
+                if (mode.startsWith('normal') || mode.includes('event')) continue;
+                const r = ms.rounds || 0;
+                if (r === 0) continue;
+                sr += r; sw += ms.wins || 0; st10 += ms.top10s || 0;
+                sd += (ms.avgDamage || 0) * r; sk += ms.totalKills || 0;
+                sa += ms.assists || 0; ss += (ms.avgSurvivalTime || 0) * r;
+                shs += ms.headshots || 0;
+              }
+              if (sr > 0) {
+                const aD = Math.round(sd / sr), aK = parseFloat((sk / sr).toFixed(2));
+                const wR = parseFloat(((sw / sr) * 100).toFixed(1));
+                const t10 = parseFloat(((st10 / sr) * 100).toFixed(1));
+                const aA = parseFloat((sa / sr).toFixed(2));
+                const aST = Math.round(ss / sr);
+                const { playstyle, realPlayStyle } = derivePlayStyle({ avgDamage: aD, avgKills: aK, avgAssists: aA, avgSurviveTime: aST, winRate: wR, top10Rate: t10 });
+                pubgSummaryFromStats = {
+                  avgDamage: aD, avgKills: aK, avgAssists: aA, avgSurviveTime: aST,
+                  winRate: wR, top10Rate: t10,
+                  score: Math.round(aD * 0.4 + aK * 40 + t10 + 1000),
+                  roundsPlayed: sr, kills: sk,
+                  headshots: shs,
+                  headshotKillRatio: sk > 0 ? parseFloat((shs / sk * 100).toFixed(1)) : 0,
+                  playstyle, realPlayStyle, style: playstyle,
+                };
+                pubgSeasonStats = { [steamCurrentSeason.id]: steamTransformed };
+                currentSeasonModes = steamTransformed;
+                console.log(`✅ [Kakao fallback] Steam 데이터 사용: avgDamage=${aD}, avgKills=${aK}`);
+              }
+            }
+            // 랭크 통계도 Steam에서 가져오기
+            if (steamRankedRes.status === 'fulfilled' && pubgRankedSummary === null) {
+              const rms = steamRankedRes.value.data?.attributes?.rankedGameModeStats || {};
+              const md = rms['squad-fpp'] || rms['squad'] || Object.values(rms)[0];
+              if (md && md.roundsPlayed > 0) {
+                const r = md.roundsPlayed;
+                const deaths = Math.max(1, r - (md.wins || 0));
+                pubgRankedSummary = {
+                  mode: 'squad-fpp', tier: md.currentTier?.tier || 'Unranked',
+                  subTier: md.currentTier?.subTier || 0,
+                  currentTier: md.currentTier?.tier || 'Unranked',
+                  rp: md.currentRankPoint || 0,
+                  bestTier: md.bestTier?.tier || md.currentTier?.tier || 'Unranked',
+                  bestRankPoint: md.bestRankPoint || md.currentRankPoint || 0,
+                  games: r, wins: md.wins || 0,
+                  kd: parseFloat(((md.kills || 0) / deaths).toFixed(2)),
+                  kda: parseFloat((((md.kills || 0) + (md.assists || 0)) / deaths).toFixed(2)),
+                  avgDamage: r > 0 ? Math.round((md.damageDealt || 0) / r) : 0,
+                  winRate: parseFloat(((md.wins || 0) / r * 100).toFixed(1)),
+                  top10Rate: parseFloat(((md.top10s || 0) / r * 100).toFixed(1)),
+                  kills: md.kills || 0, deaths, assists: md.assists || 0,
+                  headshotKills: md.headshotKills || 0,
+                  headshotRate: (md.kills || 0) > 0 ? parseFloat(((md.headshotKills || 0) / (md.kills || 1) * 100).toFixed(1)) : 0,
+                  dBNOs: md.dBNOs || 0, roundsPlayed: r,
+                };
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Kakao fallback] Steam 재조회 실패:', e.message);
       }
     }
 
