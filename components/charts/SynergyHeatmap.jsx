@@ -129,119 +129,54 @@ export default function SynergyHeatmap({
           최근 경기에서 함께한 클랜원이 없습니다.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="flex flex-col gap-3">
           {synergyArr.slice(0, 4).map((user, index) => (
             <div
               key={user.name}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #e9ecef',
-                borderRadius: 8,
-                padding: 16,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-              }}
+              className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
             >
-              <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    background: '#4f46e5',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    fontSize: 14,
-                    marginRight: 12,
-                  }}
-                >
+              {/* 왼쪽: 순위 + 이름 */}
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
                   {index + 1}
                 </div>
-
-                <div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      marginBottom: 4,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        fontSize: 16,
-                        color: '#222',
-                        marginRight: 8,
-                      }}
-                    >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-base text-gray-900 truncate">
                       {user.name}
                     </span>
                     {index < 3 && (
                       <span
+                        className="text-[11px] font-bold text-white px-2 py-0.5 rounded-full"
                         style={{
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                          color: '#FFFFFF',
-                          backgroundColor:
-                            index === 0
-                              ? '#fbbf24'
-                              : index === 1
-                                ? '#9ca3af'
-                                : '#f97316',
-                          padding: '2px 6px',
-                          borderRadius: '12px',
-                          display: 'inline-block',
+                          backgroundColor: index === 0 ? '#fbbf24' : index === 1 ? '#9ca3af' : '#f97316',
                         }}
                       >
                         BEST {index + 1}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 13, color: '#666' }}>
-                    함께한 경기 {user.games}회
-                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">함께한 경기 {user.games}회</div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 12, color: '#888', marginBottom: 2 }}>
-                    승률
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 'bold',
-                      color: user.winRate >= 50 ? '#10b981' : '#ef4444',
-                    }}
-                  >
+              {/* 오른쪽: 스탯 3개 — 모바일은 grid 3열 */}
+              <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-6">
+                <div className="text-center">
+                  <div className="text-xs text-gray-400 mb-0.5">승률</div>
+                  <div className={`text-base font-bold ${user.winRate >= 50 ? 'text-emerald-500' : 'text-red-500'}`}>
                     {user.winRate.toFixed(1)}%
                   </div>
                 </div>
-
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 12, color: '#888', marginBottom: 2 }}>
-                    파티 시 나의 평균 딜량
-                  </div>
-                  <div
-                    style={{ fontSize: 16, fontWeight: 'bold', color: '#222' }}
-                  >
+                <div className="text-center">
+                  <div className="text-xs text-gray-400 mb-0.5">평균 딜량</div>
+                  <div className="text-base font-bold text-gray-800">
                     {user.avgDamage.toFixed(0)}
                   </div>
                 </div>
-
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 12, color: '#888', marginBottom: 2 }}>
-                    평균 등수
-                  </div>
-                  <div
-                    style={{ fontSize: 16, fontWeight: 'bold', color: '#222' }}
-                  >
+                <div className="text-center">
+                  <div className="text-xs text-gray-400 mb-0.5">평균 등수</div>
+                  <div className="text-base font-bold text-gray-800">
                     {user.avgRank !== null ? user.avgRank.toFixed(1) : '-'}
                   </div>
                 </div>

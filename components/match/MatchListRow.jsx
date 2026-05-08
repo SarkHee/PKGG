@@ -70,33 +70,47 @@ export default function MatchListRow({
     return mode;
   };
 
-  // matchType: PUBG API의 공식 필드 (official=일반, ranked=경쟁전, event/casual=이벤트)
+  // matchType: PUBG API 공식 필드
+  // official=일반, ranked=경쟁전, event/casual/airoyale=이벤트,
+  // custom=사용자 지정, training=훈련장
   const getGameModeInfo = (match) => {
-    const mt = (match.matchType || '').toLowerCase();
+    const mt   = (match.matchType || '').toLowerCase();
+    const mode = (match.mode     || '').toLowerCase();
+    const map  = (match.mapName  || '').toLowerCase();
 
     // 1순위: matchType 필드 (가장 정확)
     if (mt === 'ranked' || mt === 'competitive') {
       return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
     }
-    if (mt === 'event' || mt === 'casual' || mt === 'airoyale') {
+    if (mt === 'event' || mt === 'casual' || mt === 'airoyale' || mt === 'arcade') {
       return { type: 'event', label: '이벤트', color: '#f59e0b' };
     }
-    if (mt === 'official' || mt === 'training') {
-      // official은 일반게임, mode로 서브 구분
-      const mode = (match.mode || '').toLowerCase();
+    if (mt === 'custom') {
+      return { type: 'custom', label: '사용자 지정', color: '#7c3aed' };
+    }
+    // PUBG API: 훈련장 = 'trainingroom', 구형 = 'training'
+    if (mt === 'training' || mt === 'trainingroom') {
+      return { type: 'training', label: '훈련장', color: '#0891b2' };
+    }
+    if (mt === 'official') {
       if (mode.includes('event') || mode.includes('arcade')) {
         return { type: 'event', label: '이벤트', color: '#f59e0b' };
+      }
+      if (mode.includes('tdm') || mode.includes('training') || map.includes('range_main') || map.includes('_training_')) {
+        return { type: 'training', label: '훈련장', color: '#0891b2' };
       }
       return { type: 'normal', label: '일반', color: '#059669' };
     }
 
-    // 2순위: matchType이 없는 경우 mode 필드로 추정
-    const mode = (match.mode || '').toLowerCase();
+    // 2순위: matchType 미저장(DB 캐시) → mode·mapName으로 추정
     if (mode.includes('ranked')) {
       return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
     }
     if (mode.includes('event') || mode.includes('arcade')) {
       return { type: 'event', label: '이벤트', color: '#f59e0b' };
+    }
+    if (mode.includes('tdm') || mode.includes('training') || map.includes('range_main') || map.includes('_training_')) {
+      return { type: 'training', label: '훈련장', color: '#0891b2' };
     }
     return { type: 'normal', label: '일반', color: '#059669' };
   };
@@ -131,103 +145,144 @@ export default function MatchListRow({
       }`}
       onClick={onToggle}
     >
-      {/* 경기 행 */}
-      <div className={`flex items-center gap-3 px-4 py-3 ${
-        isWin
-          ? 'bg-gradient-to-r from-blue-50 to-white'
-          : 'bg-white hover:bg-gray-50'
-      }`}>
+      {/* ── 모바일 카드 레이아웃 (sm 미만) ── */}
+      <div className={`sm:hidden px-3 py-3 ${isWin ? 'bg-gradient-to-r from-blue-50 to-white' : 'bg-white'}`}>
+        {/* 1행: 모드 뱃지 + 맵/모드 + 시간 */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+              modeInfo.type === 'ranked' ? 'bg-red-100 text-red-600'
+              : modeInfo.type === 'event' ? 'bg-amber-100 text-amber-600'
+              : modeInfo.type === 'custom' ? 'bg-purple-100 text-purple-600'
+              : modeInfo.type === 'training' ? 'bg-cyan-100 text-cyan-600'
+              : 'bg-emerald-100 text-emerald-600'
+            }`}>{modeInfo.label}</span>
+            <span className="text-xs text-gray-400">{translateGameMode(match.mode)}</span>
+            {match.mapName && <span className="text-xs text-gray-400">· {getMapName(match.mapName)}</span>}
+          </div>
+          <span className="text-xs text-gray-400 flex-shrink-0">{formatRelativeTime(match.matchTimestamp)}</span>
+        </div>
 
-        {/* 왼쪽 컬러 바 (승/패 표시) */}
-        <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${
-          isWin ? 'bg-blue-500' : 'bg-gray-300'
-        }`} />
+        {/* 2행: 등수(좌) + WIN뱃지 + MMR(우) */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            {rank === 1 ? (
+              <span className="text-xl font-black text-yellow-500">🏆 1등</span>
+            ) : (
+              <span className={`font-black ${rank <= 3 ? 'text-orange-400 text-xl' : rank <= 10 ? 'text-blue-500 text-lg' : 'text-gray-500 text-lg'}`}>
+                #{rank}
+              </span>
+            )}
+            {isWin ? (
+              <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-black rounded-lg">WIN</span>
+            ) : isTop10 ? (
+              <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-semibold rounded-lg border border-gray-200">TOP10</span>
+            ) : null}
+          </div>
+          <RankChangeIndicator prevScore={prevScore} currentScore={currentScore} />
+        </div>
+
+        {/* 3행: 핵심 스탯 4개 */}
+        <div className="grid grid-cols-4 gap-1 mb-1">
+          <div className="text-center bg-gray-50 rounded-lg py-1.5">
+            <div className={`text-base font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800'}`}>
+              {match.kills ?? 0}
+            </div>
+            <div className="text-[10px] text-gray-400">킬</div>
+          </div>
+          <div className="text-center bg-gray-50 rounded-lg py-1.5">
+            <div className="text-sm font-bold text-gray-600">{match.assists ?? 0}</div>
+            <div className="text-[10px] text-gray-400">어시</div>
+          </div>
+          <div className="text-center bg-gray-50 rounded-lg py-1.5">
+            <div className={`text-sm font-black ${(match.damage ?? 0) >= 400 ? 'text-blue-600' : (match.damage ?? 0) >= 200 ? 'text-gray-800' : 'text-gray-500'}`}>
+              {(match.damage ?? 0).toFixed(0)}
+            </div>
+            <div className="text-[10px] text-gray-400">딜량</div>
+          </div>
+          <div className="text-center bg-gray-50 rounded-lg py-1.5">
+            <div className="text-sm font-bold text-gray-700">
+              {Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분
+            </div>
+            <div className="text-[10px] text-gray-400">생존</div>
+          </div>
+        </div>
+
+        {/* 4행: 펼치기 버튼 */}
+        <div className="flex justify-end mt-1">
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${isOpen ? 'bg-blue-100 text-blue-500' : 'text-gray-300'}`}>
+            <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* ── PC 테이블 레이아웃 (sm 이상) ── */}
+      <div className={`hidden sm:flex items-center gap-3 px-4 py-3 ${
+        isWin ? 'bg-gradient-to-r from-blue-50 to-white' : 'bg-white hover:bg-gray-50'
+      }`}>
+        {/* 왼쪽 컬러 바 */}
+        <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${isWin ? 'bg-blue-500' : 'bg-gray-300'}`} />
 
         {/* 모드 타입 */}
         <div className="w-16 flex-shrink-0 text-center">
           <div className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block ${
-            modeInfo.type === 'ranked'
-              ? 'bg-red-100 text-red-600'
-              : modeInfo.type === 'event'
-                ? 'bg-amber-100 text-amber-600'
-                : 'bg-emerald-100 text-emerald-600'
-          }`}>
-            {modeInfo.label}
-          </div>
-          <div className="text-xs text-gray-400 mt-0.5">
-            {translateGameMode(match.mode)}
-          </div>
-          {match.mapName && (
-            <div className="text-[10px] text-gray-400 mt-0.5 truncate">
-              {getMapName(match.mapName)}
-            </div>
-          )}
+            modeInfo.type === 'ranked' ? 'bg-red-100 text-red-600'
+            : modeInfo.type === 'event' ? 'bg-amber-100 text-amber-600'
+            : modeInfo.type === 'custom' ? 'bg-purple-100 text-purple-600'
+            : modeInfo.type === 'training' ? 'bg-cyan-100 text-cyan-600'
+            : 'bg-emerald-100 text-emerald-600'
+          }`}>{modeInfo.label}</div>
+          <div className="text-xs text-gray-400 mt-0.5">{translateGameMode(match.mode)}</div>
+          {match.mapName && <div className="text-[10px] text-gray-400 mt-0.5 truncate">{getMapName(match.mapName)}</div>}
         </div>
 
         {/* 시간 */}
         <div className="w-16 flex-shrink-0 text-center">
-          <div className="text-sm font-medium text-gray-700">
-            {formatRelativeTime(match.matchTimestamp)}
-          </div>
-          <div className="text-xs text-gray-400">
-            {formatTime(match.matchTimestamp)}
-          </div>
+          <div className="text-sm font-medium text-gray-700">{formatRelativeTime(match.matchTimestamp)}</div>
+          <div className="text-xs text-gray-400">{formatTime(match.matchTimestamp)}</div>
         </div>
 
-        {/* 등수 - 핵심 강조 */}
+        {/* 등수 */}
         <div className="w-14 flex-shrink-0 text-center">
           {rank === 1 ? (
-            <div className="flex flex-col items-center">
-              <span className="text-lg">🏆</span>
-              <span className="text-xs font-black text-yellow-500">1등</span>
-            </div>
+            <div className="flex flex-col items-center"><span className="text-lg">🏆</span><span className="text-xs font-black text-yellow-500">1등</span></div>
           ) : (
-            <div>
-              <span className={`${getRankStyle(rank)}`}>#{rank}</span>
-            </div>
+            <span className={getRankStyle(rank)}>#{rank}</span>
           )}
         </div>
 
         {/* 킬 */}
         <div className="w-12 flex-shrink-0 text-center">
-          <div className={`text-lg font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800'}`}>
-            {match.kills ?? 0}
-          </div>
+          <div className={`text-lg font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800'}`}>{match.kills ?? 0}</div>
           <div className="text-xs text-gray-400">킬</div>
         </div>
 
         {/* 어시스트 */}
         <div className="w-12 flex-shrink-0 text-center">
-          <div className="text-base font-bold text-gray-600">
-            {match.assists ?? 0}
-          </div>
+          <div className="text-base font-bold text-gray-600">{match.assists ?? 0}</div>
           <div className="text-xs text-gray-400">어시</div>
         </div>
 
         {/* 데미지 */}
         <div className="w-20 flex-shrink-0 text-center">
-          <div className={`text-base font-black ${(match.damage ?? 0) >= 400 ? 'text-blue-600' : (match.damage ?? 0) >= 200 ? 'text-gray-800' : 'text-gray-500'}`}>
-            {(match.damage ?? 0).toFixed(0)}
-          </div>
+          <div className={`text-base font-black ${(match.damage ?? 0) >= 400 ? 'text-blue-600' : (match.damage ?? 0) >= 200 ? 'text-gray-800' : 'text-gray-500'}`}>{(match.damage ?? 0).toFixed(0)}</div>
           <div className="text-xs text-gray-400">딜량</div>
         </div>
 
         {/* 생존 시간 */}
         <div className="w-16 flex-shrink-0 text-center">
-          <div className="text-sm font-bold text-gray-700">
-            {Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분
-          </div>
+          <div className="text-sm font-bold text-gray-700">{Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분</div>
           <div className="text-xs text-gray-400">생존</div>
         </div>
 
-        {/* PPS 등급 배지 */}
+        {/* PPS */}
         {(() => {
           const pps = calcPPS(match)
           return (
             <div className="w-12 flex-shrink-0 text-center">
-              <span className={`inline-block px-1.5 py-0.5 text-xs font-black rounded border ${pps.bg} ${pps.color}`}>
-                {pps.grade}
-              </span>
+              <span className={`inline-block px-1.5 py-0.5 text-xs font-black rounded border ${pps.bg} ${pps.color}`}>{pps.grade}</span>
               <div className="text-[10px] text-gray-400 mt-0.5">PPS</div>
             </div>
           )
@@ -236,13 +291,9 @@ export default function MatchListRow({
         {/* 승/패 배지 */}
         <div className="w-14 flex-shrink-0 text-center">
           {isWin ? (
-            <span className="inline-block px-2 py-1 bg-blue-500 text-white text-xs font-black rounded-lg shadow-sm">
-              WIN
-            </span>
+            <span className="inline-block px-2 py-1 bg-blue-500 text-white text-xs font-black rounded-lg shadow-sm">WIN</span>
           ) : isTop10 ? (
-            <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-semibold rounded-lg border border-gray-200">
-              TOP10
-            </span>
+            <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 text-xs font-semibold rounded-lg border border-gray-200">TOP10</span>
           ) : (
             <span className="inline-block px-2 py-0.5 text-gray-300 text-xs">-</span>
           )}
@@ -255,26 +306,13 @@ export default function MatchListRow({
               {match.teammatesDetail.map((t) => {
                 const shard = playerData?.profile?.shardId || 'steam';
                 const chip = (
-                  <span
-                    key={t.name}
-                    className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 max-w-[110px] ${
-                      t.isSelf
-                        ? 'bg-blue-100 text-blue-700 font-bold border border-blue-200'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer transition-colors'
-                    }`}
-                  >
-                    {t.clanTag && (
-                      <span className="text-gray-400 font-normal">[{t.clanTag}]</span>
-                    )}
+                  <span key={t.name} className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 max-w-[110px] ${t.isSelf ? 'bg-blue-100 text-blue-700 font-bold border border-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer transition-colors'}`}>
+                    {t.clanTag && <span className="text-gray-400 font-normal">[{t.clanTag}]</span>}
                     <span className="truncate">{t.name}</span>
                   </span>
                 );
                 if (t.isSelf) return chip;
-                return (
-                  <a key={t.name} href={`/player/${shard}/${encodeURIComponent(t.name)}`}>
-                    {chip}
-                  </a>
-                );
+                return <a key={t.name} href={`/player/${shard}/${encodeURIComponent(t.name)}`}>{chip}</a>;
               })}
             </div>
           ) : (
@@ -289,17 +327,8 @@ export default function MatchListRow({
 
         {/* 펼치기 버튼 */}
         <div className="w-8 flex-shrink-0 text-center">
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center mx-auto transition-all ${
-            isOpen
-              ? 'bg-blue-100 text-blue-500'
-              : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
-          }`}>
-            <svg
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center mx-auto transition-all ${isOpen ? 'bg-blue-100 text-blue-500' : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'}`}>
+            <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
             </svg>
           </div>

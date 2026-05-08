@@ -176,8 +176,8 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
         <div className="px-5 py-3">
           {renderStatRow('승 %', winRate, true)}
           {renderStatRow('Top 10 %', top10Rate)}
-          {renderStatRow('헤드샷 비율', headshotRate)}
-          {renderStatRow('킬', `${totalKills}킬`)}
+          {headshotRate !== '0.0%' && renderStatRow('헤드샷 비율', headshotRate)}
+          {totalKills > 0 && renderStatRow('킬', `${totalKills}킬`)}
           {maxKills > 0 && renderStatRow('최대 킬', `${maxKills}킬`)}
           {avgRank !== '-' && renderStatRow('평균 등수', `#${avgRank}`)}
           {avgSurvival !== '0분' && renderStatRow('평균 생존시간', avgSurvival)}

@@ -378,19 +378,19 @@ export default function ClanDetail() {
 
         {/* ── 탭 ──────────────────────────────────────────────────────── */}
         <div className="bg-gray-900 border-b border-gray-800 sticky top-0 z-40">
-          <div className="max-w-6xl mx-auto px-4">
-            <nav className="flex gap-2 py-2.5">
+          <div className="max-w-6xl mx-auto px-2 sm:px-4">
+            <nav className="flex gap-1 py-2 overflow-x-auto scrollbar-none">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-5 py-2 text-sm font-semibold rounded-lg transition-all ${
+                  className={`flex-shrink-0 px-3 sm:px-5 py-2 text-sm font-semibold rounded-lg transition-all ${
                     activeTab === tab.id
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
                       : 'text-gray-300 hover:text-white hover:bg-gray-800 border border-transparent hover:border-gray-700'
                   }`}
                 >
-                  {tab.icon} {tab.name}
+                  <span className="hidden sm:inline">{tab.icon} </span>{tab.name}
                 </button>
               ))}
             </nav>
@@ -578,9 +578,51 @@ export default function ClanDetail() {
                     </div>
                   </div>
                 )}
-              <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+              {/* 모바일 카드 */}
+              <div className="sm:hidden space-y-2">
+                {sortedMembers.map((member, i) => {
+                  const s = member.stats;
+                  return (
+                    <div key={member.id} className="bg-gray-900 rounded-xl border border-gray-800 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`font-black text-sm flex-shrink-0 ${getRankColor(i)}`}>
+                            {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                          </span>
+                          <Link href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}
+                            className="font-semibold text-sm hover:text-blue-400 transition-colors truncate">
+                            {member.playerName}
+                          </Link>
+                        </div>
+                        <span className="font-black text-blue-400 text-sm flex-shrink-0">{member.mmr || '—'} <span className="text-[10px] text-gray-500">MMR</span></span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1">
+                        <div className="text-center bg-gray-800/60 rounded py-1.5">
+                          <div className="text-xs font-bold text-orange-400">{s?.avgDamage ?? '—'}</div>
+                          <div className="text-[10px] text-gray-500">딜량</div>
+                        </div>
+                        <div className="text-center bg-gray-800/60 rounded py-1.5">
+                          <div className="text-xs font-bold text-red-400">{s?.avgKills ?? '—'}</div>
+                          <div className="text-[10px] text-gray-500">킬</div>
+                        </div>
+                        <div className="text-center bg-gray-800/60 rounded py-1.5">
+                          <div className="text-xs font-bold text-green-400">{s?.winRate != null ? `${s.winRate}%` : '—'}</div>
+                          <div className="text-[10px] text-gray-500">승률</div>
+                        </div>
+                        <div className="text-center bg-gray-800/60 rounded py-1.5">
+                          <div className="text-xs font-bold text-purple-400">{s?.top10Rate != null ? `${s.top10Rate}%` : '—'}</div>
+                          <div className="text-[10px] text-gray-500">Top10</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* PC 테이블 */}
+              <div className="hidden sm:block bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm min-w-[640px]">
                     <thead>
                       <tr className="bg-gray-800/80 text-gray-400 text-xs">
                         <th className="px-4 py-3 text-left w-10">#</th>
@@ -609,10 +651,8 @@ export default function ClanDetail() {
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              <Link
-                                href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}
-                                className="font-semibold hover:text-blue-400 transition-colors"
-                              >
+                              <Link href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}
+                                className="font-semibold hover:text-blue-400 transition-colors">
                                 {member.playerName}
                               </Link>
                             </td>
@@ -974,30 +1014,53 @@ function ClanRankingTab({ data, loading }) {
       {/* 전체 리더보드 */}
       {lbTab === 'leaderboard' && (
         <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-          {/* 정렬 버튼 */}
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 flex-wrap">
             <span className="text-xs text-gray-400 mr-1">정렬:</span>
             {[
-              { key: 'mmr', label: 'MMR' },
-              { key: 'damage', label: '딜량' },
-              { key: 'kills', label: '킬' },
-              { key: 'winRate', label: '승률' },
-              { key: 'top10', label: 'Top10' },
+              { key: 'mmr', label: 'MMR' }, { key: 'damage', label: '딜량' },
+              { key: 'kills', label: '킬' }, { key: 'winRate', label: '승률' }, { key: 'top10', label: 'Top10' },
             ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setLbSort(key)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  lbSort === key ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'
-                }`}
-              >
+              <button key={key} onClick={() => setLbSort(key)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${lbSort === key ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}>
                 {label}
               </button>
             ))}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          {/* 모바일 카드 */}
+          <div className="sm:hidden divide-y divide-gray-700/50">
+            {sortedLeaderboard.map((m, i) => (
+              <div key={m.id} className={`px-4 py-3 ${i < 3 ? 'bg-gray-700/20' : ''}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-bold text-sm flex-shrink-0">{rankMedal(i)}</span>
+                    <Link href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.nickname)}`}
+                      className="font-medium hover:text-blue-400 transition-colors truncate text-sm">{m.nickname}</Link>
+                  </div>
+                  <span className="font-black text-blue-400 text-sm flex-shrink-0">{m.hasData ? m.mmr.toLocaleString() : '—'}</span>
+                </div>
+                {m.hasData ? (
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { label: '딜량', val: m.avgDamage.toLocaleString(), cls: 'text-gray-300' },
+                      { label: '킬',   val: m.avgKills,                   cls: 'text-gray-300' },
+                      { label: '승률', val: `${m.winRate}%`,              cls: 'text-green-400' },
+                      { label: 'Top10',val: `${m.top10Rate}%`,            cls: 'text-purple-400' },
+                    ].map(({ label, val, cls }) => (
+                      <div key={label} className="text-center bg-gray-700/40 rounded py-1">
+                        <div className={`text-xs font-bold ${cls}`}>{val}</div>
+                        <div className="text-[10px] text-gray-500">{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <span className="text-xs text-gray-600">데이터 없음</span>}
+              </div>
+            ))}
+          </div>
+
+          {/* PC 테이블 */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-sm min-w-[560px]">
               <thead>
                 <tr className="text-xs text-gray-400 border-b border-gray-700">
                   <th className="text-left px-4 py-2 w-10">순위</th>
@@ -1014,12 +1077,7 @@ function ClanRankingTab({ data, loading }) {
                   <tr key={m.id} className={`border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors ${i < 3 ? 'bg-gray-700/20' : ''}`}>
                     <td className="px-4 py-2.5 text-sm font-bold">{rankMedal(i)}</td>
                     <td className="px-4 py-2.5">
-                      <Link
-                        href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.nickname)}`}
-                        className="hover:text-blue-400 transition-colors font-medium"
-                      >
-                        {m.nickname}
-                      </Link>
+                      <Link href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors font-medium">{m.nickname}</Link>
                     </td>
                     {m.hasData ? (
                       <>
@@ -1029,9 +1087,7 @@ function ClanRankingTab({ data, loading }) {
                         <td className="px-3 py-2.5 text-right text-gray-300">{m.winRate}%</td>
                         <td className="px-3 py-2.5 text-right text-gray-300">{m.top10Rate}%</td>
                       </>
-                    ) : (
-                      <td colSpan={5} className="px-3 py-2.5 text-right text-gray-600 text-xs">데이터 없음</td>
-                    )}
+                    ) : <td colSpan={5} className="px-3 py-2.5 text-right text-gray-600 text-xs">데이터 없음</td>}
                   </tr>
                 ))}
               </tbody>
@@ -1081,8 +1137,36 @@ function ClanRankingTab({ data, loading }) {
                 </div>
               )}
 
-              {/* 2위~ */}
-              <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              {/* 2위~ 모바일 카드 */}
+              <div className="sm:hidden space-y-2">
+                {weeklyMvp.map((m, i) => (
+                  <div key={m.id} className="bg-gray-800 rounded-xl border border-gray-700 px-4 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-bold text-sm flex-shrink-0">{rankMedal(i)}</span>
+                        <Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="font-medium hover:text-blue-400 truncate text-sm">{m.nickname}</Link>
+                      </div>
+                      <span className="font-black text-yellow-400 text-sm flex-shrink-0">{m.mvpScore.toLocaleString()}점</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1">
+                      {[
+                        { label: '게임', val: m.matches,                  cls: 'text-gray-400' },
+                        { label: '딜량', val: m.avgDamage.toLocaleString(), cls: 'text-orange-400' },
+                        { label: '킬',   val: m.avgKills,                  cls: 'text-red-400' },
+                        { label: '승',   val: `${m.wins}회`,               cls: 'text-green-400' },
+                      ].map(({ label, val, cls }) => (
+                        <div key={label} className="text-center bg-gray-700/40 rounded py-1">
+                          <div className={`text-xs font-bold ${cls}`}>{val}</div>
+                          <div className="text-[10px] text-gray-500">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 2위~ PC 테이블 */}
+              <div className="hidden sm:block bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs text-gray-400 border-b border-gray-700">
@@ -1099,11 +1183,7 @@ function ClanRankingTab({ data, loading }) {
                     {weeklyMvp.map((m, i) => (
                       <tr key={m.id} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
                         <td className="px-4 py-2.5 font-bold">{rankMedal(i)}</td>
-                        <td className="px-4 py-2.5">
-                          <Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">
-                            {m.nickname}
-                          </Link>
-                        </td>
+                        <td className="px-4 py-2.5"><Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">{m.nickname}</Link></td>
                         <td className="px-3 py-2.5 text-right text-gray-400">{m.matches}</td>
                         <td className="px-3 py-2.5 text-right">{m.avgDamage.toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-right">{m.avgKills}</td>
@@ -1155,7 +1235,35 @@ function ClanRankingTab({ data, loading }) {
                 </div>
               )}
 
-              <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              {/* 성장왕 모바일 카드 */}
+              <div className="sm:hidden space-y-2">
+                {growthKing.map((m, i) => (
+                  <div key={m.nickname} className="bg-gray-800 rounded-xl border border-gray-700 px-4 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-bold text-sm flex-shrink-0">{rankMedal(i)}</span>
+                        <Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="font-medium hover:text-blue-400 truncate text-sm">{m.nickname}</Link>
+                      </div>
+                      <span className="font-black text-blue-400 text-sm flex-shrink-0">{m.currentMmr.toLocaleString()} MMR</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { label: 'MMR 변화', val: `${deltaSign(m.mmrDelta)}${m.mmrDelta}`,                          cls: deltaColor(m.mmrDelta) },
+                        { label: '딜 변화',  val: `${deltaSign(m.dmgDelta)}${m.dmgDelta}`,                          cls: deltaColor(m.dmgDelta) },
+                        { label: '킬 변화',  val: `${deltaSign(parseFloat(m.killDelta))}${m.killDelta}`,             cls: deltaColor(parseFloat(m.killDelta)) },
+                      ].map(({ label, val, cls }) => (
+                        <div key={label} className="text-center bg-gray-700/40 rounded py-1">
+                          <div className={`text-xs font-bold ${cls}`}>{val}</div>
+                          <div className="text-[10px] text-gray-500">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 성장왕 PC 테이블 */}
+              <div className="hidden sm:block bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs text-gray-400 border-b border-gray-700">
@@ -1171,11 +1279,7 @@ function ClanRankingTab({ data, loading }) {
                     {growthKing.map((m, i) => (
                       <tr key={m.nickname} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
                         <td className="px-4 py-2.5 font-bold">{rankMedal(i)}</td>
-                        <td className="px-4 py-2.5">
-                          <Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">
-                            {m.nickname}
-                          </Link>
-                        </td>
+                        <td className="px-4 py-2.5"><Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">{m.nickname}</Link></td>
                         <td className="px-3 py-2.5 text-right font-bold text-blue-400">{m.currentMmr.toLocaleString()}</td>
                         <td className={`px-3 py-2.5 text-right font-bold ${deltaColor(m.mmrDelta)}`}>{deltaSign(m.mmrDelta)}{m.mmrDelta}</td>
                         <td className={`px-3 py-2.5 text-right ${deltaColor(m.dmgDelta)}`}>{deltaSign(m.dmgDelta)}{m.dmgDelta}</td>

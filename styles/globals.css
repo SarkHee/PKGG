@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* 다크 모드용 CSS 변수 (전체 테마를 변수로 분리) */
 :root {
   --bg: #ffffff;                 /* 페이지 배경 */
@@ -35,6 +43,7 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 #__next {

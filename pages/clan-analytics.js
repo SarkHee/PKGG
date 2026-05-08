@@ -258,6 +258,80 @@ function ClanRankRow({ clan, index, isMyClan, effectiveMyClanId, t }) {
   );
 }
 
+// 모바일 카드 (TOP10 + 전체 목록 공용)
+function ClanMobileCard({ clan, index, isMyClan, effectiveMyClanId, t, showFullStats = false }) {
+  const blurred = effectiveMyClanId && !isMyClan;
+  const tier = clan.avgStats?.avgMMR ? getMMRTier(clan.avgStats.avgMMR) : null;
+  return (
+    <div className={`rounded-xl border p-3 transition-all ${
+      blurred ? 'opacity-20 blur-[1.5px] select-none pointer-events-none' :
+      isMyClan ? 'bg-blue-950/50 border-blue-500/50' : 'bg-gray-900 border-gray-800'
+    }`}>
+      {/* 1행: 순위 + 클랜명 + 내 클랜 뱃지 | MMR */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-base font-black flex-shrink-0 ${rankColor(index)}`}>#{index + 1}</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {isMyClan || !effectiveMyClanId ? (
+                <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-bold text-white hover:text-blue-400 text-sm truncate">
+                  {clan.name}
+                </Link>
+              ) : (
+                <span className="font-bold text-gray-500 text-sm truncate">{clan.name}</span>
+              )}
+              {isMyClan && <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white flex-shrink-0">내 클랜</span>}
+            </div>
+            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+              {clan.tag && <span className="text-[10px] text-gray-500 bg-gray-800 px-1.5 py-0.5 rounded">{clan.tag}</span>}
+              <RegionBadge region={clan.region} />
+            </div>
+          </div>
+        </div>
+        {tier ? (
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-xs font-bold flex-shrink-0 ${tier.bgColor} ${tier.borderColor} ${tier.textColor}`}>
+            {tier.emoji} {clan.avgStats.avgMMR.toLocaleString()}
+          </span>
+        ) : <span className="text-gray-600 text-xs flex-shrink-0">-</span>}
+      </div>
+
+      {/* 2행: 핵심 스탯 */}
+      <div className={`grid gap-1 ${showFullStats ? 'grid-cols-4' : 'grid-cols-3'}`}>
+        <div className="text-center bg-gray-800/60 rounded py-1.5">
+          <div className="text-xs font-bold text-blue-400">{clan.avgStats?.score ?? '-'}</div>
+          <div className="text-[10px] text-gray-500">점수</div>
+        </div>
+        <div className="text-center bg-gray-800/60 rounded py-1.5">
+          <div className="text-xs font-bold text-green-400">{clan.apiMemberCount}{t('ca.persons')}</div>
+          <div className="text-[10px] text-gray-500">멤버</div>
+        </div>
+        {showFullStats && (
+          <div className="text-center bg-gray-800/60 rounded py-1.5">
+            <div className="text-xs font-bold text-orange-400">{clan.avgStats?.damage ?? '-'}</div>
+            <div className="text-[10px] text-gray-500">딜량</div>
+          </div>
+        )}
+        <div className="text-center bg-gray-800/60 rounded py-1.5">
+          <div className="text-xs font-bold text-purple-400">{clan.avgStats?.winRate != null ? `${clan.avgStats.winRate}%` : '-'}</div>
+          <div className="text-[10px] text-gray-500">승률</div>
+        </div>
+      </div>
+
+      {/* 3행: 플레이스타일 */}
+      {clan.playStyle && (
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+          <PlayStyleBadge style={clan.playStyle.primary} />
+          {clan.playStyle.special && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-purple-900/60 text-purple-300 border border-purple-700">
+              ⭐ {clan.playStyle.special}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ClanAnalytics() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -706,52 +780,58 @@ export default function ClanAnalytics() {
                 <ManualUpdateButton adminToken={typeof window !== 'undefined' ? sessionStorage.getItem('admin_pw') : ''} />
               )}
             </div>
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[700px]">
-                  <thead>
-                    <tr className="border-b border-gray-800">
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_rank')}</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_clan')}</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_region')}</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_level')}</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_members')}</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        <Tooltip content={<div><div className="font-semibold text-yellow-400 mb-1">{t('ca.col_avg_score')}</div><div className="text-gray-400">{t('ca.tooltip_avg_score_desc')}</div></div>}>
-                          <span className="cursor-help border-b border-dotted border-gray-600">{t('ca.col_avg_score')}</span>
-                        </Tooltip>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        <Tooltip content={MMR_DISCLAIMER}>
-                          <span className="cursor-help border-b border-dotted border-gray-600">{t('ca.col_mmr')}</span>
-                        </Tooltip>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_damage')}</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_winrate')}</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_style')}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-800/50">
-                    {(() => {
-                      const isMyInTop10 = myClanId && rankings.topClansByScore.some(c => c.id === myClanId);
-                      const myClanOutside = (!isMyInTop10 && myClanId)
-                        ? rankings.allRankedClans?.find(c => c.id === myClanId)
-                        : null;
-                      return (
-                        <>
-                          {rankings.topClansByScore.map((clan, index) => {
-                            const isMyClan = myClanId && clan.id === myClanId;
-                            return (
-                              <ClanRankRow
-                                key={clan.id}
-                                clan={clan}
-                                index={index}
-                                isMyClan={isMyClan}
-                                effectiveMyClanId={effectiveMyClanId}
-                                t={t}
-                              />
-                            );
-                          })}
+            {/* 모바일 카드 */}
+            {(() => {
+              const isMyInTop10 = myClanId && rankings.topClansByScore.some(c => c.id === myClanId);
+              const myClanOutside = (!isMyInTop10 && myClanId)
+                ? rankings.allRankedClans?.find(c => c.id === myClanId)
+                : null;
+              return (
+                <>
+                  <div className="sm:hidden space-y-2">
+                    {rankings.topClansByScore.map((clan, index) => (
+                      <ClanMobileCard key={clan.id} clan={clan} index={index} isMyClan={myClanId && clan.id === myClanId} effectiveMyClanId={effectiveMyClanId} t={t} showFullStats />
+                    ))}
+                    {myClanOutside && (
+                      <>
+                        <div className="flex items-center gap-2 py-1">
+                          <div className="flex-1 border-t border-dashed border-gray-700" />
+                          <span className="text-xs text-gray-600 font-mono">• • •</span>
+                          <div className="flex-1 border-t border-dashed border-gray-700" />
+                        </div>
+                        <ClanMobileCard key={myClanOutside.id} clan={myClanOutside} index={(myClanOutside.rank ?? 0) - 1} isMyClan={true} effectiveMyClanId={null} t={t} showFullStats />
+                      </>
+                    )}
+                  </div>
+
+                  {/* PC 테이블 */}
+                  <div className="hidden sm:block bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[700px]">
+                        <thead>
+                          <tr className="border-b border-gray-800">
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_rank')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_clan')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_region')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_level')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_members')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                              <Tooltip content={<div><div className="font-semibold text-yellow-400 mb-1">{t('ca.col_avg_score')}</div><div className="text-gray-400">{t('ca.tooltip_avg_score_desc')}</div></div>}>
+                                <span className="cursor-help border-b border-dotted border-gray-600">{t('ca.col_avg_score')}</span>
+                              </Tooltip>
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                              <Tooltip content={MMR_DISCLAIMER}><span className="cursor-help border-b border-dotted border-gray-600">{t('ca.col_mmr')}</span></Tooltip>
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_damage')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_winrate')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_style')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-800/50">
+                          {rankings.topClansByScore.map((clan, index) => (
+                            <ClanRankRow key={clan.id} clan={clan} index={index} isMyClan={myClanId && clan.id === myClanId} effectiveMyClanId={effectiveMyClanId} t={t} />
+                          ))}
                           {myClanOutside && (
                             <>
                               <tr>
@@ -763,23 +843,16 @@ export default function ClanAnalytics() {
                                   </div>
                                 </td>
                               </tr>
-                              <ClanRankRow
-                                key={myClanOutside.id}
-                                clan={myClanOutside}
-                                index={(myClanOutside.rank ?? 0) - 1}
-                                isMyClan={true}
-                                effectiveMyClanId={null}
-                                t={t}
-                              />
+                              <ClanRankRow key={myClanOutside.id} clan={myClanOutside} index={(myClanOutside.rank ?? 0) - 1} isMyClan={true} effectiveMyClanId={null} t={t} />
                             </>
                           )}
-                        </>
-                      );
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* 분포 통계 */}
@@ -843,7 +916,15 @@ export default function ClanAnalytics() {
               </div>
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+            {/* 모바일 카드 */}
+            <div className="sm:hidden space-y-2">
+              {currentClans.map((clan, index) => (
+                <ClanMobileCard key={clan.id} clan={clan} index={startIndex + index} isMyClan={myClanId && clan.id === myClanId} effectiveMyClanId={effectiveMyClanId} t={t} />
+              ))}
+            </div>
+
+            {/* PC 테이블 */}
+            <div className="hidden sm:block bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[600px]">
                   <thead>
@@ -854,14 +935,10 @@ export default function ClanAnalytics() {
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_level')}</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_members')}</th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        <Tooltip content={t('ca.tooltip_score_desc')}>
-                          <span className="cursor-help border-b border-dotted border-gray-600">{t('ca.col_score')}</span>
-                        </Tooltip>
+                        <Tooltip content={t('ca.tooltip_score_desc')}><span className="cursor-help border-b border-dotted border-gray-600">{t('ca.col_score')}</span></Tooltip>
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        <Tooltip content={MMR_DISCLAIMER}>
-                          <span className="cursor-help border-b border-dotted border-gray-600">MMR</span>
-                        </Tooltip>
+                        <Tooltip content={MMR_DISCLAIMER}><span className="cursor-help border-b border-dotted border-gray-600">MMR</span></Tooltip>
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{t('ca.col_style')}</th>
                     </tr>
@@ -870,80 +947,54 @@ export default function ClanAnalytics() {
                     {currentClans.map((clan, index) => {
                       const isMyClan = myClanId && clan.id === myClanId;
                       return (
-                      <tr key={clan.id} className={`transition-all duration-200 ${
-                        effectiveMyClanId
-                          ? isMyClan
-                            ? 'bg-blue-950/50 ring-1 ring-inset ring-blue-500/50 hover:bg-blue-950/70'
-                            : 'opacity-20 blur-[1.5px] select-none pointer-events-none'
-                          : 'hover:bg-gray-800/40'
-                      }`}>
-                        <td className="px-4 py-3">
-                          <span className={`text-sm font-bold ${rankColor(startIndex + index)}`}>
-                            #{startIndex + index + 1}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            {isMyClan || !effectiveMyClanId ? (
-                              <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-semibold text-white hover:text-blue-400 transition-colors text-sm">
-                                {clan.name}
-                              </Link>
-                            ) : (
-                              <span className="font-semibold text-gray-500 cursor-not-allowed select-none text-sm">{clan.name}</span>
-                            )}
-                            {isMyClan && (
-                              <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">내 클랜</span>
-                            )}
-                            {clan.staleMemberCount > 0 && (
-                              <Tooltip content={`${clan.staleMemberCount}${t('ca.stale_tooltip_post')}`}>
-                                <span className="text-xs bg-yellow-900/50 text-yellow-400 border border-yellow-700/50 px-1.5 py-0.5 rounded cursor-help">
-                                  ⚠️ {clan.staleMemberCount}{t('ca.stale_suffix')}
-                                </span>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded-md text-xs bg-gray-800 border border-gray-700 text-gray-400">
-                            {clan.tag || '-'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-500 text-sm">{clan.level ?? '-'}</td>
-                        <td className="px-4 py-3 text-green-400 font-semibold text-sm">{clan.apiMemberCount}{t('ca.persons')}</td>
-                        <td className="px-4 py-3">
-                          {clan.avgStats ? (
-                            <span className="font-bold text-blue-400">{clan.avgStats.score}</span>
-                          ) : (
-                            <span className="text-gray-700 text-xs">{t('ca.no_stats')}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          {clan.avgStats?.avgMMR ? (() => {
-                            const tier = getMMRTier(clan.avgStats.avgMMR);
-                            return (
-                              <Tooltip content={MMR_DISCLAIMER}>
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border cursor-help text-xs font-bold ${tier.bgColor} ${tier.borderColor} ${tier.textColor}`}>
-                                  {tier.emoji} {clan.avgStats.avgMMR.toLocaleString()}
-                                </span>
-                              </Tooltip>
-                            );
-                          })() : <span className="text-gray-700">-</span>}
-                        </td>
-                        <td className="px-4 py-3">
-                          {clan.playStyle ? (
-                            <div>
-                              <PlayStyleBadge style={clan.playStyle.primary} />
-                              {clan.playStyle.special && (
-                                <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-purple-900/60 text-purple-300 border border-purple-700">
-                                  ⭐ {clan.playStyle.special}
-                                </span>
+                        <tr key={clan.id} className={`transition-all duration-200 ${
+                          effectiveMyClanId
+                            ? isMyClan ? 'bg-blue-950/50 ring-1 ring-inset ring-blue-500/50 hover:bg-blue-950/70' : 'opacity-20 blur-[1.5px] select-none pointer-events-none'
+                            : 'hover:bg-gray-800/40'
+                        }`}>
+                          <td className="px-4 py-3"><span className={`text-sm font-bold ${rankColor(startIndex + index)}`}>#{startIndex + index + 1}</span></td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              {isMyClan || !effectiveMyClanId ? (
+                                <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="font-semibold text-white hover:text-blue-400 transition-colors text-sm">{clan.name}</Link>
+                              ) : (
+                                <span className="font-semibold text-gray-500 cursor-not-allowed select-none text-sm">{clan.name}</span>
+                              )}
+                              {isMyClan && <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">내 클랜</span>}
+                              {clan.staleMemberCount > 0 && (
+                                <Tooltip content={`${clan.staleMemberCount}${t('ca.stale_tooltip_post')}`}>
+                                  <span className="text-xs bg-yellow-900/50 text-yellow-400 border border-yellow-700/50 px-1.5 py-0.5 rounded cursor-help">⚠️ {clan.staleMemberCount}{t('ca.stale_suffix')}</span>
+                                </Tooltip>
                               )}
                             </div>
-                          ) : (
-                            <span className="text-gray-700 text-xs">{t('ca.no_analysis')}</span>
-                          )}
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-md text-xs bg-gray-800 border border-gray-700 text-gray-400">{clan.tag || '-'}</span></td>
+                          <td className="px-4 py-3 text-gray-500 text-sm">{clan.level ?? '-'}</td>
+                          <td className="px-4 py-3 text-green-400 font-semibold text-sm">{clan.apiMemberCount}{t('ca.persons')}</td>
+                          <td className="px-4 py-3">
+                            {clan.avgStats ? <span className="font-bold text-blue-400">{clan.avgStats.score}</span> : <span className="text-gray-700 text-xs">{t('ca.no_stats')}</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {clan.avgStats?.avgMMR ? (() => {
+                              const tier = getMMRTier(clan.avgStats.avgMMR);
+                              return (
+                                <Tooltip content={MMR_DISCLAIMER}>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border cursor-help text-xs font-bold ${tier.bgColor} ${tier.borderColor} ${tier.textColor}`}>
+                                    {tier.emoji} {clan.avgStats.avgMMR.toLocaleString()}
+                                  </span>
+                                </Tooltip>
+                              );
+                            })() : <span className="text-gray-700">-</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {clan.playStyle ? (
+                              <div>
+                                <PlayStyleBadge style={clan.playStyle.primary} />
+                                {clan.playStyle.special && <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-purple-900/60 text-purple-300 border border-purple-700">⭐ {clan.playStyle.special}</span>}
+                              </div>
+                            ) : <span className="text-gray-700 text-xs">{t('ca.no_analysis')}</span>}
+                          </td>
+                        </tr>
                       );
                     })}
                   </tbody>

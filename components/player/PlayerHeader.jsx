@@ -473,9 +473,7 @@ const PlayerHeader = ({
                   </div>
                   <div className="bg-blue-100 border border-blue-200 rounded-xl p-3 text-center">
                     <div className="text-xs text-blue-500 mb-1 font-medium">
-                      <Tooltip content="PKGG 자체 산출 점수 (시즌 전체 기준)&#10;딜량·킬·승률·TOP10을 가중 합산합니다.&#10;배그 공식 RP와 무관합니다.">
-                        PKGG점수 ℹ️
-                      </Tooltip>
+                      PKGG점수
                     </div>
                     <div className="text-lg font-black text-blue-600">{seasonStat.score}</div>
                   </div>
@@ -534,7 +532,7 @@ const PlayerHeader = ({
                                 {meta.view}
                               </span>
                             </div>
-                            <div className="grid grid-cols-4 gap-1">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                               {[
                                 { label: '게임', value: ms.rounds || 0 },
                                 { label: '평균딜', value: Math.round(ms.avgDamage || 0) },
@@ -599,7 +597,7 @@ const PlayerHeader = ({
                   </div>
                   <div className="bg-cyan-100 border border-cyan-200 rounded-xl p-3 text-center">
                     <div className="text-xs text-cyan-600 mb-1 font-medium">
-                      <Tooltip content="최근 경기 기준 PKGG 산출 점수">PKGG점수 ℹ️</Tooltip>
+                      PKGG점수
                     </div>
                     <div className="text-lg font-black text-cyan-700">{recent20Score}</div>
                   </div>
@@ -720,7 +718,7 @@ const PlayerHeader = ({
                   </div>
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-amber-500 mb-0.5">
-                      <Tooltip content="경쟁전 스탯 기반 PKGG 자체 산출 점수">PKGG ℹ️</Tooltip>
+                      PKGG
                     </div>
                     <div className={`text-sm font-black ${rankedMmr && rankedMmr > normalMmr ? 'text-amber-600' : 'text-gray-700'}`}>
                       {rankedMmr ? rankedMmr.toLocaleString() : '-'}
