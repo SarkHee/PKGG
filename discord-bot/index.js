@@ -71,6 +71,15 @@ client.on('interactionCreate', async (interaction) => {
       const p = data.results[0]
       const s = p.stats
       const name = p.nickname
+      const profileUrl = `${PKGG}/player/steam/${encodeURIComponent(name)}`
+
+      if (!s) {
+        return interaction.editReply(
+          `⚠️ **${name}** 의 전적 데이터가 없습니다.\n` +
+          `PKGG 사이트에서 먼저 검색하면 데이터가 수집됩니다.\n` +
+          `🔗 ${profileUrl}`
+        )
+      }
 
       const mmr      = s?.mmr         ?? null
       const damage   = s?.avgDamage   ?? null
@@ -88,7 +97,6 @@ client.on('interactionCreate', async (interaction) => {
       const top10Str  = top10  != null ? `${top10}%`                                             : '정보 없음'
 
       const clanStr   = p.clanName ? `[${p.clanTag || p.clanName}] ${p.clanName}` : '클랜 없음'
-      const profileUrl = `${PKGG}/player/steam/${encodeURIComponent(name)}`
 
       const embed = new EmbedBuilder()
         .setTitle(`🎮 ${name}`)
