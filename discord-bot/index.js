@@ -100,18 +100,20 @@ client.on('interactionCreate', async (interaction) => {
         .setTitle(`🎮 ${name}`)
         .setColor(0x7f77dd)
         .setURL(profileUrl)
-        .setThumbnail(`${PKGG}/logo.png`)
         .addFields(
-          { name: '📊 PKGG 점수',     value: mmrStr,    inline: true },
-          { name: '💥 평균 딜량',     value: damageStr,  inline: true },
-          { name: '⚔️  평균 킬',      value: killsStr,   inline: true },
-          { name: '🏆 승률',          value: winStr,     inline: true },
-          { name: '📈 Top10 진입률',  value: top10Str,   inline: true },
-          { name: '🎯 플레이스타일',  value: style,      inline: true },
-          { name: '🛡️  클랜',         value: clanStr,    inline: false },
+          { name: '📊 PKGG 점수',    value: mmrStr,    inline: true },
+          { name: '💥 평균 딜량',    value: damageStr,  inline: true },
+          { name: '⚔️  평균 킬',     value: killsStr,   inline: true },
+          { name: '🏆 승률',         value: winStr,     inline: true },
+          { name: '📈 Top10 진입률', value: top10Str,   inline: true },
+          { name: '🎯 플레이스타일', value: style,      inline: true },
         )
-        .setFooter({ text: 'PKGG.vercel.app • PUBG 전적 조회' })
+        .setFooter({ text: 'PKGG.vercel.app • PUBG 전적 조회', iconURL: `${PKGG}/logo.png` })
         .setTimestamp()
+
+      if (p.clanName) {
+        embed.addFields({ name: '🛡️  클랜', value: clanStr, inline: false })
+      }
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
