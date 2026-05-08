@@ -25,16 +25,21 @@ const STYLE_LABEL = {
   UNKNOWN:          '분석 중',
 }
 
-// MMR 값 → 티어 이모지
+// MMR 값 → 티어 이모지 + 라벨
+function tierInfo(mmr) {
+  if (!mmr) return { emoji: '', label: '' }
+  if (mmr >= 2000) return { emoji: '👑', label: 'Legend' }
+  if (mmr >= 1800) return { emoji: '💎', label: 'Diamond' }
+  if (mmr >= 1600) return { emoji: '🏆', label: 'Platinum' }
+  if (mmr >= 1400) return { emoji: '🥇', label: 'Gold' }
+  if (mmr >= 1200) return { emoji: '🥈', label: 'Silver' }
+  if (mmr >= 1000) return { emoji: '🥉', label: 'Bronze' }
+  return { emoji: '🥉', label: 'Bronze' }
+}
+
+// 클랜 임베드용 단순 이모지
 function tierEmoji(mmr) {
-  if (!mmr) return ''
-  if (mmr >= 2200) return '🏆'   // Legend
-  if (mmr >= 1900) return '💎'   // Master
-  if (mmr >= 1700) return '🔷'   // Diamond
-  if (mmr >= 1500) return '🥈'   // Platinum
-  if (mmr >= 1300) return '🥇'   // Gold
-  if (mmr >= 1100) return '🥉'   // Silver
-  return '🪨'                     // Bronze
+  return tierInfo(mmr).emoji
 }
 
 async function fetchJson(url) {
@@ -81,18 +86,21 @@ client.on('interactionCreate', async (interaction) => {
       const styleRaw = s?.style       ?? null
       const style    = STYLE_LABEL[styleRaw] || styleRaw || '정보 없음'
 
-      const mmrStr    = mmr    != null ? `${tierEmoji(mmr)} ${mmr.toLocaleString()}` : '정보 없음'
-      const damageStr = damage != null ? String(damage)                              : '정보 없음'
-      const killsStr  = kills  != null ? String(kills)                               : '정보 없음'
-      const winStr    = winRate != null ? `${winRate}%`                              : '정보 없음'
-      const top10Str  = top10  != null ? `${top10}%`                                : '정보 없음'
+      const tier      = tierInfo(mmr)
+      const mmrStr    = mmr    != null ? `${tier.emoji} ${mmr.toLocaleString()} (${tier.label})` : '정보 없음'
+      const damageStr = damage != null ? String(damage)                                           : '정보 없음'
+      const killsStr  = kills  != null ? String(kills)                                            : '정보 없음'
+      const winStr    = winRate != null ? `${winRate}%`                                           : '정보 없음'
+      const top10Str  = top10  != null ? `${top10}%`                                             : '정보 없음'
 
       const clanStr   = p.clanName ? `[${p.clanTag || p.clanName}] ${p.clanName}` : '클랜 없음'
+      const profileUrl = `${PKGG}/player/steam/${encodeURIComponent(name)}`
 
       const embed = new EmbedBuilder()
         .setTitle(`🎮 ${name}`)
-        .setColor(0x3b82f6)
-        .setURL(`${PKGG}/player/steam/${encodeURIComponent(name)}`)
+        .setColor(0x7f77dd)
+        .setURL(profileUrl)
+        .setThumbnail(`${PKGG}/logo.png`)
         .addFields(
           { name: '📊 PKGG 점수',     value: mmrStr,    inline: true },
           { name: '💥 평균 딜량',     value: damageStr,  inline: true },
@@ -109,7 +117,7 @@ client.on('interactionCreate', async (interaction) => {
         new ButtonBuilder()
           .setLabel('자세히 보기')
           .setStyle(ButtonStyle.Link)
-          .setURL(`${PKGG}/player/steam/${encodeURIComponent(name)}`)
+          .setURL(profileUrl)
           .setEmoji('🔍'),
       )
 
