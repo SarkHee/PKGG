@@ -4,6 +4,14 @@ export default function Document() {
   return (
     <Html lang="ko">
       <Head>
+        {/* Google Analytics */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-1QZEW9N4S3" />
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-1QZEW9N4S3');
+        `}} />
         {/* 구글 서치콘솔 인증 */}
         <meta name="google-site-verification" content="QaNQmdHD828G0WSKpwzQwod9meUv6ng67cq0D0aBb9o" />
         {/* 모바일 뷰포트 */}
