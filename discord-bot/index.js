@@ -11,18 +11,12 @@ const {
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 const PKGG = 'https://pkgg.vercel.app'
 
-// PKGG style 코드 → 한국어 라벨
+// PlayerCache.style DB값 → 이모지 포함 라벨 (derivePlayStyle 4분류)
 const STYLE_LABEL = {
-  HYPER_CARRY:      '하이퍼 캐리형',
-  AGGRESSIVE:       '공격형',
-  PASSIVE:          '생존형',
-  SNIPER:           '저격수형',
-  SUPPORT:          '지원형',
-  BALANCED:         '균형형',
-  PRECISION_SNIPER: '정밀 사수형',
-  EARLY_RUSHER:     '초반 러셔',
-  TACTICAL_LEADER:  '전술 리더형',
-  UNKNOWN:          '분석 중',
+  '교전형': '⚔️ 교전형',
+  '수비형': '🛡️ 수비형',
+  '안정형': '🎯 안정형',
+  '밸런스': '⚖️ 밸런스',
 }
 
 // MMR 값 → 티어 이모지 + 라벨
