@@ -178,10 +178,10 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
           {renderStatRow('Top 10 %', top10Rate)}
           {renderStatRow('헤드샷 비율', headshotRate)}
           {renderStatRow('킬', `${totalKills}킬`)}
-          {renderStatRow('최대 킬', `${maxKills}킬`)}
-          {renderStatRow('평균 등수', `#${avgRank}`)}
-          {renderStatRow('평균 생존시간', avgSurvival)}
-          {renderStatRow('최장 킬 거리', longestKill)}
+          {maxKills > 0 && renderStatRow('최대 킬', `${maxKills}킬`)}
+          {avgRank !== '-' && renderStatRow('평균 등수', `#${avgRank}`)}
+          {avgSurvival !== '0분' && renderStatRow('평균 생존시간', avgSurvival)}
+          {longestKill !== '0m' && renderStatRow('최장 킬 거리', longestKill)}
         </div>
       </div>
     );
