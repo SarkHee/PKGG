@@ -66,18 +66,21 @@ model PlayerMatch {
 }
 
 model PlayerModeStats {
-  id           Int        @id @default(autoincrement())
-  clanMemberId Int
-  mode         String
-  matches      Int
-  wins         Int
-  top10s       Int
-  avgDamage    Float
-  avgKills     Float
-  avgAssists   Float
-  winRate      Float
-  top10Rate    Float
-  clanMember   ClanMember @relation(fields: [clanMemberId], references: [id])
+  id              Int        @id @default(autoincrement())
+  clanMemberId    Int
+  mode            String
+  matches         Int
+  wins            Int
+  top10s          Int
+  avgDamage       Float
+  avgKills        Float
+  avgAssists      Float
+  winRate         Float
+  top10Rate       Float
+  avgSurvivalTime Float      @default(0)
+  headshotRate    Float      @default(0)
+  longestKill     Float      @default(0)
+  clanMember      ClanMember @relation(fields: [clanMemberId], references: [id])
 }
 
 model ForumCategory {

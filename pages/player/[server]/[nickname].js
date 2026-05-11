@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { calculateMMR } from '../../../utils/mmrCalculator';
+import { classifyPlaystyle } from '../../../utils/playstyleClassifier';
 
 import Header from '../../../components/layout/Header';
 import PlayerHeader from '../../../components/player/PlayerHeader';
@@ -396,6 +397,108 @@ function PlayerSkeleton() {
   );
 }
 
+// ── 플레이스타일 요약 카드 ──────────────────────────────────────────────────
+function PlaystyleCard({ summary, mmr }) {
+  if (!summary) return null
+  const ps = classifyPlaystyle({
+    avgDamage:     summary.avgDamage     || 0,
+    avgKills:      summary.avgKills      || 0,
+    avgAssists:    summary.avgAssists    || 0,
+    avgSurviveTime: summary.avgSurviveTime || 0,
+    winRate:       summary.winRate       || 0,
+    top10Rate:     summary.top10Rate     || 0,
+    headshotRate:  summary.headshotKillRatio != null
+      ? parseFloat(summary.headshotKillRatio) * (parseFloat(summary.headshotKillRatio) > 1 ? 1 : 100)
+      : 0,
+  })
+  const emoji = ps.label.match(/\p{Emoji}/u)?.[0] || '🎮'
+
+  return (
+    <div className={`mb-4 rounded-xl border px-4 py-3 flex items-center gap-3 sm:gap-4 ${ps.bg} ${ps.border}`}>
+      <div className="text-2xl sm:text-3xl flex-shrink-0">{emoji}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className={`text-sm font-black ${ps.color}`}>{ps.label}</span>
+        </div>
+        <p className="text-xs text-gray-500 line-clamp-1">{ps.desc}</p>
+      </div>
+      <div className="flex-shrink-0 text-right">
+        <div className="text-[10px] text-gray-400 mb-0.5">PKGG 점수</div>
+        <div className={`text-xl font-black ${ps.color}`}>{Math.round(mmr || 0)}</div>
+      </div>
+    </div>
+  )
+}
+
+// ── 주 플레이 맵 통계 ──────────────────────────────────────────────────────
+const MAP_DISPLAY = {
+  Erangel_Main:    '에란겔',
+  Baltic_Main:     '에란겔',
+  Desert_Main:     '미라마',
+  Savage_Main:     '사녹',
+  DihorOtok_Main:  '비켄디',
+  Summerland_Main: '카라킨',
+  Heaven_Main:     '헤이븐',
+  Tiger_Main:      '태이고',
+  Kiki_Main:       '데스턴',
+  Neon_Main:       '론도',
+  Chimera_Main:    '파라모',
+  Range_Main:      '훈련장',
+}
+const MAP_BAR_COLOR = {
+  '에란겔': 'bg-green-500',
+  '미라마': 'bg-yellow-500',
+  '사녹':   'bg-emerald-500',
+  '비켄디': 'bg-sky-400',
+  '카라킨': 'bg-orange-500',
+  '헤이븐': 'bg-violet-400',
+  '태이고': 'bg-amber-500',
+  '데스턴': 'bg-red-400',
+  '론도':   'bg-cyan-500',
+  '파라모': 'bg-indigo-400',
+}
+
+function MapStatsCard({ matches }) {
+  if (!matches || matches.length === 0) return null
+
+  const counts = {}
+  for (const m of matches) {
+    const name = MAP_DISPLAY[m.mapName || ''] || null
+    if (!name || name === '훈련장') continue
+    counts[name] = (counts[name] || 0) + 1
+  }
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
+  if (sorted.length === 0) return null
+
+  const maxCount = sorted[0][1]
+  const total = sorted.reduce((s, [, c]) => s + c, 0)
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-3 mb-3 px-1">
+        <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+        <h2 className="text-base font-bold text-gray-800">주 플레이 맵</h2>
+        <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">최근 20경기 기준</span>
+      </div>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm space-y-2.5">
+        {sorted.map(([name, count]) => (
+          <div key={name} className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-gray-600 w-12 flex-shrink-0 text-right">{name}</span>
+            <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${MAP_BAR_COLOR[name] || 'bg-blue-400'}`}
+                style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
+              />
+            </div>
+            <span className="text-xs font-bold text-gray-700 w-7 text-right flex-shrink-0">{count}회</span>
+            <span className="text-[10px] text-gray-400 w-8 text-right flex-shrink-0">{Math.round((count / total) * 100)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const PLAYER_CACHE_TTL = 5 * 60 * 1000; // 5분
 
 function getCachedPlayer(key) {
@@ -533,7 +636,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
     return () => clearTimeout(id);
   }, []);
 
-  // percentile: PlayerPercentileCard 내부에서 1회 호출 (중복 방지)
+  const [activeTab, setActiveTab] = useState('overall')
 
   if (pageLoading || !playerData) {
     return (
@@ -1154,6 +1257,14 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
   const allMatches = [...recentMatches, ...extraMatches];
   const filteredMatches = filterMatches(allMatches, selectedMatchFilter);
 
+  const SECTION_TABS = [
+    { key: 'overall',  label: '종합 전적',    icon: '📊' },
+    { key: 'analysis', label: '플레이어 분석', icon: '🔍' },
+    { key: 'weapons',  label: '무기 통계',     icon: '🔫' },
+    { key: 'team',     label: '팀 분석',       icon: '👥' },
+    { key: 'ai',       label: 'AI 코칭',       icon: '🤖' },
+  ]
+
   return (
     <>
       {/* 네비게이션 로딩 오버레이 */}
@@ -1220,438 +1331,373 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
           dataSource={dataSource}
         />
 
-        {/* 광고 1: 플레이어 헤더 아래 (상단 배너) */}
-        <AdUnit slot="2646189375" format="auto" className="mb-6" />
+        {/* 광고 1 */}
+        <AdUnit slot="2646189375" format="auto" className="mb-4" />
 
-        {/* 퍼포먼스 백분위 리포트 */}
-        <div className="mb-6">
-          {lazyVisible
-            ? <PlayerPercentileCard playerStats={summary || profile} />
-            : <div className="h-24 bg-gray-100 animate-pulse rounded-xl" />}
-        </div>
-
-        {/* 성장 추적 섹션 */}
-        <div className="mb-8">
-          {lazyVisible ? (
-            <GrowthChart
-              nickname={profile.nickname}
-              shard={profile.shardId || router.query.server || 'steam'}
-            />
-          ) : (
-            <div className="h-48 bg-gray-100 animate-pulse rounded-xl" />
-          )}
-        </div>
-
-        {/* 개인 맞춤형 AI 코칭 시스템 */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4 px-1">
-            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-            <h2 className="text-lg font-bold text-gray-800">개인 맞춤형 AI 코칭</h2>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">훈련/피드백</span>
-          </div>
-          {/* AI 개인 맞춤 코칭 카드 */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            {/* 디버깅을 위한 데이터 출력 */}
-            {typeof window !== 'undefined' &&
-              console.log('🚀 PlayerPage - summary 전체:', summary) &&
-              console.log('🚀 PlayerPage - profile 전체:', profile) &&
-              console.log('🚀 PlayerPage - 특정 필드들:', {
-                avgKills: summary?.avgKills,
-                winRate: summary?.winRate,
-                top10Rate: summary?.top10Rate,
-                avgDamage: summary?.avgDamage,
-              }) &&
-              false}
-            {lazyVisible && <AICoachingCard
-              playerStats={(() => {
-                // 시즌 통계에서 최신 데이터 추출 (전체 시즌 기준 분석)
-                const latestSeasonStats =
-                  seasonStats && Object.keys(seasonStats).length > 0
-                    ? Object.values(seasonStats)[0]
-                    : null;
-
-                // 이벤트 모드 제외 후 FPP/일반 순서로 우선 선택
-                const nonEventModes = latestSeasonStats
-                  ? Object.fromEntries(
-                      Object.entries(latestSeasonStats).filter(
-                        ([mode]) => !mode.startsWith('normal') && !mode.includes('event')
-                      )
-                    )
-                  : {};
-                const bestModeStats =
-                  nonEventModes['squad-fpp'] ||
-                  nonEventModes['squad'] ||
-                  nonEventModes['duo-fpp'] ||
-                  nonEventModes['duo'] ||
-                  nonEventModes['solo-fpp'] ||
-                  nonEventModes['solo'] ||
-                  Object.values(nonEventModes)[0];
-
-                // 경쟁전 포함 시즌 전체 경기 수 계산
-                const totalSeasonMatches = latestSeasonStats
-                  ? Object.values(latestSeasonStats).reduce(
-                      (total, modeStats) => {
-                        return total + (modeStats?.rounds || 0);
-                      },
-                      0
-                    )
-                  : 0;
-
-                // 랭킹 경기 수도 포함 (있는 경우)
-                const rankedMatches = rankedSummary?.games || 0;
-                const totalAllMatches = Math.max(
-                  totalSeasonMatches,
-                  rankedMatches,
-                  summary?.roundsPlayed || 0
-                );
-
-                console.log(
-                  '🎯 AI 코칭용 데이터 선택 (경쟁전 포함 시즌 전체 기준):',
-                  {
-                    latestSeasonStats: latestSeasonStats,
-                    bestModeStats: bestModeStats,
-                    totalSeasonMatches: totalSeasonMatches,
-                    rankedMatches: rankedMatches,
-                    totalAllMatches: totalAllMatches,
-                    summary: summary,
-                  }
-                );
-
-                return {
-                  avgDamage:
-                    bestModeStats?.avgDamage ||
-                    summary?.avgDamage ||
-                    profile?.avgDamage ||
-                    0,
-                  avgKills:
-                    bestModeStats?.avgKills ||
-                    summary?.avgKills ||
-                    profile?.avgKills ||
-                    0,
-                  avgAssists:
-                    bestModeStats?.avgAssists ||
-                    summary?.avgAssists ||
-                    profile?.avgAssists ||
-                    0,
-                  avgSurvivalTime:
-                    bestModeStats?.avgSurvivalTime ||
-                    summary?.avgSurviveTime ||
-                    profile?.avgSurviveTime ||
-                    0,
-                  winRate:
-                    bestModeStats?.winRate ||
-                    summary?.winRate ||
-                    profile?.winRate ||
-                    0,
-                  top10Rate:
-                    bestModeStats?.top10Rate ||
-                    summary?.top10Rate ||
-                    profile?.top10Rate ||
-                    0,
-                  headshotRate: (() => {
-                    // 경쟁전 전체 통계에서 헤드샷 비율 계산
-                    if (
-                      summary?.headshotKillRatio !== undefined &&
-                      summary?.headshotKillRatio !== null
-                    ) {
-                      const ratio = parseFloat(summary.headshotKillRatio);
-                      return parseFloat(
-                        (ratio > 1 ? ratio : ratio * 100).toFixed(1)
-                      );
-                    }
-                    // 직접 계산: 경쟁전 전체 헤드샷킬수 / 경쟁전 전체 킬수 * 100
-                    if (
-                      summary?.kills > 0 &&
-                      summary?.headshots !== undefined
-                    ) {
-                      return parseFloat(
-                        ((summary.headshots / summary.kills) * 100).toFixed(1)
-                      );
-                    }
-                    // 기본값들 (하위 호환성)
-                    return (
-                      bestModeStats?.headshotRate ||
-                      profile?.headshotKillRatio ||
-                      0
-                    );
-                  })(),
-                  headshots:
-                    summary?.headshots || bestModeStats?.headshots || 0, // 헤드샷 킬 수 추가
-                  totalKills: summary?.kills || bestModeStats?.kills || 0, // 전체 킬 수 추가
-                  totalMatches: totalAllMatches, // 경쟁전 포함 시즌 전체 경기 수
-                  kd: bestModeStats?.kd || summary?.kd || profile?.kd || 0,
-                };
-              })()}
-              playerInfo={{
-                nickname: profile?.nickname || router.query.nickname,
-                server: router.query.server || 'steam',
-                playerId: resolvedPlayerId || profile?.playerId || null,
-              }}
-              masteryWeapons={masteryWeapons}
-              rankedStats={rankedSummary}
-            />}
-            {!lazyVisible && <div className="h-32 bg-gray-100 animate-pulse rounded-xl" />}
-          </div>
-        </div>
-
-        {/* 광고 2: AI 코칭 아래 */}
-        <AdUnit slot="2646189375" format="auto" className="mb-6" />
-
-        {/* 주사용 무기 통계 섹션 */}
-        {profile?.nickname && (
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4 px-1">
-              <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-              <h2 className="text-lg font-bold text-gray-800">주사용 무기 통계</h2>
-              <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">weapon mastery</span>
-            </div>
-            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
-              {lazyVisible && <WeaponMasteryCard
-                playerId={profile.playerId || null}
-                nickname={profile.nickname}
-                shard={profile.shardId || router.query.server || 'steam'}
-                force={router.query.force === '1'}
-                onReady={(id, weapons) => {
-                  setResolvedPlayerId(id);
-                  setMasteryWeapons(weapons);
-                }}
-              />}
-              {!lazyVisible && <div className="h-40 bg-gray-100 animate-pulse rounded-xl" />}
-            </div>
-          </div>
-        )}
-
-        {/* 광고 3: 무기 통계 아래 */}
-        <AdUnit slot="2646189375" format="auto" className="mb-6" />
-
-        {/* 클랜 및 팀플레이 분석 섹션 */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4 px-1">
-            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-            <h2 className="text-lg font-bold text-gray-800">클랜 및 팀플레이 분석</h2>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">클랜 시너지</span>
-          </div>
-          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
-            <PlayerDashboard
-              profile={profile}
-              summary={summary}
-              clanAverage={clanAverage}
-              clanMembers={clanMembers}
-              clanTier={clanTier}
-              synergyTop={synergyTop}
-              clanSynergyStatusList={clanSynergyStatusList}
-              bestSquad={bestSquad}
-              seasonStats={seasonStats}
-            />
-
-            {/* 클랜원 시너지 히트맵 - 클랜 소속인 경우에만 표시 */}
-            {(() => {
-              const clanInfo = profile?.clan;
-              const clanName =
-                typeof clanInfo === 'string' ? clanInfo : clanInfo?.name;
-              const hasValidClan =
-                clanName &&
-                clanName !== '-' &&
-                clanName !== '무소속' &&
-                clanName !== 'N/A';
-              const hasClanData =
-                hasValidClan && clanMembers && clanMembers.length > 0;
-
-              return hasClanData ? (
-                <div className="mt-10 pt-8 border-t border-gray-200">
-                  <SynergyHeatmap
-                    matches={recentMatches}
-                    myNickname={profile?.nickname}
-                    clanMembers={clanMembers}
-                    playerClan={clanName}
-                  />
-                </div>
-              ) : null;
-            })()}
-          </div>
-        </div>
-
-        {/* 광고 4: 클랜 분석 아래 */}
-        <AdUnit slot="2646189375" format="auto" className="mb-6" />
-
-        {/* 시즌 플레이 현황 - 최근 20경기 matchType 기반 */}
-        {(() => {
-          // 최근 20경기의 matchType으로 실제 모드 분포 계산
-          const recent = (recentMatches || []).slice(0, 20);
-          if (recent.length === 0) return null;
-
-          let rankedCount = 0, normalCount = 0, eventCount = 0;
-          for (const m of recent) {
-            const mt = (m.matchType || '').toLowerCase();
-            if (mt === 'ranked' || mt === 'competitive') rankedCount++;
-            else if (mt === 'event' || mt === 'casual' || mt === 'airoyale') eventCount++;
-            else normalCount++; // official 또는 matchType 없음 → 일반
+        <style>{`
+          @keyframes tabFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
           }
-          const total = recent.length;
-          const matchModeDistribution = {
-            ranked:      Math.round((rankedCount / total) * 100),
-            normal:      Math.round((normalCount / total) * 100),
-            event:       Math.round((eventCount  / total) * 100),
-            rankedCount,
-            normalCount,
-            eventCount,
-            total,
-          };
+          .tab-fade-in { animation: tabFadeIn 0.2s ease-out; }
+        `}</style>
 
-          return (
+        {/* ── 섹션 탭 네비게이션 (sticky) ── */}
+        <div className="sticky top-[60px] z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200 -mx-4 px-4 mb-6">
+          <nav className="flex gap-1 overflow-x-auto scrollbar-none py-2">
+            {SECTION_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+                  activeTab === tab.key
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                }`}
+              >
+                <span className="hidden sm:inline">{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* 탭 콘텐츠 (탭 전환 시 fade 애니메이션) */}
+        <div key={activeTab} className="tab-fade-in">
+
+          {/* ══ 종합 전적 ══ */}
+          {activeTab === 'overall' && (
+            <>
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <h2 className="text-lg font-bold text-gray-800">게임 모드별 통계</h2>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
+                </div>
+                <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
+              </div>
+
+              <AdUnit slot="2646189375" format="auto" className="mb-6" />
+
+              <section className="recent-matches-section mb-8">
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <h2 className="text-lg font-bold text-gray-800">최근 경기 내역</h2>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">최근 20경기</span>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  <div className="border-b border-gray-100 px-4 py-3 overflow-x-auto">
+                    <div className="flex gap-1 min-w-max">
+                      {[
+                        { label: '전체', key: '전체' },
+                        { label: '경쟁전', key: '경쟁전' },
+                        { label: '솔로', key: '솔로' },
+                        { label: '듀오', key: '듀오' },
+                        { label: '스쿼드', key: '스쿼드' },
+                        { label: '경쟁전 솔로', key: '경쟁전 솔로' },
+                        { label: 'FPP 솔로', key: '솔로 FPP' },
+                        { label: 'FPP 듀오', key: '듀오 FPP' },
+                        { label: 'FPP 스쿼드', key: '스쿼드 FPP' },
+                        { label: '🎉 이벤트', key: '이벤트' },
+                      ].map(({ label, key }) => (
+                        <button
+                          key={key}
+                          onClick={() => setSelectedMatchFilter(key)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                            selectedMatchFilter === key
+                              ? key === '이벤트' ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white'
+                              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    {matchesLoading ? (
+                      <div className="space-y-3 animate-pulse">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 bg-gray-200 rounded w-32" />
+                              <div className="h-3 bg-gray-200 rounded w-48" />
+                            </div>
+                            <div className="h-8 w-16 bg-gray-200 rounded" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : filteredMatches && filteredMatches.length > 0 ? (
+                      <MatchList recentMatches={filteredMatches} playerData={playerData} />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="text-4xl mb-3">📋</div>
+                        <div className="text-sm font-medium text-gray-600">
+                          {selectedMatchFilter === '전체'
+                            ? '최근 경기 데이터가 없습니다.'
+                            : `${selectedMatchFilter} 모드의 기록된 전적이 없습니다.`}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">게임을 플레이하면 데이터가 업데이트됩니다.</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {!noMoreMatches && (
+                  <div className="flex justify-center mt-4 mb-2">
+                    <button
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="flex items-center gap-2 px-8 py-3 rounded-xl bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          불러오는 중...
+                        </>
+                      ) : (
+                        <>경기 더 보기<span className="text-xs text-gray-400 ml-1">(+5경기)</span></>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {selectedMatchId && (
+                  <div ref={detailRef} className="mt-6 mb-8">
+                    <div className="flex items-center gap-3 mb-4 px-1">
+                      <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                      <h4 className="text-lg font-bold text-gray-800">경기 상세 정보</h4>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
+                    </div>
+                    <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+                      <MatchDetailExpandable matchId={selectedMatchId} />
+                    </div>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+
+          {/* ══ 플레이어 분석 ══ */}
+          {activeTab === 'analysis' && (
+            <>
+              {/* 성장 추적 - 맨 위 */}
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <h2 className="text-lg font-bold text-gray-800">성장 추적</h2>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">시간별 성장 분석</span>
+                </div>
+                {lazyVisible ? (
+                  <GrowthChart
+                    nickname={profile.nickname}
+                    shard={profile.shardId || router.query.server || 'steam'}
+                  />
+                ) : (
+                  <div className="h-48 bg-gray-100 animate-pulse rounded-xl" />
+                )}
+              </div>
+
+              {/* 주 플레이 맵 - 최근 20경기 */}
+              <MapStatsCard matches={recentMatches} />
+
+              {/* 시즌 플레이 현황 - 시즌 데이터 기준 */}
+              {(() => {
+                const latestSeasonStats = seasonStats && Object.keys(seasonStats).length > 0
+                  ? Object.values(seasonStats)[0]
+                  : null
+                if (!latestSeasonStats) return null
+                let rankedCount = 0, normalCount = 0, eventCount = 0
+                for (const [mode, ms] of Object.entries(latestSeasonStats)) {
+                  const rounds = ms?.rounds || 0
+                  if (rounds === 0) continue
+                  const m = mode.toLowerCase()
+                  if (m.includes('ranked') || m.startsWith('competitive')) rankedCount += rounds
+                  else if (m.startsWith('normal') || m.includes('event') || m.includes('casual') || m.includes('arcade')) eventCount += rounds
+                  else normalCount += rounds
+                }
+                const total = rankedCount + normalCount + eventCount
+                if (total === 0) return null
+                return (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-3 mb-4 px-1">
+                      <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                      <h2 className="text-lg font-bold text-gray-800">시즌 플레이 현황</h2>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">이번 시즌 {total}경기</span>
+                    </div>
+                    <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+                      <ModeDistributionChart modeDistribution={{
+                        ranked: Math.round((rankedCount / total) * 100),
+                        normal: Math.round((normalCount / total) * 100),
+                        event:  Math.round((eventCount  / total) * 100),
+                        rankedCount, normalCount, eventCount, total,
+                      }} />
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* 경기 추이 분석 */}
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <h2 className="text-lg font-bold text-gray-800">경기 추이 분석</h2>
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">성과 트렌드</span>
+                </div>
+                <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-base">💪</span>
+                    <h4 className="text-sm font-bold text-gray-700">딜량 추이</h4>
+                  </div>
+                  <RecentDamageTrendChart matches={recentMatches} />
+                </div>
+              </div>
+
+              {/* 퍼포먼스 백분위 */}
+              <div className="mb-6">
+                {lazyVisible
+                  ? <PlayerPercentileCard playerStats={summary || profile} />
+                  : <div className="h-24 bg-gray-100 animate-pulse rounded-xl" />}
+              </div>
+            </>
+          )}
+
+          {/* ══ 무기 통계 ══ */}
+          {activeTab === 'weapons' && profile?.nickname && (
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-4 px-1">
                 <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                <h2 className="text-lg font-bold text-gray-800">시즌 플레이 현황</h2>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">최근 {total}경기 기준</span>
+                <h2 className="text-lg font-bold text-gray-800">주사용 무기 통계</h2>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">weapon mastery</span>
               </div>
               <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
-                <ModeDistributionChart modeDistribution={matchModeDistribution} />
+                {lazyVisible && <WeaponMasteryCard
+                  playerId={profile.playerId || null}
+                  nickname={profile.nickname}
+                  shard={profile.shardId || router.query.server || 'steam'}
+                  force={router.query.force === '1'}
+                  onReady={(id, weapons) => {
+                    setResolvedPlayerId(id)
+                    setMasteryWeapons(weapons)
+                  }}
+                />}
+                {!lazyVisible && <div className="h-40 bg-gray-100 animate-pulse rounded-xl" />}
               </div>
             </div>
-          );
-        })()}
+          )}
 
-        {/* 차트 및 시각화 섹션 */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4 px-1">
-            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-            <h2 className="text-lg font-bold text-gray-800">경기 추이 분석</h2>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">성과 트렌드</span>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-base">💪</span>
-              <h4 className="text-sm font-bold text-gray-700">딜량 추이</h4>
-            </div>
-            <RecentDamageTrendChart matches={recentMatches} />
-          </div>
-        </div>
-
-        {/* 게임 모드별 통계 섹션 */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4 px-1">
-            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-            <h2 className="text-lg font-bold text-gray-800">게임 모드별 통계</h2>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
-          </div>
-          <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
-        </div>
-
-        {/* 최근 경기 내역 섹션 */}
-        <section className="recent-matches-section mb-8">
-          <div className="flex items-center gap-3 mb-4 px-1">
-            <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-            <h2 className="text-lg font-bold text-gray-800">최근 경기 내역</h2>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">최근 20경기</span>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {/* 경기 모드 필터 탭 */}
-            <div className="border-b border-gray-100 px-4 py-3 overflow-x-auto">
-              <div className="flex gap-1 min-w-max">
-                {[
-                  { label: '전체', key: '전체' },
-                  { label: '경쟁전', key: '경쟁전' },
-                  { label: '솔로', key: '솔로' },
-                  { label: '듀오', key: '듀오' },
-                  { label: '스쿼드', key: '스쿼드' },
-                  { label: '경쟁전 솔로', key: '경쟁전 솔로' },
-                  { label: 'FPP 솔로', key: '솔로 FPP' },
-                  { label: 'FPP 듀오', key: '듀오 FPP' },
-                  { label: 'FPP 스쿼드', key: '스쿼드 FPP' },
-                  { label: '🎉 이벤트', key: '이벤트' },
-                ].map(({ label, key }) => (
-                  <button
-                    key={key}
-                    onClick={() => setSelectedMatchFilter(key)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
-                      selectedMatchFilter === key
-                        ? key === '이벤트' ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white'
-                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+          {/* ══ 팀 분석 ══ */}
+          {activeTab === 'team' && (
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-4 px-1">
+                <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                <h2 className="text-lg font-bold text-gray-800">클랜 및 팀플레이 분석</h2>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">클랜 시너지</span>
               </div>
-            </div>
-
-            <div className="p-4">
-              {matchesLoading ? (
-                <div className="space-y-3 animate-pulse">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-32" />
-                        <div className="h-3 bg-gray-200 rounded w-48" />
-                      </div>
-                      <div className="h-8 w-16 bg-gray-200 rounded" />
-                    </div>
-                  ))}
-                </div>
-              ) : filteredMatches && filteredMatches.length > 0 ? (
-                <MatchList
-                  recentMatches={filteredMatches}
-                  playerData={playerData}
+              <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+                <PlayerDashboard
+                  profile={profile}
+                  summary={summary}
+                  clanAverage={clanAverage}
+                  clanMembers={clanMembers}
+                  clanTier={clanTier}
+                  synergyTop={synergyTop}
+                  clanSynergyStatusList={clanSynergyStatusList}
+                  bestSquad={bestSquad}
+                  seasonStats={seasonStats}
                 />
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="text-4xl mb-3">📋</div>
-                  <div className="text-sm font-medium text-gray-600">
-                    {selectedMatchFilter === '전체'
-                      ? '최근 경기 데이터가 없습니다.'
-                      : `${selectedMatchFilter} 모드의 기록된 전적이 없습니다.`}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    게임을 플레이하면 데이터가 업데이트됩니다.
-                  </div>
-                </div>
-              )}
+                {(() => {
+                  const clanInfo = profile?.clan
+                  const clanName = typeof clanInfo === 'string' ? clanInfo : clanInfo?.name
+                  const hasValidClan = clanName && clanName !== '-' && clanName !== '무소속' && clanName !== 'N/A'
+                  return hasValidClan && clanMembers?.length > 0 ? (
+                    <div className="mt-10 pt-8 border-t border-gray-200">
+                      <SynergyHeatmap
+                        matches={recentMatches}
+                        myNickname={profile?.nickname}
+                        clanMembers={clanMembers}
+                        playerClan={clanName}
+                      />
+                    </div>
+                  ) : null
+                })()}
+              </div>
             </div>
-          </div>
-        </section>
+          )}
 
-        {/* 더보기 버튼 — 최근 경기 섹션 하단 */}
-        {!noMoreMatches && (
-          <div className="flex justify-center mt-4 mb-2">
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="flex items-center gap-2 px-8 py-3 rounded-xl bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loadingMore ? (
-                <>
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  불러오는 중...
-                </>
-              ) : (
-                <>
-                  경기 더 보기
-                  <span className="text-xs text-gray-400">(+5경기)</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
+          {/* ══ AI 코칭 ══ */}
+          {activeTab === 'ai' && (
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-4 px-1">
+                <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                <h2 className="text-lg font-bold text-gray-800">개인 맞춤형 AI 코칭</h2>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">훈련/피드백</span>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+                {lazyVisible && <AICoachingCard
+                  playerStats={(() => {
+                    const latestSeasonStats =
+                      seasonStats && Object.keys(seasonStats).length > 0
+                        ? Object.values(seasonStats)[0]
+                        : null
+                    const nonEventModes = latestSeasonStats
+                      ? Object.fromEntries(
+                          Object.entries(latestSeasonStats).filter(
+                            ([mode]) => !mode.startsWith('normal') && !mode.includes('event')
+                          )
+                        )
+                      : {}
+                    const bestModeStats =
+                      nonEventModes['squad-fpp'] || nonEventModes['squad'] ||
+                      nonEventModes['duo-fpp']   || nonEventModes['duo']   ||
+                      nonEventModes['solo-fpp']  || nonEventModes['solo']  ||
+                      Object.values(nonEventModes)[0]
+                    const totalSeasonMatches = latestSeasonStats
+                      ? Object.values(latestSeasonStats).reduce((total, ms) => total + (ms?.rounds || 0), 0)
+                      : 0
+                    const rankedMatches = rankedSummary?.games || 0
+                    const totalAllMatches = Math.max(totalSeasonMatches, rankedMatches, summary?.roundsPlayed || 0)
+                    return {
+                      avgDamage:       bestModeStats?.avgDamage       || summary?.avgDamage       || profile?.avgDamage       || 0,
+                      avgKills:        bestModeStats?.avgKills         || summary?.avgKills         || profile?.avgKills         || 0,
+                      avgAssists:      bestModeStats?.avgAssists       || summary?.avgAssists       || profile?.avgAssists       || 0,
+                      avgSurvivalTime: bestModeStats?.avgSurvivalTime  || summary?.avgSurviveTime   || profile?.avgSurviveTime   || 0,
+                      winRate:         bestModeStats?.winRate          || summary?.winRate          || profile?.winRate          || 0,
+                      top10Rate:       bestModeStats?.top10Rate        || summary?.top10Rate        || profile?.top10Rate        || 0,
+                      headshotRate: (() => {
+                        if (summary?.headshotKillRatio != null) {
+                          const r = parseFloat(summary.headshotKillRatio)
+                          return parseFloat((r > 1 ? r : r * 100).toFixed(1))
+                        }
+                        if (summary?.kills > 0 && summary?.headshots != null) {
+                          return parseFloat(((summary.headshots / summary.kills) * 100).toFixed(1))
+                        }
+                        return bestModeStats?.headshotRate || profile?.headshotKillRatio || 0
+                      })(),
+                      headshots:   summary?.headshots   || bestModeStats?.headshots || 0,
+                      totalKills:  summary?.kills        || bestModeStats?.kills     || 0,
+                      totalMatches: totalAllMatches,
+                      kd:          bestModeStats?.kd     || summary?.kd              || profile?.kd || 0,
+                    }
+                  })()}
+                  playerInfo={{
+                    nickname: profile?.nickname || router.query.nickname,
+                    server:   router.query.server || 'steam',
+                    playerId: resolvedPlayerId || profile?.playerId || null,
+                  }}
+                  masteryWeapons={masteryWeapons}
+                  rankedStats={rankedSummary}
+                />}
+                {!lazyVisible && <div className="h-32 bg-gray-100 animate-pulse rounded-xl" />}
+              </div>
+            </div>
+          )}
 
-        {/* 경기 상세 정보 표시 */}
-        {selectedMatchId && (
-          <div ref={detailRef} className="mt-6 mb-8">
-            <div className="flex items-center gap-3 mb-4 px-1">
-              <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-              <h4 className="text-lg font-bold text-gray-800">경기 상세 정보</h4>
-              <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
-            </div>
-            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
-              <MatchDetailExpandable matchId={selectedMatchId} />
-            </div>
-          </div>
-        )}
+        </div>
 
         {/* 데이터 정보 푸터 */}
         <div className="mt-8 mb-2 text-center text-xs text-gray-400 flex items-center justify-center gap-1.5">
@@ -1886,7 +1932,9 @@ async function getPlayerFromDB(nickname, server) {
           avgAssists:      ms.avgAssists || 0,
           winRate:         ms.winRate || 0,
           top10Rate:       ms.top10Rate || 0,
-          avgSurvivalTime: 0,
+          avgSurvivalTime: ms.avgSurvivalTime || 0,
+          headshotRate:    ms.headshotRate    || 0,
+          longestKill:     ms.longestKill     || 0,
         };
       }
       if (Object.keys(modesObj).length > 0) seasonStatsFromDB = { db_cache: modesObj };
@@ -1962,6 +2010,99 @@ export async function getServerSideProps({ params, query }) {
       const cached = await getPlayerFromDB(nickname, server);
       if (cached) {
         console.log(`[SSR] DB 캐시 HIT: ${nickname}`);
+
+        // PUBG API에서 시즌 통계 + 경쟁전 랭크 보완
+        if (cached.profile?.playerId) {
+          try {
+            const playerShard = cached.profile.shardId || server;
+            const seasonsData = await cachedPubgFetch(
+              `${PUBG_BASE}/${playerShard}/seasons`,
+              { ttl: TTL.SEASON, force: false }
+            );
+            const seasons = seasonsData.data || [];
+            const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
+            if (currentSeason) {
+              const [statsResult, rankedResult] = await Promise.allSettled([
+                cachedPubgFetch(
+                  `${PUBG_BASE}/${playerShard}/players/${cached.profile.playerId}/seasons/${currentSeason.id}`,
+                  { ttl: TTL.PLAYER, force: false }
+                ),
+                cachedPubgFetch(
+                  `${PUBG_BASE}/${playerShard}/players/${cached.profile.playerId}/seasons/${currentSeason.id}/ranked`,
+                  { ttl: TTL.PLAYER, force: false }
+                ),
+              ]);
+
+              // 시즌 통계 보완
+              if (statsResult.status === 'fulfilled') {
+                const gameModeStats = statsResult.value.data?.attributes?.gameModeStats || {};
+                const transformedModes = {};
+                for (const [mode, s] of Object.entries(gameModeStats)) {
+                  const rounds = s.roundsPlayed || 0;
+                  if (rounds === 0) continue;
+                  transformedModes[mode] = {
+                    rounds, wins: s.wins || 0, top10s: s.top10s || 0,
+                    kd: parseFloat(((s.kills || 0) / Math.max(1, rounds - (s.wins || 0))).toFixed(2)),
+                    avgDamage: Math.round((s.damageDealt || 0) / rounds),
+                    winRate: Math.round(((s.wins || 0) / rounds) * 100),
+                    top10Rate: Math.round(((s.top10s || 0) / rounds) * 100),
+                    headshotRate: (s.kills || 0) > 0 ? Math.round(((s.headshotKills || 0) / s.kills) * 100) : 0,
+                    longestKill: Math.round(s.longestKill || 0),
+                    totalKills: s.kills || 0,
+                    avgSurvivalTime: Math.round((s.timeSurvived || 0) / rounds),
+                    avgAssists: parseFloat(((s.assists || 0) / rounds).toFixed(1)),
+                    assists: s.assists || 0,
+                  };
+                }
+                if (Object.keys(transformedModes).length > 0) {
+                  cached.seasonStats = { [currentSeason.id]: transformedModes };
+                  console.log(`[DB캐시] 시즌 통계 보완: ${Object.keys(transformedModes).join(', ')}`);
+                }
+              }
+
+              // 경쟁전 랭크 보완
+              if (rankedResult.status === 'fulfilled') {
+                const rankedModeStats = rankedResult.value.data?.attributes?.rankedGameModeStats || {};
+                const modeData = rankedModeStats['squad-fpp'] || rankedModeStats['squad'] || Object.values(rankedModeStats)[0];
+                if (modeData && modeData.roundsPlayed > 0) {
+                  const r = modeData.roundsPlayed;
+                  const deaths = Math.max(1, r - (modeData.wins || 0));
+                  cached.rankedSummary = {
+                    mode: 'squad-fpp',
+                    tier: modeData.currentTier?.tier || 'Unranked',
+                    subTier: modeData.currentTier?.subTier || 0,
+                    currentTier: modeData.currentTier?.tier || 'Unranked',
+                    rp: modeData.currentRankPoint || 0,
+                    bestTier: modeData.bestTier?.tier || modeData.currentTier?.tier || 'Unranked',
+                    bestRankPoint: modeData.bestRankPoint || modeData.currentRankPoint || 0,
+                    games: r,
+                    wins: modeData.wins || 0,
+                    kd: parseFloat(((modeData.kills || 0) / deaths).toFixed(2)),
+                    kda: parseFloat((((modeData.kills || 0) + (modeData.assists || 0)) / deaths).toFixed(2)),
+                    avgDamage: r > 0 ? Math.round((modeData.damageDealt || 0) / r) : 0,
+                    winRate: parseFloat(((modeData.wins || 0) / r * 100).toFixed(1)),
+                    top10Rate: parseFloat(((modeData.top10s || 0) / r * 100).toFixed(1)),
+                    top10Ratio: (modeData.top10s || 0) / r,
+                    kills: modeData.kills || 0,
+                    deaths,
+                    assists: modeData.assists || 0,
+                    headshotKills: modeData.headshotKills || 0,
+                    headshotRate: (modeData.kills || 0) > 0
+                      ? parseFloat(((modeData.headshotKills || 0) / (modeData.kills || 1) * 100).toFixed(1))
+                      : 0,
+                    damageDealt: modeData.damageDealt || 0,
+                    dBNOs: modeData.dBNOs || 0,
+                    roundsPlayed: r,
+                  };
+                  console.log(`[DB캐시] 경쟁전 보완: 티어=${cached.rankedSummary.tier}, RP=${cached.rankedSummary.rp}`);
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('[DB캐시] PUBG API 보완 실패:', e.message);
+          }
+        }
+
         setPlayerDataCache(nickname, cached.profile?.shardId || server, cached);
         return { props: { playerData: cached, error: null, dataSource: 'database' } };
       }

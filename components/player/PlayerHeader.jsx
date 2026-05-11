@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Tooltip from '../ui/Tooltip';
-import { calculateMMR, getMMRTier, MMR_DISCLAIMER } from '../../utils/mmrCalculator';
+import { calculateMMR, getMMRTier, MMR_DISCLAIMER, calculateSeasonMMR } from '../../utils/mmrCalculator';
 import PlayerShareCard from './PlayerShareCard';
 import { classifyPlaystyle, MAJOR } from '../../utils/playstyleClassifier';
 
@@ -135,22 +135,9 @@ const PlayerHeader = ({
     score:       calculateMMR(summary),
   } : null);
 
-  // 경쟁전 기반 PKGG 점수 계산
-  const rankedMmr = (rankedSummary && rankedSummary.games > 0)
-    ? calculateMMR({
-        avgDamage:      rankedSummary.avgDamage || 0,
-        avgKills:       (rankedSummary.kills || 0) / rankedSummary.games,
-        avgAssists:     (rankedSummary.assists || 0) / rankedSummary.games,
-        winRate:        rankedSummary.winRate || 0,
-        top10Rate:      rankedSummary.top10Rate || 0,
-        avgSurviveTime: 0,
-      })
-    : null;
-
-  // 헤더에 표시할 최종 PKGG 점수: 일반 vs 경쟁전 중 높은 것
-  const normalMmr = mmr || 1000;
-  const displayMmr = rankedMmr ? Math.max(normalMmr, rankedMmr) : normalMmr;
-  const mmrSource = rankedMmr && rankedMmr > normalMmr ? '경쟁전 기준' : '일반게임 기준';
+  // 시즌 전체 기준 PKGG 점수 (일반전 + 경쟁전 합산, 이벤트 제외)
+  const displayMmr = calculateSeasonMMR(seasonData) || mmr || 1000;
+  const mmrSource = '시즌 전체 기준 (일반+경쟁전, 이벤트 제외)';
 
   // 이벤트 모드 필터 — matchType OR gameMode OR mapName 기반
   const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom', 'arcade'])
@@ -204,16 +191,6 @@ const PlayerHeader = ({
 
   const recent20Stats = calculate20MatchStats(filteredRecentMatches);
 
-  const recent20Score = recent20Stats.totalMatches === 0
-    ? 1000
-    : calculateMMR({
-        avgDamage:       recent20Stats.avgDamage,
-        avgKills:        recent20Stats.avgKills,
-        winRate:         recent20Stats.winRate,
-        top10Rate:       recent20Stats.top10Rate,
-        avgSurvivalTime: recent20Stats.avgSurvivalTime,
-        avgAssists:      recent20Stats.avgAssists,
-      });
 
   const calculateFormStatus = (matches) => {
     if (!matches || matches.length < 5)
@@ -393,9 +370,15 @@ const PlayerHeader = ({
                   >{saving ? '저장 중...' : <>📷<span className="hidden sm:inline"> 카드</span></>}</button>
                 </Tooltip>
               )}
+              <Tooltip content="해당 기능 업데이트 예정">
+                <button
+                  disabled
+                  className="px-2.5 py-1.5 rounded-xl border border-dashed border-white/20 bg-white/5 text-white/25 text-sm font-bold cursor-not-allowed select-none"
+                >🤖<span className="hidden sm:inline"> 봇킬 필터</span></button>
+              </Tooltip>
               {(() => {
                 const tier = getMMRTier(displayMmr);
-                const tooltipText = `PKGG 추정 점수 — 배그 공식 수치 아님\n\n계산 기준\n💥 평균 딜량   30%\n🎯 평균 킬수   25%\n🏆 승률        20%\n🛡️ Top10 진입  10%\n🤝 평균 어시   8%\n⏱️ 평균 생존   7%\n\n📌 ${mmrSource}\n일반게임: ${normalMmr.toLocaleString()}점${rankedMmr ? `\n경쟁전:   ${rankedMmr.toLocaleString()}점\n(두 값 중 높은 쪽 적용)` : ''}`;
+                const tooltipText = `PKGG 추정 점수 — 배그 공식 수치 아님\n\n계산 기준\n💥 평균 딜량   30%\n🎯 평균 킬수   25%\n🏆 승률        20%\n🛡️ Top10 진입  10%\n🤝 평균 어시   8%\n⏱️ 평균 생존   7%\n\n📌 ${mmrSource}`;
                 return (
                   <Tooltip content={tooltipText}>
                     <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
@@ -451,7 +434,7 @@ const PlayerHeader = ({
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">시즌 성과</h2>
+              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">일반게임</h2>
               {seasonStat && (
                 <span className="ml-auto text-xs bg-blue-50 text-blue-500 border border-blue-100 px-2 py-0.5 rounded-full font-semibold">
                   {seasonStat.rounds}경기
@@ -461,8 +444,8 @@ const PlayerHeader = ({
 
             {seasonStat ? (
               <>
-                {/* 핵심 스탯 3개 */}
-                <div className="grid grid-cols-3 gap-2 mb-2">
+                {/* 핵심 스탯 2개 */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
                     <div className="text-xs text-blue-400 mb-1 font-medium">평균 딜량</div>
                     <div className="text-lg font-black text-gray-900">{seasonStat.avgDamage}</div>
@@ -470,12 +453,6 @@ const PlayerHeader = ({
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
                     <div className="text-xs text-blue-400 mb-1 font-medium">평균 킬</div>
                     <div className="text-lg font-black text-gray-900">{seasonStat.avgKills}</div>
-                  </div>
-                  <div className="bg-blue-100 border border-blue-200 rounded-xl p-3 text-center">
-                    <div className="text-xs text-blue-500 mb-1 font-medium">
-                      PKGG점수
-                    </div>
-                    <div className="text-lg font-black text-blue-600">{seasonStat.score}</div>
                   </div>
                 </div>
 
@@ -585,8 +562,8 @@ const PlayerHeader = ({
 
             {recent20Stats.totalMatches > 0 ? (
               <>
-                {/* 핵심 스탯 3개 */}
-                <div className="grid grid-cols-3 gap-2 mb-2">
+                {/* 핵심 스탯 2개 */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-3 text-center">
                     <div className="text-xs text-cyan-500 mb-1 font-medium">평균 딜량</div>
                     <div className="text-lg font-black text-gray-900">{recent20Stats.avgDamage.toFixed(0)}</div>
@@ -594,12 +571,6 @@ const PlayerHeader = ({
                   <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-3 text-center">
                     <div className="text-xs text-cyan-500 mb-1 font-medium">평균 킬</div>
                     <div className="text-lg font-black text-gray-900">{recent20Stats.avgKills.toFixed(1)}</div>
-                  </div>
-                  <div className="bg-cyan-100 border border-cyan-200 rounded-xl p-3 text-center">
-                    <div className="text-xs text-cyan-600 mb-1 font-medium">
-                      PKGG점수
-                    </div>
-                    <div className="text-lg font-black text-cyan-700">{recent20Score}</div>
                   </div>
                 </div>
 
@@ -699,7 +670,7 @@ const PlayerHeader = ({
                 </div>
 
                 {/* 보조 스탯 */}
-                <div className="grid grid-cols-4 gap-2 mb-3">
+                <div className="grid grid-cols-3 gap-2 mb-3">
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">평균딜</div>
                     <div className="text-sm font-bold text-gray-700">{(rankedSummary.avgDamage || 0).toFixed(0)}</div>
@@ -714,14 +685,6 @@ const PlayerHeader = ({
                       {typeof rankedSummary.top10Ratio === 'number'
                         ? (rankedSummary.top10Ratio * 100).toFixed(1)
                         : (rankedSummary.top10Rate || 0).toFixed(1)}%
-                    </div>
-                  </div>
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-center">
-                    <div className="text-xs text-amber-500 mb-0.5">
-                      PKGG
-                    </div>
-                    <div className={`text-sm font-black ${rankedMmr && rankedMmr > normalMmr ? 'text-amber-600' : 'text-gray-700'}`}>
-                      {rankedMmr ? rankedMmr.toLocaleString() : '-'}
                     </div>
                   </div>
                 </div>

@@ -93,14 +93,22 @@ async function getPubgStats(nickname, shard = 'steam') {
           totalDamage: 0,
           totalKills: 0,
           totalAssists: 0,
+          totalSurvivalTime: 0,
+          totalHeadshotKills: 0,
+          maxLongestKill: 0,
         };
       }
       modeStatsMap[mode].matches++;
       if (stats.winPlace === 1) modeStatsMap[mode].wins++;
       if (stats.winPlace <= 10) modeStatsMap[mode].top10s++;
-      modeStatsMap[mode].totalDamage += stats.damageDealt || 0;
-      modeStatsMap[mode].totalKills += stats.kills || 0;
-      modeStatsMap[mode].totalAssists += stats.assists || 0;
+      modeStatsMap[mode].totalDamage       += stats.damageDealt   || 0;
+      modeStatsMap[mode].totalKills        += stats.kills         || 0;
+      modeStatsMap[mode].totalAssists      += stats.assists       || 0;
+      modeStatsMap[mode].totalSurvivalTime += stats.timeSurvived  || 0;
+      modeStatsMap[mode].totalHeadshotKills += stats.headshotKills || 0;
+      if ((stats.longestKill || 0) > modeStatsMap[mode].maxLongestKill) {
+        modeStatsMap[mode].maxLongestKill = stats.longestKill || 0;
+      }
 
       totalDamage += stats.damageDealt || 0;
       totalKills += stats.kills || 0;
@@ -132,16 +140,23 @@ async function getPubgStats(nickname, shard = 'steam') {
 
     // 모드별 통계 가공
     const modeStats = Object.entries(modeStatsMap).map(([mode, s]) => {
+      const avgSurvivalTime = +(s.totalSurvivalTime / s.matches).toFixed(1);
+      const headshotRate = s.totalKills > 0
+        ? +((s.totalHeadshotKills / s.totalKills) * 100).toFixed(1)
+        : 0;
       return {
         mode,
         matches: s.matches,
         wins: s.wins,
         top10s: s.top10s,
-        avgDamage: +(s.totalDamage / s.matches).toFixed(1),
-        avgKills: +(s.totalKills / s.matches).toFixed(1),
-        avgAssists: +(s.totalAssists / s.matches).toFixed(1),
-        winRate: +((s.wins / s.matches) * 100).toFixed(1),
-        top10Rate: +((s.top10s / s.matches) * 100).toFixed(1),
+        avgDamage:      +(s.totalDamage  / s.matches).toFixed(1),
+        avgKills:       +(s.totalKills   / s.matches).toFixed(1),
+        avgAssists:     +(s.totalAssists / s.matches).toFixed(1),
+        winRate:        +((s.wins   / s.matches) * 100).toFixed(1),
+        top10Rate:      +((s.top10s / s.matches) * 100).toFixed(1),
+        avgSurvivalTime,
+        headshotRate,
+        longestKill: +s.maxLongestKill.toFixed(1),
       };
     });
 
@@ -237,16 +252,19 @@ export default async function handler(req, res) {
         if (Array.isArray(stats.modeStats) && stats.modeStats.length > 0) {
           await prisma.playerModeStats.createMany({
             data: stats.modeStats.map((s) => ({
-              clanMemberId: member.id,
-              mode: s.mode,
-              matches: s.matches,
-              wins: s.wins,
-              top10s: s.top10s,
-              avgDamage: s.avgDamage,
-              avgKills: s.avgKills,
-              avgAssists: s.avgAssists,
-              winRate: s.winRate,
-              top10Rate: s.top10Rate,
+              clanMemberId:    member.id,
+              mode:            s.mode,
+              matches:         s.matches,
+              wins:            s.wins,
+              top10s:          s.top10s,
+              avgDamage:       s.avgDamage,
+              avgKills:        s.avgKills,
+              avgAssists:      s.avgAssists,
+              winRate:         s.winRate,
+              top10Rate:       s.top10Rate,
+              avgSurvivalTime: s.avgSurvivalTime ?? 0,
+              headshotRate:    s.headshotRate    ?? 0,
+              longestKill:     s.longestKill     ?? 0,
             })),
           });
         }

@@ -94,3 +94,41 @@ export function getMMRTier(mmr) {
  */
 export const MMR_DISCLAIMER =
   'PKGG에서 자체 산출한 추정 MMR입니다.\n배그 공식 MMR과는 무관합니다.';
+
+// 시즌 MMR 계산에 포함할 모드 (일반전 + 경쟁전, 이벤트/캐주얼 제외)
+const SEASON_INCLUDE_MODES = new Set([
+  'squad', 'squad-fpp', 'duo', 'duo-fpp', 'solo', 'solo-fpp',
+  'ranked-squad', 'ranked-squad-fpp', 'ranked-duo', 'ranked-duo-fpp', 'ranked-solo', 'ranked-solo-fpp',
+])
+
+/**
+ * 시즌 전체 데이터 기준 MMR 계산 (일반전 + 경쟁전 합산, 이벤트 제외)
+ *
+ * @param {Object} seasonModeData  seasonStats의 첫 번째 시즌 값 ({ [mode]: { rounds, wins, ... } })
+ * @returns {number|null} MMR 값 (데이터 없으면 null)
+ */
+export function calculateSeasonMMR(seasonModeData) {
+  if (!seasonModeData) return null
+  let rounds = 0, wins = 0, top10s = 0, dmg = 0, kills = 0, assists = 0, survival = 0
+  for (const [mode, ms] of Object.entries(seasonModeData)) {
+    if (!SEASON_INCLUDE_MODES.has(mode)) continue
+    const r = ms?.rounds || 0
+    if (r === 0) continue
+    rounds += r
+    wins    += ms.wins || 0
+    top10s  += ms.top10s || 0
+    dmg     += (ms.avgDamage || 0) * r
+    kills   += ms.totalKills || 0
+    assists += ms.assists || 0
+    survival += (ms.avgSurvivalTime || 0) * r
+  }
+  if (rounds === 0) return null
+  return calculateMMR({
+    avgDamage:      dmg / rounds,
+    avgKills:       kills / rounds,
+    avgAssists:     assists / rounds,
+    winRate:        (wins / rounds) * 100,
+    top10Rate:      (top10s / rounds) * 100,
+    avgSurviveTime: survival / rounds,
+  })
+}

@@ -8,6 +8,7 @@ import { useT } from '../../utils/i18n';
 import { useAuth } from '../../utils/useAuth';
 import { signIn } from 'next-auth/react';
 
+
 const LANG_OPTIONS = [
   { code: 'ko', label: '한국어', flag: '🇰🇷' },
   { code: 'en', label: 'EN', flag: '🇺🇸' },
@@ -78,6 +79,11 @@ export default function Header() {
   const [myDonations,   setMyDonations]     = useState(0);    // 이 기기 후원 횟수
   const [donating,      setDonating]        = useState(false);
   const [thankMsg,      setThankMsg]        = useState('');
+
+  const [searchNick,    setSearchNick]    = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchRef = useRef(null);
+
   const router = useRouter();
   const { lang, t, switchLang } = useT();
   const { user, logout } = useAuth() || {};
@@ -150,6 +156,27 @@ export default function Header() {
     localStorage.setItem('pkgg_theme', next ? 'dark' : 'light');
   };
 
+const handleSearchSubmit = async (e) => {
+    e?.preventDefault();
+    const trimmed = searchNick.trim();
+    if (!trimmed) return;
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`/api/pubg/search?nickname=${encodeURIComponent(trimmed)}`);
+      const data = await res.json();
+      const results = data?.results || [];
+      if (results.length > 0) {
+        const target = results.find((r) => r.shard === 'steam') || results[0];
+        router.push(`/player/${target.shard}/${encodeURIComponent(target.nickname)}`);
+        setSearchNick('');
+        setMobileMenuOpen(false);
+      }
+    } catch {
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const isActive = (path) => router.pathname === path || router.pathname.startsWith(path + '/');
 
   const analysisLinks = [
@@ -208,12 +235,44 @@ export default function Header() {
                 </span>
               </Link>
 
-              {/* 데스크탑 네비게이션 — 4개 드롭다운 */}
+              {/* 데스크탑 네비게이션 — 4개 드롭다운 + 검색 */}
               <nav className="hidden md:flex items-center gap-1">
                 <NavDropdown label={t('nav.group_analysis')}   links={analysisLinks}  isActive={isActive} t={t} openKey="analysis"  openMenu={openMenu} setOpenMenu={setOpenMenu} />
                 <NavDropdown label={t('nav.group_weapon')}     links={weaponLinks}    isActive={isActive} t={t} openKey="weapon"    openMenu={openMenu} setOpenMenu={setOpenMenu} />
                 <NavDropdown label={t('nav.group_community')}  links={communityLinks} isActive={isActive} t={t} openKey="community" openMenu={openMenu} setOpenMenu={setOpenMenu} />
                 <NavDropdown label={t('nav.training')}         links={trainingLinks}  isActive={isActive} t={t} openKey="training"  openMenu={openMenu} setOpenMenu={setOpenMenu} />
+
+                {/* 플레이어 검색 — 홈 제외 */}
+                {router.pathname !== '/' && (
+                  <div className="relative ml-1" ref={searchRef}>
+                    <form onSubmit={handleSearchSubmit}>
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={searchNick}
+                          onChange={(e) => setSearchNick(e.target.value)}
+                          placeholder="닉네임 검색..."
+                          autoComplete="off"
+                          className="w-36 pl-3 pr-8 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-400 focus:w-48 transition-all duration-200"
+                        />
+                        <button
+                          type="submit"
+                          disabled={searchLoading}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors"
+                        >
+                          {searchLoading ? (
+                            <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                          ) : (
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+
+                  </div>
+                )}
               </nav>
             </div>
 
@@ -328,23 +387,24 @@ export default function Header() {
           <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
             {/* 빠른 닉네임 검색 (훈련 도구 페이지에서는 숨김) */}
             {!['/sensitivity-analyzer', '/sensitivity', '/aim-trainer', '/recoil-pattern', '/peek-trainer', '/pubg-survivors'].includes(router.pathname) && (
-            <form
-              className="px-4 pt-3 pb-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const q = e.target.q.value.trim();
-                if (q) { router.push(`/?search=${encodeURIComponent(q)}`); setMobileMenuOpen(false); }
-              }}
-            >
-              <div className="flex gap-2">
+            <div className="px-4 pt-3 pb-2">
+              <form onSubmit={handleSearchSubmit} className="flex gap-2">
                 <input
-                  name="q"
+                  value={searchNick}
+                  onChange={(e) => setSearchNick(e.target.value)}
                   placeholder="닉네임 검색..."
+                  autoComplete="off"
                   className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <button type="submit" className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition-colors">검색</button>
-              </div>
-            </form>
+                <button
+                  type="submit"
+                  disabled={searchLoading}
+                  className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+                >
+                  {searchLoading ? '...' : '검색'}
+                </button>
+              </form>
+            </div>
             )}
 
             <div className="px-4 pb-3 space-y-4">

@@ -1,195 +1,205 @@
-import { useState } from 'react';
+function StatCell({ label, value, pct, barColor, noBar }) {
+  return (
+    <div className="flex flex-col items-center justify-center bg-gray-50 rounded-xl py-2.5 px-1 gap-1">
+      <span className={`text-sm font-black leading-none ${barColor ? barColor.text : 'text-gray-700'}`}>
+        {value}
+      </span>
+      {!noBar && (
+        <div className="w-full px-1.5">
+          <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${barColor ? barColor.bar : 'bg-gray-300'}`}
+              style={{ width: `${Math.min(Math.max(pct ?? 0, 0), 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+      <span className="text-[10px] text-gray-400 font-medium leading-none">{label}</span>
+    </div>
+  )
+}
 
-/**
- * 게임 모드별 통계 카드 컴포넌트
- */
+const C = {
+  yellow: { bar: 'bg-yellow-400', text: 'text-yellow-500' },
+  green:  { bar: 'bg-green-400',  text: 'text-green-600'  },
+  blue:   { bar: 'bg-blue-400',   text: 'text-blue-500'   },
+  cyan:   { bar: 'bg-cyan-400',   text: 'text-cyan-600'   },
+  purple: { bar: 'bg-purple-400', text: 'text-purple-500' },
+  orange: { bar: 'bg-orange-400', text: 'text-orange-500' },
+  gray:   { bar: 'bg-gray-300',   text: 'text-gray-700'   },
+}
+
 export default function SeasonStatsTabs({ seasonStatsBySeason }) {
   const modeGroups = [
     {
       key: 'solo',
       title: '솔로',
-      accent: 'orange',
+      icon: '👤',
+      accentBar: 'bg-orange-400',
+      accentText: 'text-orange-700',
+      accentHeader: 'bg-orange-50 border-orange-200',
+      accentBorder: 'border-orange-200',
       modes: ['solo-fpp', 'solo', 'ranked-solo-fpp', 'ranked-solo'],
     },
     {
       key: 'duo',
       title: '듀오',
-      accent: 'teal',
+      icon: '👥',
+      accentBar: 'bg-teal-400',
+      accentText: 'text-teal-700',
+      accentHeader: 'bg-teal-50 border-teal-200',
+      accentBorder: 'border-teal-200',
       modes: ['duo-fpp', 'duo', 'ranked-duo-fpp', 'ranked-duo'],
     },
     {
       key: 'squad',
       title: '스쿼드',
-      accent: 'purple',
-      modes: [
-        'squad-fpp',
-        'squad',
-        'ranked-squad-fpp',
-        'ranked-squad',
-        'normal-squad-fpp',
-        'normal-squad',
-      ],
+      icon: '🎯',
+      accentBar: 'bg-purple-400',
+      accentText: 'text-purple-700',
+      accentHeader: 'bg-purple-50 border-purple-200',
+      accentBorder: 'border-purple-200',
+      modes: ['squad-fpp', 'squad', 'ranked-squad-fpp', 'ranked-squad', 'normal-squad-fpp', 'normal-squad'],
     },
-  ];
-
-  const accentColors = {
-    orange: { bar: 'bg-orange-400', bg: 'bg-orange-50', text: 'text-orange-700', badge: 'bg-orange-100 text-orange-600 border-orange-200', dot: 'bg-orange-400' },
-    teal:   { bar: 'bg-teal-400',   bg: 'bg-teal-50',   text: 'text-teal-700',   badge: 'bg-teal-100 text-teal-600 border-teal-200',   dot: 'bg-teal-400'   },
-    purple: { bar: 'bg-purple-400', bg: 'bg-purple-50', text: 'text-purple-700', badge: 'bg-purple-100 text-purple-600 border-purple-200', dot: 'bg-purple-400' },
-  };
-
-  const modeDisplayNames = {
-    'solo-fpp': 'FPP', solo: 'TPP',
-    'duo-fpp': 'FPP', duo: 'TPP',
-    'squad-fpp': 'FPP', squad: 'TPP',
-    'ranked-solo-fpp': 'RANKED FPP', 'ranked-solo': 'RANKED TPP',
-    'ranked-duo-fpp': 'RANKED FPP', 'ranked-duo': 'RANKED TPP',
-    'ranked-squad-fpp': 'RANKED FPP', 'ranked-squad': 'RANKED TPP',
-    'normal-squad-fpp': 'NORMAL FPP', 'normal-squad': 'NORMAL TPP',
-  };
+  ]
 
   if (!seasonStatsBySeason || Object.keys(seasonStatsBySeason).length === 0) {
     return (
       <div className="flex items-center justify-center py-10 text-gray-400 text-sm">
         통계 데이터가 없습니다.
       </div>
-    );
+    )
   }
 
-  const seasonList = Object.keys(seasonStatsBySeason).sort().reverse();
-  const availableModesInData = new Set();
+  const seasonList = Object.keys(seasonStatsBySeason).sort().reverse()
+
   seasonList.forEach((season) => {
-    if (seasonStatsBySeason[season]) {
-      Object.keys(seasonStatsBySeason[season]).forEach((mode) => availableModesInData.add(mode));
-    }
-  });
+    if (!seasonStatsBySeason[season]) return
+    Object.keys(seasonStatsBySeason[season]).forEach((mode) => {
+      const target = mode.includes('solo') ? 'solo' : mode.includes('duo') ? 'duo' : mode.includes('squad') ? 'squad' : null
+      if (!target) return
+      const g = modeGroups.find((g) => g.key === target)
+      if (g && !g.modes.includes(mode)) g.modes.push(mode)
+    })
+  })
 
-  // 동적 모드 추가
-  availableModesInData.forEach((mode) => {
-    if (mode.includes('solo')) {
-      const g = modeGroups.find((g) => g.key === 'solo');
-      if (g && !g.modes.includes(mode)) g.modes.push(mode);
-    } else if (mode.includes('duo')) {
-      const g = modeGroups.find((g) => g.key === 'duo');
-      if (g && !g.modes.includes(mode)) g.modes.push(mode);
-    } else if (mode.includes('squad')) {
-      const g = modeGroups.find((g) => g.key === 'squad');
-      if (g && !g.modes.includes(mode)) g.modes.push(mode);
-    }
-  });
-
-  const allModeStats = {};
-  [...new Set([...modeGroups.flatMap((g) => g.modes), ...availableModesInData])].forEach((mode) => {
+  const allModeStats = {}
+  modeGroups.flatMap((g) => g.modes).forEach((mode) => {
     for (const season of seasonList) {
       if (seasonStatsBySeason[season]?.[mode]) {
-        allModeStats[mode] = seasonStatsBySeason[season][mode];
-        break;
+        allModeStats[mode] = seasonStatsBySeason[season][mode]
+        break
       }
     }
-  });
+  })
 
-  const renderStatRow = (label, value, highlight = false) => (
-    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className={`text-xs font-semibold ${highlight ? 'text-blue-600' : 'text-gray-800'}`}>{value}</span>
-    </div>
-  );
+  const renderCard = (group) => {
+    const availableModes = group.modes.filter((m) => allModeStats[m])
+    const hasData = availableModes.length > 0
 
-  const renderModeCard = (group) => {
-    const colors = accentColors[group.accent];
-    const availableModes = group.modes.filter((mode) => allModeStats[mode]);
+    let totalRounds = 0, totalWins = 0, totalTop10 = 0, totalDmg = 0
+    let totalKills = 0, totalDeaths = 0
+    let totalAssists = 0
+    let totalSurvivalSum = 0, survRounds = 0
+    let totalHSRateSum = 0, hsRounds = 0
+    let maxLongestKill = 0
 
-    if (availableModes.length === 0) {
-      return (
-        <div key={group.key} className="rounded-xl border border-gray-200 overflow-hidden">
-          <div className={`px-5 py-4 ${colors.bg} border-b border-gray-200 flex items-center gap-3`}>
-            <div className={`w-1 h-5 ${colors.bar} rounded-full flex-shrink-0`}></div>
-            <span className={`text-sm font-black ${colors.text}`}>{group.title}</span>
-            <span className="ml-auto text-xs text-gray-400">0 게임</span>
-          </div>
-          <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-            <div className="text-3xl mb-2">🎮</div>
-            <div className="text-sm font-medium text-gray-500 mb-1">플레이 기록 없음</div>
-            <div className="text-xs text-gray-400">{group.title} 모드를 플레이해보세요!</div>
-          </div>
-        </div>
-      );
-    }
+    availableModes.forEach((mode) => {
+      const s = allModeStats[mode]
+      if (!s) return
+      const r = s.rounds ?? s.roundsPlayed ?? 0
+      if (r === 0) return
 
-    const primaryMode = availableModes.find((mode) => mode.includes('fpp')) || availableModes[0];
-    const stats = allModeStats[primaryMode];
-    const totalGames = availableModes.reduce((sum, m) => sum + (allModeStats[m]?.rounds ?? allModeStats[m]?.roundsPlayed ?? 0), 0);
+      totalRounds += r
+      totalWins   += s.wins ?? 0
+      totalTop10  += s.top10s ?? 0
+      totalDmg    += (s.avgDamage ?? 0) * r
 
-    const kd = stats?.kd ?? stats?.kda ?? '0.00';
-    const avgDmg = (stats?.avgDamage ?? stats?.damageDealt ?? 0);
-    const winRate = stats?.winRate ? `${stats.winRate}%` : stats?.winRatio ? `${(stats.winRatio * 100).toFixed(1)}%` : '0.0%';
-    const top10Rate = stats?.top10Rate ? `${stats.top10Rate}%` : stats?.top10Ratio ? `${(stats.top10Ratio * 100).toFixed(1)}%` : '0.0%';
-    const headshotRate = stats?.headshotRate
-      ? `${stats.headshotRate}%`
-      : stats?.headshotKillRatio
-        ? `${(parseFloat(stats.headshotKillRatio) > 1 ? parseFloat(stats.headshotKillRatio) : parseFloat(stats.headshotKillRatio) * 100).toFixed(1)}%`
-        : stats?.headshotKills && stats?.kills
-          ? `${((stats.headshotKills / stats.kills) * 100).toFixed(1)}%`
-          : '0.0%';
-    const longestKill = stats?.longestKill ? `${stats.longestKill}m` : stats?.maxDistanceKill ? `${stats.maxDistanceKill}m` : '0m';
-    const totalKills = stats?.kills ?? stats?.totalKills ?? 0;
-    const maxKills = stats?.maxKills ?? stats?.mostKills ?? 0;
-    const avgRank = stats?.avgRank ?? stats?.averageRank ?? '-';
-    const avgSurvival = stats?.avgSurvivalTime
-      ? `${Math.floor(stats.avgSurvivalTime / 60)}분`
-      : stats?.timeSurvived
-        ? `${Math.floor(stats.timeSurvived / 60000)}분`
-        : '0분';
+      // 킬: totalKills 우선, 없으면 kd 역산, 없으면 avgKills
+      const kills = s.totalKills ?? (s.kd != null ? s.kd * (r - (s.wins ?? 0)) : (s.avgKills ?? 0) * r)
+      totalKills  += kills
+      totalDeaths += r - (s.wins ?? 0)
+
+      // 어시스트: 총합 (assists 우선, 없으면 avgAssists * rounds)
+      totalAssists += s.assists ?? Math.round((s.avgAssists ?? 0) * r)
+
+      // 생존시간: avgSurvivalTime > 0 인 모드만 합산
+      if ((s.avgSurvivalTime ?? 0) > 0) {
+        totalSurvivalSum += s.avgSurvivalTime * r
+        survRounds       += r
+      }
+
+      // 헤드샷 비율: headshotRate (0~100) 사전계산값 우선
+      if ((s.headshotRate ?? 0) > 0) {
+        totalHSRateSum += s.headshotRate * r
+        hsRounds       += r
+      }
+
+      const lk = s.longestKill ?? s.maxDistanceKill ?? 0
+      if (lk > maxLongestKill) maxLongestKill = lk
+    })
+
+    const kdVal    = totalDeaths > 0 ? totalKills / totalDeaths : 0
+    const avgDmg   = totalRounds > 0 ? totalDmg / totalRounds : 0
+    const winPct   = totalRounds > 0 ? (totalWins  / totalRounds) * 100 : 0
+    const top10Pct = totalRounds > 0 ? (totalTop10 / totalRounds) * 100 : 0
+    const hsPct    = hsRounds > 0 ? totalHSRateSum / hsRounds : 0
+    const survSec  = survRounds > 0 ? totalSurvivalSum / survRounds : 0
+    const survText = survSec > 0 ? `${Math.floor(survSec / 60)}분 ${Math.floor(survSec % 60)}초` : '—'
+    const lkText   = maxLongestKill > 0 ? `${Math.round(maxLongestKill)}m` : '—'
+
+    const cells = [
+      { label: 'K/D',      value: kdVal.toFixed(2),                    pct: (kdVal / 5.0) * 100,   barColor: C.yellow },
+      { label: '승률',     value: `${winPct.toFixed(1)}%`,             pct: winPct,                barColor: C.green  },
+      { label: 'TOP10',    value: `${top10Pct.toFixed(1)}%`,           pct: top10Pct,              barColor: C.blue   },
+      { label: '평균 딜량', value: avgDmg > 0 ? avgDmg.toFixed(0) : '—', pct: (avgDmg / 500) * 100, barColor: C.cyan  },
+      { label: '게임 수',  value: totalRounds > 0 ? String(totalRounds) : '—', noBar: true, barColor: C.gray },
+      { label: '어시스트', value: totalAssists > 0 ? String(totalAssists) : '—', pct: (totalAssists / Math.max(totalRounds * 3, 1)) * 100, barColor: C.purple },
+      { label: '헤드샷',   value: hsPct > 0 ? `${hsPct.toFixed(1)}%` : '—', pct: hsPct, barColor: C.orange },
+      { label: '최장 킬',  value: lkText, noBar: true, barColor: C.gray },
+      { label: '생존시간', value: survText, noBar: true, barColor: C.gray },
+    ]
 
     return (
-      <div key={group.key} className="rounded-xl border border-gray-200 overflow-hidden">
-        {/* 헤더 */}
-        <div className={`px-5 py-4 ${colors.bg} border-b border-gray-200`}>
-          <div className="flex items-center gap-3 mb-2">
-            <div className={`w-1 h-5 ${colors.bar} rounded-full flex-shrink-0`}></div>
-            <span className={`text-sm font-black ${colors.text}`}>{group.title}</span>
-            <span className="ml-auto text-xs text-gray-500 font-medium">{totalGames} 게임</span>
+      <div
+        key={group.key}
+        className={`rounded-2xl border bg-white overflow-hidden shadow-sm ${hasData ? '' : 'opacity-40'} ${group.accentBorder}`}
+      >
+        <div className={`px-4 py-3 border-b flex items-center justify-between ${group.accentHeader}`}>
+          <div className="flex items-center gap-2">
+            <div className={`w-1 h-5 ${group.accentBar} rounded-full flex-shrink-0`} />
+            <span className={`text-base font-black ${group.accentText}`}>{group.title}</span>
           </div>
-          {/* 서브 모드 뱃지 */}
-          <div className="flex flex-wrap gap-1.5 pl-4">
-            {availableModes.map((mode) => (
-              <span key={mode} className={`px-2 py-0.5 rounded-full text-xs font-medium border ${colors.badge}`}>
-                {modeDisplayNames[mode]} {allModeStats[mode]?.rounds ?? allModeStats[mode]?.roundsPlayed ?? 0}
-              </span>
-            ))}
-          </div>
+          {hasData ? (
+            <div className="flex items-center gap-1.5 text-[11px] font-bold">
+              <span className="text-green-600">{totalWins}W</span>
+              <span className="text-gray-300">·</span>
+              <span className="text-blue-500">{totalTop10}T</span>
+              <span className="text-gray-300">·</span>
+              <span className="text-gray-400">{totalRounds}G</span>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400">기록 없음</span>
+          )}
         </div>
 
-        {/* 핵심 지표 */}
-        <div className="grid grid-cols-2 divide-x divide-gray-100 border-b border-gray-100">
-          <div className="flex flex-col items-center py-4">
-            <div className="text-2xl font-black text-gray-900">{typeof avgDmg === 'number' ? avgDmg.toFixed(1) : avgDmg}</div>
-            <div className="text-xs text-gray-400 mt-0.5">평균 딜량</div>
+        {hasData ? (
+          <div className="p-3 grid grid-cols-3 gap-2">
+            {cells.map((cell) => <StatCell key={cell.label} {...cell} />)}
           </div>
-          <div className="flex flex-col items-center py-4">
-            <div className="text-2xl font-black text-gray-900">{kd}</div>
-            <div className="text-xs text-gray-400 mt-0.5">K/D</div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center px-4">
+            <div className="text-3xl mb-2">🎮</div>
+            <div className="text-sm font-medium text-gray-500">{group.title} 모드 기록 없음</div>
           </div>
-        </div>
-
-        {/* 상세 스탯 목록 */}
-        <div className="px-5 py-3">
-          {renderStatRow('승 %', winRate, true)}
-          {renderStatRow('Top 10 %', top10Rate)}
-          {headshotRate !== '0.0%' && renderStatRow('헤드샷 비율', headshotRate)}
-          {totalKills > 0 && renderStatRow('킬', `${totalKills}킬`)}
-          {maxKills > 0 && renderStatRow('최대 킬', `${maxKills}킬`)}
-          {avgRank !== '-' && renderStatRow('평균 등수', `#${avgRank}`)}
-          {avgSurvival !== '0분' && renderStatRow('평균 생존시간', avgSurvival)}
-          {longestKill !== '0m' && renderStatRow('최장 킬 거리', longestKill)}
-        </div>
+        )}
       </div>
-    );
-  };
+    )
+  }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      {modeGroups.map((group) => renderModeCard(group))}
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {modeGroups.map((group) => renderCard(group))}
     </div>
-  );
+  )
 }
