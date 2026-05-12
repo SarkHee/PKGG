@@ -6,7 +6,9 @@ export default function MatchMapView({
   movePathCoords,
   combatCoords,
 }) {
-  const { name: displayName, img: mapImg } = getMapInfo(mapName);
+  const { name: displayName, img: mapImgSrc } = getMapInfo(mapName);
+  // 이미지 없는 맵(사녹·헤이븐 등)은 에란겔 이미지로 대체 표시
+  const mapImg = mapImgSrc ?? '/maps/erangel.jpg';
 
   // 맵 크기 (예시)
   const mapSize = 400;

@@ -153,26 +153,6 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
       console.log(`✅ DB 신규 저장: ${nickname}`);
     }
 
-    // 최근 매치 저장 (기존 삭제 후 재저장)
-    if (matches.length > 0 && memberId) {
-      await prisma.playerMatch.deleteMany({ where: { clanMemberId: memberId } });
-      await prisma.playerMatch.createMany({
-        data: matches.slice(0, 20).map(m => ({
-          clanMemberId: memberId,
-          matchId: m.matchId || `${Date.now()}-${Math.random()}`,
-          mode: m.mode || 'unknown',
-          mapName: m.mapName || '알 수 없음',
-          placement: m.placement || 0,
-          kills: m.kills || 0,
-          assists: m.assists || 0,
-          damage: m.damage || 0,
-          surviveTime: m.surviveTime || 0,
-          createdAt: m.matchTimestamp ? new Date(m.matchTimestamp) : new Date(),
-        })),
-      });
-      console.log(`✅ 매치 ${matches.length}개 DB 저장 완료`);
-    }
-
     // PlayerModeStats 저장 (시즌 성과 경기수 DB 캐시 복원용)
     if (Object.keys(modeStats).length > 0 && memberId) {
       try {
@@ -251,6 +231,76 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
     }
   } catch (e) {
     console.error('savePlayerToDatabase 오류:', e.message);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// 매치 데이터 백그라운드 저장 (fire-and-forget, 응답 속도 영향 없음)
+async function saveMatchesBackground(pubgPlayer, shard) {
+  const { cachedPubgFetch, TTL } = require('../../../utils/pubgApiCache');
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+  const PUBG_BASE = 'https://api.pubg.com/shards';
+
+  try {
+    const pubgAccountId = pubgPlayer.id;
+    const nickname = pubgPlayer.attributes.name;
+    const matchIds = (pubgPlayer.relationships?.matches?.data || [])
+      .slice(0, 10)
+      .map((m) => m.id);
+
+    if (matchIds.length === 0) return;
+
+    const matchResults = await Promise.allSettled(
+      matchIds.map((matchId) =>
+        cachedPubgFetch(`${PUBG_BASE}/${shard}/matches/${matchId}`, {
+          ttl: TTL.MATCH,
+          force: false,
+        })
+      )
+    );
+
+    const matchData = [];
+    for (const result of matchResults) {
+      if (result.status !== 'fulfilled') continue;
+      const data = result.value;
+      const attrs = data.data?.attributes;
+      if (!attrs) continue;
+
+      const included = data.included || [];
+      const participants = included.filter((i) => i.type === 'participant');
+      const me = participants.find(
+        (p) => p.attributes?.stats?.playerId === pubgAccountId
+      );
+      if (!me) continue;
+
+      const s = me.attributes.stats;
+      matchData.push({
+        pubgAccountId,
+        nickname,
+        shard,
+        matchId: data.data.id,
+        mode: attrs.gameMode || 'unknown',
+        mapName: attrs.mapName || null,
+        placement: s.winPlace || 0,
+        kills: s.kills || 0,
+        assists: s.assists || 0,
+        damage: Math.round(s.damageDealt || 0),
+        surviveTime: Math.round(s.timeSurvived || 0),
+        createdAt: new Date(attrs.createdAt || Date.now()),
+      });
+    }
+
+    if (matchData.length > 0) {
+      await prisma.playerMatch.createMany({
+        data: matchData,
+        skipDuplicates: true,
+      });
+      console.log(`✅ 매치 ${matchData.length}개 백그라운드 저장: ${nickname}`);
+    }
+  } catch (e) {
+    console.error('saveMatchesBackground 오류:', e.message);
   } finally {
     await prisma.$disconnect();
   }
@@ -2487,9 +2537,13 @@ export async function getServerSideProps({ params, query }) {
       mmr: calcMMR(pubgSummaryFromStats),
     };
 
-    // Step 6: 백그라운드 DB 저장 (upsert + 매치 저장) + 클랜 멤버 조회
+    // Step 6: 백그라운드 DB 저장 (upsert) + 매치 저장
     savePlayerToDatabase(pubgPlayer, pubgShard, pubgClan, pubgSummaryFromStats, recentMatches, currentSeasonModes)
       .catch(e => console.error('DB 저장 실패:', e.message));
+
+    // 최근 매치 10개 백그라운드 저장 (PlayerMatch 테이블 — skipDuplicates)
+    saveMatchesBackground(pubgPlayer, pubgShard)
+      .catch(e => console.error('매치 백그라운드 저장 실패:', e.message));
 
     // 클랜 멤버 DB에서 조회 (클랜 소속인 경우)
     if (pubgClan) {

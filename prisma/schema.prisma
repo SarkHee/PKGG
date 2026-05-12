@@ -46,23 +46,26 @@ model ClanMember {
   lastUpdated    DateTime          @default(now())
   roundsPlayed   Int               @default(0)
   clan           Clan?             @relation(fields: [clanId], references: [id])
-  matches        PlayerMatch[]
   modeStats      PlayerModeStats[]
 }
 
 model PlayerMatch {
-  id           Int        @id @default(autoincrement())
-  clanMemberId Int
-  matchId      String
-  mode         String
-  mapName      String?
-  placement    Int
-  kills        Int
-  assists      Int
-  damage       Float
-  surviveTime  Float
-  createdAt    DateTime   @default(now())
-  clanMember   ClanMember @relation(fields: [clanMemberId], references: [id])
+  id            Int      @id @default(autoincrement())
+  pubgAccountId String
+  nickname      String
+  shard         String   @default("steam")
+  clanMemberId  Int?
+  matchId       String
+  mode          String
+  mapName       String?
+  placement     Int
+  kills         Int
+  assists       Int      @default(0)
+  damage        Float
+  surviveTime   Float    @default(0)
+  createdAt     DateTime
+
+  @@unique([pubgAccountId, matchId])
 }
 
 model PlayerModeStats {

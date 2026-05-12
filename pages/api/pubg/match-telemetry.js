@@ -2,10 +2,39 @@
 // 단일 경기 텔레메트리 지연 로드 엔드포인트
 
 const MAP_MAX = {
+  // 8km 맵
   Baltic_Main: 820000, Desert_Main: 820000, Tiger_Main: 820000,
   Kiki_Main: 820000,   Neon_Main: 820000,
+  // 4km 맵
   Savage_Main: 408000,
+  // 6km 맵
   DihorOtok_Main: 612000,
+  // 소형 맵
+  Heaven_Main: 204800,     // 헤이븐 ~2km
+  Summerland_Main: 102400, // 카라킨 ~1km
+  Chimera_Main: 307200,    // 파라모 ~3km
+}
+
+// mapName 형식 불일치 대비 별칭 테이블 (PUBG API 간혹 영문명만 전달)
+const MAP_MAX_ALIAS = {
+  Baltic: 820000, Erangel: 820000,
+  Desert: 820000, Miramar: 820000,
+  Tiger: 820000,  Taego: 820000,
+  Kiki: 820000,   Deston: 820000,
+  Neon: 820000,   Rondo: 820000,
+  Savage: 408000, Sanhok: 408000,
+  DihorOtok: 612000, Vikendi: 612000,
+  Heaven: 204800,
+  Summerland: 102400, Karakin: 102400,
+  Chimera: 307200,    Paramo: 307200,
+}
+
+function getMaxCoord(mapName) {
+  if (!mapName) return 820000
+  if (MAP_MAX[mapName]) return MAP_MAX[mapName]
+  // _Main 제거 후 별칭 조회
+  const base = mapName.replace(/_Main$/i, '')
+  return MAP_MAX_ALIAS[base] || 820000
 }
 
 const MAP_ZONES = {
@@ -59,7 +88,7 @@ function getLocationName(x, y, mapName) {
     const found = zones.find((z) => x >= z.x1 && x <= z.x2 && y >= z.y1 && y <= z.y2)
     if (found) return found.name
   }
-  const half = mapName === 'Savage_Main' ? 204000 : 410000
+  const half = Math.floor(getMaxCoord(mapName) / 2)
   if (x > half && y < half) return '북동쪽'
   if (x > half && y > half) return '남동쪽'
   if (x < half && y < half) return '북서쪽'
@@ -111,7 +140,7 @@ function analyzeTelemetry(telemetryData, playerName, mapName) {
     } catch (_) {}
   })
 
-  const maxCoord = MAP_MAX[mapName] || 820000
+  const maxCoord = getMaxCoord(mapName)
   let movePath = ''
   let movePathCoords = []
 

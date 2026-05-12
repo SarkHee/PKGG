@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-05-12T04:40:38.437Z",
+  "lastUpdated": "2026-05-12T07:19:44.882Z",
   "activeFeatures": [
     "PKGG",
     "clan",
@@ -72,9 +72,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:49:35.047Z",
-        "lastUpdated": "2026-05-11T07:24:11.242Z"
+        "lastUpdated": "2026-05-12T07:19:07.055Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG-1/components/layout/Layout.js"
+      "lastFile": "/Users/mac/Desktop/PKGG-1/components/layout/Header.jsx"
     },
     "weapon-test": {
       "phase": "do",
@@ -215,9 +215,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-03T08:28:00.923Z",
-        "lastUpdated": "2026-05-11T08:51:28.758Z"
+        "lastUpdated": "2026-05-12T07:01:47.888Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG-1/pages/api/pubg/bot-kills.js"
+      "lastFile": "/Users/mac/Desktop/PKGG-1/pages/api/pubg/match-telemetry.js"
     },
     "matches": {
       "phase": "do",
@@ -241,7 +241,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-04T02:24:04.089Z",
-        "lastUpdated": "2026-05-12T01:11:18.316Z"
+        "lastUpdated": "2026-05-12T07:00:17.078Z"
       },
       "lastFile": "/Users/mac/Desktop/PKGG-1/pages/player/[server]/[nickname].js"
     },
@@ -371,9 +371,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-24T01:32:14.074Z",
-        "lastUpdated": "2026-05-12T01:21:24.610Z"
+        "lastUpdated": "2026-05-12T07:01:07.740Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG-1/components/match/MatchDetailLog.jsx"
+      "lastFile": "/Users/mac/Desktop/PKGG-1/components/match/MatchMapView.jsx"
     },
     "scripts": {
       "phase": "do",
@@ -410,9 +410,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-05-07T07:57:00.340Z",
-        "lastUpdated": "2026-05-12T04:40:38.437Z"
+        "lastUpdated": "2026-05-12T07:19:44.882Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG-1/pages/index.js"
+      "lastFile": "/Users/mac/Desktop/PKGG-1/utils/i18n.js"
     },
     "discord-bot": {
       "phase": "do",
@@ -462,7 +462,7 @@
   "session": {
     "startedAt": "2026-02-26T02:34:01.887Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-05-12T04:40:38.437Z"
+    "lastActivity": "2026-05-12T07:19:44.882Z"
   },
   "history": [
     {
@@ -10919,6 +10919,102 @@
     },
     {
       "timestamp": "2026-05-12T04:40:38.437Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T04:47:37.726Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T04:47:44.750Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T06:59:29.260Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T06:59:45.830Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:00:17.078Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:00:45.529Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:01:07.740Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:01:35.936Z",
+      "feature": "pubg",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:01:39.998Z",
+      "feature": "pubg",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:01:47.888Z",
+      "feature": "pubg",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:15:27.184Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:19:07.055Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:19:31.770Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:19:36.648Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:19:41.316Z",
+      "feature": "PKGG-1",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-12T07:19:44.882Z",
       "feature": "PKGG-1",
       "phase": "do",
       "action": "updated"
