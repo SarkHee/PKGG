@@ -61,22 +61,22 @@ export default function ContactPage() {
       </Head>
       <Header />
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="max-w-2xl mx-auto px-4 py-12 space-y-6">
 
           <div>
             <Link href="/" className="text-sm text-blue-600 hover:underline mb-3 inline-block">
               ← PKGG 홈으로
             </Link>
-            <h1 className="text-2xl font-bold text-gray-900">문의하기</h1>
-            <p className="text-gray-500 text-sm mt-1">버그 제보, 기능 제안, 기타 문의는 언제든지 환영합니다.</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">문의하기</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">버그 제보, 기능 제안, 기타 문의는 언제든지 환영합니다.</p>
           </div>
 
           {done ? (
-            <div className="bg-white rounded-2xl border border-green-200 p-8 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 p-8 text-center">
               <div className="text-4xl mb-3">✅</div>
-              <div className="text-lg font-bold text-gray-900 mb-1">문의가 접수되었습니다</div>
-              <div className="text-sm text-gray-500">확인 후 최대한 빠르게 처리하겠습니다.</div>
+              <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">문의가 접수되었습니다</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">확인 후 최대한 빠르게 처리하겠습니다.</div>
               <button
                 onClick={() => { setDone(false); setTopic(''); setMessage(''); setEmail(''); }}
                 className="mt-5 px-5 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700"
@@ -85,55 +85,55 @@ export default function ContactPage() {
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+            <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-5">
               {/* 문의 유형 */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">문의 유형 *</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">문의 유형 *</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {TOPICS.map((t) => (
+                  {TOPICS.map((tp) => (
                     <button
-                      key={t.id}
+                      key={tp.id}
                       type="button"
-                      onClick={() => setTopic(t.id)}
+                      onClick={() => setTopic(tp.id)}
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all ${
-                        topic === t.id
-                          ? 'border-blue-400 bg-blue-50 text-blue-800 font-semibold'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        topic === tp.id
+                          ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-semibold'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      <span>{t.icon}</span>
-                      <span>{t.label}</span>
+                      <span>{tp.icon}</span>
+                      <span>{tp.label}</span>
                     </button>
                   ))}
                 </div>
                 {topic && TOPIC_HINTS[topic] && (
-                  <p className="mt-2 text-xs text-gray-400">{TOPIC_HINTS[topic]}</p>
+                  <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">{TOPIC_HINTS[topic]}</p>
                 )}
               </div>
 
               {/* 내용 */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">문의 내용 *</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">문의 내용 *</label>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={5}
                   placeholder="내용을 입력해주세요..."
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-400 resize-none"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-800 focus:outline-none focus:border-blue-400 resize-none"
                 />
               </div>
 
               {/* 이메일 (선택) */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  답변받을 이메일 <span className="text-gray-400 font-normal">(선택)</span>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  답변받을 이메일 <span className="text-gray-400 dark:text-gray-500 font-normal">(선택)</span>
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="example@email.com"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-400"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-800 focus:outline-none focus:border-blue-400"
                 />
               </div>
 
@@ -142,15 +142,15 @@ export default function ContactPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition-colors"
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white font-bold py-3 rounded-xl transition-colors"
               >
                 {loading ? '전송 중...' : '문의 보내기'}
               </button>
             </form>
           )}
 
-          <div className="bg-gray-100 rounded-2xl p-5 text-sm text-gray-500 leading-relaxed">
-            <p className="font-semibold text-gray-700 mb-1">응답 안내</p>
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">응답 안내</p>
             <p>
               문의 확인 후 최대한 빠르게 답변 드립니다. 운영자가 개인이기 때문에 답변이 늦어질 수 있는 점 양해 부탁드립니다.
             </p>

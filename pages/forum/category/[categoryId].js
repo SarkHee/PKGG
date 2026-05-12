@@ -279,7 +279,7 @@ export default function ForumCategory() {
             <button
               onClick={() => setPage(Math.max(1, page - 1))}
               disabled={page === 1}
-              className="px-4 py-2 border rounded-lg disabled:opacity-50"
+              className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
             >
               이전
             </button>
@@ -298,7 +298,7 @@ export default function ForumCategory() {
                     className={`px-4 py-2 border rounded-lg ${
                       page === pageNum
                         ? 'bg-blue-500 text-white border-blue-500'
-                        : 'hover:bg-gray-100'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
                     {pageNum}
@@ -310,7 +310,7 @@ export default function ForumCategory() {
             <button
               onClick={() => setPage(Math.min(pagination.totalPages, page + 1))}
               disabled={page === pagination.totalPages}
-              className="px-4 py-2 border rounded-lg disabled:opacity-50"
+              className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
             >
               다음
             </button>

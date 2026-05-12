@@ -1,12 +1,12 @@
 function StatCell({ label, value, pct, barColor, noBar }) {
   return (
-    <div className="flex flex-col items-center justify-center bg-gray-50 rounded-xl py-2.5 px-1 gap-1">
-      <span className={`text-sm font-black leading-none ${barColor ? barColor.text : 'text-gray-700'}`}>
+    <div className="flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-xl py-2.5 px-1 gap-1">
+      <span className={`text-sm font-black leading-none ${barColor ? barColor.text : 'text-gray-700 dark:text-gray-300'}`}>
         {value}
       </span>
       {!noBar && (
         <div className="w-full px-1.5">
-          <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-1 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${barColor ? barColor.bar : 'bg-gray-300'}`}
               style={{ width: `${Math.min(Math.max(pct ?? 0, 0), 100)}%` }}
@@ -20,13 +20,8 @@ function StatCell({ label, value, pct, barColor, noBar }) {
 }
 
 const C = {
-  yellow: { bar: 'bg-yellow-400', text: 'text-yellow-500' },
-  green:  { bar: 'bg-green-400',  text: 'text-green-600'  },
-  blue:   { bar: 'bg-blue-400',   text: 'text-blue-500'   },
-  cyan:   { bar: 'bg-cyan-400',   text: 'text-cyan-600'   },
-  purple: { bar: 'bg-purple-400', text: 'text-purple-500' },
-  orange: { bar: 'bg-orange-400', text: 'text-orange-500' },
-  gray:   { bar: 'bg-gray-300',   text: 'text-gray-700'   },
+  accent: { bar: 'bg-blue-400', text: 'text-blue-600' },
+  gray:   { bar: 'bg-gray-300', text: 'text-gray-700' },
 }
 
 export default function SeasonStatsTabs({ seasonStatsBySeason }) {
@@ -35,30 +30,30 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
       key: 'solo',
       title: '솔로',
       icon: '👤',
-      accentBar: 'bg-orange-400',
-      accentText: 'text-orange-700',
-      accentHeader: 'bg-orange-50 border-orange-200',
-      accentBorder: 'border-orange-200',
+      accentBar: 'bg-blue-400',
+      accentText: 'text-blue-700',
+      accentHeader: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+      accentBorder: 'border-blue-200 dark:border-blue-800',
       modes: ['solo-fpp', 'solo', 'ranked-solo-fpp', 'ranked-solo'],
     },
     {
       key: 'duo',
       title: '듀오',
       icon: '👥',
-      accentBar: 'bg-teal-400',
-      accentText: 'text-teal-700',
-      accentHeader: 'bg-teal-50 border-teal-200',
-      accentBorder: 'border-teal-200',
+      accentBar: 'bg-blue-400',
+      accentText: 'text-blue-700',
+      accentHeader: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+      accentBorder: 'border-blue-200 dark:border-blue-800',
       modes: ['duo-fpp', 'duo', 'ranked-duo-fpp', 'ranked-duo'],
     },
     {
       key: 'squad',
       title: '스쿼드',
       icon: '🎯',
-      accentBar: 'bg-purple-400',
-      accentText: 'text-purple-700',
-      accentHeader: 'bg-purple-50 border-purple-200',
-      accentBorder: 'border-purple-200',
+      accentBar: 'bg-blue-400',
+      accentText: 'text-blue-700',
+      accentHeader: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+      accentBorder: 'border-blue-200 dark:border-blue-800',
       modes: ['squad-fpp', 'squad', 'ranked-squad-fpp', 'ranked-squad', 'normal-squad-fpp', 'normal-squad'],
     },
   ]
@@ -149,21 +144,21 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
     const lkText   = maxLongestKill > 0 ? `${Math.round(maxLongestKill)}m` : '—'
 
     const cells = [
-      { label: 'K/D',      value: kdVal.toFixed(2),                    pct: (kdVal / 5.0) * 100,   barColor: C.yellow },
-      { label: '승률',     value: `${winPct.toFixed(1)}%`,             pct: winPct,                barColor: C.green  },
-      { label: 'TOP10',    value: `${top10Pct.toFixed(1)}%`,           pct: top10Pct,              barColor: C.blue   },
-      { label: '평균 딜량', value: avgDmg > 0 ? avgDmg.toFixed(0) : '—', pct: (avgDmg / 500) * 100, barColor: C.cyan  },
-      { label: '게임 수',  value: totalRounds > 0 ? String(totalRounds) : '—', noBar: true, barColor: C.gray },
-      { label: '어시스트', value: totalAssists > 0 ? String(totalAssists) : '—', pct: (totalAssists / Math.max(totalRounds * 3, 1)) * 100, barColor: C.purple },
-      { label: '헤드샷',   value: hsPct > 0 ? `${hsPct.toFixed(1)}%` : '—', pct: hsPct, barColor: C.orange },
-      { label: '최장 킬',  value: lkText, noBar: true, barColor: C.gray },
-      { label: '생존시간', value: survText, noBar: true, barColor: C.gray },
+      { label: 'K/D',      value: kdVal.toFixed(2),                      pct: (kdVal / 5.0) * 100,   barColor: C.accent },
+      { label: '승률',     value: `${winPct.toFixed(1)}%`,               pct: winPct,                barColor: C.gray   },
+      { label: 'TOP10',    value: `${top10Pct.toFixed(1)}%`,             pct: top10Pct,              barColor: C.gray   },
+      { label: '평균 딜량', value: avgDmg > 0 ? avgDmg.toFixed(0) : '—', pct: (avgDmg / 500) * 100, barColor: C.accent },
+      { label: '게임 수',  value: totalRounds > 0 ? String(totalRounds) : '—', noBar: true,          barColor: C.gray   },
+      { label: '어시스트', value: totalAssists > 0 ? String(totalAssists) : '—', pct: (totalAssists / Math.max(totalRounds * 3, 1)) * 100, barColor: C.gray },
+      { label: '헤드샷',   value: hsPct > 0 ? `${hsPct.toFixed(1)}%` : '—', pct: hsPct,             barColor: C.accent },
+      { label: '최장 킬',  value: lkText, noBar: true,                   barColor: C.gray },
+      { label: '생존시간', value: survText, noBar: true,                  barColor: C.gray },
     ]
 
     return (
       <div
         key={group.key}
-        className={`rounded-2xl border bg-white overflow-hidden shadow-sm ${hasData ? '' : 'opacity-40'} ${group.accentBorder}`}
+        className={`rounded-2xl border bg-white dark:bg-gray-900 overflow-hidden shadow-sm ${hasData ? '' : 'opacity-40'} ${group.accentBorder}`}
       >
         <div className={`px-4 py-3 border-b flex items-center justify-between ${group.accentHeader}`}>
           <div className="flex items-center gap-2">
@@ -190,7 +185,7 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center px-4">
             <div className="text-3xl mb-2">🎮</div>
-            <div className="text-sm font-medium text-gray-500">{group.title} 모드 기록 없음</div>
+            <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{group.title} 모드 기록 없음</div>
           </div>
         )}
       </div>

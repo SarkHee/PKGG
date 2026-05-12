@@ -25,7 +25,7 @@ const regionColors = {
 const rankColors = ['text-yellow-400', 'text-slate-300', 'text-orange-400'];
 
 function getRankColor(i) {
-  return rankColors[i] ?? 'text-white';
+  return rankColors[i] ?? 'text-gray-700 dark:text-white';
 }
 
 // 클랜 등급 — getMMRTier 기반 (clan-analytics와 동일 기준)
@@ -71,10 +71,10 @@ const StatBar = ({ value, max, color = 'bg-blue-500', label, sub }) => {
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-gray-400">{label}</span>
-        <span className="text-white font-semibold">{sub ?? value}</span>
+        <span className="text-gray-500 dark:text-gray-400">{label}</span>
+        <span className="text-gray-900 dark:text-white font-semibold">{sub ?? value}</span>
       </div>
-      <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -108,7 +108,7 @@ const TierBar = ({ expert, advanced, intermediate, beginner }) => {
           { label: 'B (1200+)', count: intermediate, color: 'bg-blue-400' },
           { label: 'C↓ (<1200)', count: beginner, color: 'bg-gray-500' },
         ].map((tier) => (
-          <div key={tier.label} className="flex items-center gap-1 text-xs text-gray-400">
+          <div key={tier.label} className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
             <div className={`w-2 h-2 rounded-full ${tier.color}`} />
             {tier.label}: {tier.count}{t('cd.persons')}
           </div>
@@ -120,8 +120,8 @@ const TierBar = ({ expert, advanced, intermediate, beginner }) => {
 
 // 탑 퍼포머 리스트
 const TopList = ({ label, icon, items, unit = '' }) => (
-  <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-    <div className="text-xs text-gray-400 font-semibold mb-3 flex items-center gap-1.5">
+  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+    <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold mb-3 flex items-center gap-1.5">
       <span>{icon}</span> {label}
     </div>
     <div className="space-y-2">
@@ -130,11 +130,11 @@ const TopList = ({ label, icon, items, unit = '' }) => (
           <div className="flex items-center gap-2">
             <span className={`text-xs font-bold w-4 ${getRankColor(i)}`}>#{i + 1}</span>
             <Link href={`/player/${encodeURIComponent(item.server || 'steam')}/${encodeURIComponent(item.name)}`}
-              className="text-sm hover:text-blue-400 transition-colors truncate max-w-[120px]">
+              className="text-sm text-gray-700 dark:text-white hover:text-blue-400 transition-colors truncate max-w-[120px]">
               {item.name}
             </Link>
           </div>
-          <span className="text-sm font-bold text-white">{item.value}{unit}</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-white">{item.value}{unit}</span>
         </div>
       ))}
     </div>
@@ -216,10 +216,10 @@ export default function ClanDetail() {
           <title>클랜 정보 로딩 중... | PKGG</title>
           <meta name="robots" content="noindex" />
         </Head>
-        <div className="min-h-screen bg-gray-900 text-white" style={{ marginTop: '-5rem' }}>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white" style={{ marginTop: '-5rem' }}>
           <div className="pt-32 flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-400">{t('cd.loading')}</p>
+            <p className="text-gray-500 dark:text-gray-400">{t('cd.loading')}</p>
           </div>
         </div>
       </Layout>
@@ -233,7 +233,7 @@ export default function ClanDetail() {
           <title>클랜을 찾을 수 없습니다 | PKGG</title>
           <meta name="robots" content="noindex" />
         </Head>
-        <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center gap-4" style={{ marginTop: '-5rem' }}>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col items-center justify-center gap-4" style={{ marginTop: '-5rem' }}>
           <div className="text-5xl">😕</div>
           <div className="text-xl font-bold text-red-400">{error}</div>
           <Link href="/clan-analytics" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold transition-colors">
@@ -296,10 +296,10 @@ export default function ClanDetail() {
         <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
         <link rel="canonical" href={clanUrl} />
       </Head>
-      <div className="min-h-screen bg-gray-950 text-white" style={{ marginTop: '-5rem' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white" style={{ marginTop: '-5rem' }}>
 
         {/* ── 히어로 헤더 ─────────────────────────────────────────────── */}
-        <div className="bg-gradient-to-b from-gray-800 to-gray-900 border-b border-gray-700/60 pt-28 pb-8 px-4">
+        <div className="bg-gradient-to-b from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700/60 pt-28 pb-8 px-4">
           <div className="max-w-6xl mx-auto">
             <Link href="/clan-analytics" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-blue-400 transition-colors mb-6">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,7 +314,7 @@ export default function ClanDetail() {
                 <div className="flex flex-wrap items-center gap-3 mb-2">
                   <h1 className="text-3xl lg:text-4xl font-black tracking-tight">{clan.name}</h1>
                   {clan.tag && clan.tag !== 'N/A' && (
-                    <span className="bg-gray-700 text-gray-200 px-3 py-1 rounded-lg font-mono text-lg border border-gray-600">
+                    <span className="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1 rounded-lg font-mono text-lg border border-gray-300 dark:border-gray-600">
                       [{clan.tag}]
                     </span>
                   )}
@@ -339,17 +339,17 @@ export default function ClanDetail() {
                     {regFlag} {regLabel}
                   </span>
                   <span>{t('cd.level')} {clan.level}</span>
-                  <span className="text-gray-600">•</span>
+                  <span className="text-gray-400 dark:text-gray-600">•</span>
                   <span>{t('cd.pubg_members')} {clan.apiMemberCount}{t('cd.persons')}</span>
                   {stats && (
                     <>
-                      <span className="text-gray-600">•</span>
+                      <span className="text-gray-400 dark:text-gray-600">•</span>
                       <span>{t('cd.data_members')} {stats.memberCount}{t('cd.persons')}</span>
                     </>
                   )}
                   {clan.updatedAt && (
                     <>
-                      <span className="text-gray-600">•</span>
+                      <span className="text-gray-400 dark:text-gray-600">•</span>
                       <span>{t('cd.last_sync')} {new Date(clan.updatedAt).toLocaleDateString()}</span>
                     </>
                   )}
@@ -365,7 +365,7 @@ export default function ClanDetail() {
                     { label: t('cd.avg_winrate'), value: `${stats.winRate}%`, color: 'text-green-400' },
                     { label: t('cd.top10_rate'), value: `${stats.top10Rate}%`, color: 'text-purple-400' },
                   ].map(({ label, value, color }) => (
-                    <div key={label} className="bg-gray-800/60 border border-gray-700/50 rounded-xl px-4 py-3 text-center min-w-[90px]">
+                    <div key={label} className="bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/50 rounded-xl px-4 py-3 text-center min-w-[90px]">
                       <div className={`text-xl font-black ${color}`}>{value}</div>
                       <div className="text-xs text-gray-500 mt-0.5">{label}</div>
                     </div>
@@ -377,7 +377,7 @@ export default function ClanDetail() {
         </div>
 
         {/* ── 탭 ──────────────────────────────────────────────────────── */}
-        <div className="bg-gray-900 border-b border-gray-800 sticky top-0 z-40">
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
           <div className="max-w-6xl mx-auto px-2 sm:px-4">
             <nav className="flex gap-1 py-2 overflow-x-auto scrollbar-none">
               {tabs.map((tab) => (
@@ -387,7 +387,7 @@ export default function ClanDetail() {
                   className={`flex-shrink-0 px-3 sm:px-5 py-2 text-sm font-semibold rounded-lg transition-all ${
                     activeTab === tab.id
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-900/40'
-                      : 'text-gray-300 hover:text-white hover:bg-gray-800 border border-transparent hover:border-gray-700'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700'
                   }`}
                 >
                   <span className="hidden sm:inline">{tab.icon} </span>{tab.name}
@@ -428,7 +428,7 @@ export default function ClanDetail() {
               {/* 6개 핵심 지표 카드 */}
               {stats ? (
                 <section>
-                  <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.key_metrics')}</h2>
+                  <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.key_metrics')}</h2>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     {[
                       { icon: '🏆', label: t('cd.avg_mmr'), value: stats.avgMMR, color: 'text-blue-400', sub: grade?.desc },
@@ -438,11 +438,11 @@ export default function ClanDetail() {
                       { icon: '👑', label: t('cd.winrate'), value: `${stats.winRate}%`, color: 'text-green-400', sub: t('cd.total_basis') },
                       { icon: '🛡️', label: t('cd.top10'), value: `${stats.top10Rate}%`, color: 'text-purple-400', sub: t('cd.entry_rate') },
                     ].map(({ icon, label, value, color, sub }) => (
-                      <div key={label} className="bg-gray-800 border border-gray-700 rounded-xl p-4 text-center">
+                      <div key={label} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
                         <div className="text-xl mb-1">{icon}</div>
                         <div className={`text-xl font-black ${color}`}>{value}</div>
                         <div className="text-xs text-gray-500 mt-0.5">{label}</div>
-                        {sub && <div className="text-xs text-gray-600 mt-0.5">{sub}</div>}
+                        {sub && <div className="text-xs text-gray-400 dark:text-gray-600 mt-0.5">{sub}</div>}
                       </div>
                     ))}
                   </div>
@@ -453,7 +453,7 @@ export default function ClanDetail() {
 
               {/* 클랜 등급 + 순위 */}
               <section>
-                <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.grade_rank')}</h2>
+                <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.grade_rank')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 등급 카드 */}
                   {grade && (
@@ -471,10 +471,10 @@ export default function ClanDetail() {
                     </div>
                   )}
                   {/* 순위 카드 */}
-                  <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-                    <div className="text-sm text-gray-400 mb-3">{t('cd.total_rank')}</div>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">{t('cd.total_rank')}</div>
                     <div className="flex items-end gap-2">
-                      <span className={`text-5xl font-black ${ranking?.overall <= 3 ? 'text-yellow-400' : ranking?.overall <= 10 ? 'text-orange-400' : 'text-white'}`}>
+                      <span className={`text-5xl font-black ${ranking?.overall <= 3 ? 'text-yellow-400' : ranking?.overall <= 10 ? 'text-orange-400' : 'text-gray-900 dark:text-white'}`}>
                         #{ranking?.overall ?? '—'}
                       </span>
                       <span className="text-gray-500 text-sm mb-1 pb-1">{t('cd.rank_unit')}</span>
@@ -489,8 +489,8 @@ export default function ClanDetail() {
               {/* 멤버 등급 분포 미리보기 */}
               {distribution && (
                 <section>
-                  <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.member_dist')}</h2>
-                  <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                  <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.member_dist')}</h2>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
                     <TierBar {...distribution} />
                   </div>
                 </section>
@@ -499,7 +499,7 @@ export default function ClanDetail() {
               {/* TOP 3 멤버 스포트라이트 */}
               {topPerformers?.byMMR?.length > 0 && (
                 <section>
-                  <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.top3')}</h2>
+                  <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.top3')}</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {topPerformers.byMMR.slice(0, 3).map((m, i) => {
                       const medalIcons = ['🥇', '🥈', '🥉'];
@@ -510,7 +510,7 @@ export default function ClanDetail() {
                             <span className="text-2xl">{medalIcons[i]}</span>
                             <Link
                               href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.name)}`}
-                              className="font-bold hover:text-blue-400 transition-colors truncate"
+                              className="font-bold text-gray-800 dark:text-white hover:text-blue-400 transition-colors truncate"
                             >
                               {m.name}
                             </Link>
@@ -518,11 +518,11 @@ export default function ClanDetail() {
                           <div className="text-2xl font-black text-blue-400">{m.value}</div>
                           <div className="text-xs text-gray-500">MMR</div>
                           {member?.stats && (
-                            <div className="mt-3 pt-3 border-t border-gray-700 grid grid-cols-2 gap-1 text-xs">
-                              <div className="text-gray-400">{t('cd.damage')} <span className="text-orange-400 font-bold">{member.stats.avgDamage}</span></div>
-                              <div className="text-gray-400">{t('cd.kills')} <span className="text-red-400 font-bold">{member.stats.avgKills}</span></div>
-                              <div className="text-gray-400">{t('cd.winrate')} <span className="text-green-400 font-bold">{member.stats.winRate}%</span></div>
-                              <div className="text-gray-400">Top10 <span className="text-purple-400 font-bold">{member.stats.top10Rate}%</span></div>
+                            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-1 text-xs">
+                              <div className="text-gray-500 dark:text-gray-400">{t('cd.damage')} <span className="text-orange-400 font-bold">{member.stats.avgDamage}</span></div>
+                              <div className="text-gray-500 dark:text-gray-400">{t('cd.kills')} <span className="text-red-400 font-bold">{member.stats.avgKills}</span></div>
+                              <div className="text-gray-500 dark:text-gray-400">{t('cd.winrate')} <span className="text-green-400 font-bold">{member.stats.winRate}%</span></div>
+                              <div className="text-gray-500 dark:text-gray-400">Top10 <span className="text-purple-400 font-bold">{member.stats.top10Rate}%</span></div>
                             </div>
                           )}
                         </div>
@@ -554,7 +554,7 @@ export default function ClanDetail() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
                         memberSort === key
                           ? 'bg-blue-600 border-blue-500 text-white'
-                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'
+                          : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
                       {label}
@@ -583,33 +583,33 @@ export default function ClanDetail() {
                 {sortedMembers.map((member, i) => {
                   const s = member.stats;
                   return (
-                    <div key={member.id} className="bg-gray-900 rounded-xl border border-gray-800 p-3">
+                    <div key={member.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className={`font-black text-sm flex-shrink-0 ${getRankColor(i)}`}>
                             {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
                           </span>
                           <Link href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}
-                            className="font-semibold text-sm hover:text-blue-400 transition-colors truncate">
+                            className="font-semibold text-sm text-gray-800 dark:text-white hover:text-blue-400 transition-colors truncate">
                             {member.playerName}
                           </Link>
                         </div>
                         <span className="font-black text-blue-400 text-sm flex-shrink-0">{member.mmr || '—'} <span className="text-[10px] text-gray-500">MMR</span></span>
                       </div>
                       <div className="grid grid-cols-4 gap-1">
-                        <div className="text-center bg-gray-800/60 rounded py-1.5">
+                        <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
                           <div className="text-xs font-bold text-orange-400">{s?.avgDamage ?? '—'}</div>
                           <div className="text-[10px] text-gray-500">딜량</div>
                         </div>
-                        <div className="text-center bg-gray-800/60 rounded py-1.5">
+                        <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
                           <div className="text-xs font-bold text-red-400">{s?.avgKills ?? '—'}</div>
                           <div className="text-[10px] text-gray-500">킬</div>
                         </div>
-                        <div className="text-center bg-gray-800/60 rounded py-1.5">
+                        <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
                           <div className="text-xs font-bold text-green-400">{s?.winRate != null ? `${s.winRate}%` : '—'}</div>
                           <div className="text-[10px] text-gray-500">승률</div>
                         </div>
-                        <div className="text-center bg-gray-800/60 rounded py-1.5">
+                        <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
                           <div className="text-xs font-bold text-purple-400">{s?.top10Rate != null ? `${s.top10Rate}%` : '—'}</div>
                           <div className="text-[10px] text-gray-500">Top10</div>
                         </div>
@@ -620,11 +620,11 @@ export default function ClanDetail() {
               </div>
 
               {/* PC 테이블 */}
-              <div className="hidden sm:block bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+              <div className="hidden sm:block bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm min-w-[640px]">
                     <thead>
-                      <tr className="bg-gray-800/80 text-gray-400 text-xs">
+                      <tr className="bg-gray-100 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 text-xs">
                         <th className="px-4 py-3 text-left w-10">#</th>
                         <th className="px-4 py-3 text-left">{t('cd.nickname')}</th>
                         <th className="px-4 py-3 text-right">
@@ -637,14 +637,14 @@ export default function ClanDetail() {
                         <th className="px-4 py-3 text-right">{t('cd.winrate_col')}</th>
                         <th className="px-4 py-3 text-right">{t('cd.top10_col')}</th>
                         <th className="px-4 py-3 text-right">{t('cd.survive_time')}</th>
-                        <th className="px-4 py-3 text-right text-gray-600">{t('cd.last_update_col')}</th>
+                        <th className="px-4 py-3 text-right text-gray-400 dark:text-gray-600">{t('cd.last_update_col')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-800">
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                       {sortedMembers.map((member, i) => {
                         const s = member.stats;
                         return (
-                          <tr key={member.id} className="hover:bg-gray-800/40 transition-colors">
+                          <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                             <td className="px-4 py-3">
                               <span className={`font-bold text-sm ${getRankColor(i)}`}>
                                 {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
@@ -652,7 +652,7 @@ export default function ClanDetail() {
                             </td>
                             <td className="px-4 py-3">
                               <Link href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}
-                                className="font-semibold hover:text-blue-400 transition-colors">
+                                className="font-semibold text-gray-800 dark:text-white hover:text-blue-400 transition-colors">
                                 {member.playerName}
                               </Link>
                             </td>
@@ -662,7 +662,7 @@ export default function ClanDetail() {
                             <td className="px-4 py-3 text-right text-green-400 font-semibold">{s?.winRate != null ? `${s.winRate}%` : '—'}</td>
                             <td className="px-4 py-3 text-right text-purple-400 font-semibold">{s?.top10Rate != null ? `${s.top10Rate}%` : '—'}</td>
                             <td className="px-4 py-3 text-right text-gray-400">{s?.avgSurviveTime ? fmtTime(s.avgSurviveTime) : '—'}</td>
-                            <td className="px-4 py-3 text-right text-gray-600 text-xs">{timeAgo(member.lastActiveAt)}</td>
+                            <td className="px-4 py-3 text-right text-gray-400 dark:text-gray-600 text-xs">{timeAgo(member.lastActiveAt)}</td>
                           </tr>
                         );
                       })}
@@ -678,13 +678,13 @@ export default function ClanDetail() {
           {activeTab === 'stats' && (
             <>
               {!stats ? (
-                <div className="bg-gray-800 rounded-xl p-10 text-center text-gray-500">{t('cd.no_stats')}</div>
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-10 text-center text-gray-500">{t('cd.no_stats')}</div>
               ) : (
                 <>
                   {/* 배그 평균 대비 비교 */}
                   <section>
-                    <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.stats_vs_avg')}</h2>
-                    <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 space-y-4">
+                    <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.stats_vs_avg')}</h2>
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
                       <p className="text-xs text-gray-500 mb-2">{t('cd.bar_note')}</p>
                       <StatBar label={t('cd.avg_damage')} value={Number(stats.avgDamage)} max={500} color="bg-orange-500"
                         sub={`${stats.avgDamage} (${t('cd.pubg_avg_prefix')} ~200)`} />
@@ -704,8 +704,8 @@ export default function ClanDetail() {
                   {/* 멤버 등급 분포 */}
                   {distribution && (
                     <section>
-                      <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.member_mmr_dist')}</h2>
-                      <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                      <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.member_mmr_dist')}</h2>
+                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
                         <TierBar {...distribution} />
                         <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
                           {[
@@ -728,7 +728,7 @@ export default function ClanDetail() {
                   {/* 카테고리별 TOP 3 */}
                   {topPerformers && (
                     <section>
-                      <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.cat_top3')}</h2>
+                      <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.cat_top3')}</h2>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         <TopList label={t('cd.mmr_rank')} icon="🏆" items={topPerformers.byMMR} />
                         <TopList label={t('cd.avg_damage')} icon="💥" items={topPerformers.byDamage} />
@@ -741,10 +741,10 @@ export default function ClanDetail() {
 
                   {/* 수치 요약 테이블 */}
                   <section>
-                    <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.summary')}</h2>
-                    <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
+                    <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.summary')}</h2>
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-700 text-gray-400 text-xs">
+                        <thead className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs">
                           <tr>
                             <th className="px-5 py-3 text-left">{t('cd.col_metric')}</th>
                             <th className="px-5 py-3 text-right">{t('cd.col_clan_avg')}</th>
@@ -752,7 +752,7 @@ export default function ClanDetail() {
                             <th className="px-5 py-3 text-right">{t('cd.col_eval')}</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-700">
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                           {[
                             { label: t('cd.avg_mmr'), clan: stats.avgMMR, avg: '~1200', ok: Number(stats.avgMMR) >= 1200 },
                             { label: t('cd.avg_damage'), clan: stats.avgDamage, avg: '~200', ok: Number(stats.avgDamage) >= 200 },
@@ -762,9 +762,9 @@ export default function ClanDetail() {
                             { label: t('cd.top10_rate'), clan: `${stats.top10Rate}%`, avg: '~20%', ok: Number(stats.top10Rate) >= 20 },
                             { label: t('cd.avg_survive'), clan: fmtTime(stats.avgSurviveTime), avg: '~13m', ok: Number(stats.avgSurviveTime) >= 780 },
                           ].map(({ label, clan: cVal, avg, ok }) => (
-                            <tr key={label} className="hover:bg-gray-800/60">
-                              <td className="px-5 py-3 text-gray-300">{label}</td>
-                              <td className="px-5 py-3 text-right font-bold text-white">{cVal}</td>
+                            <tr key={label} className="hover:bg-gray-50 dark:hover:bg-gray-800/60">
+                              <td className="px-5 py-3 text-gray-600 dark:text-gray-300">{label}</td>
+                              <td className="px-5 py-3 text-right font-bold text-gray-900 dark:text-white">{cVal}</td>
                               <td className="px-5 py-3 text-right text-gray-500">{avg}</td>
                               <td className="px-5 py-3 text-right">
                                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ok ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
@@ -786,20 +786,20 @@ export default function ClanDetail() {
           {activeTab === 'analysis' && (
             <>
               {!stats ? (
-                <div className="bg-gray-800 rounded-xl p-10 text-center text-gray-500">{t('cd.no_analysis')}</div>
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-10 text-center text-gray-500">{t('cd.no_analysis')}</div>
               ) : (
                 <>
                   {/* 종합 평가 */}
                   {grade && (
                     <section>
-                      <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.analysis_title')}</h2>
+                      <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.analysis_title')}</h2>
                       <div className={`border rounded-xl p-6 ${grade.bg}`}>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-6">
                           <div className={`text-7xl ${grade.color} leading-none`}>{grade.grade}</div>
                           <div>
                             <div className={`text-2xl font-bold ${grade.color}`}>{grade.desc}</div>
                             <div className="text-sm text-gray-400 mt-1">
-                              {clan.name} {t('cd.avg_mmr')} <span className="font-bold text-white">{stats.avgMMR}</span> {t('cd.mmr_basis')}
+                              {clan.name} {t('cd.avg_mmr')} <span className="font-bold text-gray-900 dark:text-white">{stats.avgMMR}</span> {t('cd.mmr_basis')}
                             </div>
                             <div className="text-xs text-gray-500 mt-2">
                               {t('cd.data_count')} {stats.memberCount}{t('cd.persons')} · {t('cd.pubg_official_count')} {clan.apiMemberCount}{t('cd.persons')}
@@ -854,8 +854,8 @@ export default function ClanDetail() {
                   {/* 멤버 플레이스타일 분포 */}
                   {styleDistribution && stats.memberCount > 0 && (
                     <section>
-                      <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.style_dist')}</h2>
-                      <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 space-y-3">
+                      <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.style_dist')}</h2>
+                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-3">
                         {[
                           { key: 'aggressive', labelKey: 'cd.aggressive', icon: '⚔️', color: 'bg-red-500', desc: '킬 2.5+ & 딜 300+' },
                           { key: 'passive', labelKey: 'cd.passive', icon: '🛡️', color: 'bg-blue-500', desc: '생존 1200s+ & Top10 30%+' },
@@ -868,17 +868,17 @@ export default function ClanDetail() {
                           return (
                             <div key={key} className="flex items-center gap-3">
                               <span className="text-sm w-5 text-center">{icon}</span>
-                              <span className="text-xs text-gray-400 w-16 flex-shrink-0">{t(labelKey)}</span>
-                              <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                              <span className="text-xs text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">{t(labelKey)}</span>
+                              <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                 <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
                               </div>
-                              <span className="text-xs font-bold text-white w-8 text-right">{count}{t('cd.persons')}</span>
+                              <span className="text-xs font-bold text-gray-900 dark:text-white w-8 text-right">{count}{t('cd.persons')}</span>
                               <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
-                              <span className="text-xs text-gray-600 hidden sm:block w-36">{desc}</span>
+                              <span className="text-xs text-gray-400 dark:text-gray-600 hidden sm:block w-36">{desc}</span>
                             </div>
                           );
                         })}
-                        <p className="text-xs text-gray-600 pt-2 border-t border-gray-700">{t('cd.style_note')}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-600 pt-2 border-t border-gray-200 dark:border-gray-700">{t('cd.style_note')}</p>
                       </div>
                     </section>
                   )}
@@ -886,8 +886,8 @@ export default function ClanDetail() {
                   {/* 클랜 활동성 분석 */}
                   {members && (
                     <section>
-                      <h2 className="text-lg font-bold mb-4 text-gray-200">{t('cd.activity')}</h2>
-                      <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+                      <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.activity')}</h2>
+                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
                         {(() => {
                           const now = Date.now();
                           const buckets = { d30: 0, d60: 0, d90: 0, old: 0 };
@@ -910,16 +910,16 @@ export default function ClanDetail() {
                             <div className="space-y-3">
                               {rows.map(({ labelKey, count, pct, color, noteKey }) => (
                                 <div key={labelKey} className="flex items-center gap-3">
-                                  <span className="text-xs text-gray-400 w-32 flex-shrink-0">{t(labelKey)}</span>
-                                  <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 w-32 flex-shrink-0">{t(labelKey)}</span>
+                                  <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                     <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
                                   </div>
-                                  <span className="text-xs font-bold text-white w-10 text-right">{count}{t('cd.persons')}</span>
+                                  <span className="text-xs font-bold text-gray-900 dark:text-white w-10 text-right">{count}{t('cd.persons')}</span>
                                   <span className="text-xs text-gray-500 w-8 text-right">{pct}%</span>
-                                  <span className="text-xs text-gray-600 hidden sm:block w-24">{t(noteKey)}</span>
+                                  <span className="text-xs text-gray-400 dark:text-gray-600 hidden sm:block w-24">{t(noteKey)}</span>
                                 </div>
                               ))}
-                              <p className="text-xs text-gray-600 pt-2 border-t border-gray-700">{t('cd.activity_note')}</p>
+                              <p className="text-xs text-gray-400 dark:text-gray-600 pt-2 border-t border-gray-200 dark:border-gray-700">{t('cd.activity_note')}</p>
                             </div>
                           );
                         })()}
@@ -954,7 +954,7 @@ function ClanRankingTab({ data, loading }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-gray-400">
+      <div className="flex items-center justify-center py-20 text-gray-500 dark:text-gray-400">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           랭킹 데이터 로드 중...
@@ -1003,7 +1003,7 @@ function ClanRankingTab({ data, loading }) {
             key={tab.id}
             onClick={() => setLbTab(tab.id)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              lbTab === tab.id ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+              lbTab === tab.id ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             {tab.label}
@@ -1013,29 +1013,29 @@ function ClanRankingTab({ data, loading }) {
 
       {/* 전체 리더보드 */}
       {lbTab === 'leaderboard' && (
-        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700 flex-wrap">
-            <span className="text-xs text-gray-400 mr-1">정렬:</span>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-wrap">
+            <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">정렬:</span>
             {[
               { key: 'mmr', label: 'MMR' }, { key: 'damage', label: '딜량' },
               { key: 'kills', label: '킬' }, { key: 'winRate', label: '승률' }, { key: 'top10', label: 'Top10' },
             ].map(({ key, label }) => (
               <button key={key} onClick={() => setLbSort(key)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${lbSort === key ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}>
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${lbSort === key ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
                 {label}
               </button>
             ))}
           </div>
 
           {/* 모바일 카드 */}
-          <div className="sm:hidden divide-y divide-gray-700/50">
+          <div className="sm:hidden divide-y divide-gray-200 dark:divide-gray-700/50">
             {sortedLeaderboard.map((m, i) => (
-              <div key={m.id} className={`px-4 py-3 ${i < 3 ? 'bg-gray-700/20' : ''}`}>
+              <div key={m.id} className={`px-4 py-3 ${i < 3 ? 'bg-gray-100 dark:bg-gray-700/20' : ''}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-bold text-sm flex-shrink-0">{rankMedal(i)}</span>
                     <Link href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.nickname)}`}
-                      className="font-medium hover:text-blue-400 transition-colors truncate text-sm">{m.nickname}</Link>
+                      className="font-medium text-gray-800 dark:text-white hover:text-blue-400 transition-colors truncate text-sm">{m.nickname}</Link>
                   </div>
                   <span className="font-black text-blue-400 text-sm flex-shrink-0">{m.hasData ? m.mmr.toLocaleString() : '—'}</span>
                 </div>
@@ -1047,13 +1047,13 @@ function ClanRankingTab({ data, loading }) {
                       { label: '승률', val: `${m.winRate}%`,              cls: 'text-green-400' },
                       { label: 'Top10',val: `${m.top10Rate}%`,            cls: 'text-purple-400' },
                     ].map(({ label, val, cls }) => (
-                      <div key={label} className="text-center bg-gray-700/40 rounded py-1">
+                      <div key={label} className="text-center bg-gray-100 dark:bg-gray-700/40 rounded py-1">
                         <div className={`text-xs font-bold ${cls}`}>{val}</div>
                         <div className="text-[10px] text-gray-500">{label}</div>
                       </div>
                     ))}
                   </div>
-                ) : <span className="text-xs text-gray-600">데이터 없음</span>}
+                ) : <span className="text-xs text-gray-400 dark:text-gray-600">데이터 없음</span>}
               </div>
             ))}
           </div>
@@ -1062,7 +1062,7 @@ function ClanRankingTab({ data, loading }) {
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm min-w-[560px]">
               <thead>
-                <tr className="text-xs text-gray-400 border-b border-gray-700">
+                <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left px-4 py-2 w-10">순위</th>
                   <th className="text-left px-4 py-2">닉네임</th>
                   <th className="text-right px-3 py-2">MMR</th>
@@ -1074,20 +1074,20 @@ function ClanRankingTab({ data, loading }) {
               </thead>
               <tbody>
                 {sortedLeaderboard.map((m, i) => (
-                  <tr key={m.id} className={`border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors ${i < 3 ? 'bg-gray-700/20' : ''}`}>
+                  <tr key={m.id} className={`border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors ${i < 3 ? 'bg-gray-100 dark:bg-gray-700/20' : ''}`}>
                     <td className="px-4 py-2.5 text-sm font-bold">{rankMedal(i)}</td>
                     <td className="px-4 py-2.5">
-                      <Link href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors font-medium">{m.nickname}</Link>
+                      <Link href={`/player/${encodeURIComponent(m.server || 'steam')}/${encodeURIComponent(m.nickname)}`} className="text-gray-800 dark:text-white hover:text-blue-400 transition-colors font-medium">{m.nickname}</Link>
                     </td>
                     {m.hasData ? (
                       <>
                         <td className="px-3 py-2.5 text-right font-bold text-blue-400">{m.mmr.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-300">{m.avgDamage.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-300">{m.avgKills}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-300">{m.winRate}%</td>
-                        <td className="px-3 py-2.5 text-right text-gray-300">{m.top10Rate}%</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-300">{m.avgDamage.toLocaleString()}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-300">{m.avgKills}</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-300">{m.winRate}%</td>
+                        <td className="px-3 py-2.5 text-right text-gray-600 dark:text-gray-300">{m.top10Rate}%</td>
                       </>
-                    ) : <td colSpan={5} className="px-3 py-2.5 text-right text-gray-600 text-xs">데이터 없음</td>}
+                    ) : <td colSpan={5} className="px-3 py-2.5 text-right text-gray-400 dark:text-gray-600 text-xs">데이터 없음</td>}
                   </tr>
                 ))}
               </tbody>
@@ -1100,14 +1100,14 @@ function ClanRankingTab({ data, loading }) {
       {lbTab === 'weekly' && (
         <div>
           {/* MVP 점수 산출 기준 안내 */}
-          <div className="mb-4 px-4 py-3 bg-gray-800/60 border border-gray-700 rounded-xl text-xs text-gray-400 leading-relaxed">
+          <div className="mb-4 px-4 py-3 bg-gray-100 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
             <span className="text-yellow-400 font-semibold">MVP 점수</span>는 최근 7일간의 매치 기록을 바탕으로 딜·킬·승리를 종합해 산출된 활약 지수입니다.
           </div>
           {weeklyMvp.length === 0 ? (
-            <div className="text-center py-16 bg-gray-800 rounded-xl border border-gray-700 text-gray-500">
+            <div className="text-center py-16 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500">
               <p className="text-2xl mb-3">📭</p>
               최근 7일간 기록된 매치 데이터가 없습니다.
-              <p className="text-xs mt-2 text-gray-600">클랜 배치 업데이트 시 자동으로 갱신됩니다.</p>
+              <p className="text-xs mt-2 text-gray-400 dark:text-gray-600">클랜 배치 업데이트 시 자동으로 갱신됩니다.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -1119,7 +1119,7 @@ function ClanRankingTab({ data, loading }) {
                     <div className="text-xs text-yellow-400 font-semibold mb-0.5">이번 주 MVP</div>
                     <Link
                       href={`/player/${encodeURIComponent(weeklyMvp[0].server)}/${encodeURIComponent(weeklyMvp[0].nickname)}`}
-                      className="text-xl font-bold text-white hover:text-yellow-400 transition-colors"
+                      className="text-xl font-bold text-gray-900 dark:text-white hover:text-yellow-400 transition-colors"
                     >
                       {weeklyMvp[0].nickname}
                     </Link>
@@ -1140,7 +1140,7 @@ function ClanRankingTab({ data, loading }) {
               {/* 2위~ 모바일 카드 */}
               <div className="sm:hidden space-y-2">
                 {weeklyMvp.map((m, i) => (
-                  <div key={m.id} className="bg-gray-800 rounded-xl border border-gray-700 px-4 py-3">
+                  <div key={m.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-bold text-sm flex-shrink-0">{rankMedal(i)}</span>
@@ -1155,7 +1155,7 @@ function ClanRankingTab({ data, loading }) {
                         { label: '킬',   val: m.avgKills,                  cls: 'text-red-400' },
                         { label: '승',   val: `${m.wins}회`,               cls: 'text-green-400' },
                       ].map(({ label, val, cls }) => (
-                        <div key={label} className="text-center bg-gray-700/40 rounded py-1">
+                        <div key={label} className="text-center bg-gray-100 dark:bg-gray-700/40 rounded py-1">
                           <div className={`text-xs font-bold ${cls}`}>{val}</div>
                           <div className="text-[10px] text-gray-500">{label}</div>
                         </div>
@@ -1169,7 +1169,7 @@ function ClanRankingTab({ data, loading }) {
               <div className="hidden sm:block bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-xs text-gray-400 border-b border-gray-700">
+                    <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                       <th className="text-left px-4 py-2">순위</th>
                       <th className="text-left px-4 py-2">닉네임</th>
                       <th className="text-right px-3 py-2">게임 수</th>
@@ -1181,7 +1181,7 @@ function ClanRankingTab({ data, loading }) {
                   </thead>
                   <tbody>
                     {weeklyMvp.map((m, i) => (
-                      <tr key={m.id} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
+                      <tr key={m.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                         <td className="px-4 py-2.5 font-bold">{rankMedal(i)}</td>
                         <td className="px-4 py-2.5"><Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">{m.nickname}</Link></td>
                         <td className="px-3 py-2.5 text-right text-gray-400">{m.matches}</td>
@@ -1203,10 +1203,10 @@ function ClanRankingTab({ data, loading }) {
       {lbTab === 'growth' && (
         <div>
           {growthKing.length === 0 ? (
-            <div className="text-center py-16 bg-gray-800 rounded-xl border border-gray-700 text-gray-500">
+            <div className="text-center py-16 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500">
               <p className="text-2xl mb-3">📊</p>
               비교할 수 있는 성장 데이터가 없습니다.
-              <p className="text-xs mt-2 text-gray-600">클랜 배치 업데이트가 2회 이상 실행되면 자동으로 집계됩니다.</p>
+              <p className="text-xs mt-2 text-gray-400 dark:text-gray-600">클랜 배치 업데이트가 2회 이상 실행되면 자동으로 집계됩니다.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -1218,7 +1218,7 @@ function ClanRankingTab({ data, loading }) {
                     <div className="text-xs text-green-400 font-semibold mb-0.5">이번 주 성장왕</div>
                     <Link
                       href={`/player/${encodeURIComponent(growthKing[0].server)}/${encodeURIComponent(growthKing[0].nickname)}`}
-                      className="text-xl font-bold text-white hover:text-green-400 transition-colors"
+                      className="text-xl font-bold text-gray-900 dark:text-white hover:text-green-400 transition-colors"
                     >
                       {growthKing[0].nickname}
                     </Link>
@@ -1238,7 +1238,7 @@ function ClanRankingTab({ data, loading }) {
               {/* 성장왕 모바일 카드 */}
               <div className="sm:hidden space-y-2">
                 {growthKing.map((m, i) => (
-                  <div key={m.nickname} className="bg-gray-800 rounded-xl border border-gray-700 px-4 py-3">
+                  <div key={m.nickname} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-bold text-sm flex-shrink-0">{rankMedal(i)}</span>
@@ -1252,7 +1252,7 @@ function ClanRankingTab({ data, loading }) {
                         { label: '딜 변화',  val: `${deltaSign(m.dmgDelta)}${m.dmgDelta}`,                          cls: deltaColor(m.dmgDelta) },
                         { label: '킬 변화',  val: `${deltaSign(parseFloat(m.killDelta))}${m.killDelta}`,             cls: deltaColor(parseFloat(m.killDelta)) },
                       ].map(({ label, val, cls }) => (
-                        <div key={label} className="text-center bg-gray-700/40 rounded py-1">
+                        <div key={label} className="text-center bg-gray-100 dark:bg-gray-700/40 rounded py-1">
                           <div className={`text-xs font-bold ${cls}`}>{val}</div>
                           <div className="text-[10px] text-gray-500">{label}</div>
                         </div>
@@ -1266,7 +1266,7 @@ function ClanRankingTab({ data, loading }) {
               <div className="hidden sm:block bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-xs text-gray-400 border-b border-gray-700">
+                    <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                       <th className="text-left px-4 py-2">순위</th>
                       <th className="text-left px-4 py-2">닉네임</th>
                       <th className="text-right px-3 py-2">현재 MMR</th>
@@ -1277,7 +1277,7 @@ function ClanRankingTab({ data, loading }) {
                   </thead>
                   <tbody>
                     {growthKing.map((m, i) => (
-                      <tr key={m.nickname} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
+                      <tr key={m.nickname} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                         <td className="px-4 py-2.5 font-bold">{rankMedal(i)}</td>
                         <td className="px-4 py-2.5"><Link href={`/player/${encodeURIComponent(m.server)}/${encodeURIComponent(m.nickname)}`} className="hover:text-blue-400 transition-colors">{m.nickname}</Link></td>
                         <td className="px-3 py-2.5 text-right font-bold text-blue-400">{m.currentMmr.toLocaleString()}</td>
@@ -1450,10 +1450,10 @@ function MemberCard({ member, idx, allMembers, showTier }) {
           {member.playerName}
         </div>
       </Link>
-      <div className="text-xs text-gray-400 space-y-0.5">
-        <div>MMR <span className="text-white font-semibold">{member.mmr || '-'}</span></div>
-        <div>딜 <span className="text-white font-semibold">{member.stats?.avgDamage || '-'}</span></div>
-        <div>TOP10 <span className="text-white font-semibold">{member.stats?.top10Rate ? `${Number(member.stats.top10Rate).toFixed(0)}%` : '-'}</span></div>
+      <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+        <div>MMR <span className="text-gray-900 dark:text-white font-semibold">{member.mmr || '-'}</span></div>
+        <div>딜 <span className="text-gray-900 dark:text-white font-semibold">{member.stats?.avgDamage || '-'}</span></div>
+        <div>TOP10 <span className="text-gray-900 dark:text-white font-semibold">{member.stats?.top10Rate ? `${Number(member.stats.top10Rate).toFixed(0)}%` : '-'}</span></div>
       </div>
     </div>
   );
@@ -1463,16 +1463,16 @@ function MemberCard({ member, idx, allMembers, showTier }) {
 function SquadBlock({ squad, squadIdx, label, allMembers, gridCols, showTier }) {
   const balScore = teamBalanceScore(squad, allMembers);
   return (
-    <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
+    <div className="bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
       <div className="flex items-center gap-3 mb-3">
         <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
           {squadIdx + 1}
         </span>
-        <span className="text-sm font-bold text-gray-200">{label}</span>
+        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{label}</span>
         <div className="flex items-center gap-1.5 ml-auto">
           <span className="text-xs text-gray-500">밸런스</span>
-          <span className="text-sm font-black text-white">{balScore}</span>
-          <div className="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+          <span className="text-sm font-black text-gray-900 dark:text-white">{balScore}</span>
+          <div className="w-16 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full ${balScore >= 70 ? 'bg-green-500' : balScore >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
               style={{ width: `${balScore}%` }}
@@ -1501,10 +1501,10 @@ function UnassignedRow({ members, size }) {
         {members.map(member => {
           const role = ROLE_META[member._role] || ROLE_META.support;
           return (
-            <div key={member.playerName || member.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-700 bg-gray-800">
+            <div key={member.playerName || member.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <span className="text-base w-6 text-center">{role.emoji}</span>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-white truncate">{member.playerName}</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{member.playerName}</div>
                 <div className="text-xs text-gray-500">MMR {member.mmr || '-'} · 딜 {member.stats?.avgDamage || '-'}</div>
               </div>
               <span className={`text-xs font-bold ${role.color}`}>{role.label}</span>
@@ -1553,7 +1553,7 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
 
   if (!hasStats) {
     return (
-      <div className="bg-gray-800 rounded-xl p-10 text-center text-gray-500">
+      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-10 text-center text-gray-500">
         클랜원 스탯 데이터가 없어 스쿼드 추천을 사용할 수 없습니다.
       </div>
     );
@@ -1565,10 +1565,10 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
 
         {/* 클랜원 선택 리스트 */}
-        <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4">
+        <div className="bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <span className="text-sm font-bold text-gray-200">클랜원 선택</span>
+              <span className="text-sm font-bold text-gray-800 dark:text-gray-200">클랜원 선택</span>
               <span className="ml-2 text-xs text-gray-500">{selectedMembers.length}/{validMembers.length}명 선택됨</span>
             </div>
             <div className="flex gap-2">
@@ -1585,18 +1585,18 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
                 <label
                   key={id}
                   className={`flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-colors ${
-                    checked ? 'bg-blue-600/15 border border-blue-600/30' : 'border border-transparent hover:bg-gray-700/50'
+                    checked ? 'bg-blue-600/15 border border-blue-600/30' : 'border border-transparent hover:bg-gray-100 dark:hover:bg-gray-700/50'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => toggleMember(id)}
-                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-600 flex-shrink-0"
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-blue-600 focus:ring-blue-600 flex-shrink-0"
                   />
                   <span className="text-base w-5 text-center flex-shrink-0">{role.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-white truncate">{m.playerName}</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{m.playerName}</div>
                     <div className="text-xs text-gray-500">MMR {m.mmr || '-'} · 딜 {m.stats?.avgDamage || '-'}</div>
                   </div>
                   <span className={`text-xs font-bold flex-shrink-0 ${role.color}`}>{role.label}</span>
@@ -1609,7 +1609,7 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
         {/* 설정 패널 */}
         <div className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4 flex flex-col gap-4">
           <div>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">스쿼드 크기</div>
+            <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">스쿼드 크기</div>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { size: 4, label: '4인 스쿼드' },
@@ -1622,7 +1622,7 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
                   className={`py-2 rounded-xl text-sm font-bold transition-colors border ${
                     squadSize === size
                       ? 'bg-blue-600 border-blue-500 text-white'
-                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                      : 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
                   {label}
@@ -1632,14 +1632,14 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
           </div>
 
           <div>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">분류 방식</div>
+            <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">분류 방식</div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setMode('balanced')}
                 className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-colors border text-left ${
                   mode === 'balanced'
                     ? 'bg-emerald-600/30 border-emerald-500/60 text-emerald-300'
-                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 <div>⚖️ 밸런스형</div>
@@ -1650,7 +1650,7 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
                 className={`py-2.5 px-3 rounded-xl text-sm font-bold transition-colors border text-left ${
                   mode === 'tier'
                     ? 'bg-yellow-600/20 border-yellow-500/50 text-yellow-300'
-                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 <div>🏅 1군·2군·3군</div>
@@ -1659,7 +1659,7 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
             </div>
           </div>
 
-          <div className="mt-auto pt-2 border-t border-gray-700">
+          <div className="mt-auto pt-2 border-t border-gray-200 dark:border-gray-700">
             <div className="text-xs text-gray-500 mb-3">
               {selectedMembers.length}명 선택 →&nbsp;
               {mode === 'balanced'
@@ -1672,7 +1672,7 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
               className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors ${
                 selectedMembers.length >= 2
                   ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-900/40'
-                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
               }`}
             >
               🎲 스쿼드 추천 받기
@@ -1735,9 +1735,9 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
       )}
 
       {!result && (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-10 text-center">
+        <div className="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-10 text-center">
           <div className="text-4xl mb-3">⚡</div>
-          <div className="text-gray-300 font-semibold mb-1">클랜원을 선택하고 편성 방식을 설정하세요</div>
+          <div className="text-gray-700 dark:text-gray-300 font-semibold mb-1">클랜원을 선택하고 편성 방식을 설정하세요</div>
           <p className="text-sm text-gray-500">왼쪽 목록에서 참가할 클랜원을 체크한 뒤 추천 버튼을 누르세요</p>
         </div>
       )}

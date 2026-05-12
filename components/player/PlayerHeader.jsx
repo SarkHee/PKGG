@@ -39,10 +39,12 @@ const PlayerHeader = ({
   refreshMsg,
   mmr = 1000,
   dataSource,
+  onBotFilterChange,
 }) => {
   const [showRankedDetails, setShowRankedDetails] = useState(false);
   const [showSeasonDetails, setShowSeasonDetails] = useState(false);
   const [showRecentDetails, setShowRecentDetails] = useState(false);
+  const [botFilterOn, setBotFilterOn] = useState(false);
   const excludeEvents = true;
   const router = useRouter();
   const shard = (router.query.server || 'steam');
@@ -67,6 +69,13 @@ const PlayerHeader = ({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleBotFilter = () => {
+    setBotFilterOn((v) => {
+      onBotFilterChange?.(!v);
+      return !v;
+    });
   };
 
   // 리뷰 로드
@@ -370,12 +379,15 @@ const PlayerHeader = ({
                   >{saving ? '저장 중...' : <>📷<span className="hidden sm:inline"> 카드</span></>}</button>
                 </Tooltip>
               )}
-              <Tooltip content="해당 기능 업데이트 예정">
-                <button
-                  disabled
-                  className="px-2.5 py-1.5 rounded-xl border border-dashed border-white/20 bg-white/5 text-white/25 text-sm font-bold cursor-not-allowed select-none"
-                >🤖<span className="hidden sm:inline"> 봇킬 필터</span></button>
-              </Tooltip>
+              <button
+                onClick={handleBotFilter}
+                title={botFilterOn ? '봇(AI) 킬을 제외한 실제 플레이어 킬만 표시해요' : '봇(AI) 킬이 포함된 수치예요'}
+                className={`px-2.5 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
+                  botFilterOn
+                    ? 'bg-cyan-500 border-cyan-400 text-white'
+                    : 'border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300'
+                }`}
+              >🤖<span className="hidden sm:inline">{botFilterOn ? ' 봇킬 제외 ✓' : ' 봇킬 포함'}</span></button>
               {(() => {
                 const tier = getMMRTier(displayMmr);
                 const tooltipText = `PKGG 추정 점수 — 배그 공식 수치 아님\n\n계산 기준\n💥 평균 딜량   30%\n🎯 평균 킬수   25%\n🏆 승률        20%\n🛡️ Top10 진입  10%\n🤝 평균 어시   8%\n⏱️ 평균 생존   7%\n\n📌 ${mmrSource}`;
@@ -426,15 +438,15 @@ const PlayerHeader = ({
       </div>
 
       {/* 스탯 카드 영역 */}
-      <div className="bg-white border-x border-b border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100 items-stretch">
+      <div className="bg-white dark:bg-gray-900 border-x border-b border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-gray-700 items-stretch">
 
           {/* ── 1. 시즌 성과 ── */}
           <div className="p-4 sm:p-5 flex flex-col">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">일반게임</h2>
+              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">일반게임</h2>
               {seasonStat && (
                 <span className="ml-auto text-xs bg-blue-50 text-blue-500 border border-blue-100 px-2 py-0.5 rounded-full font-semibold">
                   {seasonStat.rounds}경기
@@ -446,36 +458,36 @@ const PlayerHeader = ({
               <>
                 {/* 핵심 스탯 2개 */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
                     <div className="text-xs text-blue-400 mb-1 font-medium">평균 딜량</div>
-                    <div className="text-lg font-black text-gray-900">{seasonStat.avgDamage}</div>
+                    <div className="text-lg font-black text-gray-900 dark:text-gray-100">{seasonStat.avgDamage}</div>
                   </div>
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
                     <div className="text-xs text-blue-400 mb-1 font-medium">평균 킬</div>
-                    <div className="text-lg font-black text-gray-900">{seasonStat.avgKills}</div>
+                    <div className="text-lg font-black text-gray-900 dark:text-gray-100">{seasonStat.avgKills}</div>
                   </div>
                 </div>
 
                 {/* 보조 스탯 3개 */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">승률</div>
-                    <div className="text-sm font-bold text-gray-700">{seasonStat.winRate}%</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{seasonStat.winRate}%</div>
                   </div>
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">TOP10</div>
-                    <div className="text-sm font-bold text-gray-700">{seasonStat.top10Rate}%</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{seasonStat.top10Rate}%</div>
                   </div>
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">생존</div>
-                    <div className="text-sm font-bold text-gray-700">{Math.round(seasonStat.avgSurvival / 60)}분</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{Math.round(seasonStat.avgSurvival / 60)}분</div>
                   </div>
                 </div>
 
                 {/* 상세 통계 버튼 */}
                 <button
                   onClick={() => setShowSeasonDetails(!showSeasonDetails)}
-                  className="w-full py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 text-xs font-bold rounded-lg transition-colors"
+                  className="w-full py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg transition-colors"
                 >
                   {showSeasonDetails ? '▲ 상세 숨기기' : '▼ 모드별 상세 통계'}
                 </button>
@@ -492,9 +504,9 @@ const PlayerHeader = ({
                   };
                   const activeModes = Object.entries(seasonData).filter(([, ms]) => (ms.rounds || 0) > 0);
                   return (
-                    <div className="mt-3 rounded-xl border border-blue-100 overflow-hidden">
-                      <div className="px-3 py-2 bg-blue-50 border-b border-blue-100">
-                        <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">모드별 통계</span>
+                    <div className="mt-3 rounded-xl border border-blue-100 dark:border-blue-800 overflow-hidden">
+                      <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800">
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">모드별 통계</span>
                       </div>
                       <div className="p-2 space-y-1.5">
                         {activeModes.length === 0 ? (
@@ -502,10 +514,10 @@ const PlayerHeader = ({
                         ) : activeModes.map(([mode, ms]) => {
                           const meta = MODE_META[mode] || { label: mode, view: '', fpp: false };
                           return (
-                          <div key={mode} className={`rounded-lg bg-white border p-2 ${meta.fpp ? 'border-orange-200' : 'border-blue-100'}`}>
+                          <div key={mode} className={`rounded-lg bg-white dark:bg-gray-800 border p-2 ${meta.fpp ? 'border-orange-200 dark:border-orange-800' : 'border-blue-100 dark:border-blue-800'}`}>
                             <div className="flex items-center gap-1.5 mb-1.5">
-                              <span className="text-xs font-bold text-gray-700">{meta.label}</span>
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${meta.fpp ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{meta.label}</span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${meta.fpp ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
                                 {meta.view}
                               </span>
                             </div>
@@ -516,9 +528,9 @@ const PlayerHeader = ({
                                 { label: '평균킬', value: ((ms.totalKills || 0) / (ms.rounds || 1)).toFixed(1) },
                                 { label: '승률', value: (((ms.wins || 0) / (ms.rounds || 1)) * 100).toFixed(1) + '%' },
                               ].map(({ label, value }) => (
-                                <div key={label} className={`rounded p-1.5 text-center ${meta.fpp ? 'bg-orange-50/60' : 'bg-blue-50/60'}`}>
+                                <div key={label} className={`rounded p-1.5 text-center ${meta.fpp ? 'bg-orange-50/60 dark:bg-orange-900/20' : 'bg-blue-50/60 dark:bg-blue-900/20'}`}>
                                   <div className={`text-[10px] font-medium ${meta.fpp ? 'text-orange-400' : 'text-blue-400'}`}>{label}</div>
-                                  <div className="text-xs font-bold text-gray-800">{value}</div>
+                                  <div className="text-xs font-bold text-gray-800 dark:text-gray-200">{value}</div>
                                 </div>
                               ))}
                             </div>
@@ -544,7 +556,7 @@ const PlayerHeader = ({
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-cyan-500 rounded-full"></div>
-              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">최근 {recent20Stats.totalMatches}경기</h2>
+              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">최근 {recent20Stats.totalMatches}경기</h2>
               <span className="px-1.5 py-0.5 bg-cyan-50 border border-cyan-200 rounded-full text-[10px] text-cyan-500 font-medium">이벤트 제외</span>
               {/* 폼 배지 + 말풍선 */}
               <div className="ml-auto relative flex flex-col items-end">
@@ -564,36 +576,58 @@ const PlayerHeader = ({
               <>
                 {/* 핵심 스탯 2개 */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-3 text-center">
+                  <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800 rounded-xl p-3 text-center">
                     <div className="text-xs text-cyan-500 mb-1 font-medium">평균 딜량</div>
-                    <div className="text-lg font-black text-gray-900">{recent20Stats.avgDamage.toFixed(0)}</div>
+                    <div className="text-lg font-black text-gray-900 dark:text-gray-100">{recent20Stats.avgDamage.toFixed(0)}</div>
                   </div>
-                  <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-3 text-center">
-                    <div className="text-xs text-cyan-500 mb-1 font-medium">평균 킬</div>
-                    <div className="text-lg font-black text-gray-900">{recent20Stats.avgKills.toFixed(1)}</div>
+                  <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800 rounded-xl p-3 text-center">
+                    {(() => {
+                      const recent20 = filteredRecentMatches.slice(0, 20)
+                      const corrected = recent20.filter((m) => m.isBotCorrected)
+                      const avgReal = botFilterOn && corrected.length > 0
+                        ? corrected.reduce((s, m) => s + (m.realKills ?? m.kills ?? 0), 0) / corrected.length
+                        : null
+                      const avgBot = botFilterOn && corrected.length > 0
+                        ? corrected.reduce((s, m) => s + (m.botKills ?? 0), 0) / corrected.length
+                        : null
+                      return <>
+                        <div className="text-xs text-cyan-500 mb-1 font-medium">
+                          {botFilterOn ? '실킬 평균' : '평균 킬'}
+                        </div>
+                        <div className="text-lg font-black text-gray-900 dark:text-gray-100">
+                          {avgReal !== null ? avgReal.toFixed(1) : recent20Stats.avgKills.toFixed(1)}
+                        </div>
+                        {avgBot !== null && (
+                          <div className="text-[10px] text-gray-400 mt-0.5">봇 {avgBot.toFixed(1)}킬 제외</div>
+                        )}
+                        {botFilterOn && corrected.length === 0 && (
+                          <div className="text-[10px] text-gray-400 mt-0.5">데이터 없음</div>
+                        )}
+                      </>
+                    })()}
                   </div>
                 </div>
 
                 {/* 보조 스탯 3개 */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">승률</div>
-                    <div className="text-sm font-bold text-gray-700">{recent20Stats.winRate.toFixed(1)}%</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{recent20Stats.winRate.toFixed(1)}%</div>
                   </div>
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">Top10</div>
-                    <div className="text-sm font-bold text-gray-700">{recent20Stats.top10Rate.toFixed(1)}%</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{recent20Stats.top10Rate.toFixed(1)}%</div>
                   </div>
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">어시스트</div>
-                    <div className="text-sm font-bold text-gray-700">{recent20Stats.avgAssists.toFixed(1)}</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{recent20Stats.avgAssists.toFixed(1)}</div>
                   </div>
                 </div>
 
                 {/* 상세 통계 버튼 */}
                 <button
                   onClick={() => setShowRecentDetails(!showRecentDetails)}
-                  className="w-full py-2 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 text-cyan-600 text-xs font-bold rounded-lg transition-colors"
+                  className="w-full py-2 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800 text-cyan-600 dark:text-cyan-400 text-xs font-bold rounded-lg transition-colors"
                 >
                   {showRecentDetails ? '▲ 상세 숨기기' : '▼ 추가 상세 통계'}
                 </button>
@@ -604,32 +638,45 @@ const PlayerHeader = ({
                   const totalKills = recent.reduce((s, m) => s + (m.kills || 0), 0);
                   const totalDmg = recent.reduce((s, m) => s + (m.damage || 0), 0);
                   const totalDeaths = recent.filter((m) => (m.rank || m.placement || 100) > 1).length;
-                  const kd = totalDeaths > 0 ? (totalKills / totalDeaths).toFixed(2) : totalKills.toFixed(2);
                   const avgSurv = recent20Stats.avgSurvivalTime;
                   const totalAssists = recent.reduce((s, m) => s + (m.assists || 0), 0);
+
+                  // 봇 필터 ON이면 실킬 기준 KD 계산 (isBotCorrected인 경기만 realKills 적용)
+                  const effectiveKills = botFilterOn
+                    ? recent.reduce((s, m) => s + (m.isBotCorrected ? (m.realKills ?? m.kills ?? 0) : (m.kills ?? 0)), 0)
+                    : totalKills
+                  const kd = totalDeaths > 0
+                    ? (effectiveKills / totalDeaths).toFixed(2)
+                    : effectiveKills.toFixed(2)
+
                   return (
-                    <div className="mt-3 rounded-xl border border-cyan-100 overflow-hidden">
-                      <div className="px-3 py-2 bg-cyan-50 border-b border-cyan-100">
-                        <span className="text-xs font-bold text-cyan-600 uppercase tracking-wider">추가 통계</span>
-                      </div>
-                      <div className="p-2">
-                        <div className="grid grid-cols-3 gap-1.5">
-                          {[
-                            { label: '최고 딜량', value: maxDmg.toLocaleString(), color: 'text-orange-500' },
-                            { label: 'K/D', value: kd, color: 'text-red-500' },
-                            { label: '평균 생존', value: Math.round(avgSurv / 60) + '분', color: 'text-gray-500' },
-                            { label: '총 딜량', value: totalDmg.toLocaleString(), color: 'text-cyan-600' },
-                            { label: '총 킬', value: totalKills.toLocaleString(), color: 'text-red-400' },
-                            { label: '총 어시스트', value: totalAssists.toLocaleString(), color: 'text-blue-400' },
-                          ].map(({ label, value, color }) => (
-                            <div key={label} className="bg-white rounded-lg p-2.5 text-center border border-gray-100">
-                              <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
-                              <div className="text-sm font-black text-gray-900">{value}</div>
-                            </div>
-                          ))}
+                    <>
+                      <div className="mt-3 rounded-xl border border-cyan-100 dark:border-cyan-800 overflow-hidden">
+                        <div className="px-3 py-2 bg-cyan-50 dark:bg-cyan-900/20 border-b border-cyan-100 dark:border-cyan-800 flex items-center justify-between">
+                          <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">추가 통계</span>
+                          {botFilterOn && <span className="text-[10px] text-cyan-400">🤖 실킬 기준</span>}
+                        </div>
+                        <div className="p-2">
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {[
+                              { label: '최고 딜량', value: maxDmg.toLocaleString(), color: 'text-orange-500' },
+                              { label: botFilterOn ? '실K/D' : 'K/D', value: kd, color: 'text-red-500' },
+                              { label: '평균 생존', value: Math.round(avgSurv / 60) + '분', color: 'text-gray-500 dark:text-gray-400' },
+                              { label: '총 딜량', value: totalDmg.toLocaleString(), color: 'text-cyan-600' },
+                              { label: botFilterOn ? '총 실킬' : '총 킬', value: effectiveKills.toLocaleString(), color: 'text-red-400' },
+                              { label: '총 어시스트', value: totalAssists.toLocaleString(), color: 'text-blue-400' },
+                            ].map(({ label, value, color }) => (
+                              <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
+                                <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
+                                <div className="text-sm font-black text-gray-900 dark:text-gray-100">{value}</div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
+
+                      {/* 봇킬 분석 — 매치별 내역 */}
+                    </>
                   );
                 })()}
               </>
@@ -646,42 +693,42 @@ const PlayerHeader = ({
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
-              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">경쟁전</h2>
-              <span className="ml-auto text-xs bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full font-semibold">PUBG 공식</span>
+              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">경쟁전</h2>
+              <span className="ml-auto text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full font-semibold">PUBG 공식</span>
             </div>
 
             {rankedSummary && rankedSummary.games > 0 ? (
               <>
                 {/* 핵심 스탯 */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl p-3 text-center">
                     <div className="text-xs text-amber-500 mb-1 font-medium">랭크</div>
-                    <div className="text-base font-black text-gray-900">
+                    <div className="text-base font-black text-gray-900 dark:text-gray-100">
                       {rankedSummary.currentTier || rankedSummary.tier || 'Unranked'}
                       {rankedSummary.subTier && rankedSummary.subTier > 0 ? ` ${rankedSummary.subTier}` : ''}
                     </div>
                     <div className="text-xs text-amber-500 font-semibold">{rankedSummary.rp || 0} RP</div>
                   </div>
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 text-center">
                     <div className="text-xs text-gray-400 mb-1 font-medium">게임수</div>
-                    <div className="text-base font-black text-gray-900">{rankedSummary.games || 0}</div>
+                    <div className="text-base font-black text-gray-900 dark:text-gray-100">{rankedSummary.games || 0}</div>
                     <div className="text-xs text-gray-400">K/D {(rankedSummary.kd || 0).toFixed(1)}</div>
                   </div>
                 </div>
 
                 {/* 보조 스탯 */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">평균딜</div>
-                    <div className="text-sm font-bold text-gray-700">{(rankedSummary.avgDamage || 0).toFixed(0)}</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{(rankedSummary.avgDamage || 0).toFixed(0)}</div>
                   </div>
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">승률</div>
-                    <div className="text-sm font-bold text-gray-700">{(rankedSummary.winRate || 0).toFixed(1)}%</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{(rankedSummary.winRate || 0).toFixed(1)}%</div>
                   </div>
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
                     <div className="text-xs text-gray-400 mb-0.5">TOP10</div>
-                    <div className="text-sm font-bold text-gray-700">
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
                       {typeof rankedSummary.top10Ratio === 'number'
                         ? (rankedSummary.top10Ratio * 100).toFixed(1)
                         : (rankedSummary.top10Rate || 0).toFixed(1)}%
@@ -692,15 +739,15 @@ const PlayerHeader = ({
                 {/* 상세 통계 버튼 */}
                 <button
                   onClick={() => setShowRankedDetails(!showRankedDetails)}
-                  className="w-full py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-600 text-xs font-bold rounded-lg transition-colors"
+                  className="w-full py-2 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-lg transition-colors"
                 >
                   {showRankedDetails ? '▲ 상세 숨기기' : '▼ 상세 통계 보기'}
                 </button>
 
                 {showRankedDetails && (
-                  <div className="mt-3 rounded-xl border border-amber-100 overflow-hidden">
-                    <div className="px-3 py-2 bg-amber-50 border-b border-amber-100">
-                      <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">상세 경쟁전 통계</span>
+                  <div className="mt-3 rounded-xl border border-amber-100 dark:border-amber-800 overflow-hidden">
+                    <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800">
+                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">상세 경쟁전 통계</span>
                     </div>
                     <div className="p-2 space-y-1.5">
                       {/* 킬/데스/KDA */}
@@ -710,9 +757,9 @@ const PlayerHeader = ({
                           { label: '데스', value: (rankedSummary.deaths || 0).toLocaleString(), color: 'text-gray-500' },
                           { label: 'KDA', value: typeof rankedSummary.kda === 'number' ? rankedSummary.kda.toFixed(1) : '0.0', color: 'text-blue-500' },
                         ].map(({ label, value, color }) => (
-                          <div key={label} className="bg-white rounded-lg p-2.5 text-center border border-gray-100">
+                          <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                             <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
-                            <div className="text-sm font-black text-gray-900">{value}</div>
+                            <div className="text-sm font-black text-gray-900 dark:text-gray-100">{value}</div>
                           </div>
                         ))}
                       </div>
@@ -723,22 +770,20 @@ const PlayerHeader = ({
                           { label: '승리', value: (rankedSummary.wins || 0).toLocaleString(), color: 'text-green-500' },
                           { label: '기절', value: (rankedSummary.dBNOs || 0).toLocaleString(), color: 'text-purple-400' },
                         ].map(({ label, value, color }) => (
-                          <div key={label} className="bg-white rounded-lg p-2.5 text-center border border-gray-100">
+                          <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                             <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
-                            <div className="text-sm font-black text-gray-900">{value}</div>
+                            <div className="text-sm font-black text-gray-900 dark:text-gray-100">{value}</div>
                           </div>
                         ))}
                       </div>
-                      {/* 헤드샷/총딜 */}
-                      <div className="grid grid-cols-3 gap-1.5">
+                      {/* 총딜 */}
+                      <div className="grid grid-cols-1 gap-1.5">
                         {[
-                          { label: '헤드샷 킬', value: (rankedSummary.headshotKills || 0).toLocaleString(), color: 'text-red-400' },
-                          { label: '헤드샷 비율', value: (typeof rankedSummary.headshotRate === 'number' ? rankedSummary.headshotRate.toFixed(1) : '0.0') + '%', color: 'text-red-400' },
                           { label: '총 딜량', value: (rankedSummary.damageDealt || 0).toLocaleString(), color: 'text-orange-500' },
                         ].map(({ label, value, color }) => (
-                          <div key={label} className="bg-white rounded-lg p-2.5 text-center border border-gray-100">
+                          <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                             <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
-                            <div className="text-sm font-black text-gray-900">{value}</div>
+                            <div className="text-sm font-black text-gray-900 dark:text-gray-100">{value}</div>
                           </div>
                         ))}
                       </div>
@@ -748,9 +793,9 @@ const PlayerHeader = ({
                           { label: '최고 티어', value: rankedSummary.bestTier || 'Unranked', color: 'text-amber-500' },
                           { label: '최고 RP', value: (rankedSummary.bestRankPoint || 0).toLocaleString(), color: 'text-amber-500' },
                         ].map(({ label, value, color }) => (
-                          <div key={label} className="bg-white rounded-lg p-2.5 text-center border border-gray-100">
+                          <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                             <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
-                            <div className="text-sm font-black text-gray-900">{value}</div>
+                            <div className="text-sm font-black text-gray-900 dark:text-gray-100">{value}</div>
                           </div>
                         ))}
                       </div>

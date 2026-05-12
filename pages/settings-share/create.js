@@ -35,7 +35,7 @@ const AA_OPTIONS = [
 
 const Field = ({ label, sub, required, children, error }) => (
   <div>
-    <label className="block text-sm font-semibold text-gray-300 mb-1">
+    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
       {label} {required && <span className="text-red-400">*</span>}
       {sub && <span className="ml-1 text-xs text-gray-600 font-normal">{sub}</span>}
     </label>
@@ -44,12 +44,12 @@ const Field = ({ label, sub, required, children, error }) => (
   </div>
 );
 
-const inputCls  = "w-full px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:border-purple-500 text-sm placeholder-gray-600";
-const selectCls = "w-full px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:border-purple-500 text-sm cursor-pointer";
+const inputCls  = "w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl focus:outline-none focus:border-purple-500 text-sm placeholder-gray-400 dark:placeholder-gray-600";
+const selectCls = "w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl focus:outline-none focus:border-purple-500 text-sm cursor-pointer";
 
 const SECTION = ({ title, children }) => (
-  <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 space-y-4">
-    <p className="text-sm font-bold text-gray-400 uppercase tracking-wide">{title}</p>
+  <div className="bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 space-y-4">
+    <p className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{title}</p>
     {children}
   </div>
 );
@@ -169,18 +169,18 @@ export default function SettingsCreate() {
   const showKeybind  = form.type === 'keybind'  || form.type === 'full';
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Head><title>세팅 공유 작성 | PKGG</title></Head>
       <Header />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <Link href="/settings-share" passHref>
-            <span className="text-gray-500 hover:text-gray-300 cursor-pointer text-sm">← 세팅 공유</span>
+            <span className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer text-sm">← 세팅 공유</span>
           </Link>
         </div>
 
-        <h1 className="text-2xl font-black text-white mb-1">⚙️ 세팅 공유 작성</h1>
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">⚙️ 세팅 공유 작성</h1>
         <p className="text-sm text-gray-500 mb-8">내 인게임 세팅을 공유해보세요</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -189,8 +189,8 @@ export default function SettingsCreate() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="닉네임" required error={errors.author}>
               {linkedNickname ? (
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-700 border border-blue-500/50 rounded-xl">
-                  <span className="text-sm font-medium text-gray-200">{linkedNickname}</span>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-gray-700 border border-blue-300 dark:border-blue-500/50 rounded-xl">
+                  <span className="text-sm font-medium text-blue-800 dark:text-gray-200">{linkedNickname}</span>
                   <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
                 </div>
               ) : (
@@ -215,14 +215,14 @@ export default function SettingsCreate() {
 
           {/* 세팅 유형 */}
           <div>
-            <p className="text-sm font-semibold text-gray-300 mb-2">세팅 유형 <span className="text-red-400">*</span></p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">세팅 유형 <span className="text-red-400">*</span></p>
             <div className="grid grid-cols-2 gap-2">
               {TYPE_OPTIONS.map(o => (
                 <button key={o.value} type="button" onClick={() => set('type', o.value)}
                   className={`p-3 rounded-xl border text-left transition-all ${
                     form.type === o.value
-                      ? 'bg-purple-600/20 border-purple-500 text-white'
-                      : 'bg-gray-900 border-gray-800 text-gray-400 hover:border-gray-600'
+                      ? 'bg-purple-600/20 border-purple-500 text-purple-800 dark:text-white'
+                      : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-600'
                   }`}>
                   <div className="text-sm font-bold">{o.label}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{o.desc}</div>
@@ -292,11 +292,11 @@ export default function SettingsCreate() {
                 </Field>
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-300 mb-2">스코프 감도 <span className="text-gray-600 font-normal text-xs">(선택)</span></p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">스코프 감도 <span className="text-gray-600 font-normal text-xs">(선택)</span></p>
                 <div className="grid grid-cols-5 gap-2">
                   {[['scope2x','2배'],['scope3x','3배'],['scope4x','4배'],['scope6x','6배'],['scope8x','8배']].map(([k,lbl]) => (
                     <div key={k}>
-                      <p className="text-xs text-gray-600 mb-1 text-center">{lbl}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-600 mb-1 text-center">{lbl}</p>
                       <input type="number" placeholder="-" min={1} max={100} step={0.1}
                         value={form[k]} onChange={e => set(k, e.target.value)}
                         className={`${inputCls} text-center px-2`} />
@@ -315,7 +315,7 @@ export default function SettingsCreate() {
                   rows={5} maxLength={1000}
                   value={form.keybindText} onChange={e => set('keybindText', e.target.value)}
                   className={`${inputCls} resize-none`} />
-                <p className="text-xs text-gray-700 mt-1 text-right">{form.keybindText.length}/1000</p>
+                <p className="text-xs text-gray-500 dark:text-gray-700 mt-1 text-right">{form.keybindText.length}/1000</p>
               </Field>
             </SECTION>
           )}
@@ -334,18 +334,18 @@ export default function SettingsCreate() {
               rows={4} maxLength={500}
               value={form.description} onChange={e => set('description', e.target.value)}
               className={`${inputCls} resize-none`} />
-            <p className="text-xs text-gray-700 mt-1 text-right">{form.description.length}/500</p>
+            <p className="text-xs text-gray-500 dark:text-gray-700 mt-1 text-right">{form.description.length}/500</p>
           </Field>
 
           {errors.general && (
-            <p className="text-sm text-red-400 bg-red-900/20 border border-red-900/30 rounded-xl px-4 py-3">
+            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 rounded-xl px-4 py-3">
               {errors.general}
             </p>
           )}
 
           <div className="flex gap-3 pt-2">
             <Link href="/settings-share" passHref>
-              <span className="flex-1 py-3 text-center bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-xl cursor-pointer text-sm transition-all">
+              <span className="flex-1 py-3 text-center bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold rounded-xl cursor-pointer text-sm transition-all">
                 취소
               </span>
             </Link>

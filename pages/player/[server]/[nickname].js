@@ -19,13 +19,13 @@ const RankDistributionChart = dynamic(() => import('../../../components/charts/R
 const SynergyHeatmap        = dynamic(() => import('../../../components/charts/SynergyHeatmap'), { ssr: false });
 const EnhancedPlayerStats   = dynamic(() => import('../../../components/player/EnhancedPlayerStats'), { ssr: false });
 const MatchDetailExpandable = dynamic(() => import('../../../components/match/MatchDetailExpandable'), { ssr: false });
-const WeaponMasteryCard     = dynamic(() => import('../../../components/player/WeaponMasteryCard'), { ssr: false, loading: () => <div className="h-40 bg-gray-100 animate-pulse rounded-xl" /> });
-const GrowthChart           = dynamic(() => import('../../../components/player/GrowthChart'), { ssr: false, loading: () => <div className="h-48 bg-gray-100 animate-pulse rounded-xl" /> });
-const AICoachingCard        = dynamic(() => import('../../../components/player/AICoachingCard'), { ssr: false, loading: () => <div className="h-32 bg-gray-100 animate-pulse rounded-xl" /> });
+const WeaponMasteryCard     = dynamic(() => import('../../../components/player/WeaponMasteryCard'), { ssr: false, loading: () => <div className="h-40 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" /> });
+const GrowthChart           = dynamic(() => import('../../../components/player/GrowthChart'), { ssr: false, loading: () => <div className="h-48 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" /> });
+const AICoachingCard        = dynamic(() => import('../../../components/player/AICoachingCard'), { ssr: false, loading: () => <div className="h-32 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" /> });
 const PlayerPercentileCard  = dynamic(() => import('../../../components/player/PlayerPercentileCard'), { ssr: false, loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-xl" /> });
 
 // 반드시 export default 함수 바깥에 위치!
-function MatchList({ recentMatches, playerData }) {
+function MatchList({ recentMatches, playerData, showBotKills }) {
   const [openIdx, setOpenIdx] = useState(null);
   return (
     <div className="space-y-4">
@@ -37,6 +37,7 @@ function MatchList({ recentMatches, playerData }) {
           onToggle={() => setOpenIdx(openIdx === i ? null : i)}
           prevMatch={i > 0 ? recentMatches[i - 1] : null}
           playerData={playerData}
+          showBotKills={showBotKills}
         />
       ))}
     </div>
@@ -420,10 +421,10 @@ function PlaystyleCard({ summary, mmr }) {
         <div className="flex items-center gap-2 mb-0.5">
           <span className={`text-sm font-black ${ps.color}`}>{ps.label}</span>
         </div>
-        <p className="text-xs text-gray-500 line-clamp-1">{ps.desc}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{ps.desc}</p>
       </div>
       <div className="flex-shrink-0 text-right">
-        <div className="text-[10px] text-gray-400 mb-0.5">PKGG 점수</div>
+        <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-0.5">PKGG 점수</div>
         <div className={`text-xl font-black ${ps.color}`}>{Math.round(mmr || 0)}</div>
       </div>
     </div>
@@ -477,21 +478,21 @@ function MapStatsCard({ matches }) {
     <div className="mb-6">
       <div className="flex items-center gap-3 mb-3 px-1">
         <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-        <h2 className="text-base font-bold text-gray-800">주 플레이 맵</h2>
-        <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">최근 20경기 기준</span>
+        <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">주 플레이 맵</h2>
+        <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">최근 20경기 기준</span>
       </div>
-      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm space-y-2.5">
+      <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm space-y-2.5">
         {sorted.map(([name, count]) => (
           <div key={name} className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-gray-600 w-12 flex-shrink-0 text-right">{name}</span>
-            <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 w-12 flex-shrink-0 text-right">{name}</span>
+            <div className="flex-1 h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${MAP_BAR_COLOR[name] || 'bg-blue-400'}`}
                 style={{ width: `${Math.round((count / maxCount) * 100)}%` }}
               />
             </div>
-            <span className="text-xs font-bold text-gray-700 w-7 text-right flex-shrink-0">{count}회</span>
-            <span className="text-[10px] text-gray-400 w-8 text-right flex-shrink-0">{Math.round((count / total) * 100)}%</span>
+            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-7 text-right flex-shrink-0">{count}회</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 w-8 text-right flex-shrink-0">{Math.round((count / total) * 100)}%</span>
           </div>
         ))}
       </div>
@@ -620,6 +621,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
   const [matchOffset, setMatchOffset] = useState(10);
   const [noMoreMatches, setNoMoreMatches] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [botFilterOn, setBotFilterOn] = useState(false);
 
   // 쿨타임 타이머 — early return 이전에 위치해야 훅 규칙 준수
   useEffect(() => {
@@ -784,20 +786,20 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
     return (
       <>
         <Header />
-        <div className="container mx-auto p-6 bg-gradient-to-br from-white via-gray-50 to-blue-50 min-h-screen">
+        <div className="container mx-auto p-6 bg-gradient-to-br from-white dark:from-gray-900 via-gray-50 dark:via-gray-900 to-blue-50 dark:to-gray-950 min-h-screen">
           <div className="max-w-2xl mx-auto mt-20">
-            <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-lg text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg text-center">
               <div className="mb-6">
-                <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-4xl">🔍</span>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   플레이어를 찾을 수 없습니다
                 </h1>
-                <p className="text-lg text-gray-600 mb-4">
+                <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
                   PKGG에 등록되어있지않은 플레이어입니다.
                 </p>
-                <p className="text-base text-gray-500">
+                <p className="text-base text-gray-500 dark:text-gray-400">
                   닉네임확인 후 다시 검색해주세요.
                 </p>
               </div>
@@ -1277,7 +1279,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
         </div>
       )}
       <Header />
-      <div className="bg-gray-50 min-h-screen text-gray-900">
+      <div className="bg-gray-50 dark:bg-gray-950 min-h-screen text-gray-900 dark:text-gray-100">
         <div className="max-w-screen-xl mx-auto px-4 py-6">
         <Head>
           <title>{`${profile?.nickname || '플레이어'} 배그 전적 | PKGG`}</title>
@@ -1296,22 +1298,22 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
         {/* 데이터 소스 알림 - 간결하게 */}
         {(dataSource === 'db_with_api_enhancement' || dataSource === 'enhanced') && (
-          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm">
+          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-xl text-sm">
             <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0"></span>
             <span className="font-medium">최신 데이터 반영 완료</span>
           </div>
         )}
         {(dataSource === 'pubg_api' || dataSource === 'pubg_api_only') && (
-          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm">
+          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
             <span className="font-medium">실시간 데이터 로드 완료</span>
           </div>
         )}
         {dataSource === 'pubg_api_refreshed' && (
-          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm">
+          <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse flex-shrink-0"></span>
             <span className="font-medium">최신화 완료</span>
-            <span className="text-emerald-500">— PUBG API에서 새로운 데이터를 불러왔습니다</span>
+            <span className="text-emerald-500 dark:text-emerald-400">— PUBG API에서 새로운 데이터를 불러왔습니다</span>
           </div>
         )}
 
@@ -1329,6 +1331,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
           refreshMsg={refreshMsg}
           mmr={displayData?.mmr || 1000}
           dataSource={dataSource}
+          onBotFilterChange={setBotFilterOn}
         />
 
         {/* 광고 1 */}
@@ -1343,7 +1346,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
         `}</style>
 
         {/* ── 섹션 탭 네비게이션 (sticky) ── */}
-        <div className="sticky top-[60px] z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200 -mx-4 px-4 mb-6">
+        <div className="sticky top-[60px] z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 -mx-4 px-4 mb-6">
           <nav className="flex gap-1 overflow-x-auto scrollbar-none py-2">
             {SECTION_TABS.map(tab => (
               <button
@@ -1352,7 +1355,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                 className={`flex-shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                   activeTab === tab.key
                     ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'
                 }`}
               >
                 <span className="hidden sm:inline">{tab.icon}</span>
@@ -1371,8 +1374,8 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4 px-1">
                   <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800">게임 모드별 통계</h2>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">게임 모드별 통계</h2>
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">상세 분석</span>
                 </div>
                 <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
               </div>
@@ -1382,11 +1385,11 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
               <section className="recent-matches-section mb-8">
                 <div className="flex items-center gap-3 mb-4 px-1">
                   <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800">최근 경기 내역</h2>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">최근 20경기</span>
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">최근 경기 내역</h2>
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">최근 20경기</span>
                 </div>
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="border-b border-gray-100 px-4 py-3 overflow-x-auto">
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                  <div className="border-b border-gray-100 dark:border-gray-700 px-4 py-3 overflow-x-auto">
                     <div className="flex gap-1 min-w-max">
                       {[
                         { label: '전체', key: '전체' },
@@ -1406,7 +1409,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                             selectedMatchFilter === key
                               ? key === '이벤트' ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white'
-                              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'
                           }`}
                         >
                           {label}
@@ -1418,27 +1421,27 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                     {matchesLoading ? (
                       <div className="space-y-3 animate-pulse">
                         {Array.from({ length: 5 }).map((_, i) => (
-                          <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
-                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0" />
+                          <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex-shrink-0" />
                             <div className="flex-1 space-y-2">
-                              <div className="h-4 bg-gray-200 rounded w-32" />
-                              <div className="h-3 bg-gray-200 rounded w-48" />
+                              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+                              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48" />
                             </div>
-                            <div className="h-8 w-16 bg-gray-200 rounded" />
+                            <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
                           </div>
                         ))}
                       </div>
                     ) : filteredMatches && filteredMatches.length > 0 ? (
-                      <MatchList recentMatches={filteredMatches} playerData={playerData} />
+                      <MatchList recentMatches={filteredMatches} playerData={playerData} showBotKills={botFilterOn} />
                     ) : (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <div className="text-4xl mb-3">📋</div>
-                        <div className="text-sm font-medium text-gray-600">
+                        <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
                           {selectedMatchFilter === '전체'
                             ? '최근 경기 데이터가 없습니다.'
                             : `${selectedMatchFilter} 모드의 기록된 전적이 없습니다.`}
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">게임을 플레이하면 데이터가 업데이트됩니다.</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">게임을 플레이하면 데이터가 업데이트됩니다.</div>
                       </div>
                     )}
                   </div>
@@ -1449,7 +1452,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                     <button
                       onClick={handleLoadMore}
                       disabled={loadingMore}
-                      className="flex items-center gap-2 px-8 py-3 rounded-xl bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center gap-2 px-8 py-3 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm font-medium shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loadingMore ? (
                         <>
@@ -1470,10 +1473,10 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                   <div ref={detailRef} className="mt-6 mb-8">
                     <div className="flex items-center gap-3 mb-4 px-1">
                       <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                      <h4 className="text-lg font-bold text-gray-800">경기 상세 정보</h4>
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">상세 분석</span>
+                      <h4 className="text-lg font-bold text-gray-800 dark:text-gray-100">경기 상세 정보</h4>
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">상세 분석</span>
                     </div>
-                    <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+                    <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
                       <MatchDetailExpandable matchId={selectedMatchId} />
                     </div>
                   </div>
@@ -1489,8 +1492,8 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4 px-1">
                   <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800">성장 추적</h2>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">시간별 성장 분석</span>
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">성장 추적</h2>
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">시간별 성장 분석</span>
                 </div>
                 {lazyVisible ? (
                   <GrowthChart
@@ -1498,7 +1501,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                     shard={profile.shardId || router.query.server || 'steam'}
                   />
                 ) : (
-                  <div className="h-48 bg-gray-100 animate-pulse rounded-xl" />
+                  <div className="h-48 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" />
                 )}
               </div>
 
@@ -1510,9 +1513,10 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                 const latestSeasonStats = seasonStats && Object.keys(seasonStats).length > 0
                   ? Object.values(seasonStats)[0]
                   : null
-                if (!latestSeasonStats) return null
-                let rankedCount = 0, normalCount = 0, eventCount = 0
-                for (const [mode, ms] of Object.entries(latestSeasonStats)) {
+                // gameModeStats에는 일반/이벤트 모드만 포함 — 경쟁전은 rankedSummary에서 별도 합산
+                let rankedCount = rankedSummary?.games || 0
+                let normalCount = 0, eventCount = 0
+                for (const [mode, ms] of Object.entries(latestSeasonStats || {})) {
                   const rounds = ms?.rounds || 0
                   if (rounds === 0) continue
                   const m = mode.toLowerCase()
@@ -1526,10 +1530,10 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                   <div className="mb-6">
                     <div className="flex items-center gap-3 mb-4 px-1">
                       <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                      <h2 className="text-lg font-bold text-gray-800">시즌 플레이 현황</h2>
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">이번 시즌 {total}경기</span>
+                      <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">시즌 플레이 현황</h2>
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">이번 시즌 {total}경기</span>
                     </div>
-                    <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+                    <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
                       <ModeDistributionChart modeDistribution={{
                         ranked: Math.round((rankedCount / total) * 100),
                         normal: Math.round((normalCount / total) * 100),
@@ -1545,13 +1549,13 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
               <div className="mb-6">
                 <div className="flex items-center gap-3 mb-4 px-1">
                   <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800">경기 추이 분석</h2>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">성과 트렌드</span>
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">경기 추이 분석</h2>
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">성과 트렌드</span>
                 </div>
-                <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+                <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-base">💪</span>
-                    <h4 className="text-sm font-bold text-gray-700">딜량 추이</h4>
+                    <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300">딜량 추이</h4>
                   </div>
                   <RecentDamageTrendChart matches={recentMatches} />
                 </div>
@@ -1561,7 +1565,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
               <div className="mb-6">
                 {lazyVisible
                   ? <PlayerPercentileCard playerStats={summary || profile} />
-                  : <div className="h-24 bg-gray-100 animate-pulse rounded-xl" />}
+                  : <div className="h-24 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" />}
               </div>
             </>
           )}
@@ -1585,7 +1589,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                     setMasteryWeapons(weapons)
                   }}
                 />}
-                {!lazyVisible && <div className="h-40 bg-gray-100 animate-pulse rounded-xl" />}
+                {!lazyVisible && <div className="h-40 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" />}
               </div>
             </div>
           )}
@@ -1615,7 +1619,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                   const clanName = typeof clanInfo === 'string' ? clanInfo : clanInfo?.name
                   const hasValidClan = clanName && clanName !== '-' && clanName !== '무소속' && clanName !== 'N/A'
                   return hasValidClan && clanMembers?.length > 0 ? (
-                    <div className="mt-10 pt-8 border-t border-gray-200">
+                    <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-700">
                       <SynergyHeatmap
                         matches={recentMatches}
                         myNickname={profile?.nickname}
@@ -1637,7 +1641,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                 <h2 className="text-lg font-bold text-gray-800">개인 맞춤형 AI 코칭</h2>
                 <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">훈련/피드백</span>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 {lazyVisible && <AICoachingCard
                   playerStats={(() => {
                     const latestSeasonStats =
@@ -1692,7 +1696,7 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                   masteryWeapons={masteryWeapons}
                   rankedStats={rankedSummary}
                 />}
-                {!lazyVisible && <div className="h-32 bg-gray-100 animate-pulse rounded-xl" />}
+                {!lazyVisible && <div className="h-32 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" />}
               </div>
             </div>
           )}
@@ -1700,9 +1704,9 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
         </div>
 
         {/* 데이터 정보 푸터 */}
-        <div className="mt-8 mb-2 text-center text-xs text-gray-400 flex items-center justify-center gap-1.5">
+        <div className="mt-8 mb-2 text-center text-xs text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1.5">
           <span>최종 업데이트:</span>
-          <span className="font-medium text-gray-500">
+          <span className="font-medium text-gray-500 dark:text-gray-400">
             {profile?.lastUpdated
               ? new Date(profile.lastUpdated).toLocaleString('ko-KR')
               : '알 수 없음'}
@@ -2282,6 +2286,20 @@ export async function getServerSideProps({ params, query }) {
           if (modeData && modeData.roundsPlayed > 0) {
             const r = modeData.roundsPlayed;
             const deaths = Math.max(1, r - (modeData.wins || 0));
+
+            // PUBG /ranked 엔드포인트는 headshotKills를 제공하지 않음
+            // gameModeStats의 ranked-* 모드에서 헤드샷 데이터 보완
+            let hsKills = modeData.headshotKills || 0;
+            let totalKillsForHs = modeData.kills || 0;
+            if (hsKills === 0 && currentSeasonModes) {
+              for (const [mode, ms] of Object.entries(currentSeasonModes)) {
+                if (mode.startsWith('ranked')) {
+                  hsKills += ms.headshots || 0;
+                  totalKillsForHs = totalKillsForHs || ms.totalKills || 0;
+                }
+              }
+            }
+
             pubgRankedSummary = {
               mode: 'squad-fpp',
               tier: modeData.currentTier?.tier || 'Unranked',
@@ -2302,15 +2320,15 @@ export async function getServerSideProps({ params, query }) {
               kills: modeData.kills || 0,
               deaths,
               assists: modeData.assists || 0,
-              headshotKills: modeData.headshotKills || 0,
-              headshotRate: (modeData.kills || 0) > 0
-                ? parseFloat(((modeData.headshotKills || 0) / (modeData.kills || 1) * 100).toFixed(1))
+              headshotKills: hsKills,
+              headshotRate: totalKillsForHs > 0
+                ? parseFloat((hsKills / totalKillsForHs * 100).toFixed(1))
                 : 0,
               damageDealt: modeData.damageDealt || 0,
               dBNOs: modeData.dBNOs || 0,
               roundsPlayed: r,
             };
-            console.log(`✅ 랭크: 티어=${pubgRankedSummary.tier}, RP=${pubgRankedSummary.rp}, 게임=${r}`);
+            console.log(`✅ 랭크: 티어=${pubgRankedSummary.tier}, RP=${pubgRankedSummary.rp}, 게임=${r}, 헤드샷킬=${hsKills}`);
           }
         } else {
           console.warn('랭크 통계 조회 실패:', rankedResult.reason?.message);

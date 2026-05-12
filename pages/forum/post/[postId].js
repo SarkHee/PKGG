@@ -9,26 +9,26 @@ function DeleteModal({ type, onConfirm, onCancel, loading, error }) {
   const [password, setPassword] = useState('');
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
-        <h3 className="text-lg font-bold text-gray-900 mb-2">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
           {type === 'post' ? '게시글 삭제' : '댓글 삭제'}
         </h3>
         <p className="text-sm text-gray-500 mb-4">
           작성 시 입력한 비밀번호를 입력하세요.<br />
           삭제 후 복구할 수 없습니다.
         </p>
-        {error && <p className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2.5">{error}</p>}
+        {error && <p className="mb-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2.5">{error}</p>}
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="비밀번호"
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
           onKeyDown={(e) => e.key === 'Enter' && onConfirm(password)}
           autoFocus
         />
         <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+          <button onClick={onCancel} className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             취소
           </button>
           <button
@@ -66,7 +66,7 @@ function formatContent(content) {
       );
     }
     return line.trim() ? (
-      <p key={i} className="mb-2 text-gray-800 leading-relaxed">{line}</p>
+      <p key={i} className="mb-2 text-gray-800 dark:text-gray-200 leading-relaxed">{line}</p>
     ) : (
       <div key={i} className="mb-2" />
     );
@@ -196,7 +196,7 @@ export default function PostDetail() {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
           <div className="text-center">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-gray-500 text-sm">게시글을 불러오는 중...</p>
@@ -210,10 +210,10 @@ export default function PostDetail() {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
           <div className="text-center">
             <div className="text-5xl mb-4">📭</div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">게시글을 찾을 수 없습니다</h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">게시글을 찾을 수 없습니다</h2>
             <Link href="/forum" className="text-blue-500 hover:underline text-sm">포럼으로 돌아가기</Link>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function PostDetail() {
         />
       )}
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="max-w-3xl mx-auto px-4 py-8">
           {/* 브레드크럼 */}
           <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
@@ -249,29 +249,29 @@ export default function PostDetail() {
               {post.category?.name}
             </Link>
             <span>›</span>
-            <span className="text-gray-800 truncate max-w-[200px]">{post.title}</span>
+            <span className="text-gray-800 dark:text-gray-200 truncate max-w-[200px]">{post.title}</span>
           </nav>
 
           {/* 게시글 */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4">
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm mb-4">
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-lg">{post.category?.icon}</span>
-                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
+                <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full font-medium">
                   {post.category?.name}
                 </span>
                 {post.isPinned && (
                   <span className="text-xs bg-red-50 text-red-500 border border-red-100 px-2 py-0.5 rounded-full">📌 공지</span>
                 )}
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-4 leading-tight">{post.title}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 leading-tight">{post.title}</h1>
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   <span className="flex items-center gap-1.5">
                     <span className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
                       {post.author?.[0]?.toUpperCase()}
                     </span>
-                    <span className="font-medium text-gray-700">{post.author}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{post.author}</span>
                   </span>
                   <span className="hidden sm:inline">{formatDate(post.createdAt)}</span>
                   <span>👁 {post.views}</span>
@@ -295,46 +295,46 @@ export default function PostDetail() {
           </div>
 
           {/* 댓글 섹션 */}
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-900 text-base">댓글 {replies.length}개</h2>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="font-bold text-gray-900 dark:text-gray-100 text-base">댓글 {replies.length}개</h2>
             </div>
 
             {/* 댓글 목록 */}
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 dark:divide-gray-800">
               {replies.length === 0 ? (
                 <div className="py-10 text-center text-gray-400 text-sm">
                   첫 번째 댓글을 남겨보세요
                 </div>
               ) : (
                 replies.map((reply) => (
-                  <div key={reply.id} className="px-6 py-4 hover:bg-gray-50/50 transition-colors">
+                  <div key={reply.id} className="px-6 py-4 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="w-7 h-7 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                           {reply.author?.[0]?.toUpperCase()}
                         </span>
-                        <span className="font-semibold text-gray-800 text-sm">{reply.author}</span>
+                        <span className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{reply.author}</span>
                         <span className="text-xs text-gray-400">{formatDate(reply.createdAt)}</span>
                       </div>
                       <button
                         onClick={() => setDeleteModal({ type: 'reply', id: reply.id })}
-                        className="text-xs text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
+                        className="text-xs text-gray-300 dark:text-gray-600 hover:text-red-500 transition-colors flex-shrink-0"
                       >
                         삭제
                       </button>
                     </div>
-                    <p className="text-sm text-gray-700 leading-relaxed ml-9 whitespace-pre-wrap">{reply.content}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed ml-9 whitespace-pre-wrap">{reply.content}</p>
                   </div>
                 ))
               )}
             </div>
 
             {/* 댓글 작성 폼 */}
-            <div className="px-6 py-5 border-t border-gray-100 bg-gray-50/50">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">댓글 작성</h3>
+            <div className="px-6 py-5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">댓글 작성</h3>
               {replyError && (
-                <div className="mb-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
                   ⚠️ {replyError}
                 </div>
               )}
@@ -342,12 +342,12 @@ export default function PostDetail() {
                 {/* 닉네임 + 비밀번호 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                       닉네임 <span className="text-red-500">*</span>
                     </label>
                     {linkedNickname ? (
-                      <div className="flex items-center gap-2 px-3 py-2 border border-blue-200 bg-blue-50 rounded-lg">
-                        <span className="text-sm font-medium text-blue-800">{linkedNickname}</span>
+                      <div className="flex items-center gap-2 px-3 py-2 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <span className="text-sm font-medium text-blue-800 dark:text-blue-300">{linkedNickname}</span>
                         <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
                       </div>
                     ) : (
@@ -357,12 +357,12 @@ export default function PostDetail() {
                         onChange={(e) => setReplyForm((p) => ({ ...p, author: e.target.value }))}
                         placeholder="닉네임"
                         maxLength={20}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                       />
                     )}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                       삭제 비밀번호 <span className="text-red-500">*</span>
                       <span className="font-normal text-gray-400 ml-1">(4자 이상)</span>
                     </label>
@@ -372,7 +372,7 @@ export default function PostDetail() {
                       onChange={(e) => setReplyForm((p) => ({ ...p, password: e.target.value }))}
                       placeholder="댓글 삭제 시 사용됩니다"
                       maxLength={30}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                     />
                   </div>
                 </div>
@@ -384,7 +384,7 @@ export default function PostDetail() {
                     placeholder="댓글을 입력하세요..."
                     rows={3}
                     maxLength={1000}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none bg-white"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                   <button
                     type="submit"

@@ -447,6 +447,19 @@ model Inquiry {
   @@map("inquiries")
 }
 
+model MapMarker {
+  id        Int      @id @default(autoincrement())
+  mapId     String   @map("map_id")
+  type      String
+  x         Float
+  y         Float
+  label     String   @default("")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([mapId])
+  @@map("map_markers")
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model player_weapon_stats {
   id         Int      @id @default(autoincrement())

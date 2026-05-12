@@ -7,9 +7,11 @@ import { useEffect, useRef } from 'react';
  * @param {'horizontal'|'rectangle'|'auto'} format - 광고 형식
  * @param {string} className - 추가 스타일
  */
-export default function AdUnit({ slot, format = 'auto', className = '' }) {
+export default function AdUnit({ slot, format = 'auto', className = '', show = true }) {
   // AdSense 승인 전까지 렌더링 안 함 (빈 공간도 없음)
   if (process.env.NEXT_PUBLIC_ADS_ENABLED !== 'true') return null;
+  // 콘텐츠가 없는 빈 화면에서는 노출 안 함
+  if (!show) return null;
   const adRef = useRef(null);
   const pushed = useRef(false);
 

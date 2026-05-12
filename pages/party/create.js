@@ -37,7 +37,7 @@ const MIC_OPTIONS = [
 
 const Field = ({ label, required, children, error }) => (
   <div>
-    <label className="block text-sm font-semibold text-gray-300 mb-2">
+    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
       {label} {required && <span className="text-red-400">*</span>}
     </label>
     {children}
@@ -45,8 +45,8 @@ const Field = ({ label, required, children, error }) => (
   </div>
 );
 
-const selectCls = "w-full px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:border-blue-500 text-sm cursor-pointer";
-const inputCls  = "w-full px-4 py-2.5 bg-gray-800 border border-gray-700 text-gray-200 rounded-xl focus:outline-none focus:border-blue-500 text-sm placeholder-gray-600";
+const selectCls = "w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl focus:outline-none focus:border-blue-500 text-sm cursor-pointer";
+const inputCls  = "w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl focus:outline-none focus:border-blue-500 text-sm placeholder-gray-400 dark:placeholder-gray-600";
 
 export default function PartyCreate() {
   const router = useRouter();
@@ -137,7 +137,7 @@ export default function PartyCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Head>
         <title>파티 모집글 작성 | PKGG</title>
       </Head>
@@ -147,11 +147,11 @@ export default function PartyCreate() {
         {/* 헤더 */}
         <div className="flex items-center gap-3 mb-8">
           <Link href="/party" passHref>
-            <span className="text-gray-500 hover:text-gray-300 cursor-pointer text-sm">← 파티 찾기</span>
+            <span className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer text-sm">← 파티 찾기</span>
           </Link>
         </div>
 
-        <h1 className="text-2xl font-black text-white mb-2">🎮 파티 모집글 작성</h1>
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">🎮 파티 모집글 작성</h1>
         <p className="text-sm text-gray-500 mb-8">함께 플레이할 팀원을 모집해보세요</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -159,8 +159,8 @@ export default function PartyCreate() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="닉네임" required error={errors.author}>
               {linkedNickname ? (
-                <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-700 border border-blue-500/50 rounded-xl">
-                  <span className="text-sm font-medium text-gray-200">{linkedNickname}</span>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-gray-700 border border-blue-300 dark:border-blue-500/50 rounded-xl">
+                  <span className="text-sm font-medium text-blue-800 dark:text-gray-200">{linkedNickname}</span>
                   <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
                 </div>
               ) : (
@@ -265,11 +265,11 @@ export default function PartyCreate() {
               onChange={(e) => set('description', e.target.value)}
               className={`${inputCls} resize-none`}
             />
-            <p className="text-xs text-gray-700 mt-1 text-right">{form.description.length}/500</p>
+            <p className="text-xs text-gray-500 dark:text-gray-700 mt-1 text-right">{form.description.length}/500</p>
           </Field>
 
           {errors.general && (
-            <p className="text-sm text-red-400 bg-red-900/20 border border-red-900/30 rounded-xl px-4 py-3">
+            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 rounded-xl px-4 py-3">
               {errors.general}
             </p>
           )}
@@ -277,7 +277,7 @@ export default function PartyCreate() {
           {/* 제출 버튼 */}
           <div className="flex gap-3 pt-2">
             <Link href="/party" passHref>
-              <span className="flex-1 py-3 text-center bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-xl cursor-pointer text-sm transition-all">
+              <span className="flex-1 py-3 text-center bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold rounded-xl cursor-pointer text-sm transition-all">
                 취소
               </span>
             </Link>

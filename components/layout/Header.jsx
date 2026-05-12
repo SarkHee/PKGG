@@ -86,7 +86,7 @@ export default function Header() {
 
   const router = useRouter();
   const { lang, t, switchLang } = useT();
-  const { user, logout } = useAuth() || {};
+  const { user } = useAuth() || {};
 
   // 초기 테마 읽기 + 후원 수 로드 (localStorage 5분 캐시)
   useEffect(() => {
@@ -180,11 +180,11 @@ const handleSearchSubmit = async (e) => {
   const isActive = (path) => router.pathname === path || router.pathname.startsWith(path + '/');
 
   const analysisLinks = [
-    { href: '/compare',           labelKey: 'nav.compare',           icon: '⚔️' },
-    { href: '/clans',             labelKey: 'nav.clans',             icon: '🏆' },
-    { href: '/clan-analytics',    labelKey: 'nav.clan_analytics',    icon: '📊' },
-    { href: '/clan-war',          labelKey: 'nav.clan_war',          icon: '🛡️' },
-    { href: '/playstyle-matchup', labelKey: 'nav.playstyle_matchup', icon: '🧭' },
+    { href: '/compare',        labelKey: 'nav.compare',        icon: '⚔️' },
+    { href: '/clans',          labelKey: 'nav.clans',          icon: '🏆' },
+    { href: '/clan-analytics', labelKey: 'nav.clan_analytics', icon: '📊' },
+    { href: '/clan-war',       labelKey: 'nav.clan_war',       icon: '🛡️' },
+    { href: '/maps',           labelKey: 'nav.maps',           icon: '🗺️' },
   ];
 
   const weaponLinks = [
@@ -289,12 +289,6 @@ const handleSearchSubmit = async (e) => {
                     )}
                     <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 max-w-[80px] truncate">{user.name}</span>
                   </Link>
-                  <button
-                    onClick={logout}
-                    className="h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all font-medium"
-                  >
-                    로그아웃
-                  </button>
                 </div>
               ) : (
                 <button

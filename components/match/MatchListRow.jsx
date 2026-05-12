@@ -57,6 +57,7 @@ export default function MatchListRow({
   onToggle,
   prevMatch,
   playerData,
+  showBotKills,
 }) {
   const prevScore = prevMatch?.avgMmr;
   const currentScore = match.avgMmr;
@@ -140,13 +141,13 @@ export default function MatchListRow({
             ? 'border-blue-400 shadow-md shadow-blue-100'
             : 'border-blue-200 hover:border-blue-300 hover:shadow-sm hover:shadow-blue-100'
           : isOpen
-            ? 'border-gray-300 shadow-md'
-            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+            ? 'border-gray-300 dark:border-gray-600 shadow-md dark:shadow-none'
+            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm'
       }`}
       onClick={onToggle}
     >
       {/* ── 모바일 카드 레이아웃 (sm 미만) ── */}
-      <div className={`sm:hidden px-3 py-3 ${isWin ? 'bg-gradient-to-r from-blue-50 to-white' : 'bg-white'}`}>
+      <div className={`sm:hidden px-3 py-3 ${isWin ? 'bg-gradient-to-r from-blue-50 dark:from-blue-900/20 to-white dark:to-gray-900' : 'bg-white dark:bg-gray-900'}`}>
         {/* 1행: 모드 뱃지 + 맵/모드 + 시간 */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -184,23 +185,37 @@ export default function MatchListRow({
 
         {/* 3행: 핵심 스탯 4개 */}
         <div className="grid grid-cols-4 gap-1 mb-1">
-          <div className="text-center bg-gray-50 rounded-lg py-1.5">
-            <div className={`text-base font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800'}`}>
-              {match.kills ?? 0}
-            </div>
-            <div className="text-[10px] text-gray-400">킬</div>
+          <div className="text-center bg-gray-50 dark:bg-gray-800 rounded-lg py-1.5">
+            {showBotKills && match.isBotCorrected ? (
+              <>
+                <div className={`text-base font-black ${(match.realKills ?? 0) >= 5 ? 'text-red-500' : (match.realKills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800'}`}>
+                  {match.realKills ?? match.kills ?? 0}
+                </div>
+                <div className="text-[10px] text-cyan-500">실킬</div>
+                {(match.botKills ?? 0) > 0 && (
+                  <div className="text-[9px] text-gray-400">봇{match.botKills}</div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className={`text-base font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                  {match.kills ?? 0}{showBotKills && !match.isBotCorrected ? <span className="text-xs ml-0.5" title="봇킬 분석 불가">⚠️</span> : null}
+                </div>
+                <div className="text-[10px] text-gray-400">킬</div>
+              </>
+            )}
           </div>
-          <div className="text-center bg-gray-50 rounded-lg py-1.5">
+          <div className="text-center bg-gray-50 dark:bg-gray-800 rounded-lg py-1.5">
             <div className="text-sm font-bold text-gray-600">{match.assists ?? 0}</div>
             <div className="text-[10px] text-gray-400">어시</div>
           </div>
-          <div className="text-center bg-gray-50 rounded-lg py-1.5">
+          <div className="text-center bg-gray-50 dark:bg-gray-800 rounded-lg py-1.5">
             <div className={`text-sm font-black ${(match.damage ?? 0) >= 400 ? 'text-blue-600' : (match.damage ?? 0) >= 200 ? 'text-gray-800' : 'text-gray-500'}`}>
               {(match.damage ?? 0).toFixed(0)}
             </div>
             <div className="text-[10px] text-gray-400">딜량</div>
           </div>
-          <div className="text-center bg-gray-50 rounded-lg py-1.5">
+          <div className="text-center bg-gray-50 dark:bg-gray-800 rounded-lg py-1.5">
             <div className="text-sm font-bold text-gray-700">
               {Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분
             </div>
@@ -220,7 +235,7 @@ export default function MatchListRow({
 
       {/* ── PC 테이블 레이아웃 (sm 이상) ── */}
       <div className={`hidden sm:flex items-center gap-3 px-4 py-3 ${
-        isWin ? 'bg-gradient-to-r from-blue-50 to-white' : 'bg-white hover:bg-gray-50'
+        isWin ? 'bg-gradient-to-r from-blue-50 dark:from-blue-900/20 to-white dark:to-gray-900' : 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'
       }`}>
         {/* 왼쪽 컬러 바 */}
         <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${isWin ? 'bg-blue-500' : 'bg-gray-300'}`} />
@@ -240,7 +255,7 @@ export default function MatchListRow({
 
         {/* 시간 */}
         <div className="w-16 flex-shrink-0 text-center">
-          <div className="text-sm font-medium text-gray-700">{formatRelativeTime(match.matchTimestamp)}</div>
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{formatRelativeTime(match.matchTimestamp)}</div>
           <div className="text-xs text-gray-400">{formatTime(match.matchTimestamp)}</div>
         </div>
 
@@ -255,25 +270,41 @@ export default function MatchListRow({
 
         {/* 킬 */}
         <div className="w-12 flex-shrink-0 text-center">
-          <div className={`text-lg font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800'}`}>{match.kills ?? 0}</div>
-          <div className="text-xs text-gray-400">킬</div>
+          {showBotKills && match.isBotCorrected ? (
+            <>
+              <div className={`text-lg font-black ${(match.realKills ?? 0) >= 5 ? 'text-red-500' : (match.realKills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800'}`}>
+                {match.realKills ?? match.kills ?? 0}
+              </div>
+              <div className="text-xs text-cyan-500">실킬</div>
+              {(match.botKills ?? 0) > 0 && (
+                <div className="text-[10px] text-gray-400">봇{match.botKills}</div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className={`text-lg font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                {match.kills ?? 0}{showBotKills && !match.isBotCorrected ? <span className="text-xs ml-0.5" title="봇킬 분석 불가">⚠️</span> : null}
+              </div>
+              <div className="text-xs text-gray-400">킬</div>
+            </>
+          )}
         </div>
 
         {/* 어시스트 */}
         <div className="w-12 flex-shrink-0 text-center">
-          <div className="text-base font-bold text-gray-600">{match.assists ?? 0}</div>
+          <div className="text-base font-bold text-gray-600 dark:text-gray-400">{match.assists ?? 0}</div>
           <div className="text-xs text-gray-400">어시</div>
         </div>
 
         {/* 데미지 */}
         <div className="w-20 flex-shrink-0 text-center">
-          <div className={`text-base font-black ${(match.damage ?? 0) >= 400 ? 'text-blue-600' : (match.damage ?? 0) >= 200 ? 'text-gray-800' : 'text-gray-500'}`}>{(match.damage ?? 0).toFixed(0)}</div>
+          <div className={`text-base font-black ${(match.damage ?? 0) >= 400 ? 'text-blue-600' : (match.damage ?? 0) >= 200 ? 'text-gray-800 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>{(match.damage ?? 0).toFixed(0)}</div>
           <div className="text-xs text-gray-400">딜량</div>
         </div>
 
         {/* 생존 시간 */}
         <div className="w-16 flex-shrink-0 text-center">
-          <div className="text-sm font-bold text-gray-700">{Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분</div>
+          <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분</div>
           <div className="text-xs text-gray-400">생존</div>
         </div>
 
@@ -306,7 +337,7 @@ export default function MatchListRow({
               {match.teammatesDetail.map((t) => {
                 const shard = playerData?.profile?.shardId || 'steam';
                 const chip = (
-                  <span key={t.name} className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 max-w-[110px] ${t.isSelf ? 'bg-blue-100 text-blue-700 font-bold border border-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer transition-colors'}`}>
+                  <span key={t.name} className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 max-w-[110px] ${t.isSelf ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer transition-colors'}`}>
                     {t.clanTag && <span className="text-gray-400 font-normal">[{t.clanTag}]</span>}
                     <span className="truncate">{t.name}</span>
                   </span>
@@ -337,15 +368,15 @@ export default function MatchListRow({
 
       {/* 상세 정보 */}
       {isOpen && (
-        <div className="bg-gray-50 border-t border-gray-200 p-5">
-          <div className="mb-3 pb-3 border-b border-gray-200">
-            <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+        <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-5">
+          <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
               <span className="w-1 h-4 bg-blue-500 rounded-full inline-block"></span>
               경기 상세 분석
             </h3>
             <div className="text-xs text-gray-400 mt-1 flex items-center gap-2 flex-wrap">
-              {match.mapName && <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded">{getMapName(match.mapName)}</span>}
-              <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded">{translateGameMode(match.mode)}</span>
+              {match.mapName && <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded">{getMapName(match.mapName)}</span>}
+              <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded">{translateGameMode(match.mode)}</span>
               <span className="text-gray-400">{Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분 생존</span>
             </div>
           </div>
@@ -357,9 +388,9 @@ export default function MatchListRow({
             return (
               <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* PPS 상세 */}
-                <div className="bg-white rounded-lg border border-gray-200 p-3">
+                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-600">퍼포먼스 점수 (PPS)</span>
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400">퍼포먼스 점수 (PPS)</span>
                     <span className={`text-lg font-black ${pps.color}`}>{pps.grade}</span>
                   </div>
                   <div className="space-y-1.5">
@@ -370,13 +401,13 @@ export default function MatchListRow({
                       { label: '생존', val: Math.round((match.survivalTime || match.surviveTime || 0) / 60), pts: Math.round(Math.min(25, ((match.survivalTime || match.surviveTime || 0) / 60) * 1.2)), fmt: (v) => `${v}분` },
                     ].map(({ label, val, pts, fmt }) => (
                       <div key={label} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500 w-10">{label}</span>
-                        <span className="text-gray-700 font-medium">{fmt(val)}</span>
+                        <span className="text-gray-500 dark:text-gray-400 w-10">{label}</span>
+                        <span className="text-gray-700 dark:text-gray-300 font-medium">{fmt(val)}</span>
                         <span className="text-blue-500 font-bold">+{pts}pt</span>
                       </div>
                     ))}
-                    <div className="border-t border-gray-100 pt-1.5 flex justify-between text-xs">
-                      <span className="text-gray-500">총점</span>
+                    <div className="border-t border-gray-100 dark:border-gray-700 pt-1.5 flex justify-between text-xs">
+                      <span className="text-gray-500 dark:text-gray-400">총점</span>
                       <span className={`font-black ${pps.color}`}>{pps.score}pt</span>
                     </div>
                   </div>
@@ -384,9 +415,9 @@ export default function MatchListRow({
 
                 {/* 팀 기여도 */}
                 {contrib ? (
-                  <div className="bg-white rounded-lg border border-gray-200 p-3">
+                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-gray-600">팀 내 기여도</span>
+                      <span className="text-xs font-bold text-gray-600 dark:text-gray-400">팀 내 기여도</span>
                       <span className="text-[10px] text-gray-400">{contrib.teamSize}인 스쿼드</span>
                     </div>
                     <div className="space-y-2">
@@ -397,12 +428,12 @@ export default function MatchListRow({
                       ].map(({ label, pct, my, total, color }) => (
                         <div key={label}>
                           <div className="flex justify-between text-xs mb-0.5">
-                            <span className="text-gray-500">{label}</span>
-                            <span className="font-bold text-gray-700">
+                            <span className="text-gray-500 dark:text-gray-400">{label}</span>
+                            <span className="font-bold text-gray-700 dark:text-gray-300">
                               {my}{total ? ` / 팀 ${total}` : ''} <span className="text-blue-600">({pct}%)</span>
                             </span>
                           </div>
-                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${Math.min(100, pct)}%` }} />
                           </div>
                         </div>
@@ -410,7 +441,7 @@ export default function MatchListRow({
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-gray-50 rounded-lg border border-gray-100 p-3 flex items-center justify-center">
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3 flex items-center justify-center">
                     <span className="text-xs text-gray-400">팀 데이터 없음 (솔로 또는 DB 매치)</span>
                   </div>
                 )}

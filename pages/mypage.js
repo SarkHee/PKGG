@@ -1,6 +1,6 @@
 // pages/mypage.js — 마이페이지 (프로필 + PUBG 연동 + 일일 목표)
 import { useState, useEffect } from 'react';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -424,7 +424,7 @@ export default function MyPage() {
   // ── 로딩 ──
   if (status === 'loading') return (
     <Layout>
-      <div className="min-h-screen bg-gray-950" style={{ marginTop: '-5rem' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950" style={{ marginTop: '-5rem' }}>
         <div className="flex items-center justify-center h-screen">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -436,11 +436,11 @@ export default function MyPage() {
   if (status === 'unauthenticated') return (
     <Layout>
       <Head><title>마이페이지 — PK.GG</title></Head>
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-6" style={{ marginTop: '-5rem' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col items-center justify-center gap-6" style={{ marginTop: '-5rem' }}>
         <div className="text-center">
           <div className="text-5xl mb-4">🔐</div>
-          <h1 className="text-2xl font-bold text-white mb-2">로그인이 필요합니다</h1>
-          <p className="text-gray-400 text-sm mb-8">구글 계정으로 로그인하면 PUBG 연동, 일일 목표 등을 이용할 수 있습니다.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">로그인이 필요합니다</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">구글 계정으로 로그인하면 PUBG 연동, 일일 목표 등을 이용할 수 있습니다.</p>
           <button onClick={() => signIn('google')}
             className="flex items-center gap-3 mx-auto px-6 py-3 bg-white hover:bg-gray-100 rounded-xl text-gray-800 font-semibold text-sm transition-colors shadow-lg"
           >
@@ -463,11 +463,11 @@ export default function MyPage() {
   return (
     <Layout>
       <Head><title>마이페이지 — PK.GG</title></Head>
-      <div className="min-h-screen bg-gray-950 text-white" style={{ marginTop: '-5rem' }}>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white" style={{ marginTop: '-5rem' }}>
         <div className="max-w-2xl mx-auto px-4 pt-28 pb-16 space-y-5">
 
           {/* ── 프로필 ── */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
             <div className="flex items-center gap-4">
               {user.image ? (
                 <Image src={user.image} alt={user.name || ''} width={64} height={64} className="rounded-full border-2 border-gray-700" />
@@ -476,10 +476,10 @@ export default function MyPage() {
                   {user.name?.[0] || '?'}
                 </div>
               )}
-              <div>
-                <h1 className="text-xl font-bold text-white">{user.name}</h1>
-                <p className="text-sm text-gray-400">{user.email}</p>
-                <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 bg-gray-800 border border-gray-700 rounded-full text-[11px] text-gray-400">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">{user.name}</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+                <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-[11px] text-gray-500 dark:text-gray-400">
                   <svg className="w-3 h-3" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -489,12 +489,18 @@ export default function MyPage() {
                   Google 로그인
                 </span>
               </div>
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="flex-shrink-0 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all font-medium"
+              >
+                로그아웃
+              </button>
             </div>
           </div>
 
           {/* ── PUBG 계정 연동 ── */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-            <h2 className="text-sm font-bold text-gray-200 mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+            <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
               🎮 <span>PUBG 계정 연동</span>
             </h2>
 
@@ -508,13 +514,13 @@ export default function MyPage() {
                   const isMain = acc.id === userData.mainAccountId;
                   return (
                     <div key={acc.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                      isMain ? 'border-blue-500/40 bg-blue-500/10' : 'border-gray-700 bg-gray-800/50'
+                      isMain ? 'border-blue-500/40 bg-blue-500/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
                     }`}>
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{acc.platform === 'steam' ? '🖥️' : '📱'}</span>
                         <div>
                           <Link href={`/player/${acc.platform}/${acc.nickname}`}
-                            className="text-sm font-bold text-gray-100 hover:text-blue-400 transition-colors">
+                            className="text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-blue-400 dark:hover:text-blue-400 transition-colors">
                             {acc.nickname}
                           </Link>
                           <div className="text-xs text-gray-500">{acc.platform === 'steam' ? 'Steam' : 'Kakao'}</div>
@@ -532,20 +538,20 @@ export default function MyPage() {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-600 mb-5 text-center py-3">연동된 PUBG 계정이 없습니다.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-600 mb-5 text-center py-3">연동된 PUBG 계정이 없습니다.</p>
             )}
 
             {/* 연동 폼 */}
             <form onSubmit={handleLinkPubg} className="space-y-2">
               <div className="flex gap-2">
                 <select value={platform} onChange={(e) => setPlatform(e.target.value)}
-                  className="px-3 py-2 border border-gray-700 rounded-lg text-sm bg-gray-800 text-gray-300 focus:outline-none focus:border-blue-500">
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500">
                   <option value="steam">Steam</option>
                   <option value="kakao">Kakao</option>
                 </select>
                 <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)}
                   placeholder="PUBG 닉네임"
-                  className="flex-1 px-3 py-2 border border-gray-700 rounded-lg text-sm bg-gray-800 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500"
                 />
                 <button type="submit" disabled={linking || !nickname.trim()}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg text-sm font-semibold transition-colors whitespace-nowrap">
@@ -561,9 +567,9 @@ export default function MyPage() {
 
             {mainAccount && (
               <div className="mt-4 pt-4 border-t border-gray-800">
-                <p className="text-xs text-gray-600 mb-2">대표 계정 바로가기</p>
+                <p className="text-xs text-gray-500 dark:text-gray-600 mb-2">대표 계정 바로가기</p>
                 <Link href={`/player/${mainAccount.platform}/${mainAccount.nickname}`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-sm font-semibold text-gray-300 transition-colors">
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors">
                   📊 {mainAccount.nickname} 전적 보기
                 </Link>
               </div>
@@ -572,8 +578,8 @@ export default function MyPage() {
 
           {/* ── 클랜 정보 ── */}
           {userData?.clan && (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-              <h2 className="text-sm font-bold text-gray-200 mb-4 flex items-center justify-between">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+              <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center justify-between">
                 <span className="flex items-center gap-2">🏰 소속 클랜</span>
                 <Link
                   href={`/clan/${encodeURIComponent(userData.clan.name)}`}
@@ -592,19 +598,19 @@ export default function MyPage() {
                     {userData.clan.pubgClanTag && (
                       <span className="text-xs font-bold text-blue-400">[{userData.clan.pubgClanTag}]</span>
                     )}
-                    <span className="text-base font-bold text-white">{userData.clan.name}</span>
+                    <span className="text-base font-bold text-gray-900 dark:text-white">{userData.clan.name}</span>
                     {userData.clan.pubgClanLevel && (
-                      <span className="text-[10px] bg-gray-700 text-gray-400 px-1.5 py-0.5 rounded">Lv.{userData.clan.pubgClanLevel}</span>
+                      <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded">Lv.{userData.clan.pubgClanLevel}</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                     <span>👥 {userData.clan.memberCount}명</span>
                     {userData.clan.avgScore > 0 && <span>⚡ 평균 {userData.clan.avgScore} MMR</span>}
                     {userData.clan.region && <span>🌏 {userData.clan.region}</span>}
                   </div>
                   {userData.clan.leader && (
-                    <div className="mt-1 text-xs text-gray-500">
-                      리더: <span className="text-gray-300">{userData.clan.leader}</span>
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                      리더: <span className="text-gray-700 dark:text-gray-300">{userData.clan.leader}</span>
                     </div>
                   )}
                   {userData.clan.description && (
@@ -614,8 +620,8 @@ export default function MyPage() {
               </div>
 
               {/* 리더 등록 / 변경 문의 버튼 */}
-              <div className="mt-4 pt-4 border-t border-gray-800 flex items-center justify-between gap-3">
-                <div className="text-xs text-gray-500">
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
+                <div className="text-xs text-gray-500 dark:text-gray-500">
                   {userData.clan.leader === mainAccount?.nickname
                     ? '✅ 현재 이 클랜의 리더입니다.'
                     : userData.clan.leader
@@ -652,25 +658,25 @@ export default function MyPage() {
               {/* 리더 변경 문의 팝업 */}
               {showLeaderRequestPopup && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-                  <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-sm space-y-4">
+                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 w-full max-w-sm space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-white">리더 변경 문의</span>
-                      <button onClick={() => setShowLeaderRequestPopup(false)} className="text-gray-400 hover:text-white text-lg leading-none">×</button>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">리더 변경 문의</span>
+                      <button onClick={() => setShowLeaderRequestPopup(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white text-lg leading-none">×</button>
                     </div>
 
                     {/* 현재 → 변경 표시 */}
-                    <div className="bg-gray-800 rounded-xl p-4 space-y-2 text-sm">
+                    <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 space-y-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-400 w-16 flex-shrink-0">현 리더</span>
-                        <span className="text-white font-semibold">{userData.clan.leader}</span>
+                        <span className="text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">현 리더</span>
+                        <span className="text-gray-900 dark:text-white font-semibold">{userData.clan.leader}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-500">
+                      <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500">
                         <span className="w-16"></span>
                         <span>↓</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-400 w-16 flex-shrink-0">변경 리더</span>
-                        <span className="text-blue-400 font-semibold">{mainAccount?.nickname}</span>
+                        <span className="text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">변경 리더</span>
+                        <span className="text-blue-500 dark:text-blue-400 font-semibold">{mainAccount?.nickname}</span>
                       </div>
                     </div>
 
@@ -682,7 +688,7 @@ export default function MyPage() {
                         onChange={(e) => setLeaderRequestReason(e.target.value)}
                         rows={3}
                         placeholder="변경 사유를 입력해주세요..."
-                        className="w-full bg-gray-800 border border-gray-600 rounded-xl px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500 resize-none"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 resize-none"
                       />
                     </div>
 
@@ -714,28 +720,28 @@ export default function MyPage() {
           )}
 
           {/* ── 커뮤니티 활동 ── */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
             <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
               ✏️ <span>커뮤니티 활동</span>
             </h2>
             <Link
               href="/mypage/posts"
-              className="flex items-center justify-between w-full px-4 py-3 bg-gray-800 hover:bg-gray-750 border border-gray-700 hover:border-blue-500/50 rounded-xl transition-all group"
+              className="flex items-center justify-between w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 border border-gray-200 dark:border-gray-700 hover:border-blue-500/50 rounded-xl transition-all group"
             >
               <div className="flex items-center gap-3">
                 <span className="text-lg">📋</span>
                 <div>
-                  <p className="text-sm font-medium text-gray-200">내가 쓴 글 확인하기</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">내가 쓴 글 확인하기</p>
                   <p className="text-xs text-gray-500 mt-0.5">커뮤니티 포럼에 작성한 글 목록</p>
                 </div>
               </div>
-              <span className="text-gray-500 group-hover:text-blue-400 transition-colors">→</span>
+              <span className="text-gray-400 dark:text-gray-500 group-hover:text-blue-400 transition-colors">→</span>
             </Link>
           </div>
 
           {/* ── 일일 목표 ── */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-            <h2 className="text-sm font-bold text-gray-200 mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+            <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
               📅 <span>일일 목표</span>
               {mainAccount && (
                 <span className="text-xs font-normal text-gray-500">

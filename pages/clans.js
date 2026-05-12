@@ -9,7 +9,7 @@ import { useT } from '../utils/i18n';
 const REGIONS = ['all', '한국', '아시아', '북미', '유럽', '기타'];
 
 function TierBadge({ score }) {
-  if (!score) return <span className="text-xs text-gray-500">-</span>;
+  if (!score) return <span className="text-xs text-gray-500 dark:text-gray-400">-</span>;
   const tier = getMMRTier(score);
   return (
     <span
@@ -24,13 +24,13 @@ function ClanRow({ rank, clan }) {
   const tier = clan.avgScore ? getMMRTier(clan.avgScore) : null;
 
   return (
-      <div className="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[3rem_1fr_8rem_6rem_7rem_8rem] gap-3 items-center px-4 py-3.5 border-b border-gray-100">
+      <div className="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[3rem_1fr_8rem_6rem_7rem_8rem] gap-3 items-center px-4 py-3.5 border-b border-gray-100 dark:border-gray-800">
         {/* 순위 */}
         <div className="text-center">
           {rank <= 3 ? (
             <span className="text-lg">{['🥇','🥈','🥉'][rank - 1]}</span>
           ) : (
-            <span className="text-sm font-bold text-gray-400">{rank}</span>
+            <span className="text-sm font-bold text-gray-400 dark:text-gray-500">{rank}</span>
           )}
         </div>
 
@@ -38,26 +38,26 @@ function ClanRow({ rank, clan }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {clan.pubgClanTag && (
-              <span className="text-xs bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded font-mono">
+              <span className="text-xs bg-gray-800 dark:bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded font-mono">
                 [{clan.pubgClanTag}]
               </span>
             )}
-            <span className="font-semibold text-gray-900 truncate">
+            <span className="font-semibold text-gray-900 dark:text-gray-100 truncate">
               {clan.name}
             </span>
             {clan.pubgClanLevel && (
-              <span className="text-xs text-gray-400">Lv.{clan.pubgClanLevel}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">Lv.{clan.pubgClanLevel}</span>
             )}
           </div>
-          <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-2">
             {clan.region && (
-              <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-[10px] font-medium">
+              <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded text-[10px] font-medium">
                 {clan.region}
               </span>
             )}
           </div>
           {/* 모바일: 숨겨진 정보를 대신 표시 */}
-          <div className="md:hidden flex gap-3 mt-1 text-xs text-gray-500">
+          <div className="md:hidden flex gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
             <span>멤버 {clan.memberCount}명</span>
             {clan.avgScore && <span>MMR {clan.avgScore.toLocaleString()}</span>}
             {clan.mainStyle && <span>{clan.mainStyle}</span>}
@@ -66,18 +66,18 @@ function ClanRow({ rank, clan }) {
 
         {/* 멤버 수 — 데스크탑만 */}
         <div className="hidden md:block text-center">
-          <span className="text-sm font-medium text-gray-700">{clan.memberCount}</span>
-          <span className="text-xs text-gray-400 ml-0.5">명</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{clan.memberCount}</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500 ml-0.5">명</span>
         </div>
 
         {/* 플레이스타일 — 데스크탑만 */}
         <div className="hidden md:block text-center">
           {clan.mainStyle ? (
-            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+            <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
               {clan.mainStyle}
             </span>
           ) : (
-            <span className="text-xs text-gray-400">-</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">-</span>
           )}
         </div>
 
@@ -88,7 +88,7 @@ function ClanRow({ rank, clan }) {
               {clan.avgScore.toLocaleString()}
             </span>
           ) : (
-            <span className="text-xs text-gray-400">-</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">-</span>
           )}
         </div>
 
@@ -165,13 +165,13 @@ export default function ClansDirectory() {
       </Head>
 
       <Header />
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="max-w-5xl mx-auto px-4 py-8">
 
           {/* 헤더 */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">🏘️ {t('clans.title')}</h1>
-            <p className="text-sm text-gray-500 mt-1">{t('clans.subtitle')}</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">🏘️ {t('clans.title')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('clans.subtitle')}</p>
           </div>
 
           {/* 플랫폼 탭 */}
@@ -187,7 +187,7 @@ export default function ClansDirectory() {
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors border ${
                   shard === key
                     ? 'bg-blue-600 text-white border-blue-500'
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                    : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
                 {label}
@@ -196,7 +196,7 @@ export default function ClansDirectory() {
           </div>
 
           {/* 필터 바 */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-center">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-center">
             {/* 지역 필터 */}
             <div className="flex gap-1.5 flex-wrap">
               {REGIONS.map((r) => (
@@ -206,7 +206,7 @@ export default function ClansDirectory() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                     region === r
                       ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   {r === 'all' ? t('clans.region_all') : r}
@@ -221,7 +221,7 @@ export default function ClansDirectory() {
                 placeholder={t('clans.search_placeholder')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="h-8 border border-gray-200 rounded-lg px-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 w-44"
+                className="h-8 border border-gray-200 dark:border-gray-700 rounded-lg px-3 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 w-44"
               />
               <button
                 type="submit"
@@ -233,9 +233,9 @@ export default function ClansDirectory() {
           </div>
 
           {/* 테이블 */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             {/* 헤더 행 — 데스크탑 */}
-            <div className="hidden md:grid grid-cols-[3rem_1fr_8rem_6rem_7rem_8rem] gap-3 px-4 py-2.5 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <div className="hidden md:grid grid-cols-[3rem_1fr_8rem_6rem_7rem_8rem] gap-3 px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               <div className="text-center">#</div>
               <div>{t('clans.col_name')}</div>
               <div className="text-center">{t('clans.col_members')}</div>
@@ -245,11 +245,11 @@ export default function ClansDirectory() {
             </div>
 
             {loading ? (
-              <div className="py-20 text-center text-gray-400 text-sm">{t('clans.loading')}</div>
+              <div className="py-20 text-center text-gray-400 dark:text-gray-500 text-sm">{t('clans.loading')}</div>
             ) : error ? (
               <div className="py-20 text-center text-red-400 text-sm">{error}</div>
             ) : clans.length === 0 ? (
-              <div className="py-20 text-center text-gray-400 text-sm">{t('clans.empty')}</div>
+              <div className="py-20 text-center text-gray-400 dark:text-gray-500 text-sm">{t('clans.empty')}</div>
             ) : (
               clans.map((clan, idx) => (
                 <ClanRow
@@ -267,17 +267,17 @@ export default function ClansDirectory() {
               <button
                 disabled={page <= 1}
                 onClick={() => fetchClans(page - 1)}
-                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 ← 이전
               </button>
-              <span className="text-sm text-gray-600 px-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
                 {page} / {totalPages}
               </span>
               <button
                 disabled={page >= totalPages}
                 onClick={() => fetchClans(page + 1)}
-                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 다음 →
               </button>
@@ -286,7 +286,7 @@ export default function ClansDirectory() {
 
           {/* 총 클랜 수 */}
           {!loading && total > 0 && (
-            <p className="text-xs text-gray-400 text-right mt-3">
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-right mt-3">
               총 {total}개 클랜
             </p>
           )}

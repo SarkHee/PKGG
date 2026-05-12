@@ -84,36 +84,36 @@ function PartyCard({ post }) {
 
   return (
     <div
-      className="bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-blue-500/40 hover:bg-gray-800/50 transition-all cursor-pointer group"
+      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 hover:border-blue-500/40 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group"
       onClick={() => router.push(`/forum/post/${post.id}`)}
     >
       {/* 배지 + 시간 */}
       <div className="flex items-start justify-between gap-2 mb-3 flex-wrap">
         <div className="flex flex-wrap gap-1.5">
           {p.mode && (
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/30">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
               {MODE_LABELS[p.mode] || p.mode}
             </span>
           )}
           {p.server && (
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${SERVER_STYLE[p.server] || 'bg-gray-700 text-gray-400 border-gray-600'}`}>
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${SERVER_STYLE[p.server] || 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600'}`}>
               {p.server === 'steam' ? 'Steam' : 'Kakao'}
             </span>
           )}
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30">
             {slotsText}
           </span>
           {p.playtime && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400 border border-gray-700">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
               {PLAYTIME_LABELS[p.playtime] || p.playtime}
             </span>
           )}
         </div>
-        <span className="text-xs text-gray-600 flex-shrink-0">{timeAgo(post.createdAt)}</span>
+        <span className="text-xs text-gray-400 dark:text-gray-600 flex-shrink-0">{timeAgo(post.createdAt)}</span>
       </div>
 
       {/* 제목 */}
-      <h3 className="text-sm font-bold text-gray-200 mb-2 group-hover:text-blue-300 transition-colors line-clamp-1">
+      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors line-clamp-1">
         {post.title}
       </h3>
 
@@ -126,13 +126,13 @@ function PartyCard({ post }) {
 
       {/* 설명 */}
       {p.description && (
-        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2 mb-3 border-t border-gray-800 pt-3">
+        <p className="text-xs text-gray-500 dark:text-gray-600 leading-relaxed line-clamp-2 mb-3 border-t border-gray-100 dark:border-gray-800 pt-3">
           {p.description}
         </p>
       )}
 
       {/* 하단 */}
-      <div className="flex items-center gap-3 text-xs text-gray-700">
+      <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-600">
         <span>💬 {post.replyCount || 0}</span>
         <span>👁️ {post.views || 0}</span>
       </div>
@@ -178,7 +178,7 @@ export default function PartyPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Head>
         <title>파티 찾기 | PKGG</title>
         <meta name="description" content="PUBG 함께 게임할 파티원을 모집하거나 찾아보세요." />
@@ -189,8 +189,8 @@ export default function PartyPage() {
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black text-white">🎮 파티 찾기</h1>
-            <p className="text-sm text-gray-400 mt-1">함께 플레이할 파티원을 모집하거나 참여하세요</p>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white">🎮 파티 찾기</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">함께 플레이할 파티원을 모집하거나 참여하세요</p>
           </div>
           <Link href="/party/create" passHref>
             <span className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-all cursor-pointer">
@@ -200,32 +200,32 @@ export default function PartyPage() {
         </div>
 
         {/* 필터 바 */}
-        <div className="flex flex-wrap gap-2 mb-6 p-4 bg-gray-900 border border-gray-800 rounded-2xl">
+        <div className="flex flex-wrap gap-2 mb-6 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl">
           <select
             value={modeFilter}
             onChange={(e) => setModeFilter(e.target.value)}
-            className="px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
           >
             {MODE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           <select
             value={serverFilter}
             onChange={(e) => setServerFilter(e.target.value)}
-            className="px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
           >
             {SERVER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           <select
             value={micFilter}
             onChange={(e) => setMicFilter(e.target.value)}
-            className="px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-300 text-sm rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer"
           >
             {MIC_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           {(modeFilter !== 'all' || serverFilter !== 'all' || micFilter !== 'all') && (
             <button
               onClick={() => { setModeFilter('all'); setServerFilter('all'); setMicFilter('all'); }}
-              className="px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-500 hover:text-gray-300 text-sm rounded-xl transition-colors"
+              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm rounded-xl transition-colors"
             >
               ✕ 초기화
             </button>
@@ -234,19 +234,19 @@ export default function PartyPage() {
 
         {/* 게시글 */}
         {loading ? (
-          <div className="text-center py-16 text-gray-500">
+          <div className="text-center py-16 text-gray-500 dark:text-gray-500">
             <div className="text-4xl mb-3 animate-pulse">🎮</div>
             <p>불러오는 중...</p>
           </div>
         ) : error ? (
           <div className="text-center py-16 text-gray-500">
             <p>{error}</p>
-            <button onClick={() => loadPosts(1)} className="mt-4 text-blue-400 hover:text-blue-300 text-sm">다시 시도</button>
+            <button onClick={() => loadPosts(1)} className="mt-4 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 text-sm">다시 시도</button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-4">🎯</div>
-            <p className="text-gray-400 mb-6">
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
               {posts.length === 0
                 ? '아직 모집글이 없습니다. 첫 번째로 파티를 모집해보세요!'
                 : '해당 조건의 모집글이 없습니다. 필터를 변경해보세요.'}
@@ -273,15 +273,15 @@ export default function PartyPage() {
             <button
               disabled={page <= 1}
               onClick={() => { const p = page - 1; setPage(p); loadPosts(p); }}
-              className="px-4 py-2 bg-gray-800 text-gray-300 rounded-xl hover:bg-gray-700 text-sm disabled:opacity-40"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-sm disabled:opacity-40"
             >
               이전
             </button>
-            <span className="text-gray-400 text-sm">{page} / {pagination.totalPages}</span>
+            <span className="text-gray-500 dark:text-gray-400 text-sm">{page} / {pagination.totalPages}</span>
             <button
               disabled={page >= pagination.totalPages}
               onClick={() => { const p = page + 1; setPage(p); loadPosts(p); }}
-              className="px-4 py-2 bg-gray-800 text-gray-300 rounded-xl hover:bg-gray-700 text-sm disabled:opacity-40"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-sm disabled:opacity-40"
             >
               다음
             </button>

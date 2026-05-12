@@ -181,23 +181,23 @@ export default function CreatePost() {
         <title>새 글 작성 | PKGG 커뮤니티</title>
       </Head>
       <Header />
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="max-w-3xl mx-auto px-4 py-8">
           {/* 브레드크럼 */}
-          <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+          <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
             <Link href="/forum" className="hover:text-blue-600">포럼</Link>
             <span>›</span>
-            <span className="text-gray-800 font-medium">새 글 작성</span>
+            <span className="text-gray-800 dark:text-gray-200 font-medium">새 글 작성</span>
           </nav>
 
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-              <h1 className="text-xl font-bold text-gray-900">✏️ 새 글 작성</h1>
-              <p className="text-sm text-gray-500 mt-1">PUBG 커뮤니티에 글을 공유해보세요</p>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">✏️ 새 글 작성</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">PUBG 커뮤니티에 글을 공유해보세요</p>
             </div>
 
             {errors.general && (
-              <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <div className="mx-6 mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
                 ⚠️ {errors.general}
               </div>
             )}
@@ -205,7 +205,7 @@ export default function CreatePost() {
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               {/* 카테고리 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   카테고리 <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -216,8 +216,8 @@ export default function CreatePost() {
                       onClick={() => handleChange('categoryId', cat.id)}
                       className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-sm font-medium ${
                         formData.categoryId === cat.id
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
                       <span>{cat.icon}</span>
@@ -231,12 +231,12 @@ export default function CreatePost() {
               {/* 닉네임 & 비밀번호 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     닉네임 <span className="text-red-500">*</span>
                   </label>
                   {linkedNickname ? (
-                    <div className="flex items-center gap-2 px-3 py-2.5 border border-blue-200 bg-blue-50 rounded-lg">
-                      <span className="text-sm font-medium text-blue-800">{linkedNickname}</span>
+                    <div className="flex items-center gap-2 px-3 py-2.5 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <span className="text-sm font-medium text-blue-800 dark:text-blue-300">{linkedNickname}</span>
                       <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
                     </div>
                   ) : (
@@ -246,15 +246,15 @@ export default function CreatePost() {
                       onChange={(e) => handleChange('author', e.target.value)}
                       placeholder="작성자 닉네임"
                       maxLength={20}
-                      className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${
-                        errors.author ? 'border-red-400' : 'border-gray-300'
+                      className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${
+                        errors.author ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'
                       }`}
                     />
                   )}
                   {errors.author && <p className="mt-1 text-xs text-red-600">{errors.author}</p>}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     삭제 비밀번호 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -263,8 +263,8 @@ export default function CreatePost() {
                     onChange={(e) => handleChange('password', e.target.value)}
                     placeholder="글 삭제 시 필요합니다"
                     maxLength={30}
-                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${
-                      errors.password ? 'border-red-400' : 'border-gray-300'
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${
+                      errors.password ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'
                     }`}
                   />
                   {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
@@ -273,7 +273,7 @@ export default function CreatePost() {
 
               {/* 제목 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   제목 <span className="text-red-500">*</span>
                   <span className="text-gray-400 font-normal ml-1">({formData.title.length}/100)</span>
                 </label>
@@ -283,8 +283,8 @@ export default function CreatePost() {
                   onChange={(e) => handleChange('title', e.target.value)}
                   placeholder="게시글 제목을 입력하세요"
                   maxLength={100}
-                  className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 ${
-                    errors.title ? 'border-red-400' : 'border-gray-300'
+                  className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${
+                    errors.title ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 />
                 {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title}</p>}
@@ -293,7 +293,7 @@ export default function CreatePost() {
               {/* 내용 */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     내용 <span className="text-red-500">*</span>
                     <span className="text-gray-400 font-normal ml-1">({formData.content.length}/5000)</span>
                   </label>
@@ -310,7 +310,7 @@ export default function CreatePost() {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadingImage}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
                     >
                       {uploadingImage ? (
                         <><div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />업로드 중...</>
@@ -333,8 +333,8 @@ export default function CreatePost() {
                     placeholder="게시글 내용을 작성하세요...&#10;이미지는 버튼 클릭 또는 여기에 드래그해서 추가하세요."
                     maxLength={5000}
                     rows={12}
-                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-y font-mono transition-colors ${
-                      errors.content ? 'border-red-400' : isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300'
+                    className={`w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-y font-mono transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 ${
+                      errors.content ? 'border-red-400' : isDragging ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-600'
                     }`}
                   />
                   {isDragging && (
@@ -344,7 +344,7 @@ export default function CreatePost() {
                     </div>
                   )}
                   {uploadingImage && (
-                    <div className="absolute inset-0 rounded-lg bg-white/80 flex flex-col items-center justify-center pointer-events-none">
+                    <div className="absolute inset-0 rounded-lg bg-white/80 dark:bg-gray-900/80 flex flex-col items-center justify-center pointer-events-none">
                       <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-2" />
                       <p className="text-sm text-blue-600 font-medium">업로드 중...</p>
                     </div>
@@ -361,7 +361,7 @@ export default function CreatePost() {
                 <button
                   type="button"
                   onClick={() => router.back()}
-                  className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                  className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
                 >
                   취소
                 </button>

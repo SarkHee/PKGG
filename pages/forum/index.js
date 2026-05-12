@@ -39,28 +39,28 @@ function ForumCategoryCard({ category, postCount = 0, latestPost = null }) {
 
   const colorClasses = {
     '#3B82F6':
-      'from-blue-50 to-blue-100 border-blue-200 text-blue-800 bg-blue-500',
+      'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 bg-blue-500',
     '#10B981':
-      'from-green-50 to-green-100 border-green-200 text-green-800 bg-green-500',
+      'from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 bg-green-500',
     '#F59E0B':
-      'from-orange-50 to-orange-100 border-orange-200 text-orange-800 bg-orange-500',
+      'from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/30 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200 bg-orange-500',
     '#8B5CF6':
-      'from-purple-50 to-purple-100 border-purple-200 text-purple-800 bg-purple-500',
-    '#EF4444': 'from-red-50 to-red-100 border-red-200 text-red-800 bg-red-500',
+      'from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/30 border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-200 bg-purple-500',
+    '#EF4444': 'from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 bg-red-500',
     '#06B6D4':
-      'from-cyan-50 to-cyan-100 border-cyan-200 text-cyan-800 bg-cyan-500',
+      'from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-900/30 border-cyan-200 dark:border-cyan-800 text-cyan-800 dark:text-cyan-200 bg-cyan-500',
     // 기본 색상들 (하위 호환)
-    blue: 'from-blue-50 to-blue-100 border-blue-200 text-blue-800 bg-blue-500',
+    blue: 'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 bg-blue-500',
     green:
-      'from-green-50 to-green-100 border-green-200 text-green-800 bg-green-500',
+      'from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 bg-green-500',
     orange:
-      'from-orange-50 to-orange-100 border-orange-200 text-orange-800 bg-orange-500',
+      'from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/30 border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-200 bg-orange-500',
     purple:
-      'from-purple-50 to-purple-100 border-purple-200 text-purple-800 bg-purple-500',
-    red: 'from-red-50 to-red-100 border-red-200 text-red-800 bg-red-500',
-    cyan: 'from-cyan-50 to-cyan-100 border-cyan-200 text-cyan-800 bg-cyan-500',
+      'from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/30 border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-200 bg-purple-500',
+    red: 'from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 bg-red-500',
+    cyan: 'from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-900/30 border-cyan-200 dark:border-cyan-800 text-cyan-800 dark:text-cyan-200 bg-cyan-500',
     amber:
-      'from-amber-50 to-amber-100 border-amber-200 text-amber-800 bg-amber-500',
+      'from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-900/30 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 bg-amber-500',
   };
 
   // 안전한 색상 클래스 가져오기
@@ -252,15 +252,15 @@ export default function ForumIndex() {
           {categoriesLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
+                <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 animate-pulse">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
+                    <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
                     <div className="flex-1">
-                      <div className="h-4 bg-gray-300 rounded mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded"></div>
+                      <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     </div>
                     <div className="text-right">
-                      <div className="h-3 bg-gray-200 rounded w-16"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
                     </div>
                   </div>
                 </div>

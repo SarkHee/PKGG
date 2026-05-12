@@ -7,6 +7,7 @@
 
 import { cachedPubgFetch, TTL, PubgApiError } from '../../../utils/pubgApiCache';
 import prisma from '../../../utils/prisma.js';
+import { analyzeMatchData } from '../../../utils/botKills.js';
 
 const PUBG_BASE = 'https://api.pubg.com/shards';
 
@@ -54,12 +55,13 @@ export default async function handler(req, res) {
       )
     );
 
-    const matches = matchResults
+    // ── 2-1. 매치 데이터 동기 추출 (_matchData, _accountId 임시 보관) ─────────
+    const rawMatches = matchResults
       .filter((r) => r.status === 'fulfilled')
       .map((r) => {
-        const data   = r.value;
-        const matchId = data.data.id;
-        const attrs  = data.data.attributes;
+        const data        = r.value;
+        const matchId     = data.data.id;
+        const attrs       = data.data.attributes;
         const included    = data.included || [];
         const participants = included.filter((i) => i.type === 'participant');
         const rosters      = included.filter((i) => i.type === 'roster');
@@ -97,6 +99,8 @@ export default async function handler(req, res) {
 
         const s = me.attributes.stats;
         return {
+          _matchData:  data,           // analyzeMatchData에 전달 (중복 fetch 방지)
+          _accountId:  s.playerId || '', // 봇킬 rows에서 플레이어 lookup용
           matchId,
           mode:           attrs.gameMode,
           matchType:      attrs.matchType,
@@ -108,9 +112,28 @@ export default async function handler(req, res) {
           surviveTime:    s.timeSurvived || 0,
           matchTimestamp: attrs.createdAt || new Date().toISOString(),
           teammatesDetail,
+          botKills:        0,
+          realKills:       s.kills || 0,
+          isBotCorrected:  false,
         };
       })
       .filter((m) => m !== null);
+
+    // ── 2-2. 봇킬 분석 — 텔레메트리 대용량(50MB)이라 순차 처리 ──────────────
+    for (const m of rawMatches) {
+      try {
+        const result = await analyzeMatchData(m._matchData, m.matchId);
+        const row    = result.rows.find((r) => r.accountId === m._accountId);
+        m.botKills       = row?.bot  ?? 0;
+        m.realKills      = row?.real ?? m.kills;
+        m.isBotCorrected = result.isBotCorrected;
+      } catch (err) {
+        console.warn('[load-more] 봇킬 분석 실패:', m.matchId, err?.message);
+      }
+    }
+
+    // ── 2-3. 임시 필드 제거 ──────────────────────────────────────────────────
+    const matches = rawMatches.map(({ _matchData, _accountId, ...rest }) => rest);
 
     // ── 3. teammate 클랜 정보 DB 조회 (추가 PUBG API 호출 없음) ──────────
     try {

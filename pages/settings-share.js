@@ -50,7 +50,7 @@ function SettingsCard({ post }) {
 
   return (
     <div
-      className="bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-purple-500/40 hover:bg-gray-800/50 transition-all cursor-pointer group"
+      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 hover:border-purple-500/40 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group"
       onClick={() => router.push(`/forum/post/${post.id}`)}
     >
       {/* 배지 + 시간 */}
@@ -60,17 +60,17 @@ function SettingsCard({ post }) {
             {meta.label}
           </span>
           {s.resolution && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400 border border-gray-700">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
               {s.resolution}
             </span>
           )}
           {s.hz && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400 border border-gray-700">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
               {s.hz}Hz
             </span>
           )}
           {s.graphicsPreset && (
-            <span className="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400 border border-gray-700">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
               {PRESET_LABELS[s.graphicsPreset] || s.graphicsPreset}
             </span>
           )}
@@ -79,7 +79,7 @@ function SettingsCard({ post }) {
       </div>
 
       {/* 제목 */}
-      <h3 className="text-sm font-bold text-gray-200 mb-2 group-hover:text-purple-300 transition-colors line-clamp-1">
+      <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors line-clamp-1">
         {post.title}
       </h3>
 
@@ -92,12 +92,12 @@ function SettingsCard({ post }) {
 
       {/* 설명 미리보기 */}
       {s.description && (
-        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2 mb-3 border-t border-gray-800 pt-3">
+        <p className="text-xs text-gray-500 dark:text-gray-600 leading-relaxed line-clamp-2 mb-3 border-t border-gray-100 dark:border-gray-800 pt-3">
           {s.description}
         </p>
       )}
 
-      <div className="flex items-center gap-3 text-xs text-gray-700">
+      <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-700">
         <span>💬 {post.replyCount || 0}</span>
         <span>👁️ {post.views || 0}</span>
       </div>
@@ -137,7 +137,7 @@ export default function SettingsSharePage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Head>
         <title>인게임 세팅 공유 | PKGG</title>
         <meta name="description" content="PUBG 그래픽/마우스/키바인딩 세팅을 공유하고 참고하세요." />
@@ -147,8 +147,8 @@ export default function SettingsSharePage() {
       <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black text-white">⚙️ 인게임 세팅 공유</h1>
-            <p className="text-sm text-gray-400 mt-1">그래픽·마우스·키바인딩 세팅을 공유하고 참고하세요</p>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white">⚙️ 인게임 세팅 공유</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">그래픽·마우스·키바인딩 세팅을 공유하고 참고하세요</p>
           </div>
           <Link href="/settings-share/create" passHref>
             <span className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap">
@@ -166,7 +166,7 @@ export default function SettingsSharePage() {
               className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
                 typeFilter === o.value
                   ? 'bg-purple-600 border-purple-500 text-white'
-                  : 'bg-gray-900 border-gray-800 text-gray-400 hover:border-gray-600'
+                  : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-600'
               }`}
             >
               {o.label}
@@ -202,15 +202,15 @@ export default function SettingsSharePage() {
             <button
               onClick={() => { setPage(p => p - 1); loadPosts(page - 1); }}
               disabled={page <= 1}
-              className="px-4 py-2 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm disabled:opacity-40"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl text-sm disabled:opacity-40"
             >
               ◀
             </button>
-            <span className="px-4 py-2 text-gray-400 text-sm">{page} / {pagination.totalPages}</span>
+            <span className="px-4 py-2 text-gray-500 dark:text-gray-400 text-sm">{page} / {pagination.totalPages}</span>
             <button
               onClick={() => { setPage(p => p + 1); loadPosts(page + 1); }}
               disabled={page >= pagination.totalPages}
-              className="px-4 py-2 bg-gray-800 border border-gray-700 text-gray-300 rounded-xl text-sm disabled:opacity-40"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl text-sm disabled:opacity-40"
             >
               ▶
             </button>

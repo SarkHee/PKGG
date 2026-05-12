@@ -5,6 +5,7 @@ import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
 import Header from '../components/layout/Header';
+import AdUnit from '../components/AdUnit';
 import { useT } from '../utils/i18n';
 import { MAJOR, TYPES } from '../utils/playstyleClassifier';
 import { getMMRTier } from '../utils/mmrCalculator';
@@ -136,6 +137,7 @@ export default function Home() {
   const [isSearching, setIsSearching]       = useState(false);
   const [navigating, setNavigating]         = useState(false);
   const [searchCard, setSearchCard]         = useState(null);
+  const [mounted, setMounted]               = useState(false);
   const searchBoxRef = useRef(null);
   const router = useRouter();
   const { t } = useT();
@@ -144,6 +146,7 @@ export default function Home() {
   useEffect(() => {
     setFavorites(loadFavs());
     setRecentSearches(loadRecentSearches());
+    setMounted(true);
   }, []);
 
   // 외부 클릭 시 드롭다운 닫기
@@ -250,16 +253,27 @@ export default function Home() {
       <Head>
         <title>{t('home.meta_title')}</title>
         <meta name="description" content={t('home.meta_desc')} />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="keywords" content="PUBG 전적조회, 배틀그라운드 전적, 배그 통계, PUBG 클랜 분석, PUBG MMR, 배그 랭크, 배그 킬뎀, 배그 시즌 통계, 배그 무기, 배그 플레이스타일, 배그 에임 트레이너, PKGG, pk.gg, pubg stats, pubg tracker" />
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="PKGG" />
+
         <meta property="og:type" content="website" />
+        <meta property="og:locale" content="ko_KR" />
+        <meta property="og:site_name" content="PKGG" />
         <meta property="og:url" content="https://pkgg.vercel.app/" />
         <meta property="og:title" content={t('home.meta_title')} />
         <meta property="og:description" content={t('home.meta_desc')} />
-        <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
+        <meta property="og:image" content="https://pkgg.vercel.app/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="PKGG - PUBG 전적조회 & 클랜 분석 플랫폼" />
+
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={t('home.meta_title')} />
         <meta name="twitter:description" content={t('home.meta_desc')} />
-        <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
+        <meta name="twitter:image" content="https://pkgg.vercel.app/og.png" />
+        <meta name="twitter:image:alt" content="PKGG - PUBG 전적조회 & 클랜 분석 플랫폼" />
+
         <link rel="canonical" href="https://pkgg.vercel.app/" />
         <script
           type="application/ld+json"
@@ -267,11 +281,13 @@ export default function Home() {
             "@context": "https://schema.org",
             "@type": "WebSite",
             "name": "PKGG",
+            "alternateName": "PK.GG",
             "url": "https://pkgg.vercel.app",
-            "description": "PUBG 플레이어 전적 검색, 클랜 분석, 무기 성향 테스트",
+            "description": "PUBG(배틀그라운드) 플레이어 전적 조회, 클랜 분석, 무기 성향 테스트, 에임 트레이너 무료 제공",
+            "inLanguage": "ko-KR",
             "potentialAction": {
               "@type": "SearchAction",
-              "target": { "@type": "EntryPoint", "urlTemplate": "https://pkgg.vercel.app/?q={search_term_string}" },
+              "target": { "@type": "EntryPoint", "urlTemplate": "https://pkgg.vercel.app/player/steam/{search_term_string}" },
               "query-input": "required name=search_term_string"
             }
           })}}
@@ -512,6 +528,9 @@ export default function Home() {
             </div>
           </div>
 
+          {/* 광고: 특징 카드 아래 — 콘텐츠 로드 후에만 노출 */}
+          <AdUnit slot="1234567890" format="horizontal" className="w-full max-w-4xl mx-auto px-4 mt-6" show={mounted && !navigating} />
+
           {/* PKGG 플레이 분석 카드 */}
           <div className="w-full max-w-4xl mx-auto px-4 mt-8 sm:mt-12">
             <div className="flex items-center justify-center gap-3 mb-6">
@@ -633,6 +652,9 @@ export default function Home() {
               ))}
             </div>
           </div>
+
+          {/* 광고: FAQ 아래 — 콘텐츠 로드 후에만 노출 */}
+          <AdUnit slot="0987654321" format="horizontal" className="w-full max-w-2xl mx-auto px-4 mt-6" show={mounted && !navigating} />
 
         </main>
 

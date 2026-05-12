@@ -44,7 +44,7 @@ export default function AboutPage() {
       </Head>
       <Header />
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         {/* 히어로 */}
         <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
           <div className="max-w-3xl mx-auto px-4 py-16 text-center">
@@ -58,36 +58,36 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
 
           {/* 소개 */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-3">PKGG란?</h2>
-            <p className="text-gray-600 leading-relaxed">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">PKGG란?</h2>
+            <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
               PKGG는 PUBG(배틀그라운드) 플레이어들을 위해 만들어진 무료 분석 플랫폼입니다.
               PUBG 공식 API를 활용해 실시간 전적 데이터를 제공하며, 클랜 분석·무기 성향 테스트·데미지 표 등
               게임 실력 향상에 도움이 되는 다양한 도구를 제공합니다.
             </p>
-            <p className="text-gray-600 leading-relaxed mt-3">
+            <p className="text-gray-600 dark:text-gray-400 leading-relaxed mt-3">
               별도 회원가입 없이 누구나 자유롭게 이용할 수 있습니다.
             </p>
           </div>
 
           {/* 주요 기능 */}
           <div>
-            <h2 className="text-lg font-bold text-gray-900 mb-4">주요 기능</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">주요 기능</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {FEATURES.map((f) => (
-                <div key={f.title} className="bg-white rounded-xl border border-gray-200 p-5">
+                <div key={f.title} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
                   <div className="text-2xl mb-2">{f.icon}</div>
-                  <h3 className="font-semibold text-gray-900 mb-1">{f.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{f.title}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{f.desc}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* 데이터 출처 */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-3">데이터 출처</h2>
-            <ul className="space-y-2 text-gray-600 text-sm">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">데이터 출처</h2>
+            <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
               <li className="flex gap-2"><span className="text-blue-500 flex-shrink-0">•</span>전적 데이터: PUBG 공식 API (api.pubg.com)</li>
               <li className="flex gap-2"><span className="text-blue-500 flex-shrink-0">•</span>무기 데이터: PUBG 공식 패치노트 (pubg.com/ko)</li>
               <li className="flex gap-2"><span className="text-blue-500 flex-shrink-0">•</span>뉴스: PUBG 공식 공지사항 RSS</li>
@@ -95,9 +95,9 @@ export default function AboutPage() {
           </div>
 
           {/* 면책 고지 */}
-          <div className="bg-amber-50 rounded-2xl border border-amber-200 p-6">
-            <h2 className="text-sm font-bold text-amber-800 mb-2">면책 고지</h2>
-            <p className="text-sm text-amber-700 leading-relaxed">
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800 p-6">
+            <h2 className="text-sm font-bold text-amber-800 dark:text-amber-300 mb-2">면책 고지</h2>
+            <p className="text-sm text-amber-700 dark:text-amber-400 leading-relaxed">
               PKGG는 Krafton(크래프톤) 또는 PUBG Corp와 공식적으로 제휴된 서비스가 아닙니다.
               PUBG® 및 BATTLEGROUNDS®는 KRAFTON, Inc.의 등록 상표입니다.
               본 사이트는 팬 제작 비공식 서비스이며, 게임 데이터는 공개 API를 통해 제공됩니다.
@@ -105,10 +105,10 @@ export default function AboutPage() {
           </div>
 
           {/* 연락처 */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
-              <h2 className="text-lg font-bold text-gray-900 mb-1">문의 & 피드백</h2>
-              <p className="text-sm text-gray-500">버그 제보, 기능 제안, 기타 문의는 언제든지 연락해주세요.</p>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">문의 & 피드백</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">버그 제보, 기능 제안, 기타 문의는 언제든지 연락해주세요.</p>
             </div>
             <Link
               href="/contact"

@@ -382,7 +382,7 @@ function MyApp({ Component, pageProps }) {
 
       <div className={`${inter.className} min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col`}>
         <div className="flex-1">
-          <Component {...pageProps} />
+          <Component key={router.pathname === '/player/[server]/[nickname]' ? router.asPath : router.pathname} {...pageProps} />
         </div>
         {showFooter && <Footer />}
       </div>
