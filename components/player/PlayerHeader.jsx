@@ -40,6 +40,11 @@ const PlayerHeader = ({
   mmr = 1000,
   dataSource,
   onBotFilterChange,
+  matchesLoading = false,
+  availableSeasons = [],
+  selectedSeasonId = null,
+  onSeasonChange,
+  seasonChanging = false,
 }) => {
   const [showRankedDetails, setShowRankedDetails] = useState(false);
   const [showSeasonDetails, setShowSeasonDetails] = useState(false);
@@ -71,7 +76,14 @@ const PlayerHeader = ({
     }
   };
 
+  const [showBotSeasonAlert, setShowBotSeasonAlert] = useState(false);
+
   const handleBotFilter = () => {
+    if (selectedSeasonId) {
+      setShowBotSeasonAlert(true);
+      setTimeout(() => setShowBotSeasonAlert(false), 3500);
+      return;
+    }
     setBotFilterOn((v) => {
       onBotFilterChange?.(!v);
       return !v;
@@ -379,15 +391,29 @@ const PlayerHeader = ({
                   >{saving ? '저장 중...' : <>📷<span className="hidden sm:inline"> 카드</span></>}</button>
                 </Tooltip>
               )}
-              <button
-                onClick={handleBotFilter}
-                title={botFilterOn ? '봇(AI) 킬을 제외한 실제 플레이어 킬만 표시해요' : '봇(AI) 킬이 포함된 수치예요'}
-                className={`px-2.5 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
-                  botFilterOn
-                    ? 'bg-cyan-500 border-cyan-400 text-white'
-                    : 'border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300'
-                }`}
-              >🤖<span className="hidden sm:inline">{botFilterOn ? ' 봇킬 제외 ✓' : ' 봇킬 포함'}</span></button>
+              <div className="relative">
+                <button
+                  onClick={handleBotFilter}
+                  title={botFilterOn ? '봇(AI) 킬을 제외한 실제 플레이어 킬만 표시해요' : '봇(AI) 킬이 포함된 수치예요'}
+                  className={`px-2.5 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
+                    selectedSeasonId
+                      ? 'border-white/10 bg-white/5 text-gray-500 cursor-not-allowed'
+                      : botFilterOn
+                      ? 'bg-cyan-500 border-cyan-400 text-white'
+                      : 'border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300'
+                  }`}
+                >🤖<span className="hidden sm:inline">{botFilterOn ? ' 봇킬 제외 ✓' : ' 봇킬 포함'}</span></button>
+
+                {/* 이전 시즌 클릭 시 토스트 */}
+                {showBotSeasonAlert && (
+                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none">
+                    <div className="flex items-start gap-2.5 bg-gray-900 border border-amber-500/60 rounded-2xl px-4 py-3 shadow-2xl max-w-xs w-max">
+                      <span className="text-amber-400 text-lg flex-shrink-0">⚠️</span>
+                      <div className="text-sm font-bold text-amber-400">이전 시즌은 봇킬 분석 불가</div>
+                    </div>
+                  </div>
+                )}
+              </div>
               {(() => {
                 const tier = getMMRTier(displayMmr);
                 const tooltipText = `PKGG 추정 점수 — 배그 공식 수치 아님\n\n계산 기준\n💥 평균 딜량   30%\n🎯 평균 킬수   25%\n🏆 승률        20%\n🛡️ Top10 진입  10%\n🤝 평균 어시   8%\n⏱️ 평균 생존   7%\n\n📌 ${mmrSource}`;
@@ -408,15 +434,24 @@ const PlayerHeader = ({
             {/* 2줄: 현재시즌 · 이벤트제외 · 최신화 */}
             <div className="flex items-center gap-1.5">
               <select
-                className="hidden sm:block px-2.5 py-1.5 bg-blue-800/60 border border-blue-600/50 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-700/60 transition-colors"
-                defaultValue="current"
+                className="hidden sm:block px-2.5 py-1.5 bg-blue-800/60 border border-blue-600/50 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-700/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                value={selectedSeasonId || 'current'}
+                onChange={e => onSeasonChange?.(e.target.value)}
+                disabled={seasonChanging}
               >
-                <option value="current">현재 시즌</option>
-                <option value="season-31">시즌 31</option>
-                <option value="season-30">시즌 30</option>
-                <option value="season-29">시즌 29</option>
-                <option value="season-28">시즌 28</option>
+                {availableSeasons.length > 0 ? (
+                  availableSeasons.map(s => (
+                    <option key={s.id} value={s.isCurrentSeason ? 'current' : s.id}>
+                      {s.label}
+                    </option>
+                  ))
+                ) : (
+                  <option value="current">현재 시즌</option>
+                )}
               </select>
+              {seasonChanging && (
+                <div className="hidden sm:block w-3.5 h-3.5 animate-spin rounded-full border border-blue-300 border-t-transparent flex-shrink-0" />
+              )}
               <button
                 onClick={onRefresh}
                 disabled={refreshing || cooldown > 0}
@@ -577,18 +612,45 @@ const PlayerHeader = ({
                 {/* 핵심 스탯 2개 */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800 rounded-xl p-3 text-center">
-                    <div className="text-xs text-cyan-500 mb-1 font-medium">평균 딜량</div>
-                    <div className="text-lg font-black text-gray-900 dark:text-gray-100">{recent20Stats.avgDamage.toFixed(0)}</div>
+                    {(() => {
+                      const recent20 = filteredRecentMatches.slice(0, 20)
+                      const correctedCount = recent20.filter((m) => m.isBotCorrected).length
+                      const n = recent20.length || 1
+                      const avgRealDmg = botFilterOn && correctedCount > 0
+                        ? recent20.reduce((s, m) => s + (m.isBotCorrected ? (m.realDamage ?? m.damage ?? 0) : (m.damage ?? 0)), 0) / n
+                        : null
+                      const totalBotDmg = botFilterOn && correctedCount > 0
+                        ? recent20.reduce((s, m) => s + (m.botDamage ?? 0), 0) / n
+                        : null
+                      return <>
+                        <div className="text-xs text-cyan-500 mb-1 font-medium">
+                          {botFilterOn ? '실 딜량 평균' : '평균 딜량'}
+                        </div>
+                        <div className="text-lg font-black text-gray-900 dark:text-gray-100">
+                          {avgRealDmg !== null ? avgRealDmg.toFixed(0) : recent20Stats.avgDamage.toFixed(0)}
+                        </div>
+                        {totalBotDmg !== null && totalBotDmg > 0 && (
+                          <div className="text-[10px] text-gray-400 mt-0.5">봇 평균 데미지 {totalBotDmg.toFixed(0)} 제외</div>
+                        )}
+                        {totalBotDmg === 0 && correctedCount > 0 && (
+                          <div className="text-[10px] text-emerald-500 mt-0.5">봇 딜 없음 — 차이 없음</div>
+                        )}
+                        {botFilterOn && correctedCount === 0 && (
+                          <div className="text-[10px] text-gray-400 mt-0.5">분석 데이터 없음</div>
+                        )}
+                      </>
+                    })()}
                   </div>
                   <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800 rounded-xl p-3 text-center">
                     {(() => {
                       const recent20 = filteredRecentMatches.slice(0, 20)
-                      const corrected = recent20.filter((m) => m.isBotCorrected)
-                      const avgReal = botFilterOn && corrected.length > 0
-                        ? corrected.reduce((s, m) => s + (m.realKills ?? m.kills ?? 0), 0) / corrected.length
+                      const correctedCount = recent20.filter((m) => m.isBotCorrected).length
+                      const n = recent20.length || 1
+                      const avgReal = botFilterOn && correctedCount > 0
+                        ? recent20.reduce((s, m) => s + (m.isBotCorrected ? (m.realKills ?? m.kills ?? 0) : (m.kills ?? 0)), 0) / n
                         : null
-                      const avgBot = botFilterOn && corrected.length > 0
-                        ? corrected.reduce((s, m) => s + (m.botKills ?? 0), 0) / corrected.length
+                      const avgBot = botFilterOn && correctedCount > 0
+                        ? recent20.reduce((s, m) => s + (m.botKills ?? 0), 0) / n
                         : null
                       return <>
                         <div className="text-xs text-cyan-500 mb-1 font-medium">
@@ -600,7 +662,7 @@ const PlayerHeader = ({
                         {avgBot !== null && (
                           <div className="text-[10px] text-gray-400 mt-0.5">봇 {avgBot.toFixed(1)}킬 제외</div>
                         )}
-                        {botFilterOn && corrected.length === 0 && (
+                        {botFilterOn && correctedCount === 0 && (
                           <div className="text-[10px] text-gray-400 mt-0.5">데이터 없음</div>
                         )}
                       </>
@@ -619,8 +681,17 @@ const PlayerHeader = ({
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{recent20Stats.top10Rate.toFixed(1)}%</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
-                    <div className="text-xs text-gray-400 mb-0.5">어시스트</div>
-                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{recent20Stats.avgAssists.toFixed(1)}</div>
+                    <div className="text-xs text-gray-400 mb-0.5">{botFilterOn ? '실 어시스트' : '어시스트'}</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                      {(() => {
+                        if (!botFilterOn) return recent20Stats.avgAssists.toFixed(1)
+                        const recent20 = filteredRecentMatches.slice(0, 20)
+                        const corrected = recent20.filter((m) => m.isBotCorrected)
+                        if (corrected.length === 0) return recent20Stats.avgAssists.toFixed(1)
+                        const avgReal = corrected.reduce((s, m) => s + Math.max(0, (m.assists ?? 0) - (m.botAssist ?? 0)), 0) / corrected.length
+                        return avgReal.toFixed(1)
+                      })()}
+                    </div>
                   </div>
                 </div>
 
@@ -634,14 +705,18 @@ const PlayerHeader = ({
 
                 {showRecentDetails && (() => {
                   const recent = filteredRecentMatches.slice(0, recent20Stats.totalMatches);
-                  const maxDmg = Math.max(...recent.map((m) => m.damage || 0));
+                  const effectiveDmg = (m) =>
+                    botFilterOn && m.isBotCorrected ? (m.realDamage ?? m.damage ?? 0) : (m.damage || 0)
+                  const maxDmg = Math.max(...recent.map(effectiveDmg));
                   const totalKills = recent.reduce((s, m) => s + (m.kills || 0), 0);
-                  const totalDmg = recent.reduce((s, m) => s + (m.damage || 0), 0);
+                  const totalDmg = recent.reduce((s, m) => s + effectiveDmg(m), 0);
+                  const botDmgExcluded = botFilterOn
+                    ? recent.reduce((s, m) => s + (m.botDamage ?? 0), 0)
+                    : 0
                   const totalDeaths = recent.filter((m) => (m.rank || m.placement || 100) > 1).length;
                   const avgSurv = recent20Stats.avgSurvivalTime;
                   const totalAssists = recent.reduce((s, m) => s + (m.assists || 0), 0);
 
-                  // 봇 필터 ON이면 실킬 기준 KD 계산 (isBotCorrected인 경기만 realKills 적용)
                   const effectiveKills = botFilterOn
                     ? recent.reduce((s, m) => s + (m.isBotCorrected ? (m.realKills ?? m.kills ?? 0) : (m.kills ?? 0)), 0)
                     : totalKills
@@ -654,21 +729,22 @@ const PlayerHeader = ({
                       <div className="mt-3 rounded-xl border border-cyan-100 dark:border-cyan-800 overflow-hidden">
                         <div className="px-3 py-2 bg-cyan-50 dark:bg-cyan-900/20 border-b border-cyan-100 dark:border-cyan-800 flex items-center justify-between">
                           <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">추가 통계</span>
-                          {botFilterOn && <span className="text-[10px] text-cyan-400">🤖 실킬 기준</span>}
+                          {botFilterOn && <span className="text-[10px] text-cyan-400">🤖 봇딜 제외</span>}
                         </div>
                         <div className="p-2">
                           <div className="grid grid-cols-3 gap-1.5">
                             {[
-                              { label: '최고 딜량', value: maxDmg.toLocaleString(), color: 'text-orange-500' },
+                              { label: botFilterOn ? '최고 실딜' : '최고 딜량', value: Math.round(maxDmg).toLocaleString(), color: 'text-orange-500' },
                               { label: botFilterOn ? '실K/D' : 'K/D', value: kd, color: 'text-red-500' },
                               { label: '평균 생존', value: Math.round(avgSurv / 60) + '분', color: 'text-gray-500 dark:text-gray-400' },
-                              { label: '총 딜량', value: totalDmg.toLocaleString(), color: 'text-cyan-600' },
+                              { label: botFilterOn ? '총 실딜량' : '총 딜량', value: Math.round(totalDmg).toLocaleString(), color: 'text-cyan-600', sub: botFilterOn && botDmgExcluded > 0 ? `봇 ${Math.round(botDmgExcluded).toLocaleString()} 제외` : null },
                               { label: botFilterOn ? '총 실킬' : '총 킬', value: effectiveKills.toLocaleString(), color: 'text-red-400' },
                               { label: '총 어시스트', value: totalAssists.toLocaleString(), color: 'text-blue-400' },
-                            ].map(({ label, value, color }) => (
+                            ].map(({ label, value, color, sub }) => (
                               <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                                 <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
                                 <div className="text-sm font-black text-gray-900 dark:text-gray-100">{value}</div>
+                                {sub && <div className="text-[9px] text-gray-400 mt-0.5">{sub}</div>}
                               </div>
                             ))}
                           </div>
@@ -680,6 +756,15 @@ const PlayerHeader = ({
                   );
                 })()}
               </>
+            ) : matchesLoading ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+                <svg className="w-6 h-6 animate-spin text-cyan-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                <div className="text-sm font-medium text-cyan-500">매치 데이터 분석 중...</div>
+                <div className="text-xs text-gray-400">봇킬 분석 포함 — 잠시 기다려 주세요</div>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <div className="text-3xl mb-2">🎮</div>

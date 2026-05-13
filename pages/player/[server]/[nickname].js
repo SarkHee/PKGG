@@ -9,6 +9,7 @@ import Header from '../../../components/layout/Header';
 import PlayerHeader from '../../../components/player/PlayerHeader';
 import MatchListRow from '../../../components/match/MatchListRow';
 import AdUnit from '../../../components/AdUnit';
+import SeasonCountdown from '../../../components/SeasonCountdown';
 
 // 무거운 컴포넌트 lazy load → 초기 JS 번들 분리, LCP 차단 제거
 const PlayerDashboard       = dynamic(() => import('../../../components/player/PlayerDashboard'), { ssr: false });
@@ -595,6 +596,23 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
     'division.bro.official.pc-2024-01'
   );
   const [selectedMatchFilter, setSelectedMatchFilter] = useState('전체');
+  const [selectedSeasonId, setSelectedSeasonId] = useState(null); // null = 현재 시즌
+  const [overrideSeasonStats, setOverrideSeasonStats] = useState(null);
+  const [overrideRankedSummary, setOverrideRankedSummary] = useState(undefined); // undefined=사용안함
+  const [seasonChanging, setSeasonChanging] = useState(false);
+  const [clientSeasons, setClientSeasons] = useState(null); // SSR에 없을 때 폴백
+
+  // availableSeasons가 비어있으면 클라이언트에서 직접 fetch
+  useEffect(() => {
+    const hasSsrSeasons = playerData?.availableSeasons?.length > 0;
+    if (hasSsrSeasons) return;
+    const shard = playerData?.profile?.shardId || server || 'steam';
+    fetch(`/api/pubg/seasons?shard=${shard}`)
+      .then(r => r.json())
+      .then(d => { if (d.seasons?.length > 0) setClientSeasons(d.seasons); })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // SSR 데이터를 세션 캐시에 저장
   useEffect(() => {
@@ -617,7 +635,8 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
     // 세션 캐시 (load-more 결과가 저장된 경우 팀원 데이터 있음)
     const matchCacheKey = `matches_${shard}_${nick}`;
     const cachedMatches = getCachedPlayer(matchCacheKey);
-    if (cachedMatches?.some(m => m.teammatesDetail?.length > 0)) {
+    const cacheHasBotFields = cachedMatches?.some(m => 'isBotCorrected' in m)
+    if (cacheHasBotFields && cachedMatches?.some(m => m.teammatesDetail?.length > 0)) {
       setPlayerData(prev => prev ? { ...prev, recentMatches: cachedMatches } : prev);
       setMatchesLoading(false);
       return;
@@ -727,6 +746,108 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
   const handleSeasonChange = (seasonId, seasonData) => {
     setCurrentSeasonId(seasonId);
     setCurrentSeasonData(seasonData);
+  };
+
+  // 드롭다운 시즌 전환 핸들러 (PlayerHeader에서 호출)
+  const handleSeasonSelect = async (seasonId) => {
+    const currentId = playerData?.currentSeasonId;
+    if (!seasonId || seasonId === 'current' || seasonId === currentId) {
+      setSelectedSeasonId(null);
+      setOverrideSeasonStats(null);
+      setOverrideRankedSummary(undefined);
+      return;
+    }
+    const playerId = playerData?.profile?.playerId;
+    const shard = playerData?.profile?.shardId || server || 'steam';
+    if (!playerId) return;
+
+    setSelectedSeasonId(seasonId);
+    setSeasonChanging(true);
+    setOverrideSeasonStats(null);
+    setOverrideRankedSummary(undefined);
+    try {
+      // 일반전 + 경쟁전 병렬 fetch
+      const [seasonRes, rankedRes] = await Promise.allSettled([
+        fetch(`/api/pubg/stats/season/${shard}/${playerId}/${seasonId}`).then(r => r.json()),
+        fetch(`/api/pubg/stats/ranked/${shard}/${playerId}/${seasonId}`).then(r => r.json()),
+      ]);
+
+      // 일반전 변환
+      if (seasonRes.status === 'fulfilled' && seasonRes.value?.success) {
+        const gameModeStats = seasonRes.value.data?.gameModeStats || {};
+        const transformedModes = {};
+        for (const [mode, s] of Object.entries(gameModeStats)) {
+          const rounds = s.roundsPlayed || 0;
+          if (rounds === 0) continue;
+          transformedModes[mode] = {
+            rounds,
+            wins: s.wins || 0,
+            top10s: s.top10s || 0,
+            kd: parseFloat(((s.kills || 0) / Math.max(1, rounds - (s.wins || 0))).toFixed(2)),
+            avgDamage: Math.round((s.damageDealt || 0) / rounds),
+            winRate: Math.round(((s.wins || 0) / rounds) * 100),
+            top10Rate: Math.round(((s.top10s || 0) / rounds) * 100),
+            headshotRate: (s.kills || 0) > 0 ? Math.round(((s.headshotKills || 0) / s.kills) * 100) : 0,
+            longestKill: Math.round(s.longestKill || 0),
+            headshots: s.headshotKills || 0,
+            totalKills: s.kills || 0,
+            maxKills: s.roundMostKills || 0,
+            avgRank: 0,
+            avgSurvivalTime: Math.round((s.timeSurvived || 0) / rounds),
+            avgAssists: parseFloat(((s.assists || 0) / rounds).toFixed(1)),
+            assists: s.assists || 0,
+            mostAssists: 0,
+          };
+        }
+        setOverrideSeasonStats({ [seasonId]: transformedModes });
+      }
+
+      // 경쟁전 변환
+      if (rankedRes.status === 'fulfilled' && rankedRes.value?.success) {
+        const rankedModeStats = rankedRes.value.data?.rankedGameModeStats || {};
+        const modeData = rankedModeStats['squad-fpp'] || rankedModeStats['squad'] || Object.values(rankedModeStats)[0];
+        if (modeData && modeData.roundsPlayed > 0) {
+          const r = modeData.roundsPlayed;
+          const deaths = Math.max(1, r - (modeData.wins || 0));
+          setOverrideRankedSummary({
+            mode: 'squad-fpp',
+            tier: modeData.currentTier?.tier || 'Unranked',
+            subTier: modeData.currentTier?.subTier || 0,
+            currentTier: modeData.currentTier?.tier || 'Unranked',
+            rp: modeData.currentRankPoint || 0,
+            bestTier: modeData.bestTier?.tier || modeData.currentTier?.tier || 'Unranked',
+            bestRankPoint: modeData.bestRankPoint || modeData.currentRankPoint || 0,
+            games: r,
+            wins: modeData.wins || 0,
+            kd: parseFloat(((modeData.kills || 0) / deaths).toFixed(2)),
+            kda: parseFloat((((modeData.kills || 0) + (modeData.assists || 0)) / deaths).toFixed(2)),
+            avgDamage: r > 0 ? Math.round((modeData.damageDealt || 0) / r) : 0,
+            winRate: parseFloat(((modeData.wins || 0) / r * 100).toFixed(1)),
+            top10Rate: parseFloat(((modeData.top10s || 0) / r * 100).toFixed(1)),
+            top10Ratio: (modeData.top10s || 0) / r,
+            kills: modeData.kills || 0,
+            deaths,
+            assists: modeData.assists || 0,
+            headshotKills: modeData.headshotKills || 0,
+            headshotRate: (modeData.kills || 0) > 0
+              ? parseFloat(((modeData.headshotKills || 0) / (modeData.kills || 1) * 100).toFixed(1))
+              : 0,
+            damageDealt: modeData.damageDealt || 0,
+            dBNOs: modeData.dBNOs || 0,
+            roundsPlayed: r,
+          });
+        } else {
+          setOverrideRankedSummary(null); // 경쟁전 기록 없음
+        }
+      } else {
+        setOverrideRankedSummary(null);
+      }
+    } catch (e) {
+      console.warn('시즌 통계 로드 실패:', e);
+      setSelectedSeasonId(null);
+    } finally {
+      setSeasonChanging(false);
+    }
   };
 
   // 현재 표시할 데이터 결정 (시즌이 변경되었으면 시즌 데이터, 아니면 기본 데이터)
@@ -1367,12 +1488,17 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
           </div>
         )}
 
+        {/* 시즌 카운트다운 */}
+        <div className="mb-4">
+          <SeasonCountdown />
+        </div>
+
         {/* 새로운 플레이어 헤더 */}
         <PlayerHeader
           profile={profile}
           summary={summary}
-          rankedSummary={rankedSummary}
-          seasonStats={seasonStats}
+          rankedSummary={overrideRankedSummary !== undefined ? overrideRankedSummary : rankedSummary}
+          seasonStats={overrideSeasonStats || seasonStats}
           clanInfo={profile?.clan}
           recentMatches={recentMatches}
           onRefresh={handleRefresh}
@@ -1382,6 +1508,11 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
           mmr={displayData?.mmr || 1000}
           dataSource={dataSource}
           onBotFilterChange={setBotFilterOn}
+          matchesLoading={matchesLoading}
+          availableSeasons={playerData?.availableSeasons?.length > 0 ? playerData.availableSeasons : (clientSeasons || [])}
+          selectedSeasonId={selectedSeasonId}
+          onSeasonChange={handleSeasonSelect}
+          seasonChanging={seasonChanging}
         />
 
         {/* 광고 1 */}
@@ -1469,17 +1600,27 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                   </div>
                   <div className="p-4">
                     {matchesLoading ? (
-                      <div className="space-y-3 animate-pulse">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                            <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex-shrink-0" />
-                            <div className="flex-1 space-y-2">
-                              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32" />
-                              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48" />
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 px-1 pb-1">
+                          <svg className="w-3.5 h-3.5 animate-spin text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          <span className="text-xs text-cyan-500 font-medium">매치 데이터 분석 중...</span>
+                          <span className="text-[11px] text-gray-400">봇킬 분석 포함 — 잠시 기다려 주세요</span>
+                        </div>
+                        <div className="space-y-3 animate-pulse">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                              <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex-shrink-0" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32" />
+                                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48" />
+                              </div>
+                              <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
                             </div>
-                            <div className="h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     ) : filteredMatches && filteredMatches.length > 0 ? (
                       <MatchList recentMatches={filteredMatches} playerData={playerData} showBotKills={botFilterOn} />
@@ -2075,6 +2216,23 @@ export async function getServerSideProps({ params, query }) {
             );
             const seasons = seasonsData.data || [];
             const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
+
+            // availableSeasons 빌드 (드롭다운용) — 현재 시즌 번호 기반으로 이전 4시즌 생성
+            if (currentSeason) {
+              const curNum2 = parseInt(currentSeason.id.match(/-(\d+)$/)?.[1] || '0', 10);
+              if (curNum2 > 0) {
+                cached.availableSeasons = [
+                  { id: currentSeason.id, isCurrentSeason: true, label: `시즌 ${curNum2} (현재)` },
+                  ...Array.from({ length: 4 }, (_, i) => ({
+                    id: `division.bro.official.pc-2018-${curNum2 - i - 1}`,
+                    isCurrentSeason: false,
+                    label: `시즌 ${curNum2 - i - 1}`,
+                  })).filter(s => parseInt(s.id.match(/-(\d+)$/)?.[1] || '0', 10) > 0),
+                ];
+              }
+              cached.currentSeasonId = currentSeason.id;
+            }
+
             if (currentSeason) {
               const [statsResult, rankedResult] = await Promise.allSettled([
                 cachedPubgFetch(
@@ -2217,9 +2375,24 @@ export async function getServerSideProps({ params, query }) {
     let pubgModeDistribution = { ranked: 0, normal: 0, event: 0 };
     let currentSeasonModes = {};
 
+    let availableSeasons = [];
     if (seasonResult.status === 'fulfilled') {
       const seasons = seasonResult.value.data || []; // cachedPubgFetch: json.data = 배열
       const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
+      // 현재 시즌 번호에서 이전 4시즌 생성 (ID 패턴: division.bro.official.pc-2018-N)
+      if (currentSeason) {
+        const curNum = parseInt(currentSeason.id.match(/-(\d+)$/)?.[1] || '0', 10);
+        if (curNum > 0) {
+          availableSeasons = [
+            { id: currentSeason.id, isCurrentSeason: true, label: `시즌 ${curNum} (현재)` },
+            ...Array.from({ length: 4 }, (_, i) => ({
+              id: `division.bro.official.pc-2018-${curNum - i - 1}`,
+              isCurrentSeason: false,
+              label: `시즌 ${curNum - i - 1}`,
+            })).filter(s => parseInt(s.id.match(/-(\d+)$/)?.[1] || '0', 10) > 0),
+          ];
+        }
+      }
       if (currentSeason) {
         console.log(`✅ 현재 시즌: ${currentSeason.id}`);
         const [statsResult, rankedResult] = await Promise.allSettled([
@@ -2531,6 +2704,8 @@ export async function getServerSideProps({ params, query }) {
       modeStats: [],
       modeDistribution: pubgModeDistribution,
       seasonStats: pubgSeasonStats,
+      availableSeasons,
+      currentSeasonId: Object.keys(pubgSeasonStats)[0] || null,
       clanMembers: [],
       rankedStats: [],
       rankedSummary: pubgRankedSummary,

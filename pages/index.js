@@ -373,11 +373,11 @@ export default function Home() {
             <p className="text-base sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-2">
               {t('home.subtitle')}
             </p>
-            <p className="text-xs text-gray-600 mb-6 sm:mb-10">
+            <p className="text-xs text-gray-600 mb-4 sm:mb-6">
               {t('home.notice')}
             </p>
 
-            {/* 검색 메시지 알림 */}
+{/* 검색 메시지 알림 */}
             {searchMessage && (
               <div className="mb-6 max-w-xl mx-auto px-4">
                 <div className="bg-orange-500/20 border border-orange-500/50 text-orange-300 px-4 py-3 rounded-xl">

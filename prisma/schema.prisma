@@ -50,20 +50,27 @@ model ClanMember {
 }
 
 model PlayerMatch {
-  id            Int      @id @default(autoincrement())
-  pubgAccountId String
-  nickname      String
-  shard         String   @default("steam")
-  clanMemberId  Int?
-  matchId       String
-  mode          String
-  mapName       String?
-  placement     Int
-  kills         Int
-  assists       Int      @default(0)
-  damage        Float
-  surviveTime   Float    @default(0)
-  createdAt     DateTime
+  id              Int       @id @default(autoincrement())
+  pubgAccountId   String
+  nickname        String
+  shard           String    @default("steam")
+  clanMemberId    Int?
+  matchId         String
+  mode            String
+  mapName         String?
+  placement       Int
+  kills           Int
+  assists         Int       @default(0)
+  damage          Float
+  surviveTime     Float     @default(0)
+  createdAt       DateTime
+  botKills        Int?
+  realKills       Int?
+  botDamage       Float?
+  realDamage      Float?
+  botAssist       Int?
+  isBotCorrected  Boolean   @default(false)
+  botAnalyzedAt   DateTime?
 
   @@unique([pubgAccountId, matchId])
 }

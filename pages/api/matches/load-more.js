@@ -115,21 +115,85 @@ export default async function handler(req, res) {
           botKills:        0,
           realKills:       s.kills || 0,
           isBotCorrected:  false,
+          botDamage:       0,
+          realDamage:      Math.round(s.damageDealt || 0),
+          botAssist:       0,
+          realAssist:      s.assists || 0,
         };
       })
       .filter((m) => m !== null);
 
     // ── 2-2. 봇킬 분석 — 텔레메트리 대용량(50MB)이라 순차 처리 ──────────────
+    const botUpserts = []  // DB upsert 대상 수집
+
     for (const m of rawMatches) {
       try {
         const result = await analyzeMatchData(m._matchData, m.matchId);
         const row    = result.rows.find((r) => r.accountId === m._accountId);
-        m.botKills       = row?.bot  ?? 0;
-        m.realKills      = row?.real ?? m.kills;
+        m.botKills       = row?.bot         ?? 0;
+        m.realKills      = row?.real        ?? m.kills;
         m.isBotCorrected = result.isBotCorrected;
+        m.botDamage      = row?.botDamage   ?? 0;
+        m.realDamage     = row?.realDamage  ?? m.damage;
+        m.botAssist      = row?.botAssist   ?? 0;
+        m.realAssist     = row?.realAssist  ?? m.assists;
+
+        // 분석 성공한 경기만 upsert 대상에 추가
+        if (result.isBotCorrected && m._accountId) {
+          botUpserts.push({
+            accountId:   m._accountId,
+            matchId:     m.matchId,
+            mode:        m.mode,
+            mapName:     m.mapName || null,
+            placement:   m.placement,
+            kills:       m.kills,
+            assists:     m.assists,
+            damage:      m.damage,
+            surviveTime: m.surviveTime || 0,
+            createdAt:   new Date(m.matchTimestamp),
+            botKills:    m.botKills,
+            realKills:   m.realKills,
+            botDamage:   m.botDamage,
+            realDamage:  m.realDamage,
+            botAssist:   m.botAssist,
+          })
+        }
       } catch (err) {
         console.warn('[load-more] 봇킬 분석 실패:', m.matchId, err?.message);
       }
+    }
+
+    // ── 2-3. 봇 분석 결과 DB upsert (병렬, 응답 전 완료) ─────────────────────
+    if (botUpserts.length > 0) {
+      const now = new Date()
+      await Promise.allSettled(
+        botUpserts.map(({ accountId, matchId, ...fields }) =>
+          prisma.playerMatch.upsert({
+            where: { pubgAccountId_matchId: { pubgAccountId: accountId, matchId } },
+            create: {
+              pubgAccountId: accountId,
+              nickname,
+              shard,
+              matchId,
+              ...fields,
+              isBotCorrected: true,
+              botAnalyzedAt:  now,
+            },
+            update: {
+              botKills:       fields.botKills,
+              realKills:      fields.realKills,
+              botDamage:      fields.botDamage,
+              realDamage:     fields.realDamage,
+              botAssist:      fields.botAssist,
+              isBotCorrected: true,
+              botAnalyzedAt:  now,
+            },
+          })
+        )
+      ).then((results) => {
+        const failed = results.filter((r) => r.status === 'rejected').length
+        if (failed > 0) console.warn(`[load-more] DB upsert 실패 ${failed}/${botUpserts.length}건`)
+      })
     }
 
     // ── 2-3. 임시 필드 제거 ──────────────────────────────────────────────────

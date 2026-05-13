@@ -13,6 +13,10 @@
     {
       "path": "/api/cron/clan-update",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/batch/refresh-stale",
+      "schedule": "0 17 * * *"
     }
   ]
 }
