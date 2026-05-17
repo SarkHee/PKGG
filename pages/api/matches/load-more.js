@@ -98,6 +98,10 @@ export default async function handler(req, res) {
           });
 
         const s = me.attributes.stats;
+        const telemetryAsset = included.find(
+          (i) => i.type === 'asset' && i.attributes?.name === 'telemetry'
+        );
+        const telemetryUrl = telemetryAsset?.attributes?.URL || null;
         return {
           _matchData:  data,           // analyzeMatchData에 전달 (중복 fetch 방지)
           _accountId:  s.playerId || '', // 봇킬 rows에서 플레이어 lookup용
@@ -111,6 +115,7 @@ export default async function handler(req, res) {
           damage:         Math.round(s.damageDealt || 0),
           surviveTime:    s.timeSurvived || 0,
           matchTimestamp: attrs.createdAt || new Date().toISOString(),
+          telemetryUrl,
           teammatesDetail,
           botKills:        0,
           realKills:       s.kills || 0,
@@ -137,6 +142,7 @@ export default async function handler(req, res) {
         m.realDamage     = row?.realDamage  ?? m.damage;
         m.botAssist      = row?.botAssist   ?? 0;
         m.realAssist     = row?.realAssist  ?? m.assists;
+        m.weaponStats    = row?.weaponStats ?? {};
 
         // 분석 성공한 경기만 upsert 대상에 추가
         if (result.isBotCorrected && m._accountId) {
@@ -156,6 +162,7 @@ export default async function handler(req, res) {
             botDamage:   m.botDamage,
             realDamage:  m.realDamage,
             botAssist:   m.botAssist,
+            weaponStats: m.weaponStats,
           })
         }
       } catch (err) {
@@ -167,7 +174,7 @@ export default async function handler(req, res) {
     if (botUpserts.length > 0) {
       const now = new Date()
       await Promise.allSettled(
-        botUpserts.map(({ accountId, matchId, ...fields }) =>
+        botUpserts.map(({ accountId, matchId, weaponStats: _ws, ...fields }) =>
           prisma.playerMatch.upsert({
             where: { pubgAccountId_matchId: { pubgAccountId: accountId, matchId } },
             create: {
@@ -194,6 +201,37 @@ export default async function handler(req, res) {
         const failed = results.filter((r) => r.status === 'rejected').length
         if (failed > 0) console.warn(`[load-more] DB upsert 실패 ${failed}/${botUpserts.length}건`)
       })
+
+      // ── 2-4. 무기별 통계 player_weapon_stats 저장 (skipDuplicates) ──────────
+      const weaponRows = []
+      for (const { accountId, matchId, weaponStats } of botUpserts) {
+        if (!weaponStats || Object.keys(weaponStats).length === 0) continue
+        for (const [weaponId, ws] of Object.entries(weaponStats)) {
+          if (ws.kills === 0 && ws.damage === 0 && ws.pickups === 0) continue
+          weaponRows.push({
+            playerId:     accountId,
+            shard,
+            weaponId,
+            weaponName:   weaponId,
+            kills:        ws.kills,
+            damage:       ws.damage,
+            headshots:    0,
+            bot_kills:    ws.botKills,
+            real_kills:   ws.realKills,
+            assists:      0,
+            shots_fired:  0,
+            shots_hit:    0,
+            match_id:     matchId,
+            pickup_count: ws.pickups,
+          })
+        }
+      }
+      if (weaponRows.length > 0) {
+        await prisma.player_weapon_stats.createMany({
+          data: weaponRows,
+          skipDuplicates: true,
+        }).catch(e => console.warn('[load-more] 무기 통계 저장 실패:', e.message))
+      }
     }
 
     // ── 2-3. 임시 필드 제거 ──────────────────────────────────────────────────

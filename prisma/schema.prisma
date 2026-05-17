@@ -472,16 +472,23 @@ model MapMarker {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model player_weapon_stats {
-  id         Int      @id @default(autoincrement())
-  playerId   String
-  shard      String   @default("steam")
-  weaponId   String
-  weaponName String   @default("")
-  kills      Int      @default(0)
-  damage     Float    @default(0)
-  headshots  Int      @default(0)
-  savedAt    DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  playerId     String
+  shard        String   @default("steam")
+  weaponId     String
+  weaponName   String   @default("")
+  kills        Int      @default(0)
+  damage       Float    @default(0)
+  headshots    Int      @default(0)
+  savedAt      DateTime @default(now())
+  bot_kills    Int      @default(0)
+  real_kills   Int      @default(0)
+  assists      Int      @default(0)
+  shots_fired  Int      @default(0)
+  shots_hit    Int      @default(0)
+  match_id     String   @default("")
+  pickup_count Int      @default(0)
 
-  @@unique([playerId, weaponId], map: "player_weapon_stats_playerid_weaponid_key")
+  @@unique([playerId, weaponId, match_id], map: "player_weapon_stats_player_weapon_match_key")
   @@index([weaponId, shard], map: "player_weapon_stats_weaponid_shard_idx")
 }

@@ -451,7 +451,7 @@ export default function MatchListRow({
 
           <MatchTeammateStats teammatesDetail={match.teammatesDetail} shard={playerData?.profile?.shardId || 'steam'} />
           <div className="mt-4">
-            <MatchDetailLog match={match} playerNickname={playerData?.profile?.name || ''} />
+            <MatchDetailLog match={match} playerNickname={playerData?.profile?.nickname || ''} />
           </div>
         </div>
       )}

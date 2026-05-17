@@ -1,6 +1,39 @@
 // GET /api/pubg/match-telemetry?url=<encodedUrl>&mapName=<mapName>&nickname=<lowerNickname>
 // 단일 경기 텔레메트리 지연 로드 엔드포인트
 
+const WEAP_NAME = {
+  WeapAK47_C:'AKM', WeapHK416_C:'M416', WeapDuncans_M416_C:'M416',
+  WeapM16A4_C:'M16A4', WeapSCAR_L_C:'SCAR-L', WeapAUG_A3_C:'AUG A3',
+  WeapG36C_C:'G36C', WeapGroza_C:'Groza', WeapQBZ_C:'QBZ-95',
+  WeapBerylM762_C:'Beryl M762', WeapMk47Mutant_C:'Mk47 Mutant',
+  WeapACE32_C:'ACE32', WeapK2_C:'K2', WeapJS9_C:'JS9',
+  WeapFNFal_C:'SLR', WeapSKS_C:'SKS', WeapMini14_C:'Mini 14',
+  WeapMk12_C:'Mk12', WeapMk14_C:'Mk14 EBR', WeapDragunov_C:'Dragunov',
+  WeapVSS_C:'VSS', WeapQBU88_C:'QBU88', WeapMads_QBU88_C:'QBU88',
+  WeapKar98k_C:'Kar98k', WeapM24_C:'M24', WeapAWM_C:'AWM',
+  WeapMosinNagant_C:'Mosin-Nagant', WeapWin94_C:'Win94', WeapL6_C:'Lynx AMR',
+  WeapUMP_C:'UMP9', WeapVector_C:'Vector', WeapMP5K_C:'MP5K',
+  WeapPP19_C:'PP-19 Bizon', WeapMP9_C:'MP9', WeapP90_C:'P90',
+  WeapUZI_C:'Micro Uzi', WeapSkorpion_C:'Skorpion', WeapTommyGun_C:'Tommy Gun',
+  WeapDP28_C:'DP-28', WeapM249_C:'M249', WeapMG3_C:'MG3',
+  WeapSaiga12_C:'S12K', WeapWinchester_C:'S1897', WeapBerreta686_C:'S686',
+  WeapDP12_C:'DBS', WeapOriginS12_C:'O12', WeapSawnoff_C:'Sawed-off',
+  WeapDesertEagle_C:'Deagle', WeapP1911_C:'P1911', WeapP92_C:'P92',
+  WeapG18C_C:'P18C', WeapR1895_C:'R1895', WeapR45_C:'R45',
+  WeapGrenade_C:'수류탄', WeapMolotov_C:'화염병', WeapSmokeGrenade_C:'연막탄',
+  WeapFlashbang_C:'섬광탄', WeapDecoyGrenade_C:'디코이',
+  ProjGrenade_C:'수류탄', ProjMolotov_C:'화염병', ProjSmokeGrenade_C:'연막탄',
+  ProjFlashbang_C:'섬광탄', ProjC4_C:'C4', ProjMortar_C:'Mortar',
+  WeapCrossbow_C:'Crossbow', WeapFlareGun_C:'Flare Gun',
+  WeapC4_C:'C4', WeapMortar_C:'Mortar', WeapPanzerfaust_C:'Panzerfaust',
+  WeapPan_C:'Pan', WeapMachete_C:'Machete', WeapCrowbar_C:'Crowbar',
+}
+function weaponDisplayName(id) {
+  if (!id) return '알 수 없음'
+  if (WEAP_NAME[id]) return WEAP_NAME[id]
+  return id.replace(/^(Weap|Proj)/, '').replace(/_C$/, '').replace(/_/g, ' ')
+}
+
 const MAP_MAX = {
   // 8km 맵
   Baltic_Main: 820000, Desert_Main: 820000, Tiger_Main: 820000,
@@ -116,7 +149,7 @@ function analyzeTelemetry(telemetryData, playerName, mapName) {
             event.damageReason === 'Head' ||
             event.finishDamageInfo?.damageReason === 'Head'
           killLog.push(
-            `${event.victim?.name || 'Unknown'}을(를) ${weapon}${isHeadshot ? ' (헤드샷)' : ''}으로 ${distance}m에서 제거`
+            `${event.victim?.name || 'Unknown'}을(를) ${weaponDisplayName(weapon)}${isHeadshot ? ' (헤드샷)' : ''}으로 ${distance}m에서 제거`
           )
         }
       } else if (event._T === 'LogPlayerTakeDamage') {

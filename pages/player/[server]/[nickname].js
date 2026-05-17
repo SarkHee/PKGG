@@ -237,6 +237,75 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
   }
 }
 
+// DB에 저장된 미분석 매치를 백그라운드에서 봇킬 분석 (최대 3경기)
+// load-more.js가 처리하지 못한 기존 데이터 대상
+async function analyzePendingMatchesBackground(pubgAccountId, nickname, shard) {
+  const { PrismaClient } = require('@prisma/client');
+  const { analyzeMatchData } = require('../../../utils/botKills.js');
+  const { cachedPubgFetch, TTL } = require('../../../utils/pubgApiCache');
+  const prisma = new PrismaClient();
+  const PUBG_BASE = 'https://api.pubg.com/shards';
+  const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
+  const MAX_ANALYZE = 3;
+
+  try {
+    const cutoff = new Date(Date.now() - FOURTEEN_DAYS_MS);
+    const pending = await prisma.playerMatch.findMany({
+      where: { pubgAccountId, botAnalyzedAt: null, createdAt: { gte: cutoff } },
+      orderBy: { createdAt: 'desc' },
+      take: MAX_ANALYZE,
+      select: { id: true, matchId: true },
+    });
+    if (pending.length === 0) return;
+
+    const now = new Date();
+    for (const { id, matchId } of pending) {
+      try {
+        const data = await cachedPubgFetch(`${PUBG_BASE}/${shard}/matches/${matchId}`, { ttl: TTL.MATCH });
+        const result = await analyzeMatchData(data, matchId);
+        const row = result.rows.find((r) => r.accountId === pubgAccountId);
+
+        await prisma.playerMatch.update({
+          where: { id },
+          data: {
+            botKills:       row?.bot         ?? 0,
+            realKills:      row?.real        ?? null,
+            botDamage:      row?.botDamage   ?? null,
+            realDamage:     row?.realDamage  ?? null,
+            botAssist:      row?.botAssist   ?? null,
+            isBotCorrected: result.isBotCorrected,
+            botAnalyzedAt:  now,
+          },
+        });
+
+        // 무기 통계 저장
+        if (result.isBotCorrected && row?.weaponStats) {
+          const weaponRows = Object.entries(row.weaponStats)
+            .filter(([, ws]) => ws.kills > 0 || ws.damage > 0 || ws.pickups > 0)
+            .map(([weaponId, ws]) => ({
+              playerId: pubgAccountId, shard, weaponId, weaponName: weaponId,
+              kills: ws.kills, damage: ws.damage, headshots: 0,
+              bot_kills: ws.botKills, real_kills: ws.realKills,
+              assists: 0, shots_fired: 0, shots_hit: 0,
+              match_id: matchId, pickup_count: ws.pickups,
+            }));
+          if (weaponRows.length > 0) {
+            await prisma.player_weapon_stats.createMany({ data: weaponRows, skipDuplicates: true })
+              .catch(e => console.warn('[analyzePending] 무기 저장 실패:', e.message));
+          }
+        }
+      } catch (e) {
+        console.warn(`[analyzePending] 매치 분석 실패 ${matchId}:`, e.message);
+      }
+    }
+    console.log(`✅ 미분석 매치 처리 완료: ${nickname} (${pending.length}건)`);
+  } catch (e) {
+    console.warn('[analyzePending] 오류:', e.message);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 // 매치 데이터 백그라운드 저장 (fire-and-forget, 응답 속도 영향 없음)
 async function saveMatchesBackground(pubgPlayer, shard) {
   const { cachedPubgFetch, TTL } = require('../../../utils/pubgApiCache');
@@ -2719,6 +2788,10 @@ export async function getServerSideProps({ params, query }) {
     // 최근 매치 10개 백그라운드 저장 (PlayerMatch 테이블 — skipDuplicates)
     saveMatchesBackground(pubgPlayer, pubgShard)
       .catch(e => console.error('매치 백그라운드 저장 실패:', e.message));
+
+    // DB에 저장된 미분석 매치 봇킬 분석 (기존 데이터 처리, 최대 3경기)
+    analyzePendingMatchesBackground(pubgPlayer.id, pubgPlayer.attributes.name, pubgShard)
+      .catch(e => console.warn('미분석 매치 백그라운드 분석 실패:', e.message));
 
     // 클랜 멤버 DB에서 조회 (클랜 소속인 경우)
     if (pubgClan) {
