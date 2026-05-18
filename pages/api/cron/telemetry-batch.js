@@ -1,5 +1,5 @@
 // pages/api/cron/telemetry-batch.js
-// 매일 02:00 KST (17:00 UTC) — 최근 7일 활성 PlayerCache 유저의 미분석 경기 텔레메트리 배치
+// 매일 02:00 KST (17:00 UTC) — avgDamage > 0 전체 PlayerCache 유저의 미분석 경기 텔레메트리 배치
 
 import prisma from '../../../utils/prisma.js'
 import { cachedPubgFetch, TTL } from '../../../utils/pubgApiCache.js'
@@ -8,7 +8,7 @@ const PUBG_BASE        = 'https://api.pubg.com/shards'
 const MAX_MS           = 250_000  // 250초 안전 마진 (Vercel Pro 300s 기준)
 const MAX_MATCHES      = 50       // 실행당 최대 처리 경기 수
 const MATCHES_PER_USER = 5        // 유저당 최대 경기 수
-const ACTIVE_DAYS      = 7        // 최근 N일 내 검색된 유저만 대상
+// ACTIVE_DAYS 제거 — MAX_MATCHES(50)가 실제 부하 상한이므로 날짜 제한 불필요
 
 export default async function handler(req, res) {
   const authHeader   = req.headers.authorization
@@ -26,8 +26,7 @@ export default async function handler(req, res) {
   // 동적 import — webpack ESM async module 이슈 우회
   const { analyzeMatchData } = await import('../../../utils/botKills.js')
 
-  const startTime       = Date.now()
-  const activeThreshold = new Date(Date.now() - ACTIVE_DAYS * 24 * 60 * 60 * 1000)
+  const startTime = Date.now()
 
   const log = {
     total: 0, analyzed: 0, skipped: 0, errors: 0,
@@ -37,11 +36,10 @@ export default async function handler(req, res) {
   console.log('⏰ [telemetry-batch] 시작:', new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }))
 
   try {
-    // ── 1. 최근 7일 활성 PlayerCache 유저 조회 ──────────────────────────────
+    // ── 1. PlayerCache 유저 조회 (avgDamage > 0 전체, 날짜 제한 없음) ────────
     const rawUsers = await prisma.playerCache.findMany({
       where: {
-        pubgPlayerId: { not: null },
-        lastUpdated:  { gte: activeThreshold },
+        avgDamage: { gt: 0 },
       },
       orderBy: { lastUpdated: 'desc' },
       select: { pubgPlayerId: true, pubgShardId: true, nickname: true },
@@ -52,14 +50,20 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, ...log, message: '활성 유저 없음' })
     }
 
-    // pubgPlayerId 중복 제거
-    const seen  = new Set()
+    // 중복 제거: pubgPlayerId 있으면 그 기준, 없으면 nickname+shard 기준
+    const seenById   = new Set()
+    const seenByNick = new Set()
     const users = []
     for (const u of rawUsers) {
-      if (!seen.has(u.pubgPlayerId)) {
-        seen.add(u.pubgPlayerId)
-        users.push(u)
+      if (u.pubgPlayerId) {
+        if (seenById.has(u.pubgPlayerId)) continue
+        seenById.add(u.pubgPlayerId)
+      } else {
+        const key = `${u.nickname.toLowerCase()}:${u.pubgShardId}`
+        if (seenByNick.has(key)) continue
+        seenByNick.add(key)
       }
+      users.push(u)
     }
 
     log.total = users.length
@@ -79,10 +83,26 @@ export default async function handler(req, res) {
         break
       }
 
-      const { pubgPlayerId: accountId, pubgShardId: shard, nickname } = user
+      const { pubgShardId: shard, nickname } = user
+      let accountId = user.pubgPlayerId
 
       try {
-        // 2-1. PUBG API 최근 매치 목록 조회
+        // 2-1. pubgPlayerId 없으면 닉네임으로 조회 후 PlayerCache 백필
+        if (!accountId) {
+          const lookupJson = await cachedPubgFetch(
+            `${PUBG_BASE}/${shard}/players?filter[playerNames]=${encodeURIComponent(nickname)}`,
+            { ttl: TTL.PLAYER }
+          )
+          const p = lookupJson?.data?.[0]
+          if (!p) { log.skipped++; continue }
+          accountId = p.id
+          prisma.playerCache.updateMany({
+            where: { nickname: { equals: nickname, mode: 'insensitive' }, pubgShardId: shard },
+            data:  { pubgPlayerId: accountId },
+          }).catch(() => {})
+        }
+
+        // 2-2. PUBG API 최근 매치 목록 조회
         const playerJson = await cachedPubgFetch(
           `${PUBG_BASE}/${shard}/players/${accountId}`,
           { ttl: TTL.PLAYER }
@@ -93,7 +113,7 @@ export default async function handler(req, res) {
 
         if (matchIds.length === 0) continue
 
-        // 2-2. 이미 분석 완료된 매치 제외
+        // 2-3. 이미 분석 완료된 매치 제외
         const doneRows = await prisma.playerMatch.findMany({
           where: { pubgAccountId: accountId, matchId: { in: matchIds }, isBotCorrected: true },
           select: { matchId: true },
@@ -103,7 +123,7 @@ export default async function handler(req, res) {
 
         if (pending.length === 0) { log.skipped++; continue }
 
-        // 2-3. 매치별 봇 분석 (순차)
+        // 2-4. 매치별 봇 분석 (순차)
         for (const matchId of pending) {
           if (Date.now() - startTime > MAX_MS || totalProcessed >= MAX_MATCHES) break
 
