@@ -419,6 +419,9 @@ export default function Home() {
                 </div>
 
 
+                {/* 대소문자 안내 */}
+                <p className="mt-2 text-[11px] text-gray-500 text-center">최초 검색 유저는 대소문자 구별이 필요합니다</p>
+
                 {/* 최근 검색 드롭다운 */}
                 {showDropdown && recentSearches.length > 0 && (
                   <div className="mt-2 border-t border-white/10 pt-2">

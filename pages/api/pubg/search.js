@@ -200,7 +200,7 @@ export default async function handler(req, res) {
         }]
         tryFetchPlayer(name, shardFilter, PUBG_BASE).catch(() => {})
       } else {
-        // 신규 유저: DB에서 올바른 케이스 조회 후 steam·kakao 병렬 자동 감지
+        // DB 미스 (해당 shard) → 다른 shard DB에서 케이스 보정 후 PUBG API
         const correctName = await resolveCorrectCase(name)
         found = await findPlayerByName(correctName, PUBG_BASE)
         if (found.length === 0) {
@@ -211,14 +211,30 @@ export default async function handler(req, res) {
           }
           if (result.player) found = [result.player]
         }
-        // accountId + nickname + platform DB 저장
         for (const p of found) savePlayerCache(p.accountId, p.nickname, p.shard)
       }
     } else {
-      // shardFilter 없음: DB에서 올바른 케이스 조회 후 자동 감지
-      const correctName = await resolveCorrectCase(name)
-      found = await findPlayerByName(correctName, PUBG_BASE)
-      for (const p of found) savePlayerCache(p.accountId, p.nickname, p.shard)
+      // shardFilter 없음: DB 대소문자 무관 조회 우선 → 없으면 PUBG API
+      // PUBG API는 대소문자 구분(case-sensitive)이므로 DB hit 시 PUBG API 불필요
+      const dbRows = await prisma.playerCache.findMany({
+        where: { nickname: { equals: name, mode: 'insensitive' }, pubgPlayerId: { not: null } },
+        orderBy: { lastUpdated: 'desc' },
+        select: { pubgPlayerId: true, pubgShardId: true, nickname: true },
+      })
+
+      if (dbRows.length > 0) {
+        // DB hit → 정확한 케이스로 직접 반환 (PUBG API 불필요)
+        const byId = new Map()
+        for (const u of dbRows) {
+          if (!byId.has(u.pubgPlayerId))
+            byId.set(u.pubgPlayerId, { shard: u.pubgShardId, nickname: u.nickname, accountId: u.pubgPlayerId, matchCount: 0 })
+        }
+        found = [...byId.values()]
+      } else {
+        // DB 미스 → PUBG API (정확한 케이스 필요 — 대소문자 틀리면 못 찾을 수 있음)
+        found = await findPlayerByName(name, PUBG_BASE)
+        for (const p of found) savePlayerCache(p.accountId, p.nickname, p.shard)
+      }
     }
 
     if (found.length === 0) return res.json({ results: [] })
