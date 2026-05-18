@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   // Google 관리자 세션이 있으면 자동 인증
   const isAuthed = googleAuthed || authed;
 
-  const [tab, setTab] = useState('inquiries'); // 'inquiries' | 'users' | 'leaderRequests'
+  const [tab, setTab] = useState('inquiries');
 
   const [inquiries,   setInquiries]   = useState([]);
   const [inqLoading,  setInqLoading]  = useState(false);
@@ -34,13 +34,61 @@ export default function AdminDashboard() {
 
   const [leaderReqs,      setLeaderReqs]      = useState([]);
   const [leaderReqLoading, setLeaderReqLoading] = useState(false);
-  const [leaderReqAction,  setLeaderReqAction]  = useState({}); // { [id]: 'loading' | 'done' }
+  const [leaderReqAction,  setLeaderReqAction]  = useState({});
+
+  // 검색 제한 유저
+  const [restricted,       setRestricted]       = useState([]);
+  const [restrictedLoading, setRestrictedLoading] = useState(false);
+  const [restrictedForm,   setRestrictedForm]   = useState({ nickname: '', type: 'search_restricted', reason: '' });
+  const [restrictedAdding, setRestrictedAdding] = useState(false);
 
   // 저장된 인증 복원
   useEffect(() => {
     const saved = sessionStorage.getItem('admin_authed');
     if (saved === 'true') setAuthed(true);
   }, []);
+
+  // 검색 제한 목록 로드
+  useEffect(() => {
+    if (!isAuthed || tab !== 'restricted') return;
+    setRestrictedLoading(true);
+    fetch('/api/admin/restricted-players', { headers: { 'x-admin-token': adminPw() } })
+      .then((r) => r.json())
+      .then((d) => setRestricted(d.list || []))
+      .catch(() => setRestricted([]))
+      .finally(() => setRestrictedLoading(false));
+  }, [isAuthed, tab]);
+
+  const handleRestrictedAdd = async (e) => {
+    e.preventDefault();
+    if (!restrictedForm.nickname.trim()) return;
+    setRestrictedAdding(true);
+    try {
+      const res = await fetch('/api/admin/restricted-players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminPw() },
+        body: JSON.stringify(restrictedForm),
+      });
+      const d = await res.json();
+      if (d.ok) {
+        setRestricted((prev) => [d.row, ...prev.filter((r) => r.id !== d.row.id)]);
+        setRestrictedForm({ nickname: '', type: 'search_restricted', reason: '' });
+      } else {
+        alert(d.error || '추가 실패');
+      }
+    } catch { alert('오류 발생'); }
+    finally { setRestrictedAdding(false); }
+  };
+
+  const handleRestrictedDelete = async (id) => {
+    if (!confirm('제한을 해제하시겠습니까?')) return;
+    const res = await fetch('/api/admin/restricted-players', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminPw() },
+      body: JSON.stringify({ id }),
+    });
+    if ((await res.json()).ok) setRestricted((prev) => prev.filter((r) => r.id !== id));
+  };
 
   const adminPw = () => sessionStorage.getItem('admin_pw') || '';
 
@@ -202,11 +250,12 @@ export default function AdminDashboard() {
 
         <div className="max-w-5xl mx-auto px-6 py-8">
           {/* 탭 */}
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2 mb-6 flex-wrap">
             {[
               { key: 'inquiries',      label: '📬 문의함' },
               { key: 'leaderRequests', label: '👑 리더 변경 요청' },
               { key: 'users',          label: '👤 구글 로그인 유저' },
+              { key: 'restricted',     label: '🚫 검색 제한' },
             ].map((t) => (
               <button
                 key={t.key}
@@ -410,6 +459,94 @@ export default function AdminDashboard() {
               )}
             </div>
           )}
+          {/* 검색 제한 탭 */}
+          {tab === 'restricted' && (
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <h1 className="text-xl font-bold">검색 제한 유저</h1>
+                <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">총 {restricted.length}명</span>
+              </div>
+
+              {/* 추가 폼 */}
+              <form onSubmit={handleRestrictedAdd} className="bg-gray-900 border border-gray-700 rounded-xl p-4 mb-6 flex flex-wrap gap-3 items-end">
+                <div className="flex-1 min-w-[140px]">
+                  <label className="block text-xs text-gray-400 mb-1">닉네임</label>
+                  <input
+                    value={restrictedForm.nickname}
+                    onChange={(e) => setRestrictedForm((p) => ({ ...p, nickname: e.target.value }))}
+                    placeholder="정확한 닉네임 입력"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-red-500 outline-none"
+                    required
+                  />
+                </div>
+                <div className="min-w-[160px]">
+                  <label className="block text-xs text-gray-400 mb-1">타입</label>
+                  <select
+                    value={restrictedForm.type}
+                    onChange={(e) => setRestrictedForm((p) => ({ ...p, type: e.target.value }))}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  >
+                    <option value="search_restricted">🔍 검색 제한</option>
+                    <option value="banned">🚫 정지 (검색 차단)</option>
+                  </select>
+                </div>
+                <div className="flex-1 min-w-[160px]">
+                  <label className="block text-xs text-gray-400 mb-1">사유 (선택)</label>
+                  <input
+                    value={restrictedForm.reason}
+                    onChange={(e) => setRestrictedForm((p) => ({ ...p, reason: e.target.value }))}
+                    placeholder="비공개 요청, 신고 등"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={restrictedAdding}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded-lg text-sm font-semibold text-white"
+                >
+                  {restrictedAdding ? '추가 중...' : '+ 추가'}
+                </button>
+              </form>
+
+              {/* 목록 */}
+              {restrictedLoading ? (
+                <div className="text-gray-500 text-sm">불러오는 중...</div>
+              ) : restricted.length === 0 ? (
+                <div className="text-gray-500 text-sm">등록된 제한 유저 없음</div>
+              ) : (
+                <div className="space-y-2">
+                  {restricted.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-xl px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                          r.type === 'banned'
+                            ? 'bg-red-900/50 text-red-400 border border-red-800'
+                            : 'bg-yellow-900/50 text-yellow-400 border border-yellow-800'
+                        }`}>
+                          {r.type === 'banned' ? '🚫 정지' : '🔍 검색 제한'}
+                        </span>
+                        <span className="font-mono text-white text-sm">{r.nickname}</span>
+                        {r.reason && <span className="text-xs text-gray-500">{r.reason}</span>}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-600">
+                          {r.createdBy && <span>{r.createdBy} · </span>}
+                          {new Date(r.createdAt).toLocaleDateString('ko-KR')}
+                        </span>
+                        <button
+                          onClick={() => handleRestrictedDelete(r.id)}
+                          className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded border border-red-800/50 hover:border-red-700"
+                        >
+                          해제
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </>

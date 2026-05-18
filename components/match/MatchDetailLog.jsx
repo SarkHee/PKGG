@@ -8,7 +8,7 @@ const WEAP_NAME = {
   WeapM16A4_C: 'M16A4', WeapSCAR_L_C: 'SCAR-L', WeapAUG_A3_C: 'AUG A3',
   WeapG36C_C: 'G36C', WeapGroza_C: 'Groza', WeapQBZ_C: 'QBZ-95',
   WeapBerylM762_C: 'Beryl M762', WeapMk47Mutant_C: 'Mk47 Mutant',
-  WeapACE32_C: 'ACE32', WeapK2_C: 'K2', WeapJS9_C: 'JS9',
+  WeapACE32_C: 'ACE32', WeapK2_C: 'K2', WeapJS9_C: 'JS9', WeapFAMASG2_C: 'FAMAS G2',
   // DMR
   WeapFNFal_C: 'SLR', WeapSKS_C: 'SKS', WeapMini14_C: 'Mini 14',
   WeapMk12_C: 'Mk12', WeapMk14_C: 'Mk14 EBR', WeapDragunov_C: 'Dragunov',
@@ -47,10 +47,11 @@ const WEAP_IMG = {
   WeapAK47_C: 'Item_Weapon_AK47_C.png',
   WeapHK416_C: 'Item_Weapon_HK416_C.png', WeapDuncans_M416_C: 'Item_Weapon_HK416_C.png',
   WeapM16A4_C: 'Item_Weapon_M16A4_C.png', WeapSCAR_L_C: 'Item_Weapon_SCAR-L_C.png',
-  WeapAUG_A3_C: 'Item_Weapon_AUG_C.png', WeapG36C_C: 'Item_Weapon_G36C_C.png',
+  WeapAUG_A3_C: 'Item_Weapon_AUG_C.png', WeapAUG_C: 'Item_Weapon_AUG_C.png', WeapG36C_C: 'Item_Weapon_G36C_C.png',
   WeapGroza_C: 'Item_Weapon_Groza_C.png', WeapQBZ_C: 'Item_Weapon_QBZ95_C.png',
   WeapBerylM762_C: 'Item_Weapon_BerylM762_C.png', WeapMk47Mutant_C: 'Item_Weapon_Mk47Mutant_C.png',
   WeapACE32_C: 'Item_Weapon_ACE32_C.png', WeapK2_C: 'Item_Weapon_K2_C.png',
+  WeapFAMASG2_C: 'Item_Weapon_FAMASG2_C.png',
   WeapFNFal_C: 'Item_Weapon_FNFal_C.png',
   WeapSKS_C: 'Item_Weapon_SKS_C.png', WeapMini14_C: 'Item_Weapon_Mini14_C.png',
   WeapMk12_C: 'Item_Weapon_Mk12_C.png', WeapMk14_C: 'Item_Weapon_Mk14_C.png',
@@ -76,8 +77,11 @@ const WEAP_IMG = {
   WeapGrenade_C: 'Item_Weapon_FragGrenade_C.png', ProjGrenade_C: 'Item_Weapon_FragGrenade_C.png',
   WeapMolotov_C: 'Item_Weapon_Molotov_C.png', ProjMolotov_C: 'Item_Weapon_Molotov_C.png',
   WeapSmokeGrenade_C: 'Item_Weapon_SmokeGrenade_C.png',
+  ProjSmokeGrenade_C: 'Item_Weapon_SmokeGrenade_C.png',
   WeapFlashbang_C: 'Item_Weapon_StunGrenade_C.png',
+  ProjFlashbang_C: 'Item_Weapon_StunGrenade_C.png',
   WeapDecoyGrenade_C: 'Item_Weapon_DecoyGrenade_C.png',
+  ProjDecoyGrenade_C: 'Item_Weapon_DecoyGrenade_C.png',
 }
 
 function getWeaponImg(weaponId) {
@@ -96,6 +100,7 @@ function isValidWeapon(weaponId) {
 
 function getWeaponDisplayName(weaponId) {
   if (WEAP_NAME[weaponId]) return WEAP_NAME[weaponId]
+  if (/^Player(Female|Male)/i.test(weaponId)) return '근접 공격'
   return weaponId.replace(/^(Weap|Proj)/, '').replace(/_C$/, '').replace(/_/g, ' ')
 }
 

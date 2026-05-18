@@ -603,33 +603,67 @@ export default function ClanAnalytics() {
           )}
 
           {/* 플랫폼 탭 */}
-          <div className="flex gap-2 mb-4 items-center">
-            {[
-              { key: 'steam',  label: '🖥 Steam 클랜' },
-              { key: 'kakao',  label: '🟡 카카오 클랜' },
-              { key: 'all',    label: '전체' },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => { setSelectedShard(key); setCurrentPage(1); }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors border ${
-                  selectedShard === key
-                    ? 'bg-blue-600 text-white border-blue-500'
-                    : 'bg-gray-900 text-gray-400 border-gray-700 hover:border-gray-500'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-            {user && myUserData && (() => {
-              const mainAcc = myUserData.pubgAccounts?.find((a) => a.id === myUserData.mainAccountId);
-              return (
-                <span className="ml-2 text-xs text-gray-500">
-                  {mainAcc?.platform === 'kakao' ? '🟡 카카오 계정 연동됨' : mainAcc ? '🖥 Steam 계정 연동됨' : '🔵 Google 로그인됨'}
-                </span>
-              );
-            })()}
-          </div>
+          {(() => {
+            const sc = analyticsData?.shardCounts || {}
+            const PLATFORMS = [
+              { key: 'steam', label: '🖥 Steam',       color: 'blue'   },
+              { key: 'kakao', label: '🟡 카카오',       color: 'yellow' },
+              { key: 'psn',   label: '🎮 PlayStation', color: 'indigo' },
+              { key: 'xbox',  label: '🟢 Xbox',        color: 'green'  },
+              { key: 'all',   label: '전체',            color: 'gray'   },
+            ]
+            const ACTIVE_CLS = {
+              blue:   'bg-blue-600 text-white border-blue-500',
+              yellow: 'bg-yellow-500 text-black border-yellow-400',
+              indigo: 'bg-indigo-600 text-white border-indigo-500',
+              green:  'bg-green-600 text-white border-green-500',
+              gray:   'bg-gray-600 text-white border-gray-500',
+            }
+            return (
+              <div className="flex flex-wrap gap-2 mb-4 items-center">
+                {PLATFORMS.map(({ key, label, color }) => {
+                  const count = key === 'all'
+                    ? Object.values(sc).reduce((s, n) => s + n, 0)
+                    : sc[key] ?? 0
+                  const isActive = selectedShard === key
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => { setSelectedShard(key); setCurrentPage(1) }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors border ${
+                        isActive
+                          ? ACTIVE_CLS[color]
+                          : 'bg-gray-900 text-gray-400 border-gray-700 hover:border-gray-500'
+                      }`}
+                    >
+                      {label}
+                      {count > 0 && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                          isActive ? 'bg-white/20' : 'bg-gray-800'
+                        }`}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+                {user && myUserData && (() => {
+                  const mainAcc = myUserData.pubgAccounts?.find((a) => a.id === myUserData.mainAccountId)
+                  const platLabel = {
+                    steam: '🖥 Steam 계정 연동됨',
+                    kakao: '🟡 카카오 계정 연동됨',
+                    psn:   '🎮 PlayStation 계정 연동됨',
+                    xbox:  '🟢 Xbox 계정 연동됨',
+                  }
+                  return (
+                    <span className="ml-2 text-xs text-gray-500">
+                      {mainAcc ? (platLabel[mainAcc.platform] || '🖥 Steam 계정 연동됨') : '🔵 Google 로그인됨'}
+                    </span>
+                  )
+                })()}
+              </div>
+            )
+          })()}
 
           {/* 필터 & 검색 */}
           <div className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-5">

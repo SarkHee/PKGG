@@ -492,3 +492,17 @@ model player_weapon_stats {
   @@unique([playerId, weaponId, match_id], map: "player_weapon_stats_player_weapon_match_key")
   @@index([weaponId, shard], map: "player_weapon_stats_weaponid_shard_idx")
 }
+
+// 검색 제한 / 정지 유저 관리
+model RestrictedPlayer {
+  id        Int      @id @default(autoincrement())
+  nickname  String
+  // 'search_restricted' | 'banned'
+  type      String   @default("search_restricted")
+  reason    String?
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  @@unique([nickname, type])
+  @@map("restricted_players")
+}

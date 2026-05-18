@@ -215,7 +215,7 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
             data: {
               nickname,
               pubgShardId: shard,
-              score: Math.round(summary.score || 0),
+              score: calculateMMR(summary),
               avgDamage: summary.avgDamage || 0,
               avgKills: summary.avgKills || 0,
               avgAssists: summary.avgAssists || 0,

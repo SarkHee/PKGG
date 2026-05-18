@@ -8,9 +8,32 @@ function searchCacheKey(shard, nickname) {
   return `search:${shard}:${nickname.toLowerCase()}`
 }
 
-const PRIVATE_PLAYERS = [{ nickname: 'X1ngDao' }]
-function isPrivate(nickname) {
-  return PRIVATE_PLAYERS.some(p => p.nickname.toLowerCase() === nickname.toLowerCase())
+// 검색 제한 닉네임 캐시 (5분 TTL, DB 부하 감소)
+let _restrictedCache = null
+let _restrictedCacheAt = 0
+const RESTRICTED_CACHE_MS = 5 * 60 * 1000
+
+async function getRestrictedSet() {
+  const now = Date.now()
+  if (_restrictedCache && now - _restrictedCacheAt < RESTRICTED_CACHE_MS) {
+    return _restrictedCache
+  }
+  try {
+    const rows = await prisma.restrictedPlayer.findMany({
+      where: { type: { in: ['search_restricted', 'banned'] } },
+      select: { nickname: true },
+    })
+    _restrictedCache = new Set(rows.map((r) => r.nickname.toLowerCase()))
+    _restrictedCacheAt = now
+  } catch {
+    _restrictedCache = _restrictedCache ?? new Set()
+  }
+  return _restrictedCache
+}
+
+async function isRestricted(nickname) {
+  const set = await getRestrictedSet()
+  return set.has(nickname.toLowerCase())
 }
 
 // Steam·Kakao 우선, PSN·Xbox는 두 곳 모두 없을 때만
@@ -26,7 +49,7 @@ async function tryFetchPlayer(name, shard, pubgBase) {
     )
     if (!json.data?.length) return { notFound: true }
     const player = json.data[0]
-    if (isPrivate(player.attributes.name)) return { notFound: true }
+    if (await isRestricted(player.attributes.name)) return { notFound: true }
     const actualShard = player.attributes.shardId || shard
     if (actualShard !== shard) return { notFound: true }
     return {

@@ -7,9 +7,11 @@ const WEAP_NAME = {
   WeapG36C_C:'G36C', WeapGroza_C:'Groza', WeapQBZ_C:'QBZ-95',
   WeapBerylM762_C:'Beryl M762', WeapMk47Mutant_C:'Mk47 Mutant',
   WeapACE32_C:'ACE32', WeapK2_C:'K2', WeapJS9_C:'JS9',
+  WeapAUG_C:'AUG A3',
   WeapFNFal_C:'SLR', WeapSKS_C:'SKS', WeapMini14_C:'Mini 14',
   WeapMk12_C:'Mk12', WeapMk14_C:'Mk14 EBR', WeapDragunov_C:'Dragunov',
   WeapVSS_C:'VSS', WeapQBU88_C:'QBU88', WeapMads_QBU88_C:'QBU88',
+  WeapFAMASG2_C:'FAMAS G2',
   WeapKar98k_C:'Kar98k', WeapM24_C:'M24', WeapAWM_C:'AWM',
   WeapMosinNagant_C:'Mosin-Nagant', WeapWin94_C:'Win94', WeapL6_C:'Lynx AMR',
   WeapUMP_C:'UMP9', WeapVector_C:'Vector', WeapMP5K_C:'MP5K',
@@ -24,6 +26,12 @@ const WEAP_NAME = {
   WeapFlashbang_C:'섬광탄', WeapDecoyGrenade_C:'디코이',
   ProjGrenade_C:'수류탄', ProjMolotov_C:'화염병', ProjSmokeGrenade_C:'연막탄',
   ProjFlashbang_C:'섬광탄', ProjC4_C:'C4', ProjMortar_C:'Mortar',
+  // DoT / 환경 데미지 causerName
+  'BP MolotovFireDebuff':'화염병', 'BP C4Explosive':'C4',
+  'BP ZoneHurt':'블루존', 'Damage_BlueZone':'블루존',
+  'Damage_Explosion_Grenade':'수류탄', 'Damage_Explosion_Petrol':'화염병',
+  'Damage_Explosion_RedZone':'레드존', 'Damage_VehicleHit':'차량 충돌',
+  'Damage_Drown':'익사',
   WeapCrossbow_C:'Crossbow', WeapFlareGun_C:'Flare Gun',
   WeapC4_C:'C4', WeapMortar_C:'Mortar', WeapPanzerfaust_C:'Panzerfaust',
   WeapPan_C:'Pan', WeapMachete_C:'Machete', WeapCrowbar_C:'Crowbar',
@@ -31,6 +39,7 @@ const WEAP_NAME = {
 function weaponDisplayName(id) {
   if (!id) return '알 수 없음'
   if (WEAP_NAME[id]) return WEAP_NAME[id]
+  if (/^Player(Female|Male)/i.test(id)) return '근접 공격'
   return id.replace(/^(Weap|Proj)/, '').replace(/_C$/, '').replace(/_/g, ' ')
 }
 
@@ -139,17 +148,55 @@ function analyzeTelemetry(telemetryData, playerName, mapName) {
       if (event._T === 'LogPlayerKill' || event._T === 'LogPlayerKillV2') {
         const killerName = (event.killer?.name || event.finisher?.name || '').toLowerCase()
         if (killerName === playerName) {
-          const weapon =
-            event.damageCauserName ||
-            event.finishDamageInfo?.damageCauserName ||
-            event.damageTypeCategory ||
-            '알 수 없음'
-          const distance = event.distance ? Math.round(event.distance / 100) : 0
+          const primaryWeapon   = (event.damageCauserName && event.damageCauserName !== 'None') ? event.damageCauserName : null
+          const finishWeapon    = (event.finishDamageInfo?.damageCauserName && event.finishDamageInfo.damageCauserName !== 'None') ? event.finishDamageInfo.damageCauserName : null
+          const finishDmgType   = event.finishDamageInfo?.damageTypeCategory
+          const weapon          = primaryWeapon || finishWeapon || event.damageTypeCategory || '알 수 없음'
+          const isFromFinish    = !primaryWeapon && !!finishWeapon
+
+          // LogPlayerKillV2는 distance 필드가 없거나 0인 경우가 많아 위치로 재계산
+          let distance = event.distance ? Math.round(event.distance / 100) : 0
+          if (distance === 0) {
+            const atk = event.killer?.location || event.finisher?.location
+            const vic = event.victim?.location
+            if (atk && vic) {
+              const dx = atk.x - vic.x
+              const dy = atk.y - vic.y
+              distance = Math.round(Math.sqrt(dx * dx + dy * dy) / 100)
+            }
+          }
           const isHeadshot =
             event.damageReason === 'Head' ||
             event.finishDamageInfo?.damageReason === 'Head'
+
+          const rawVictimName = event.victim?.name || 'Unknown'
+          const isVictimBot =
+            event.victim?.accountId?.startsWith('ai.') ||
+            /^Player(Female|Male)/i.test(rawVictimName)
+          const victimDisplay = isVictimBot ? '[봇]' : rawVictimName
+
+          // 무기 표시명 결정 (finishDmgType으로 컨텍스트 분류)
+          let weaponDisplay
+          if (/^Player(Female|Male)/i.test(weapon)) {
+            // PlayerFemale_A_C / PlayerMale_A_C
+            // Damage_DBNO = 처치 모션 (DBNO 적 E키 처치)
+            // 그 외 = 근접 공격 (주먹킬)
+            weaponDisplay = finishDmgType === 'Damage_DBNO' ? '처치 모션' : '근접 공격'
+          } else if (/UltAIPawn/i.test(weapon) && finishDmgType === 'Damage_DBNO') {
+            // 봇 처치 모션 (UltAIPawn_Base_Male_C)
+            weaponDisplay = '처치 모션'
+          } else if (finishDmgType === 'Damage_VehicleHit') {
+            weaponDisplay = '차량 충돌'
+          } else if (finishDmgType === 'Damage_BlueZone') {
+            weaponDisplay = '블루존'
+          } else if (finishDmgType === 'Damage_Explosion_RedZone') {
+            weaponDisplay = '레드존'
+          } else {
+            weaponDisplay = weaponDisplayName(weapon)
+          }
+
           killLog.push(
-            `${event.victim?.name || 'Unknown'}을(를) ${weaponDisplayName(weapon)}${isHeadshot ? ' (헤드샷)' : ''}으로 ${distance}m에서 제거`
+            `${victimDisplay}을(를) ${weaponDisplay}${isHeadshot ? ' (헤드샷)' : ''}으로 ${distance}m에서 제거`
           )
         }
       } else if (event._T === 'LogPlayerTakeDamage') {
@@ -163,7 +210,11 @@ function analyzeTelemetry(telemetryData, playerName, mapName) {
         }
       } else if (event._T === 'LogPlayerPosition') {
         const character = event.character
-        if (character?.name?.toLowerCase() === playerName) {
+        // common.isGame < 1 = 비행기/낙하산 구간 → 제외
+        if (
+          character?.name?.toLowerCase() === playerName &&
+          (event.common?.isGame ?? 1) >= 1
+        ) {
           const loc = character.location
           if (loc && loc.x !== undefined && loc.y !== undefined) {
             positions.push({ x: loc.x, y: loc.y })

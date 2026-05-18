@@ -89,7 +89,7 @@ const OVERLAY_TYPES = [
   { key: 'fixed_vehicle', label: '고정 차량', icon: '🚗', color: '#f59e0b' },
   { key: 'spawn_vehicle', label: '스폰 차량', icon: '🚙', color: '#3b82f6' },
   { key: 'boat',          label: '선박',      icon: '🚤', color: '#06b6d4', mapLabels: { vikendi: { label: '곰굴', icon: '🐻' } } },
-  { key: 'secret_room',   label: '비밀의 방', icon: '🚪', color: '#a855f7', exclude: ['miramar'], mapLabels: { vikendi: { label: '보안키방', icon: '🔑' } } },
+  { key: 'secret_room',   label: '비밀의 방', icon: '🚪', color: '#a855f7', exclude: [], mapLabels: { vikendi: { label: '보안키방', icon: '🔑' } } },
   { key: 'glider',        label: '글라이드',  icon: '🪂', color: '#10b981' },
 ]
 

@@ -233,8 +233,8 @@ export default async function handler(req, res) {
 
     console.log('📋 Where condition:', JSON.stringify(whereCondition, null, 2));
 
-    // 1. 전체 멤버 수 + 클랜 목록을 병렬 조회
-    const [totalMembers, clanStats] = await Promise.all([
+    // 1. 전체 멤버 수 + 클랜 목록 + 플랫폼별 클랜 수 병렬 조회
+    const [totalMembers, clanStats, rawShardCounts] = await Promise.all([
       prisma.clanMember.count({ where: { clan: whereCondition } }),
       // 2. 클랜별 통계: 스탯 계산에 필요한 필드만 select (전체 include 제거)
       // _count는 members.length로 대체 가능하므로 제거
@@ -267,7 +267,12 @@ export default async function handler(req, res) {
           },
         },
       }),
+      // 필터 무관한 전체 플랫폼별 클랜 수 (탭 카운트용)
+      prisma.clan.groupBy({ by: ['shard'], _count: { id: true } }),
     ]);
+
+    // 플랫폼별 클랜 수 맵 변환
+    const shardCounts = Object.fromEntries(rawShardCounts.map((r) => [r.shard, r._count.id]));
 
     // 3. 지역 미분류 클랜을 Promise.all로 병렬 업데이트 (순차 await 제거)
     await Promise.all(
@@ -456,6 +461,7 @@ export default async function handler(req, res) {
         totalMembers,
         avgMembersPerClan: validClans.length > 0 ? Math.round(totalMembers / validClans.length) : 0,
       },
+      shardCounts,
       rankings: {
         topClansByScore: topClans,
         allRankedClans: allRankedClans,
