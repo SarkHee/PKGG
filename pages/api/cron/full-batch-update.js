@@ -87,23 +87,32 @@ export default async function handler(req, res) {
           const member = members.find(m => m.nickname.toLowerCase() === nickname.toLowerCase());
           if (!member) continue;
 
-          // 시즌 스탯 추출 (우선순위: squad-fpp > squad > duo-fpp > solo-fpp)
+          // Option A: 모든 일반 게임모드 합산 (이벤트 모드 제외)
+          const ALL_MODES = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
+          let totalRounds = 0, totalDamage = 0, totalKills = 0;
+          let totalSurvival = 0, totalWins = 0, totalTop10s = 0, totalAssists = 0;
+
+          for (const mode of ALL_MODES) {
+            const stats = data.seasonStats?.[mode]?.attributes?.gameModeStats?.[mode];
+            if (!stats || !stats.roundsPlayed) continue;
+            totalRounds   += stats.roundsPlayed;
+            totalDamage   += stats.damageDealt  || 0;
+            totalKills    += stats.kills        || 0;
+            totalAssists  += stats.assists      || 0;
+            totalSurvival += stats.timeSurvived || 0;
+            totalWins     += stats.wins         || 0;
+            totalTop10s   += stats.top10s       || 0;
+          }
+
           let avgDamage = 0, avgKills = 0, avgAssists = 0;
           let avgSurviveTime = 0, winRate = 0, top10Rate = 0;
-
-          const priorityModes = ['squad-fpp', 'squad', 'duo-fpp', 'solo-fpp'];
-          for (const mode of priorityModes) {
-            const stats = data.seasonStats?.[mode]?.attributes?.gameModeStats?.[mode];
-            if (stats && stats.roundsPlayed > 0) {
-              const r = stats.roundsPlayed;
-              avgDamage      = (stats.damageDealt  || 0) / r;
-              avgKills       = (stats.kills        || 0) / r;
-              avgAssists     = (stats.assists      || 0) / r;
-              avgSurviveTime = (stats.timeSurvived || 0) / r;
-              winRate        = ((stats.wins  || 0) / r) * 100;
-              top10Rate      = ((stats.top10s|| 0) / r) * 100;
-              break;
-            }
+          if (totalRounds > 0) {
+            avgDamage      = totalDamage   / totalRounds;
+            avgKills       = totalKills    / totalRounds;
+            avgAssists     = totalAssists  / totalRounds;
+            avgSurviveTime = totalSurvival / totalRounds;
+            winRate        = (totalWins   / totalRounds) * 100;
+            top10Rate      = (totalTop10s / totalRounds) * 100;
           }
 
           const hasData = avgDamage > 0 || avgKills > 0 || winRate > 0;

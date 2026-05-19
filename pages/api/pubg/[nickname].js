@@ -873,49 +873,51 @@ export default async function handler(req, res) {
             }
           );
 
-          const relevantSquadStats = allStats.squad || allStats['squad-fpp'];
-          if (relevantSquadStats && relevantSquadStats.roundsPlayed > 0) {
-            const totalDamageDealt = relevantSquadStats.damageDealt || 0;
-            const totalRoundsPlayed = relevantSquadStats.roundsPlayed || 1;
-            seasonAvgDamage = parseFloat(
-              (totalDamageDealt / totalRoundsPlayed).toFixed(1)
-            );
+          // Option A: 모든 일반 게임 모드 합산 (solo/duo/squad + FPP/TPP)
+          const ALL_NORMAL_MODES = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp']
+          let totalRounds = 0, totalDamage = 0, totalKills = 0, totalSurvival = 0, totalWins = 0, totalTop10s = 0, totalAssists = 0
+          for (const mode of ALL_NORMAL_MODES) {
+            const s = allStats[mode]
+            if (!s || !s.roundsPlayed) continue
+            totalRounds    += s.roundsPlayed
+            totalDamage    += s.damageDealt    || 0
+            totalKills     += s.kills          || 0
+            totalSurvival  += s.timeSurvived   || 0
+            totalWins      += s.wins           || 0
+            totalTop10s    += s.top10s         || 0
+            totalAssists   += s.assists        || 0
+          }
 
-            // PKGG 점수 계산 수정: 경기당 평균 성과 기반 점수
-            const kills = relevantSquadStats.kills || 0;
-            const damage = relevantSquadStats.damageDealt || 0;
-            const survival = relevantSquadStats.timeSurvived || 0;
-            const wins = relevantSquadStats.wins || 0;
-            const top10s = relevantSquadStats.top10s || 0;
+          if (totalRounds > 0) {
+            const avgDamage   = totalDamage   / totalRounds
+            const avgKills    = totalKills    / totalRounds
+            const avgSurvival = totalSurvival / totalRounds
+            const winRate     = (totalWins   / totalRounds) * 100
+            const top10Rate   = (totalTop10s / totalRounds) * 100
+            const avgAssists  = totalAssists  / totalRounds
 
-            // 경기당 평균값 계산
-            const avgKills = kills / totalRoundsPlayed;
-            const avgDamage = damage / totalRoundsPlayed;
-            const avgSurvival = survival / totalRoundsPlayed;
-            const winRate = (wins / totalRoundsPlayed) * 100;
-            const top10Rate = (top10s / totalRoundsPlayed) * 100;
-
-            // PKGG 점수 — calculateMMR 통일 공식 사용
+            seasonAvgDamage = parseFloat(avgDamage.toFixed(1))
             averageScore = calculateMMR({
               avgDamage,
               avgKills,
               avgSurviveTime: avgSurvival,
               winRate,
               top10Rate,
-            });
+              avgAssists,
+            })
           } else {
-            seasonAvgDamage = 0;
-            averageScore = 1000; // 기본 점수
+            seasonAvgDamage = 0
+            averageScore = 1000
           }
           console.log(
-            `[API INFO] 시즌 평균 딜량 (스쿼드): ${seasonAvgDamage}, PKGG 점수: ${averageScore}`
-          );
+            `[API INFO] 시즌 평균 딜량 (전체모드): ${seasonAvgDamage}, PKGG 점수: ${averageScore}, 총 ${totalRounds}경기`
+          )
           console.log(
             `[PKGG SCORE] 점수 계산 상세:`,
-            `킬: ${relevantSquadStats?.kills || 0}/${relevantSquadStats?.roundsPlayed || 1} = ${((relevantSquadStats?.kills || 0) / (relevantSquadStats?.roundsPlayed || 1)).toFixed(1)}`,
-            `딜량: ${((relevantSquadStats?.damageDealt || 0) / (relevantSquadStats?.roundsPlayed || 1)).toFixed(0)}`,
-            `승률: ${(((relevantSquadStats?.wins || 0) / (relevantSquadStats?.roundsPlayed || 1)) * 100).toFixed(1)}%`
-          );
+            `킬: ${totalKills}/${totalRounds} = ${(totalKills / Math.max(totalRounds, 1)).toFixed(1)}`,
+            `딜량: ${(totalDamage / Math.max(totalRounds, 1)).toFixed(0)}`,
+            `승률: ${((totalWins / Math.max(totalRounds, 1)) * 100).toFixed(1)}%`
+          )
 
           // 현재 플레이어의 시즌 평균 딜량 기록 (소문자 닉네임으로)
           allPlayersSeasonAvgDamages.set(lowerNickname, seasonAvgDamage);

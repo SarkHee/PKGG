@@ -150,21 +150,28 @@ export default async function handler(req, res) {
         let top10Rate = 0;
 
         if (data.seasonStats) {
-          const priorityModes = ['squad-fpp', 'squad', 'duo-fpp', 'solo-fpp'];
-          for (const mode of priorityModes) {
-            if (data.seasonStats[mode]) {
-              const gameModeStats = data.seasonStats[mode].attributes?.gameModeStats;
-              const stats = gameModeStats?.[mode];
-              if (stats && stats.roundsPlayed > 0) {
-                avgDamage      = (stats.damageDealt  || 0) / stats.roundsPlayed;
-                avgKills       = (stats.kills        || 0) / stats.roundsPlayed;
-                avgAssists     = (stats.assists      || 0) / stats.roundsPlayed;
-                avgSurviveTime = (stats.timeSurvived || 0) / stats.roundsPlayed;
-                winRate        = ((stats.wins  || 0) / stats.roundsPlayed) * 100;
-                top10Rate      = ((stats.top10s|| 0) / stats.roundsPlayed) * 100;
-                break;
-              }
-            }
+          // Option A: 모든 일반 게임모드 합산 (이벤트 모드 제외)
+          const ALL_MODES = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
+          let totalRounds = 0, totalDamage = 0, totalKills = 0;
+          let totalSurvival = 0, totalWins = 0, totalTop10s = 0, totalAssists = 0;
+          for (const mode of ALL_MODES) {
+            const stats = data.seasonStats[mode]?.attributes?.gameModeStats?.[mode];
+            if (!stats || !stats.roundsPlayed) continue;
+            totalRounds   += stats.roundsPlayed;
+            totalDamage   += stats.damageDealt  || 0;
+            totalKills    += stats.kills        || 0;
+            totalAssists  += stats.assists      || 0;
+            totalSurvival += stats.timeSurvived || 0;
+            totalWins     += stats.wins         || 0;
+            totalTop10s   += stats.top10s       || 0;
+          }
+          if (totalRounds > 0) {
+            avgDamage      = totalDamage   / totalRounds;
+            avgKills       = totalKills    / totalRounds;
+            avgAssists     = totalAssists  / totalRounds;
+            avgSurviveTime = totalSurvival / totalRounds;
+            winRate        = (totalWins   / totalRounds) * 100;
+            top10Rate      = (totalTop10s / totalRounds) * 100;
           }
         }
 

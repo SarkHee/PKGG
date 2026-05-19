@@ -104,8 +104,8 @@ export async function fetchClanMembersBatch(shard, memberNames, seasonId) {
       // 2. 각 플레이어의 ID 수집
       const playerIds = playersData.data.map((player) => player.id);
 
-      // 3. 주요 게임모드별 시즌 통계 배치 조회
-      const gameModes = ['squad-fpp', 'squad', 'duo-fpp', 'solo-fpp'];
+      // 3. 일반 게임모드 전체 시즌 통계 배치 조회 (Option A: 모든 모드 합산용)
+      const gameModes = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
       const seasonStatsPromises = gameModes.map((mode) =>
         fetchSeasonStatsBatch(shard, seasonId, mode, playerIds).catch((err) => {
           console.warn(`${mode} 모드 통계 조회 실패:`, err.message);

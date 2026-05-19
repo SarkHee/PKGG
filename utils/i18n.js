@@ -6,6 +6,7 @@ const LANGS = ['ko', 'en', 'ja', 'zh'];
 const translations = {
   ko: {
     // ── Navigation
+    'nav.leaderboard': '공식 랭킹',
     'nav.compare': '플레이어 비교',
     'nav.clan_analytics': '클랜 분석',
     'nav.weapon_test': '무기성향 테스트',
@@ -309,6 +310,7 @@ const translations = {
   },
 
   en: {
+    'nav.leaderboard': 'Rankings',
     'nav.compare': 'Compare',
     'nav.clan_analytics': 'Clan Analytics',
     'nav.weapon_test': 'Weapon Test',
@@ -602,6 +604,7 @@ const translations = {
   },
 
   ja: {
+    'nav.leaderboard': 'ランキング',
     'nav.compare': '比較',
     'nav.clan_analytics': 'クラン分析',
     'nav.weapon_test': '武器傾向テスト',
@@ -895,6 +898,7 @@ const translations = {
   },
 
   zh: {
+    'nav.leaderboard': '排行榜',
     'nav.compare': '对比',
     'nav.clan_analytics': '战队分析',
     'nav.weapon_test': '武器偏好测试',

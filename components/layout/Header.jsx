@@ -180,8 +180,9 @@ const handleSearchSubmit = async (e) => {
   const isActive = (path) => router.pathname === path || router.pathname.startsWith(path + '/');
 
   const analysisLinks = [
+    { href: '/leaderboard',    labelKey: 'nav.leaderboard',    icon: '🏆', highlight: true },
     { href: '/compare',        labelKey: 'nav.compare',        icon: '⚔️' },
-    { href: '/clans',          labelKey: 'nav.clans',          icon: '🏆' },
+    { href: '/clans',          labelKey: 'nav.clans',          icon: '🥇' },
     { href: '/clan-analytics', labelKey: 'nav.clan_analytics', icon: '📊' },
     { href: '/clan-war',       labelKey: 'nav.clan_war',       icon: '🛡️' },
     { href: '/map-stats',      labelKey: 'nav.map_stats',      icon: '🗺️' },
