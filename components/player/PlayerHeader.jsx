@@ -156,8 +156,8 @@ const PlayerHeader = ({
     score:       calculateMMR(summary),
   } : null);
 
-  // 시즌 전체 기준 PKGG 점수 (일반전 + 경쟁전 합산, 이벤트 제외)
-  const displayMmr = calculateSeasonMMR(seasonData) || mmr || 1000;
+  // PKGG 점수: mmr prop (경쟁전 포함 서버사이드 계산값) 우선, 없으면 시즌 일반전 기준 계산
+  const displayMmr = mmr || calculateSeasonMMR(seasonData) || 1000;
   const mmrSource = '시즌 전체 기준 (일반+경쟁전, 이벤트 제외)';
 
   // 이벤트 모드 필터 — matchType OR gameMode OR mapName 기반

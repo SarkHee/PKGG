@@ -2418,6 +2418,48 @@ export async function getServerSideProps({ params, query }) {
                   console.log(`[DB캐시] 경쟁전 보완: 티어=${cached.rankedSummary.tier}, RP=${cached.rankedSummary.rp}`);
                 }
               }
+
+              // DB 캐시 경로에서도 PKGG 점수를 정확하게 재계산
+              // (DB 저장값이 일반전만 반영한 경우 경쟁전 포함 재계산으로 보정)
+              try {
+                const gmStats = statsResult.status === 'fulfilled'
+                  ? (statsResult.value.data?.attributes?.gameModeStats || {}) : {};
+                const rms = rankedResult.status === 'fulfilled'
+                  ? (rankedResult.value.data?.attributes?.rankedGameModeStats || {}) : {};
+
+                let tr = 0, tw = 0, tt = 0, tdmg = 0, tk = 0, ta = 0, ts = 0;
+                for (const [mode, s] of Object.entries(gmStats)) {
+                  if (mode.startsWith('normal') || mode.includes('event') || !s?.roundsPlayed) continue;
+                  tr += s.roundsPlayed; tw += s.wins || 0; tt += s.top10s || 0;
+                  tdmg += s.damageDealt || 0; tk += s.kills || 0;
+                  ta += s.assists || 0; ts += s.timeSurvived || 0;
+                }
+                for (const rm of Object.values(rms)) {
+                  if (!rm?.roundsPlayed) continue;
+                  tr += rm.roundsPlayed; tw += rm.wins || 0; tt += rm.top10s || 0;
+                  tdmg += rm.damageDealt || 0; tk += rm.kills || 0;
+                  ta += rm.assists || 0; ts += rm.timeSurvived || 0;
+                }
+                if (tr > 0) {
+                  const freshSummary = {
+                    avgDamage:      Math.round(tdmg / tr),
+                    avgKills:       parseFloat((tk / tr).toFixed(2)),
+                    avgAssists:     parseFloat((ta / tr).toFixed(2)),
+                    avgSurviveTime: Math.round(ts / tr),
+                    winRate:        parseFloat(((tw / tr) * 100).toFixed(1)),
+                    top10Rate:      parseFloat(((tt / tr) * 100).toFixed(1)),
+                  };
+                  const freshMMR = calcMMR(freshSummary);
+                  // DB에 저장된 mmr보다 크면 보완 (경쟁전 포함 계산이 더 정확)
+                  if (freshMMR > (cached.mmr || 0)) {
+                    cached.mmr = freshMMR;
+                    cached.summary = { ...cached.summary, ...freshSummary };
+                    console.log(`[DB캐시] PKGG 점수 재계산: ${cached.mmr} → ${freshMMR} (경쟁전 포함)`);
+                  }
+                }
+              } catch (e) {
+                console.warn('[DB캐시] PKGG 점수 재계산 실패:', e.message);
+              }
             }
           } catch (e) {
             console.warn('[DB캐시] PUBG API 보완 실패:', e.message);
@@ -2579,6 +2621,22 @@ export async function getServerSideProps({ params, query }) {
               totalAssists += ms.assists || 0;
               totalSurvivalTime += (ms.avgSurvivalTime || 0) * r;
               totalHeadshotKills += ms.headshots || 0;
+            }
+            // 경쟁전(ranked) 스탯도 PKGG 점수에 포함 — 경쟁전만 플레이하는 유저 브론즈 오표시 방지
+            if (rankedResult.status === 'fulfilled') {
+              const rms = rankedResult.value.data?.attributes?.rankedGameModeStats || {};
+              for (const rm of Object.values(rms)) {
+                if (!rm || !rm.roundsPlayed) continue;
+                const rr = rm.roundsPlayed;
+                totalRounds    += rr;
+                totalWins      += rm.wins          || 0;
+                totalTop10s    += rm.top10s        || 0;
+                totalDamage    += rm.damageDealt   || 0;
+                totalKills     += rm.kills         || 0;
+                totalAssists   += rm.assists       || 0;
+                totalSurvivalTime  += rm.timeSurvived  || 0;
+                totalHeadshotKills += rm.headshotKills || 0;
+              }
             }
             if (totalRounds > 0) {
               const avgDamage = Math.round(totalDamage / totalRounds);

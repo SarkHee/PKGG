@@ -179,6 +179,10 @@ export default async function handler(req, res) {
         const score = calculateMMR({ avgDamage, avgKills, winRate, top10Rate, avgSurviveTime, avgAssists });
 
         // 멤버 정보 업데이트
+        // 배치는 일반전만 조회 → 경쟁전 위주 유저는 기존 저장값이 더 정확할 수 있음
+        // 새 스탯이 기존보다 크게 낮으면(50% 이하) 덮어쓰지 않음
+        const existingScore = calculateMMR({ avgDamage: member.avgDamage || 0, avgKills: member.avgKills || 0, winRate: member.winRate || 0, top10Rate: member.top10Rate || 0 });
+        const shouldUpdate = avgDamage > 0 && (score >= existingScore * 0.7 || !member.avgDamage);
         const hasData = avgDamage > 0 || avgKills > 0 || winRate > 0;
         await prisma.clanMember.update({
           where: { id: member.id },
@@ -186,7 +190,7 @@ export default async function handler(req, res) {
             ...(data.basicInfo?.id && !member.pubgPlayerId
               ? { pubgPlayerId: data.basicInfo.id, pubgShardId: shard }
               : {}),
-            ...(hasData ? {
+            ...(hasData && shouldUpdate ? {
               avgDamage:      Math.round(avgDamage),
               avgKills:       parseFloat(avgKills.toFixed(2)),
               avgAssists:     parseFloat(avgAssists.toFixed(2)),
