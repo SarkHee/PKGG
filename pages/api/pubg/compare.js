@@ -6,8 +6,8 @@ import { cachedPubgFetch, TTL } from '../../../utils/pubgApiCache.js';
 import { calculateMMR } from '../../../utils/mmrCalculator';
 
 const PUBG_BASE = 'https://api.pubg.com/shards';
-const NORMAL_MODES = ['squad-fpp', 'squad', 'duo-fpp', 'solo-fpp'];
-const RANKED_MODES = ['squad-fpp', 'squad'];
+// 이벤트/캐주얼 모드 제외 — normal-* 로 시작하거나 event 포함 모드
+const EVENT_MODE_PREFIXES = ['normal', 'event'];
 const PRIMARY_SHARDS   = ['steam', 'kakao']
 const SECONDARY_SHARDS = ['psn', 'xbox']
 
@@ -76,52 +76,55 @@ async function autoDetectPlayer(nickname) {
   throw new Error(`플레이어 '${nickname}'을 찾을 수 없습니다.`)
 }
 
-function extractNormalStats(apiResponse) {
-  const modeStats = apiResponse?.data?.attributes?.gameModeStats;
-  if (!modeStats) return null;
-  for (const mode of NORMAL_MODES) {
-    const s = modeStats[mode];
-    if (s && s.roundsPlayed > 0) {
-      const { roundsPlayed, kills, damageDealt, wins, top10s, assists, timeSurvived } = s;
-      return {
-        roundsPlayed,
-        avgDamage:      damageDealt  / roundsPlayed,
-        avgKills:       kills        / roundsPlayed,
-        avgAssists:     assists      / roundsPlayed,
-        avgSurviveTime: timeSurvived / roundsPlayed,
-        winRate:        (wins   / roundsPlayed) * 100,
-        top10Rate:      (top10s / roundsPlayed) * 100,
-        primaryMode:    mode,
-      };
-    }
-  }
-  return null;
-}
+// 일반전 + 경쟁전 전체 합산 (이벤트/캐주얼 제외)
+function extractCombinedStats(seasonResponse, rankedResponse) {
+  let tr = 0, tw = 0, tt = 0, tdmg = 0, tk = 0, ta = 0, ts = 0;
 
-function extractRankedStats(apiResponse) {
-  const modeStats = apiResponse?.data?.attributes?.rankedGameModeStats;
-  if (!modeStats) return null;
-  for (const mode of RANKED_MODES) {
-    const s = modeStats[mode];
-    if (s && s.roundsPlayed > 0) {
-      const { roundsPlayed, kills, damageDealt, wins, top10s, assists, timeSurvived } = s;
-      return {
-        roundsPlayed,
-        avgDamage:      damageDealt  / roundsPlayed,
-        avgKills:       kills        / roundsPlayed,
-        avgAssists:     assists      / roundsPlayed,
-        avgSurviveTime: timeSurvived / roundsPlayed,
-        winRate:        (wins   / roundsPlayed) * 100,
-        top10Rate:      ((top10s || 0) / roundsPlayed) * 100,
-        primaryMode:    mode,
-        tier:      s.currentTier?.tier    || null,
-        subTier:   s.currentTier?.subTier || null,
-        rankPoint: s.currentRankPoint     || 0,
-        bestTier:  s.bestTier?.tier       || null,
-      };
-    }
+  // 일반전 모든 모드 합산
+  const gameModeStats = seasonResponse?.data?.attributes?.gameModeStats || {};
+  for (const [mode, s] of Object.entries(gameModeStats)) {
+    if (EVENT_MODE_PREFIXES.some(p => mode.startsWith(p))) continue;
+    if (!s?.roundsPlayed) continue;
+    tr   += s.roundsPlayed;
+    tw   += s.wins          || 0;
+    tt   += s.top10s        || 0;
+    tdmg += s.damageDealt   || 0;
+    tk   += s.kills         || 0;
+    ta   += s.assists       || 0;
+    ts   += s.timeSurvived  || 0;
   }
-  return null;
+
+  // 경쟁전 모든 모드 합산
+  const rankedModeStats = rankedResponse?.data?.attributes?.rankedGameModeStats || {};
+  for (const rm of Object.values(rankedModeStats)) {
+    if (!rm?.roundsPlayed) continue;
+    tr   += rm.roundsPlayed;
+    tw   += rm.wins         || 0;
+    tt   += rm.top10s       || 0;
+    tdmg += rm.damageDealt  || 0;
+    tk   += rm.kills        || 0;
+    ta   += rm.assists      || 0;
+    ts   += rm.timeSurvived || 0;
+  }
+
+  if (tr === 0) return null;
+
+  // 경쟁전 대표 티어 (squad-fpp 우선)
+  const rms = rankedModeStats;
+  const tierData = rms['squad-fpp'] || rms['squad'] || Object.values(rms)[0];
+  return {
+    roundsPlayed:   tr,
+    avgDamage:      tdmg / tr,
+    avgKills:       tk   / tr,
+    avgAssists:     ta   / tr,
+    avgSurviveTime: ts   / tr,
+    winRate:        (tw  / tr) * 100,
+    top10Rate:      (tt  / tr) * 100,
+    tier:      tierData?.currentTier?.tier    || null,
+    subTier:   tierData?.currentTier?.subTier || null,
+    rankPoint: tierData?.currentRankPoint     || null,
+    bestTier:  tierData?.bestTier?.tier       || null,
+  };
 }
 
 function formatStats(stats) {
@@ -224,20 +227,16 @@ export default async function handler(req, res) {
     ])
 
     function buildPlayerResult(info, seasonData, rankedData, dbStats) {
-      const normalStats  = extractNormalStats(seasonData)
-      const rankedStats  = extractRankedStats(rankedData)
-      // DB 캐시가 있으면 MMR을 DB 기반으로 오버라이드 (플레이어 페이지와 일관성)
-      const mmrSource    = dbStats || normalStats
-      const cachedMmr    = mmrSource ? calculateMMR(mmrSource) : 1000
-      const normalResult = formatStats(normalStats)
-      const rankedResult = formatStats(rankedStats)
+      const combinedStats = extractCombinedStats(seasonData, rankedData)
+      const mmrSource     = combinedStats || dbStats
+      const mmr           = mmrSource ? calculateMMR(mmrSource) : 1000
+      const combined      = formatStats(combinedStats)
       return {
         nickname: info.nickname,
         shard:    info.shard,
         playerId: info.playerId,
-        mmr:      cachedMmr,
-        normal:   { ...normalResult,  mmr: cachedMmr },
-        ranked:   { ...rankedResult,  mmr: cachedMmr },
+        mmr,
+        combined: { ...combined, mmr },
       }
     }
 

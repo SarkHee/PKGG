@@ -251,8 +251,8 @@ function RankBadge({ tier, subTier, rankPoint }) {
 }
 
 // ── 플레이어 카드 ──────────────────────────────────────────────────────────────
-function PlayerCard({ player, activeMode, side }) {
-  const stats = player[activeMode] || {}
+function PlayerCard({ player, side }) {
+  const stats = player.combined || {}
   const tier = getMMRTier(stats.mmr ?? 1000);
   const color = side === 'A' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-red-500 bg-red-50 dark:bg-red-900/20';
   const textColor = side === 'A' ? 'text-blue-400' : 'text-red-400';
@@ -280,8 +280,8 @@ function PlayerCard({ player, activeMode, side }) {
         {tier.emoji} {tier.label} {(stats.mmr ?? 1000).toLocaleString()}
       </div>
 
-      {/* 경쟁전 티어 */}
-      {activeMode === 'ranked' && stats.tier && (
+      {/* 경쟁전 티어 (데이터 있을 때만) */}
+      {stats.tier && (
         <RankBadge tier={stats.tier} subTier={stats.subTier} rankPoint={stats.rankPoint} />
       )}
 
@@ -304,10 +304,6 @@ function PlayerCard({ player, activeMode, side }) {
         </div>
       ) : (
         <div className="text-gray-500 text-sm text-center px-2">분석할 경기의 수가 부족합니다</div>
-      )}
-
-      {stats.primaryMode && (
-        <div className="text-xs text-gray-500">주 모드: {stats.primaryMode}</div>
       )}
     </div>
   );
@@ -408,7 +404,7 @@ const STAT_BATTLES = [
   { label: 'MMR',     key: 'mmr',       fmt: (v) => Math.round(v ?? 0).toLocaleString() },
 ]
 
-function AiComparison({ playerA, playerB, activeMode }) {
+function AiComparison({ playerA, playerB }) {
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -438,7 +434,7 @@ function AiComparison({ playerA, playerB, activeMode }) {
 
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerA?.nickname, playerB?.nickname, activeMode, hasData]);
+  }, [playerA?.nickname, playerB?.nickname, hasData]);
 
   if (!hasData) return (
     <div className="text-center text-gray-500 dark:text-gray-500 text-sm py-6 mb-8">
@@ -596,7 +592,6 @@ export default function ComparePage() {
   const { t }        = useT();
   const [inputA, setInputA] = useState('');
   const [inputB, setInputB] = useState('');
-  const [activeMode, setActiveMode] = useState('normal'); // 'normal' | 'ranked'
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -751,37 +746,25 @@ export default function ComparePage() {
           {/* 비교 결과 */}
           {data && !loading && (
             <>
-              {/* 모드 탭 */}
-              <div className="flex gap-2 mb-6 justify-center">
-                {[
-                  { key: 'normal', label: '🎮 일반게임' },
-                  { key: 'ranked', label: '🏆 경쟁전' },
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setActiveMode(key)}
-                    className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
-                      activeMode === key
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
-                        : 'bg-gray-200 dark:bg-gray-700/60 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-300 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+              {/* 통계 기준 안내 */}
+              <div className="flex justify-center mb-5">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                  <span>📊</span>
+                  <span>모든 매치 통계 기준 (일반전 + 경쟁전, 이벤트 제외)</span>
+                </div>
               </div>
 
               {/* 플레이어 카드 */}
               <div className="flex gap-4 mb-8 flex-col sm:flex-row">
-                <PlayerCard player={data.playerA} activeMode={activeMode} side="A" />
+                <PlayerCard player={data.playerA} side="A" />
                 <div className="flex items-center justify-center text-2xl font-black text-gray-500">VS</div>
-                <PlayerCard player={data.playerB} activeMode={activeMode} side="B" />
+                <PlayerCard player={data.playerB} side="B" />
               </div>
 
               {/* 스탯 비교 바 + 레이더 차트 */}
               {(() => {
-                const sA = data.playerA[activeMode] || {}
-                const sB = data.playerB[activeMode] || {}
+                const sA = data.playerA.combined || {}
+                const sB = data.playerB.combined || {}
                 return (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                     {/* 스탯 비교 바 */}
@@ -827,9 +810,8 @@ export default function ComparePage() {
 
               {/* AI 비교 분석 */}
               <AiComparison
-                playerA={{ ...data.playerA, ...data.playerA[activeMode] }}
-                playerB={{ ...data.playerB, ...data.playerB[activeMode] }}
-                activeMode={activeMode}
+                playerA={{ ...data.playerA, ...data.playerA.combined }}
+                playerB={{ ...data.playerB, ...data.playerB.combined }}
               />
 
               {/* 공유 버튼 */}
@@ -866,8 +848,8 @@ export default function ComparePage() {
 
               {/* 이미지 캡처용 카드 (화면 밖) */}
               <BattleShareCard
-                playerA={{ ...data.playerA, ...data.playerA[activeMode] }}
-                playerB={{ ...data.playerB, ...data.playerB[activeMode] }}
+                playerA={{ ...data.playerA, ...data.playerA.combined }}
+                playerB={{ ...data.playerB, ...data.playerB.combined }}
                 cardRef={cardRef}
               />
             </>
