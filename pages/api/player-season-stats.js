@@ -1,8 +1,13 @@
 // API endpoint for player season-specific stats
-// /Users/mac/Desktop/PKGG/pages/api/player-season-stats.js
+import { cachedPubgFetch, TTL } from '../../utils/pubgApiCache.js'
+
+function parseSeasonNum(id) {
+  const m = id?.match(/-(\d+)$/)
+  return m ? parseInt(m[1], 10) : null
+}
 
 export default async function handler(req, res) {
-  const { nickname, season } = req.query;
+  const { nickname, season, shard = 'steam' } = req.query;
 
   if (!nickname || !season) {
     return res
@@ -11,8 +16,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // PUBG API에서 특정 시즌 데이터 조회
-    // 실제로는 PUBG API의 player season stats endpoint를 호출해야 합니다.
+    // 현재 시즌 ID를 PUBG API에서 자동 탐지
+    const seasonData = await cachedPubgFetch(
+      `https://api.pubg.com/shards/${shard}/seasons`,
+      { ttl: TTL.SEASON }
+    )
+    const currentSeason = (seasonData?.data || []).find(s => s.attributes?.isCurrentSeason)
+    const currentSeasonId = currentSeason?.id ?? season
 
     // 임시로 테스트 데이터 반환
     const mockSeasonData = {
@@ -70,12 +80,12 @@ export default async function handler(req, res) {
         player: { id: `player-${nickname}`, name: nickname },
         season: {
           id: season,
-          isCurrentSeason: season === 'division.bro.official.pc-2024-01',
+          isCurrentSeason: season === currentSeasonId,
         },
         matchCount: Math.floor(Math.random() * 50) + 10,
       },
       ranked:
-        season === 'division.bro.official.pc-2024-01'
+        season === currentSeasonId
           ? {
               // 현재 시즌에만 랭크 데이터 제공
               currentTier: 'Master',
@@ -108,7 +118,7 @@ export default async function handler(req, res) {
 
     // 시즌에 따른 데이터 변화 시뮬레이션
     const seasonIndex = parseInt(season.split('-').pop()) || 1;
-    const currentSeasonIndex = 30; // 시즌 30이 현재
+    const currentSeasonIndex = parseSeasonNum(currentSeasonId) ?? 30
     const seasonsAgo = currentSeasonIndex - seasonIndex;
 
     // 오래된 시즌일수록 낮은 스탯

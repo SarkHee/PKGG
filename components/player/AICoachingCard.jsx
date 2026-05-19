@@ -194,9 +194,9 @@ const WEAPON_RECOMMENDATIONS = {
 };
 
 const PRIORITY_BADGE = {
-  긴급: 'bg-red-100 text-red-700',
-  중요: 'bg-orange-100 text-orange-700',
-  권장: 'bg-blue-100 text-blue-700',
+  긴급: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300',
+  중요: 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300',
+  권장: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300',
 };
 
 // Build PUBG-specific action plans — 5개 항목
@@ -699,20 +699,20 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
   if (activeTab === 'ranked') {
     if (!hasRanked) {
       return (
-        <div className="rounded-xl border border-gray-200 overflow-hidden">
-          <div className="flex border-b border-gray-200 bg-gray-50">
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
             <button onClick={() => setActiveTab('normal')}
-              className="flex-1 py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+              className="flex-1 py-2.5 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
               일반게임
             </button>
-            <button className="flex-1 py-2.5 text-xs font-bold text-violet-700 border-b-2 border-violet-600 bg-white">
+            <button className="flex-1 py-2.5 text-xs font-bold text-violet-700 dark:text-violet-400 border-b-2 border-violet-600 bg-white dark:bg-gray-900">
               경쟁전
             </button>
           </div>
           <div className="p-10 text-center">
             <div className="text-4xl mb-3">🏆</div>
-            <div className="text-sm font-bold text-gray-600 mb-1">이번 시즌 경쟁전 기록 없음</div>
-            <div className="text-xs text-gray-400">경쟁전 게임을 플레이하면 전문 코칭이 제공됩니다.</div>
+            <div className="text-sm font-bold text-gray-600 dark:text-gray-300 mb-1">이번 시즌 경쟁전 기록 없음</div>
+            <div className="text-xs text-gray-400 dark:text-gray-500">경쟁전 게임을 플레이하면 전문 코칭이 제공됩니다.</div>
           </div>
         </div>
       );
@@ -733,15 +733,15 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
     ];
 
     return (
-      <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         {/* 탭 */}
-        <div className="flex border-b border-gray-200 bg-gray-50">
+        <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
           <button onClick={() => setActiveTab('normal')}
-            className="flex-1 py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+            className="flex-1 py-2.5 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
             일반게임
           </button>
           <button onClick={() => setActiveTab('ranked')}
-            className="flex-1 py-2.5 text-xs font-bold text-violet-700 border-b-2 border-violet-600 bg-white">
+            className="flex-1 py-2.5 text-xs font-bold text-violet-700 dark:text-violet-400 border-b-2 border-violet-600 bg-white dark:bg-gray-900">
             경쟁전
           </button>
         </div>
@@ -763,27 +763,27 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
 
         <div className="p-5 space-y-4">
           {/* 티어 진행 */}
-          <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex items-center gap-4">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700 flex items-center gap-4">
             <div className="text-center">
               <div className={`text-lg font-black ${tierColor}`}>{r.tier}</div>
-              <div className="text-xs text-gray-400">현재</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500">현재</div>
             </div>
-            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all"
                 style={{ width: `${Math.min(100, Math.round((r.rp % 1000) / 10))}%` }} />
             </div>
             <div className="text-center">
-              <div className="text-sm font-bold text-gray-600">{r.rp.toLocaleString()} RP</div>
-              <div className="text-xs text-gray-400">최고 {r.bestTier}</div>
+              <div className="text-sm font-bold text-gray-600 dark:text-gray-300">{r.rp.toLocaleString()} RP</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500">최고 {r.bestTier}</div>
             </div>
           </div>
 
           {/* 핵심 4개 지표 */}
           <div className="grid grid-cols-4 gap-2">
             {rankedBenchmarks.map(({ label, value, color, pct }) => (
-              <div key={label} className="bg-white rounded-lg p-2.5 text-center border border-gray-200">
+              <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-200 dark:border-gray-700">
                 <div className={`text-xl font-black ${color}`}>{value}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</div>
                 <div className={`text-[11px] font-semibold mt-0.5 ${pct.color}`}>{pct.label}</div>
               </div>
             ))}
@@ -791,35 +791,35 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
 
           {/* 강점 & 개선 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-100 dark:border-emerald-800">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-emerald-600 text-sm">🏆</span>
-                <span className="text-xs font-bold text-emerald-800">경쟁전 강점</span>
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">경쟁전 강점</span>
               </div>
               <div className="space-y-2">
                 {rStrengths.slice(0, 3).map((s, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <span className="w-4 h-4 bg-emerald-500 text-white rounded-full text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">{i + 1}</span>
                     <div>
-                      <div className="text-xs font-bold text-emerald-800">{s.title}</div>
-                      <div className="text-xs text-emerald-600">{s.desc}</div>
+                      <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300">{s.title}</div>
+                      <div className="text-xs text-emerald-600 dark:text-emerald-400">{s.desc}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-orange-600 text-sm">⚡</span>
-                <span className="text-xs font-bold text-orange-800">랭크 개선 우선순위</span>
+                <span className="text-xs font-bold text-orange-800 dark:text-orange-300">랭크 개선 우선순위</span>
               </div>
               <div className="space-y-2">
                 {rImprovements.slice(0, 3).map((imp, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <span className="w-4 h-4 bg-orange-500 text-white rounded-full text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">{i + 1}</span>
                     <div>
-                      <div className="text-xs font-bold text-orange-800">{imp.title}</div>
-                      <div className="text-xs text-orange-600 leading-relaxed">{imp.desc}</div>
+                      <div className="text-xs font-bold text-orange-800 dark:text-orange-300">{imp.title}</div>
+                      <div className="text-xs text-orange-600 dark:text-orange-400 leading-relaxed">{imp.desc}</div>
                     </div>
                   </div>
                 ))}
@@ -828,24 +828,24 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
           </div>
 
           {/* 랭크 액션 플랜 */}
-          <div className="bg-violet-50 rounded-lg p-4 border border-violet-100">
+          <div className="bg-violet-50 dark:bg-violet-900/20 rounded-lg p-4 border border-violet-100 dark:border-violet-800">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-violet-600 text-sm">🚀</span>
-              <span className="text-xs font-bold text-violet-800">다음 랭크 게임 바로 적용할 전략</span>
+              <span className="text-xs font-bold text-violet-800 dark:text-violet-300">다음 랭크 게임 바로 적용할 전략</span>
             </div>
             <div className="space-y-2">
               {rActions.map((item, i) => (
-                <div key={i} className="flex items-start gap-2 bg-white/80 rounded-lg px-3 py-2.5 border border-violet-100">
+                <div key={i} className="flex items-start gap-2 bg-white/80 dark:bg-gray-800/80 rounded-lg px-3 py-2.5 border border-violet-100 dark:border-violet-800">
                   <span className={`text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 ${PRIORITY_BADGE[item.priority]}`}>
                     {item.priority}
                   </span>
-                  <span className="text-xs text-gray-700 leading-relaxed">{item.action}</span>
+                  <span className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{item.action}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="text-center text-xs text-gray-400">
+          <div className="text-center text-xs text-gray-400 dark:text-gray-500">
             경쟁전 {r.games}경기 데이터 기반 • {new Date().toLocaleDateString('ko-KR')} 업데이트
           </div>
         </div>
@@ -854,14 +854,14 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 overflow-hidden">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* 탭 — 항상 표시 */}
-      <div className="flex border-b border-gray-200 bg-gray-50">
-        <button className="flex-1 py-2.5 text-xs font-bold text-violet-700 border-b-2 border-violet-600 bg-white">
+      <div className="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+        <button className="flex-1 py-2.5 text-xs font-bold text-violet-700 dark:text-violet-400 border-b-2 border-violet-600 bg-white dark:bg-gray-900">
           일반게임
         </button>
         <button onClick={() => setActiveTab('ranked')}
-          className="flex-1 py-2.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">
+          className="flex-1 py-2.5 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
           경쟁전
         </button>
       </div>
@@ -891,23 +891,23 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
 
       <div className="p-5 space-y-4">
         {/* 플레이 스타일 설명 */}
-        <div className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-200 flex items-start gap-3">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700 flex items-start gap-3">
           <span className="text-2xl flex-shrink-0">{STYLE_ICONS[analysis.playStyle]}</span>
           <div>
-            <div className="text-sm font-bold text-gray-800">
+            <div className="text-sm font-bold text-gray-800 dark:text-gray-100">
               {playerInfo?.nickname}님은{' '}
-              <span className="text-violet-700">{STYLE_NAMES[analysis.playStyle]} 플레이어</span>입니다
+              <span className="text-violet-700 dark:text-violet-400">{STYLE_NAMES[analysis.playStyle]} 플레이어</span>입니다
             </div>
-            <div className="text-xs text-gray-600 mt-0.5">{STYLE_DESCRIPTIONS[analysis.playStyle]}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{STYLE_DESCRIPTIONS[analysis.playStyle]}</div>
           </div>
         </div>
 
         {/* 핵심 4개 지표 */}
         <div className="grid grid-cols-4 gap-2">
           {statBenchmarks.map(({ label, value, color, pct }) => (
-            <div key={label} className="bg-white rounded-lg p-2.5 text-center border border-gray-200">
+            <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-200 dark:border-gray-700">
               <div className={`text-xl font-black ${color}`}>{value}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</div>
               <div className={`text-[11px] font-semibold mt-0.5 ${pct.color}`}>
                 {pct.label}
               </div>
@@ -916,8 +916,8 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
         </div>
 
         {/* AI 분석 지수 3개 */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">AI 성향 분석 지수</div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">AI 성향 분석 지수</div>
           <div className="space-y-3">
             {[
               {
@@ -959,15 +959,15 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
             ].map(({ label, value, barColor, icon, desc }) => (
               <div key={label} className="flex items-center gap-3">
                 <span className="text-sm w-5 text-center">{icon}</span>
-                <span className="text-xs text-gray-600 w-12 flex-shrink-0">{label}</span>
-                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <span className="text-xs text-gray-600 dark:text-gray-400 w-12 flex-shrink-0">{label}</span>
+                <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${barColor} rounded-full transition-all duration-700`}
                     style={{ width: `${Math.min(100, Math.round(value))}%` }}
                   />
                 </div>
-                <span className="text-xs font-bold text-gray-700 w-8 text-right">{Math.round(value)}</span>
-                <span className="text-xs text-gray-400 w-16 hidden sm:block">{desc}</span>
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-8 text-right">{Math.round(value)}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 w-16 hidden sm:block">{desc}</span>
               </div>
             ))}
           </div>
@@ -976,10 +976,10 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
         {/* 강점 & 개선 포인트 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* 강점 */}
-          <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-100 dark:border-emerald-800">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-emerald-600 text-sm">🏆</span>
-              <span className="text-xs font-bold text-emerald-800">{playerInfo?.nickname}님의 강점</span>
+              <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">{playerInfo?.nickname}님의 강점</span>
             </div>
             <div className="space-y-2">
               {strengths.slice(0, 3).map((s, i) => (
@@ -988,8 +988,8 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
                     {i + 1}
                   </span>
                   <div>
-                    <div className="text-xs font-bold text-emerald-800">{s.title}</div>
-                    <div className="text-xs text-emerald-600">{s.desc}</div>
+                    <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300">{s.title}</div>
+                    <div className="text-xs text-emerald-600 dark:text-emerald-400">{s.desc}</div>
                   </div>
                 </div>
               ))}
@@ -997,10 +997,10 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
           </div>
 
           {/* 개선 포인트 */}
-          <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+          <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-orange-600 text-sm">⚡</span>
-              <span className="text-xs font-bold text-orange-800">개선 우선순위</span>
+              <span className="text-xs font-bold text-orange-800 dark:text-orange-300">개선 우선순위</span>
             </div>
             <div className="space-y-2">
               {improvements.slice(0, 4).map((imp, i) => (
@@ -1009,8 +1009,8 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
                     {i + 1}
                   </span>
                   <div>
-                    <div className="text-xs font-bold text-orange-800">{imp.title}</div>
-                    <div className="text-xs text-orange-600 leading-relaxed">
+                    <div className="text-xs font-bold text-orange-800 dark:text-orange-300">{imp.title}</div>
+                    <div className="text-xs text-orange-600 dark:text-orange-400 leading-relaxed">
                       <DescWithTerms text={imp.desc} />
                     </div>
                   </div>
@@ -1021,10 +1021,10 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
         </div>
 
         {/* 추천 무기 & 전술 (PUBG 특화) */}
-        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-slate-600 text-sm">🔫</span>
-            <span className="text-xs font-bold text-slate-800">
+            <span className="text-slate-600 dark:text-slate-400 text-sm">🔫</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
               {STYLE_NAMES[analysis.playStyle]} 스타일 추천 무기
             </span>
           </div>
@@ -1033,43 +1033,43 @@ export default function AICoachingCard({ playerStats, playerInfo, masteryWeapons
               { label: '주무기', ...weapons.primary },
               { label: '보조무기', ...weapons.secondary },
             ].map(({ label, name, note, attach }) => (
-              <div key={label} className="bg-white rounded-lg p-3 border border-slate-200">
-                <div className="text-xs text-slate-400 mb-0.5">{label}</div>
-                <div className="text-sm font-black text-slate-800">{name}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{note}</div>
-                <div className="text-xs text-blue-600 mt-1 font-medium">부착물: {attach}</div>
+              <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                <div className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">{label}</div>
+                <div className="text-sm font-black text-slate-800 dark:text-slate-100">{name}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{note}</div>
+                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium">부착물: {attach}</div>
               </div>
             ))}
           </div>
-          <div className="bg-blue-50 rounded px-3 py-2 text-xs text-blue-700 border border-blue-100">
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded px-3 py-2 text-xs text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
             💡 {weapons.tip}
           </div>
         </div>
 
         {/* 즉시 실행 액션 플랜 (PUBG 특화) */}
-        <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-100">
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 border border-indigo-100 dark:border-indigo-800">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-indigo-600 text-sm">🚀</span>
-            <span className="text-xs font-bold text-indigo-800">다음 게임부터 바로 적용할 개선 포인트</span>
+            <span className="text-indigo-600 dark:text-indigo-400 text-sm">🚀</span>
+            <span className="text-xs font-bold text-indigo-800 dark:text-indigo-300">다음 게임부터 바로 적용할 개선 포인트</span>
           </div>
           <div className="space-y-2">
             {actions.map((item, i) => (
               <div
                 key={i}
-                className="flex items-start gap-2 bg-white/80 rounded-lg px-3 py-2.5 border border-indigo-100"
+                className="flex items-start gap-2 bg-white/80 dark:bg-gray-800/80 rounded-lg px-3 py-2.5 border border-indigo-100 dark:border-indigo-800"
               >
                 <span
                   className={`text-xs font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 ${PRIORITY_BADGE[item.priority]}`}
                 >
                   {item.priority}
                 </span>
-                <span className="text-xs text-gray-700 leading-relaxed"><DescWithTerms text={item.action} /></span>
+                <span className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed"><DescWithTerms text={item.action} /></span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="text-center text-xs text-gray-400">
+        <div className="text-center text-xs text-gray-400 dark:text-gray-500">
           시즌 {stats.totalMatches}경기 데이터 기반 AI 분석 •{' '}
           {new Date().toLocaleDateString('ko-KR')} 업데이트
         </div>

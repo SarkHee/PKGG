@@ -12,17 +12,25 @@ function ptCanvas(nx, ny) {
   return [AIM_X + nx * SX, AIM_Y - ny * SY];
 }
 
-// ── 어태치먼트 ────────────────────────────────────────────────────────────
-const ATTACHMENTS = [
-  { id: 'comp',  label: '보정기',      vx: 0.88, vy: 0.70, desc: '수직 -30% / 수평 -12%' },
-  { id: 'vgrip', label: '수직 그립',   vx: 0.90, vy: 0.83, desc: '수직 -17% / 수평 -10%' },
-  { id: 'agrip', label: '앵글드 그립', vx: 0.72, vy: 0.95, desc: '수평 -28% / 수직 -5%' },
-];
+// ── 어태치먼트 (U41.1 기준) ──────────────────────────────────────────────
+// 총구(muzzle)와 손잡이(grip)는 별도 슬롯 → 동시 장착 가능
+const MUZZLE_ATTACHMENTS = [
+  { id: 'comp', label: '보정기', desc: '수직 -30% / 수평 -12%' },
+]
+const GRIP_ATTACHMENTS = [
+  { id: 'vgrip', label: '수직 그립',   desc: '수직 -17% / 수평 -10%' },
+  { id: 'hgrip', label: '하프 그립',   desc: '수평 -16% (U41.1 버프)' },
+  { id: 'tgrip', label: '틸티드 그립', desc: '수직 -12% / 수평 -6% (U41.1 신규)' },
+]
+const ATTACHMENTS = [...MUZZLE_ATTACHMENTS, ...GRIP_ATTACHMENTS]
 
 function applyAttach(pattern, active) {
-  const vx = active.comp ? 0.88 : active.agrip ? 0.72 : active.vgrip ? 0.90 : 1;
-  const vy = active.comp ? 0.70 : active.vgrip ? 0.83 : active.agrip ? 0.95 : 1;
-  return pattern.map(([nx, ny]) => [nx * vx, ny * vy]);
+  let vx = 1, vy = 1
+  if (active.comp)  { vx *= 0.88; vy *= 0.70 }  // 보정기
+  if (active.vgrip) { vx *= 0.90; vy *= 0.83 }  // 수직 그립
+  if (active.hgrip) { vx *= 0.84; vy *= 1.00 }  // 하프 그립 (U41.1 버프: 수평 -16%)
+  if (active.tgrip) { vx *= 0.94; vy *= 0.88 }  // 틸티드 그립 (U41.1 신규: 수직 -12% / 수평 -6%)
+  return pattern.map(([nx, ny]) => [nx * vx, ny * vy])
 }
 
 // ── 총기 데이터 ───────────────────────────────────────────────────────────
@@ -426,7 +434,7 @@ function PracticeMode({ weapon, attachActive }) {
   // ── 마우스 보정 ────────────────────────────────────────────────────────
   const handleMouseMove = useCallback((e) => {
     if (phaseRef.current !== 'playing') return;
-    compRef.current.x += e.movementX * sensRef.current;
+    compRef.current.x -= e.movementX * sensRef.current;
     compRef.current.y += e.movementY * sensRef.current;
   }, []);
 
@@ -615,13 +623,18 @@ function PracticeMode({ weapon, attachActive }) {
 // ─── 메인 페이지 ──────────────────────────────────────────────────────────
 export default function RecoilPattern() {
   const [weapon,    setWeapon]    = useState(WEAPONS[0]);
-  const [active,    setActive]    = useState({ comp: false, vgrip: false, agrip: false });
+  const [active,    setActive]    = useState({ comp: false, vgrip: false, hgrip: false, tgrip: false });
   const [animFrame, setAnimFrame] = useState(-1);
   const [mode,      setMode]      = useState('view'); // 'view' | 'practice'
   const animRef = useRef(null);
 
   const toggleAttach = (id) => {
-    setActive(prev => ({ comp: false, vgrip: false, agrip: false, [id]: !prev[id] }));
+    setActive(prev => {
+      if (id === 'comp') return { ...prev, comp: !prev.comp }
+      // 손잡이 슬롯은 하나만 (상호 배타)
+      const on = !prev[id]
+      return { ...prev, vgrip: false, hgrip: false, tgrip: false, [id]: on }
+    })
   };
 
   const playAnim = useCallback(() => {
@@ -718,23 +731,43 @@ export default function RecoilPattern() {
                 <PatternCanvas weapon={weapon} attachActive={active} animFrame={animFrame} />
               </div>
 
-              <div className="bg-gray-900 border border-gray-700 rounded-xl p-3">
-                <div className="text-xs text-gray-500 font-semibold mb-2">어태치먼트 (하나만 선택)</div>
-                <div className="flex gap-2">
-                  {ATTACHMENTS.map(a => (
-                    <button key={a.id} onClick={() => toggleAttach(a.id)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                        active[a.id]
-                          ? 'bg-blue-600/30 border-blue-500 text-blue-300'
-                          : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'
-                      }`}>
-                      {a.label}
-                    </button>
-                  ))}
+              <div className="bg-gray-900 border border-gray-700 rounded-xl p-3 space-y-2.5">
+                {/* 총구 슬롯 */}
+                <div>
+                  <div className="text-[10px] text-gray-600 font-semibold mb-1.5 uppercase tracking-wider">총구</div>
+                  <div className="flex gap-2">
+                    {MUZZLE_ATTACHMENTS.map(a => (
+                      <button key={a.id} onClick={() => toggleAttach(a.id)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                          active[a.id]
+                            ? 'bg-blue-600/30 border-blue-500 text-blue-300'
+                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+                        }`}>
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                {/* 손잡이 슬롯 */}
+                <div>
+                  <div className="text-[10px] text-gray-600 font-semibold mb-1.5 uppercase tracking-wider">손잡이 (하나만)</div>
+                  <div className="flex gap-2">
+                    {GRIP_ATTACHMENTS.map(a => (
+                      <button key={a.id} onClick={() => toggleAttach(a.id)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                          active[a.id]
+                            ? 'bg-emerald-600/30 border-emerald-500 text-emerald-300'
+                            : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200'
+                        }`}>
+                        {a.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* 적용 중인 효과 설명 */}
                 {Object.values(active).some(Boolean) && (
-                  <p className="text-[10px] text-gray-500 mt-2">
-                    {ATTACHMENTS.filter(a => active[a.id]).map(a => a.desc).join(' / ')}
+                  <p className="text-[10px] text-gray-500 border-t border-gray-800 pt-2">
+                    {ATTACHMENTS.filter(a => active[a.id]).map(a => a.desc).join(' + ')}
                   </p>
                 )}
               </div>

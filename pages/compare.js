@@ -9,169 +9,377 @@ import { useT } from '../utils/i18n';
 import { getMMRTier } from '../utils/mmrCalculator';
 import { toPng } from 'html-to-image';
 
-// ── Chart.js 레이더 차트 ─────────────────────────────────────────────────────
-import {
-  Chart,
-  RadarController,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-
-Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
-
 // 레이더 축 정의 — label, key, max(정규화기준), 실제값 포매터
 const RADAR_AXES = [
-  { label: '딜량',  key: 'avgDamage',      max: 600,  fmt: (v) => `${Math.round(v)} 딜` },
-  { label: '킬',    key: 'avgKills',        max: 6,    fmt: (v) => `${v.toFixed(2)} 킬` },
-  { label: '승률',  key: 'winRate',         max: 25,   fmt: (v) => `${v.toFixed(1)}%` },
-  { label: 'Top10', key: 'top10Rate',       max: 70,   fmt: (v) => `${v.toFixed(1)}%` },
-  { label: '생존',  key: 'avgSurviveTime',  max: 1800, fmt: (v) => `${Math.floor(v/60)}분 ${Math.round(v%60)}초` },
-  { label: '어시',  key: 'avgAssists',      max: 3,    fmt: (v) => `${v.toFixed(2)}` },
+  { label: '딜량',  key: 'avgDamage',      max: 600,  fmt: (v) => `${Math.round(v)}딜` },
+  { label: '킬',    key: 'avgKills',        max: 6,    fmt: (v) => `${(+v).toFixed(2)}킬` },
+  { label: '승률',  key: 'winRate',         max: 25,   fmt: (v) => `${(+v).toFixed(1)}%` },
+  { label: 'Top10', key: 'top10Rate',       max: 70,   fmt: (v) => `${(+v).toFixed(1)}%` },
+  { label: '생존',  key: 'avgSurviveTime',  max: 1800, fmt: (v) => `${Math.floor(v/60)}m` },
+  { label: '어시',  key: 'avgAssists',      max: 3,    fmt: (v) => `${(+v).toFixed(2)}` },
 ];
 
 function normalize(val, max) {
-  return Math.min(100, Math.round((val / max) * 100));
+  return Math.min(100, Math.max(0, (val / max) * 100));
 }
 
+// ── SVG 레이더 차트 ───────────────────────────────────────────────────────────
 function RadarChart({ playerA, playerB }) {
-  const canvasRef = useRef(null);
-  const chartRef  = useRef(null);
+  const [hovered, setHovered] = useState(null)
+  const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
-    if (!canvasRef.current) return;
-    if (chartRef.current) chartRef.current.destroy();
+    const check = () => setIsDark(document.documentElement.classList.contains('dark'))
+    check()
+    const obs = new MutationObserver(check)
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
 
-    const toData = (p) =>
-      RADAR_AXES.map(({ key, max }) => normalize(p[key] ?? 0, max));
+  const c = isDark
+    ? {
+        svgBg:       '#0a0f1e',
+        border:      'rgba(255,255,255,0.08)',
+        bgGradC1:    '#1e1b4b',
+        bgGradC2:    '#0f172a',
+        gridFaint:   'rgba(255,255,255,0.06)',
+        gridBold:    'rgba(255,255,255,0.18)',
+        axis:        'rgba(255,255,255,0.09)',
+        axisHov:     'rgba(255,255,255,0.35)',
+        label:       '#94a3b8',
+        labelHov:    '#f1f5f9',
+        tick:        'rgba(148,163,184,0.4)',
+        dotBg:       '#0f172a',
+        tooltipBg:   'rgba(10,15,30,0.97)',
+        tooltipBdr:  'rgba(255,255,255,0.12)',
+        tooltipLbl:  '#64748b',
+        tooltipSub:  '#475569',
+        barRowHov:   'rgba(255,255,255,0.05)',
+        barRowLbl:   '#64748b',
+        barDimA:     'rgba(59,130,246,0.22)',
+        barDimB:     'rgba(239,68,68,0.22)',
+        legendA:     '#60a5fa',
+        legendB:     '#f87171',
+      }
+    : {
+        svgBg:       '#f1f5f9',
+        border:      'rgba(0,0,0,0.1)',
+        bgGradC1:    '#dbeafe',
+        bgGradC2:    '#e0f2fe',
+        gridFaint:   'rgba(0,0,0,0.06)',
+        gridBold:    'rgba(0,0,0,0.18)',
+        axis:        'rgba(0,0,0,0.1)',
+        axisHov:     'rgba(0,0,0,0.35)',
+        label:       '#475569',
+        labelHov:    '#0f172a',
+        tick:        'rgba(100,116,139,0.5)',
+        dotBg:       '#f1f5f9',
+        tooltipBg:   'rgba(248,250,252,0.98)',
+        tooltipBdr:  'rgba(0,0,0,0.12)',
+        tooltipLbl:  '#6b7280',
+        tooltipSub:  '#9ca3af',
+        barRowHov:   'rgba(0,0,0,0.04)',
+        barRowLbl:   '#6b7280',
+        barDimA:     'rgba(59,130,246,0.18)',
+        barDimB:     'rgba(239,68,68,0.18)',
+        legendA:     '#2563eb',
+        legendB:     '#dc2626',
+      }
 
-    chartRef.current = new Chart(canvasRef.current, {
-      type: 'radar',
-      data: {
-        labels: RADAR_AXES.map(({ label }) => label),
-        datasets: [
-          {
-            label: playerA.nickname,
-            data: toData(playerA),
-            borderColor: '#60A5FA',
-            backgroundColor: 'rgba(59,130,246,0.35)',
-            borderWidth: 2.5,
-            pointBackgroundColor: '#60A5FA',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 1.5,
-            pointRadius: 5,
-            pointHoverRadius: 8,
-            pointHoverBackgroundColor: '#93C5FD',
-          },
-          {
-            label: playerB.nickname,
-            data: toData(playerB),
-            borderColor: '#F87171',
-            backgroundColor: 'rgba(239,68,68,0.35)',
-            borderWidth: 2.5,
-            pointBackgroundColor: '#F87171',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 1.5,
-            pointRadius: 5,
-            pointHoverRadius: 8,
-            pointHoverBackgroundColor: '#FCA5A5',
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        interaction: { mode: 'index' },
-        scales: {
-          r: {
-            min: 0,
-            max: 100,
-            ticks: {
-              stepSize: 25,
-              color: '#6B7280',
-              font: { size: 9 },
-              backdropColor: 'transparent',
-              callback: (v) => `${v}`,
-            },
-            grid:       { color: 'rgba(255,255,255,0.07)' },
-            angleLines: { color: 'rgba(255,255,255,0.15)' },
-            pointLabels: {
-              color: '#E5E7EB',
-              font: { size: 13, weight: 'bold' },
-            },
-          },
-        },
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              color: '#D1D5DB',
-              font: { size: 12 },
-              padding: 16,
-              usePointStyle: true,
-              pointStyleWidth: 10,
-            },
-          },
-          tooltip: {
-            backgroundColor: 'rgba(15,23,42,0.96)',
-            borderColor: 'rgba(255,255,255,0.12)',
-            borderWidth: 1,
-            padding: 12,
-            callbacks: {
-              title: (items) => RADAR_AXES[items[0].dataIndex].label + ' 비교',
-              label: (ctx) => {
-                const player = ctx.datasetIndex === 0 ? playerA : playerB;
-                const axis   = RADAR_AXES[ctx.dataIndex];
-                const raw    = player[axis.key] ?? 0;
-                const score  = ctx.raw;
-                const winner = (() => {
-                  const vA = playerA[axis.key] ?? 0;
-                  const vB = playerB[axis.key] ?? 0;
-                  if (ctx.datasetIndex === 0) return vA > vB ? ' ✓' : '';
-                  return vB > vA ? ' ✓' : '';
-                })();
-                return ` ${ctx.dataset.label}: ${axis.fmt(raw)}  (${score}/100점)${winner}`;
-              },
-            },
-          },
-        },
-      },
-    });
+  const N  = RADAR_AXES.length
+  const SZ = 280
+  const CX = SZ / 2
+  const CY = SZ / 2
+  const R  = 96
+  const LR = R + 26
 
-    return () => chartRef.current?.destroy();
-  }, [playerA, playerB]);
+  const angle = (i) => (Math.PI * 2 * i) / N - Math.PI / 2
+  const pt    = (i, r) => ({
+    x: CX + r * Math.cos(angle(i)),
+    y: CY + r * Math.sin(angle(i)),
+  })
 
-  // 축별 실제 수치 비교 테이블
+  const polyPoints = (values) =>
+    values.map((v, i) => {
+      const { x, y } = pt(i, (v / 100) * R)
+      return `${x},${y}`
+    }).join(' ')
+
+  const gridPoints = (pct) =>
+    Array.from({ length: N }, (_, i) => {
+      const { x, y } = pt(i, (pct / 100) * R)
+      return `${x},${y}`
+    }).join(' ')
+
+  const dataA = RADAR_AXES.map(({ key, max }) => normalize(playerA[key] ?? 0, max))
+  const dataB = RADAR_AXES.map(({ key, max }) => normalize(playerB[key] ?? 0, max))
+
   return (
-    <div className="flex flex-col gap-4">
-      <canvas ref={canvasRef} />
-      {/* 축 기준 안내 */}
-      <div className="grid grid-cols-3 gap-1 text-center">
-        {RADAR_AXES.map(({ label, key, max, fmt }) => {
-          const vA = playerA[key] ?? 0;
-          const vB = playerB[key] ?? 0;
-          const aWins = vA > vB;
-          const bWins = vB > vA;
+    <div className="flex flex-col gap-3">
+      {/* SVG 차트 */}
+      <div
+        className="relative rounded-2xl overflow-hidden p-2"
+        style={{ backgroundColor: c.svgBg, border: `1px solid ${c.border}` }}
+      >
+        <svg viewBox={`0 0 ${SZ} ${SZ}`} className="w-full" style={{ maxHeight: '300px' }}>
+          <defs>
+            <filter id="glowA" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="glowB" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%"   stopColor={c.bgGradC1} stopOpacity="0.5"/>
+              <stop offset="100%" stopColor={c.bgGradC2} stopOpacity="0"/>
+            </radialGradient>
+            <linearGradient id="fillA" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%"   stopColor="#3B82F6" stopOpacity="0.55"/>
+              <stop offset="100%" stopColor="#06B6D4" stopOpacity="0.25"/>
+            </linearGradient>
+            <linearGradient id="fillB" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%"   stopColor="#EF4444" stopOpacity="0.55"/>
+              <stop offset="100%" stopColor="#F97316" stopOpacity="0.25"/>
+            </linearGradient>
+          </defs>
+
+          {/* 배경 그라디언트 */}
+          <circle cx={CX} cy={CY} r={R + 10} fill="url(#bgGrad)" />
+
+          {/* 그리드 링 */}
+          {[20, 40, 60, 80, 100].map((pct) => (
+            <polygon
+              key={pct}
+              points={gridPoints(pct)}
+              fill="none"
+              stroke={pct === 100 ? c.gridBold : c.gridFaint}
+              strokeWidth={pct === 100 ? 1.5 : 1}
+              strokeLinejoin="round"
+            />
+          ))}
+
+          {/* 축 선 */}
+          {RADAR_AXES.map((_, i) => {
+            const { x, y } = pt(i, R)
+            return (
+              <line
+                key={i}
+                x1={CX} y1={CY} x2={x} y2={y}
+                stroke={hovered === i ? c.axisHov : c.axis}
+                strokeWidth={hovered === i ? 1.5 : 1}
+              />
+            )
+          })}
+
+          {/* 데이터 영역 B (뒤) */}
+          <polygon
+            points={polyPoints(dataB)}
+            fill="url(#fillB)"
+            stroke="#F87171"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            filter="url(#glowB)"
+          />
+
+          {/* 데이터 영역 A (앞) */}
+          <polygon
+            points={polyPoints(dataA)}
+            fill="url(#fillA)"
+            stroke="#60A5FA"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            filter="url(#glowA)"
+          />
+
+          {/* 포인트 A */}
+          {dataA.map((v, i) => {
+            const { x, y } = pt(i, (v / 100) * R)
+            const vA = playerA[RADAR_AXES[i].key] ?? 0
+            const vB = playerB[RADAR_AXES[i].key] ?? 0
+            const wins = vA >= vB
+            return (
+              <circle
+                key={i} cx={x} cy={y} r={hovered === i ? 6 : 4.5}
+                fill={wins ? '#60A5FA' : '#93C5FD'}
+                stroke={c.dotBg} strokeWidth="1.5"
+                filter="url(#glowA)"
+                style={{ cursor: 'pointer', transition: 'r 0.15s' }}
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+              />
+            )
+          })}
+
+          {/* 포인트 B */}
+          {dataB.map((v, i) => {
+            const { x, y } = pt(i, (v / 100) * R)
+            const vA = playerA[RADAR_AXES[i].key] ?? 0
+            const vB = playerB[RADAR_AXES[i].key] ?? 0
+            const wins = vB > vA
+            return (
+              <circle
+                key={i} cx={x} cy={y} r={hovered === i ? 6 : 4.5}
+                fill={wins ? '#F87171' : '#FCA5A5'}
+                stroke={c.dotBg} strokeWidth="1.5"
+                style={{ cursor: 'pointer', transition: 'r 0.15s' }}
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+              />
+            )
+          })}
+
+          {/* 축 라벨 */}
+          {RADAR_AXES.map(({ label }, i) => {
+            const { x, y } = pt(i, LR)
+            const anchor = x < CX - 6 ? 'end' : x > CX + 6 ? 'start' : 'middle'
+            const isHov  = hovered === i
+            return (
+              <text
+                key={i}
+                x={x} y={y}
+                textAnchor={anchor}
+                dominantBaseline="middle"
+                fill={isHov ? c.labelHov : c.label}
+                fontSize={isHov ? 13 : 12}
+                fontWeight="700"
+                style={{ cursor: 'pointer', transition: 'fill 0.15s' }}
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                {label}
+              </text>
+            )
+          })}
+
+          {/* % 눈금 표시 */}
+          {[40, 80].map((pct) => {
+            const { x, y } = pt(0, (pct / 100) * R)
+            return (
+              <text key={pct} x={x + 3} y={y} fill={c.tick} fontSize="8">
+                {pct}
+              </text>
+            )
+          })}
+        </svg>
+
+        {/* 호버 툴팁 */}
+        {hovered !== null && (() => {
+          const ax   = RADAR_AXES[hovered]
+          const vA   = ax.fmt(playerA[ax.key] ?? 0)
+          const vB   = ax.fmt(playerB[ax.key] ?? 0)
+          const aWin = (playerA[ax.key] ?? 0) >= (playerB[ax.key] ?? 0)
           return (
-            <div key={key} className="bg-gray-100 dark:bg-gray-900/60 rounded-lg py-2 px-2">
-              <div className="text-xs text-gray-500 dark:text-gray-500 mb-1">{label}<span className="text-gray-400 dark:text-gray-600"> /100</span></div>
-              <div className="flex justify-between items-center gap-1 text-xs font-semibold">
-                <span className={aWins ? 'text-blue-500 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}>{fmt(vA)}</span>
-                <span className="text-gray-400 dark:text-gray-600">:</span>
-                <span className={bWins ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}>{fmt(vB)}</span>
+            <div
+              className="absolute top-3 left-1/2 -translate-x-1/2 rounded-xl px-4 py-2.5 text-center pointer-events-none shadow-xl z-10 min-w-[160px]"
+              style={{ backgroundColor: c.tooltipBg, border: `1px solid ${c.tooltipBdr}` }}
+            >
+              <div className="text-xs font-black uppercase tracking-widest mb-1.5" style={{ color: c.tooltipLbl }}>{ax.label}</div>
+              <div className="flex items-center justify-center gap-3">
+                <span className={`text-sm font-black ${aWin ? 'text-blue-400' : 'text-gray-500'}`}>{vA}</span>
+                <span className="text-xs" style={{ color: c.tooltipSub }}>vs</span>
+                <span className={`text-sm font-black ${!aWin ? 'text-red-400' : 'text-gray-500'}`}>{vB}</span>
+              </div>
+              <div className="text-[10px] mt-1" style={{ color: c.tooltipSub }}>
+                {aWin ? `${playerA.nickname} 우세` : `${playerB.nickname} 우세`}
               </div>
             </div>
-          );
+          )
+        })()}
+      </div>
+
+      {/* 범례 */}
+      <div className="flex justify-center gap-6">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6', boxShadow: '0 0 6px #3B82F6' }} />
+          <span className="text-sm font-bold" style={{ color: c.legendA }}>{playerA.nickname}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444', boxShadow: '0 0 6px #EF4444' }} />
+          <span className="text-sm font-bold" style={{ color: c.legendB }}>{playerB.nickname}</span>
+        </div>
+      </div>
+
+      {/* 버터플라이 바 차트 — 중앙 기준 양쪽으로 뻗어 차이를 시각화 */}
+      <div className="flex flex-col gap-1">
+        {/* 헤더: 플레이어 이름 */}
+        <div className="flex items-center text-[11px] font-bold mb-1 px-1">
+          <span className="w-14 text-right" style={{ color: c.legendA }}>{playerA.nickname}</span>
+          <div className="flex-1 text-center" style={{ color: c.barRowLbl }}></div>
+          <span className="w-14 text-left" style={{ color: c.legendB }}>{playerB.nickname}</span>
+        </div>
+
+        {RADAR_AXES.map(({ label, key, fmt }, idx) => {
+          const vA    = playerA[key] ?? 0
+          const vB    = playerB[key] ?? 0
+          const total = vA + vB
+          const pA    = total > 0 ? (vA / total) * 100 : 50
+          const pB    = total > 0 ? (vB / total) * 100 : 50
+          const aWins = vA > vB
+          const bWins = vB > vA
+          const isHov = hovered === idx
+
+          return (
+            <div
+              key={key}
+              className="rounded-lg px-2 py-1.5 transition-colors cursor-default"
+              style={{ backgroundColor: isHov ? c.barRowHov : 'transparent' }}
+              onMouseEnter={() => setHovered(idx)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <div className="flex items-center gap-2">
+                {/* A 수치 */}
+                <span
+                  className="text-xs font-bold shrink-0 text-right"
+                  style={{ width: '52px', color: aWins ? '#60a5fa' : c.barRowLbl }}
+                >
+                  {fmt(vA)}
+                </span>
+
+                {/* 버터플라이 바 */}
+                <div className="flex-1 flex items-center gap-px">
+                  {/* A 바 (오른쪽 정렬) */}
+                  <div className="flex-1 h-5 flex items-center justify-end overflow-hidden rounded-l-sm">
+                    <div
+                      className="h-full rounded-l-full transition-all duration-500"
+                      style={{
+                        width: `${pA}%`,
+                        backgroundColor: aWins ? '#3b82f6' : c.barDimA,
+                      }}
+                    />
+                  </div>
+                  {/* 중앙 구분선 + 라벨 */}
+                  <div className="flex flex-col items-center shrink-0" style={{ width: '36px' }}>
+                    <div className="w-px h-5" style={{ backgroundColor: c.gridBold }} />
+                    <span className="text-[9px] font-semibold mt-0.5" style={{ color: c.barRowLbl }}>{label}</span>
+                  </div>
+                  {/* B 바 (왼쪽 정렬) */}
+                  <div className="flex-1 h-5 flex items-center overflow-hidden rounded-r-sm">
+                    <div
+                      className="h-full rounded-r-full transition-all duration-500"
+                      style={{
+                        width: `${pB}%`,
+                        backgroundColor: bWins ? '#ef4444' : c.barDimB,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* B 수치 */}
+                <span
+                  className="text-xs font-bold shrink-0 text-left"
+                  style={{ width: '52px', color: bWins ? '#f87171' : c.barRowLbl }}
+                >
+                  {fmt(vB)}
+                </span>
+              </div>
+            </div>
+          )
         })}
       </div>
-      <p className="text-xs text-gray-600 text-center">
-        각 축: 딜량 최대 600딜 · 킬 최대 6킬 · 승률 최대 25% · Top10 최대 70% · 생존 최대 30분 · 어시 최대 3 기준으로 정규화
-      </p>
     </div>
-  );
+  )
 }
 
 // ── 스탯 비교 바 ─────────────────────────────────────────────────────────────
@@ -790,19 +998,19 @@ export default function ComparePage() {
                     </div>
 
                     {/* 레이더 차트 */}
-                    <div className="bg-white dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col">
-                      <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">🕸️ 능력치 레이더</h2>
-                      <div className="flex-1 flex items-center justify-center">
-                        {sA.hasData && sB.hasData ? (
-                          <div className="w-full max-w-sm mx-auto">
-                            <RadarChart playerA={{ ...sA, nickname: data.playerA.nickname }} playerB={{ ...sB, nickname: data.playerB.nickname }} />
-                          </div>
-                        ) : (
-                          <div className="text-gray-500 text-sm text-center">
-                            분석할 경기의 수가 부족합니다
-                          </div>
-                        )}
+                    <div className="bg-gray-900 rounded-xl border border-gray-700/50 p-5 flex flex-col">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-lg">🕸️</span>
+                        <h2 className="text-base font-bold text-gray-100">능력치 레이더</h2>
+                        <span className="ml-auto text-[10px] text-gray-600 font-medium">마우스오버로 수치 확인</span>
                       </div>
+                      {sA.hasData && sB.hasData ? (
+                        <RadarChart playerA={{ ...sA, nickname: data.playerA.nickname }} playerB={{ ...sB, nickname: data.playerB.nickname }} />
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center text-gray-500 text-sm py-12">
+                          분석할 경기의 수가 부족합니다
+                        </div>
+                      )}
                     </div>
                   </div>
                 )

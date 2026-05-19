@@ -15,7 +15,7 @@ import {
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler);
 
 const METRICS = [
-  { key: 'score',     label: 'MMR',   unit: '',   color: '#7C3AED', bg: '#EDE9FE', darkBg: 'rgba(124,58,237,0.2)', icon: '🏆' },
+  { key: 'score',     label: 'PKGG점수', unit: '',   color: '#7C3AED', bg: '#EDE9FE', darkBg: 'rgba(124,58,237,0.2)', icon: '🏆' },
   { key: 'avgDamage', label: '평균딜', unit: '딜', color: '#2563EB', bg: '#DBEAFE', darkBg: 'rgba(37,99,235,0.2)',  icon: '⚔️' },
   { key: 'avgKills',  label: '평균킬', unit: 'K',  color: '#059669', bg: '#D1FAE5', darkBg: 'rgba(5,150,105,0.2)', icon: '🎯' },
   { key: 'winRate',   label: '승률',   unit: '%',  color: '#D97706', bg: '#FEF3C7', darkBg: 'rgba(217,119,6,0.2)', icon: '🥇' },

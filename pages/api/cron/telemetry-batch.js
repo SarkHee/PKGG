@@ -8,7 +8,7 @@ const PUBG_BASE        = 'https://api.pubg.com/shards'
 const MAX_MS           = 250_000  // 250초 안전 마진 (Vercel Pro 300s 기준)
 const MAX_MATCHES      = 50       // 실행당 최대 처리 경기 수
 const MATCHES_PER_USER = 5        // 유저당 최대 경기 수
-// ACTIVE_DAYS 제거 — MAX_MATCHES(50)가 실제 부하 상한이므로 날짜 제한 불필요
+const STALE_DAYS = 5 // 마지막 갱신 후 5일 이상 지난 유저만 대상
 
 export default async function handler(req, res) {
   const authHeader   = req.headers.authorization
@@ -36,18 +36,20 @@ export default async function handler(req, res) {
   console.log('⏰ [telemetry-batch] 시작:', new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }))
 
   try {
-    // ── 1. PlayerCache 유저 조회 (avgDamage > 0 전체, 날짜 제한 없음) ────────
+    // ── 1. PlayerCache 유저 조회 (avgDamage > 0, 마지막 갱신 10일 이상 경과) ──
+    const staleThreshold = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000)
     const rawUsers = await prisma.playerCache.findMany({
       where: {
         avgDamage: { gt: 0 },
+        lastUpdated: { lt: staleThreshold },
       },
-      orderBy: { lastUpdated: 'desc' },
-      select: { pubgPlayerId: true, pubgShardId: true, nickname: true },
+      orderBy: { lastUpdated: 'asc' }, // 가장 오래된 유저부터 처리
+      select: { pubgPlayerId: true, pubgShardId: true, nickname: true, lastUpdated: true },
     })
 
     if (rawUsers.length === 0) {
-      console.log('[telemetry-batch] 활성 유저 없음')
-      return res.status(200).json({ success: true, ...log, message: '활성 유저 없음' })
+      console.log(`[telemetry-batch] 갱신 대상 없음 (${STALE_DAYS}일 이상 경과 유저 없음)`)
+      return res.status(200).json({ success: true, ...log, message: `${STALE_DAYS}일 이상 경과 유저 없음` })
     }
 
     // 중복 제거: pubgPlayerId 있으면 그 기준, 없으면 nickname+shard 기준
@@ -67,7 +69,7 @@ export default async function handler(req, res) {
     }
 
     log.total = users.length
-    console.log(`[telemetry-batch] 대상 유저 ${users.length}명`)
+    console.log(`[telemetry-batch] 대상 유저 ${users.length}명 (${STALE_DAYS}일 이상 미갱신, 기준: ${staleThreshold.toLocaleDateString('ko-KR')})`)
 
     let totalProcessed = 0
 

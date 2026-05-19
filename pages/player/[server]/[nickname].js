@@ -2603,9 +2603,11 @@ export async function getServerSideProps({ params, query }) {
               normal: Math.round((normalGames / totalForDist) * 100),
               event: Math.round((eventGames / totalForDist) * 100),
             };
+          }
 
-            // summary 계산 (일반 + 경쟁전 기준, 이벤트/캐주얼 모드 제외)
-            // normal-* 으로 시작하는 모드 = 이벤트/캐주얼 → 제외
+          // summary 계산 — transformedModes 존재 여부와 무관하게 항상 실행
+          // 일반전 게임수가 0이고 경쟁전만 플레이하는 고수 유저도 PKGG 점수 정상 계산
+          {
             let totalRounds = 0, totalWins = 0, totalTop10s = 0;
             let totalDamage = 0, totalKills = 0, totalAssists = 0, totalSurvivalTime = 0;
             let totalHeadshotKills = 0;
@@ -2622,7 +2624,6 @@ export async function getServerSideProps({ params, query }) {
               totalSurvivalTime += (ms.avgSurvivalTime || 0) * r;
               totalHeadshotKills += ms.headshots || 0;
             }
-            // 경쟁전(ranked) 스탯도 PKGG 점수에 포함 — 경쟁전만 플레이하는 유저 브론즈 오표시 방지
             if (rankedResult.status === 'fulfilled') {
               const rms = rankedResult.value.data?.attributes?.rankedGameModeStats || {};
               for (const rm of Object.values(rms)) {

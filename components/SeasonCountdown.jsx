@@ -17,11 +17,13 @@ export default function SeasonCountdown({ compact = false }) {
   if (compact) {
     return (
       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${
-        urgent ? 'bg-red-950/60 border-red-600/50 text-red-300'
-        : soon  ? 'bg-amber-950/60 border-amber-600/50 text-amber-300'
-        : 'bg-gray-800/60 border-gray-600/40 text-gray-300'
+        urgent
+          ? 'bg-red-100 dark:bg-red-950/60 border-red-300 dark:border-red-600/50 text-red-600 dark:text-red-300'
+          : soon
+          ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-300 dark:border-amber-600/50 text-amber-600 dark:text-amber-300'
+          : 'bg-gray-100 dark:bg-gray-800/60 border-gray-300 dark:border-gray-600/40 text-gray-600 dark:text-gray-300'
       }`}>
-        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${urgent ? 'bg-red-400 animate-pulse' : soon ? 'bg-amber-400' : 'bg-gray-500'}`} />
+        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${urgent ? 'bg-red-500 dark:bg-red-400 animate-pulse' : soon ? 'bg-amber-500 dark:bg-amber-400' : 'bg-gray-400 dark:bg-gray-500'}`} />
         시즌 {SEASON_NO} D-{days}
       </span>
     )
@@ -30,10 +32,10 @@ export default function SeasonCountdown({ compact = false }) {
   return (
     <div className={`relative overflow-hidden rounded-2xl border px-5 py-4 ${
       urgent
-        ? 'bg-gradient-to-r from-red-950/70 to-gray-900/80 border-red-700/50'
+        ? 'bg-red-50 dark:bg-red-950/70 border-red-300 dark:border-red-700/50'
         : soon
-        ? 'bg-gradient-to-r from-amber-950/60 to-gray-900/80 border-amber-700/40'
-        : 'bg-gradient-to-r from-gray-900/80 to-gray-800/60 border-gray-700/50'
+        ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700/40'
+        : 'bg-white dark:bg-gray-900/80 border-gray-200 dark:border-gray-700/50'
     }`}>
       {/* 배경 글로우 */}
       <div className={`absolute inset-0 pointer-events-none ${
@@ -44,28 +46,28 @@ export default function SeasonCountdown({ compact = false }) {
         {/* D-N 숫자 */}
         <div className="flex items-baseline gap-2">
           <span className={`text-2xl sm:text-3xl font-black tabular-nums leading-none ${
-            urgent ? 'text-red-400' : soon ? 'text-amber-400' : 'text-white'
+            urgent ? 'text-red-500 dark:text-red-400' : soon ? 'text-amber-500 dark:text-amber-400' : 'text-gray-800 dark:text-white'
           }`}>
             D-{days}
           </span>
           {urgent && (
-            <span className="text-xs font-bold text-red-400 animate-pulse">마감 임박!</span>
+            <span className="text-xs font-bold text-red-500 dark:text-red-400 animate-pulse">마감 임박!</span>
           )}
         </div>
 
         {/* 텍스트 */}
         <div className="flex flex-col gap-0.5">
-          <div className="text-sm font-bold text-white/90">
+          <div className="text-sm font-bold text-gray-800 dark:text-white/90">
             시즌 {SEASON_NO} 종료까지
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 dark:text-gray-500">
             예상 종료일: {END_DATE} · 공식 일정과 다를 수 있어요
           </div>
         </div>
 
         {/* 진행 바 (28일 기준) */}
         <div className="sm:ml-auto flex flex-col items-end gap-1 min-w-[80px]">
-          <div className="w-full sm:w-20 h-1.5 bg-gray-700/60 rounded-full overflow-hidden">
+          <div className="w-full sm:w-20 h-1.5 bg-gray-200 dark:bg-gray-700/60 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
                 urgent ? 'bg-red-500' : soon ? 'bg-amber-500' : 'bg-blue-500'
@@ -73,7 +75,7 @@ export default function SeasonCountdown({ compact = false }) {
               style={{ width: `${Math.min(100, Math.max(2, ((28 - days) / 28) * 100))}%` }}
             />
           </div>
-          <span className="text-[10px] text-gray-600 tabular-nums">{days}일 남음</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-600 tabular-nums">{days}일 남음</span>
         </div>
       </div>
     </div>

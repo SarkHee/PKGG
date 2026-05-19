@@ -30,10 +30,10 @@ export default function PlayerPercentileCard({ playerStats, percentileData }) {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-gray-200 p-5 animate-pulse">
-        <div className="h-4 w-40 bg-gray-100 rounded mb-4" />
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-pulse">
+        <div className="h-4 w-40 bg-gray-100 dark:bg-gray-700 rounded mb-4" />
         <div className="grid grid-cols-2 gap-2">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-14 bg-gray-100 rounded-lg" />)}
+          {[1, 2, 3, 4].map((i) => <div key={i} className="h-14 bg-gray-100 dark:bg-gray-700 rounded-lg" />)}
         </div>
       </div>
     )
@@ -49,7 +49,7 @@ export default function PlayerPercentileCard({ playerStats, percentileData }) {
   ]
 
   return (
-    <div className="rounded-xl border border-gray-200 overflow-hidden">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="bg-gradient-to-r from-blue-400 to-blue-500 px-5 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-base">📊</span>
@@ -84,18 +84,22 @@ export default function PlayerPercentileCard({ playerStats, percentileData }) {
           const isTop    = pct <= 20
           const isMid    = pct <= 50
           const barW     = Math.max(3, 100 - pct)
-          const barColor = isTop ? 'bg-emerald-400' : isMid ? 'bg-blue-400' : 'bg-gray-300'
-          const pctColor = isTop ? 'text-emerald-600' : isMid ? 'text-blue-600' : 'text-gray-400'
-          const badge    = isTop ? 'bg-emerald-50 border-emerald-200' : isMid ? 'bg-blue-50 border-blue-100' : 'bg-gray-50 border-gray-100'
+          const barColor = isTop ? 'bg-emerald-400' : isMid ? 'bg-blue-400' : 'bg-gray-300 dark:bg-gray-500'
+          const pctColor = isTop ? 'text-emerald-600 dark:text-emerald-400' : isMid ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'
+          const badge    = isTop
+            ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
+            : isMid
+            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'
+            : 'bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-700'
 
           return (
             <div key={label} className={`rounded-lg p-3 border ${badge}`}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-500">{icon} {label}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{icon} {label}</span>
                 <span className={`text-xs font-bold ${pctColor}`}>상위 {pct}%</span>
               </div>
-              <div className="text-lg font-black text-gray-800 mb-2">{value}</div>
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className="text-lg font-black text-gray-800 dark:text-gray-100 mb-2">{value}</div>
+              <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${barColor} rounded-full transition-all duration-700`}
                   style={{ width: `${barW}%` }}

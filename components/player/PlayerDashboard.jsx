@@ -3,27 +3,27 @@ import { useState } from 'react';
 
 function StatCard({ title, value, sub, accent = 'blue' }) {
   const accentColors = {
-    blue:   'border-blue-400 bg-blue-50',
-    green:  'border-green-400 bg-green-50',
-    purple: 'border-purple-400 bg-purple-50',
-    orange: 'border-orange-400 bg-orange-50',
-    pink:   'border-pink-400 bg-pink-50',
-    indigo: 'border-indigo-400 bg-indigo-50',
+    blue:   'border-blue-400 bg-blue-50 dark:bg-blue-900/20',
+    green:  'border-green-400 bg-green-50 dark:bg-green-900/20',
+    purple: 'border-purple-400 bg-purple-50 dark:bg-purple-900/20',
+    orange: 'border-orange-400 bg-orange-50 dark:bg-orange-900/20',
+    pink:   'border-pink-400 bg-pink-50 dark:bg-pink-900/20',
+    indigo: 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20',
   };
   const textColors = {
-    blue:   'text-blue-700',
-    green:  'text-green-700',
-    purple: 'text-purple-700',
-    orange: 'text-orange-700',
-    pink:   'text-pink-700',
-    indigo: 'text-indigo-700',
+    blue:   'text-blue-700 dark:text-blue-300',
+    green:  'text-green-700 dark:text-green-300',
+    purple: 'text-purple-700 dark:text-purple-300',
+    orange: 'text-orange-700 dark:text-orange-300',
+    pink:   'text-pink-700 dark:text-pink-300',
+    indigo: 'text-indigo-700 dark:text-indigo-300',
   };
 
   return (
-    <div className={`border-l-4 ${accentColors[accent]} rounded-xl p-4 border border-gray-100`}>
+    <div className={`border-l-4 ${accentColors[accent]} rounded-xl p-4 border border-gray-100 dark:border-gray-700`}>
       <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${textColors[accent]}`}>{title}</div>
-      <div className="text-base font-bold text-gray-900 leading-snug">{value}</div>
-      {sub && <div className="text-xs text-gray-500 mt-0.5">{sub}</div>}
+      <div className="text-base font-bold text-gray-900 dark:text-gray-100 leading-snug">{value}</div>
+      {sub && <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -46,11 +46,11 @@ export default function PlayerDashboard({
       : '-';
 
   const getSynergyDisplay = (status) => {
-    if (status === '좋음') return { emoji: '😊', text: '좋음', color: 'text-emerald-600' };
-    if (status === '나쁨') return { emoji: '😞', text: '나쁨', color: 'text-red-500' };
-    if (status === '분석 필요') return { emoji: '⏳', text: '분석 필요', color: 'text-amber-500' };
-    if (status === '혼자') return { emoji: '🧑‍💼', text: '솔로 클랜', color: 'text-gray-500' };
-    return { emoji: '😐', text: '보통', color: 'text-gray-600' };
+    if (status === '좋음') return { emoji: '😊', text: '좋음', color: 'text-emerald-600 dark:text-emerald-400' };
+    if (status === '나쁨') return { emoji: '😞', text: '나쁨', color: 'text-red-500 dark:text-red-400' };
+    if (status === '분석 필요') return { emoji: '⏳', text: '분석 필요', color: 'text-amber-500 dark:text-amber-400' };
+    if (status === '혼자') return { emoji: '🧑‍💼', text: '솔로 클랜', color: 'text-gray-500 dark:text-gray-400' };
+    return { emoji: '😐', text: '보통', color: 'text-gray-600 dark:text-gray-400' };
   };
 
   const clanName =
@@ -80,23 +80,23 @@ export default function PlayerDashboard({
       {showClanAnalysis ? (
         <div className="space-y-5">
           {/* 클랜 기본 정보 헤더 */}
-          <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+          <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
             <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white text-xl font-black flex-shrink-0">
               {clanTag ? clanTag.charAt(0).toUpperCase() : '🏰'}
             </div>
             <div>
-              <div className="text-xs text-blue-500 font-semibold uppercase tracking-wide">소속 클랜</div>
-              <div className="text-lg font-black text-gray-900">
-                {clanTag && <span className="text-blue-600 mr-1">[{clanTag}]</span>}
+              <div className="text-xs text-blue-500 dark:text-blue-400 font-semibold uppercase tracking-wide">소속 클랜</div>
+              <div className="text-lg font-black text-gray-900 dark:text-gray-100">
+                {clanTag && <span className="text-blue-600 dark:text-blue-400 mr-1">[{clanTag}]</span>}
                 {clanName}
               </div>
               {profile.clan?.level && (
-                <div className="text-xs text-gray-500">레벨 {profile.clan.level}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">레벨 {profile.clan.level}</div>
               )}
             </div>
             {/* 클랜 시너지 상태 */}
             <div className="ml-auto text-right">
-              <div className="text-xs text-gray-400 mb-0.5">클랜 시너지</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">클랜 시너지</div>
               <div className={`text-base font-bold ${synergyInfo.color} flex items-center gap-1 justify-end`}>
                 <span>{synergyInfo.emoji}</span>
                 <span>{synergyInfo.text}</span>
@@ -137,16 +137,16 @@ export default function PlayerDashboard({
 
         </div>
       ) : hasValidClan ? (
-        <div className="flex flex-col items-center justify-center py-10 px-6 bg-amber-50 border border-amber-200 rounded-xl text-center">
+        <div className="flex flex-col items-center justify-center py-10 px-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-center">
           <div className="text-4xl mb-3">🏰</div>
-          <div className="text-base font-bold text-amber-800 mb-1">클랜: {clanName}</div>
-          <div className="text-sm text-amber-600">클랜원 정보가 데이터베이스에 아직 없습니다.</div>
+          <div className="text-base font-bold text-amber-800 dark:text-amber-300 mb-1">클랜: {clanName}</div>
+          <div className="text-sm text-amber-600 dark:text-amber-400">클랜원 정보가 데이터베이스에 아직 없습니다.</div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-10 px-6 bg-gray-50 border border-gray-200 rounded-xl text-center">
+        <div className="flex flex-col items-center justify-center py-10 px-6 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl text-center">
           <div className="text-4xl mb-3">🏰</div>
-          <div className="text-base font-semibold text-gray-600 mb-1">클랜 미소속</div>
-          <div className="text-sm text-gray-400">클랜에 소속되어 있지 않습니다.</div>
+          <div className="text-base font-semibold text-gray-600 dark:text-gray-300 mb-1">클랜 미소속</div>
+          <div className="text-sm text-gray-400 dark:text-gray-500">클랜에 소속되어 있지 않습니다.</div>
         </div>
       )}
     </div>

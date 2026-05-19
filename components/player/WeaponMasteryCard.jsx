@@ -108,16 +108,16 @@ const CATEGORY_BAR = {
 };
 
 const CATEGORY_BADGE = {
-  AR:      'bg-blue-50 text-blue-600 border-blue-200',
-  DMR:     'bg-violet-50 text-violet-600 border-violet-200',
-  SR:      'bg-indigo-50 text-indigo-600 border-indigo-200',
-  SMG:     'bg-emerald-50 text-emerald-600 border-emerald-200',
-  LMG:     'bg-orange-50 text-orange-600 border-orange-200',
-  SG:      'bg-red-50 text-red-600 border-red-200',
-  Pistol:  'bg-amber-50 text-amber-600 border-amber-200',
-  Special:   'bg-pink-50 text-pink-600 border-pink-200',
-  Throwable: 'bg-yellow-50 text-yellow-600 border-yellow-200',
-  Other:     'bg-gray-50 text-gray-500 border-gray-200',
+  AR:      'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+  DMR:     'bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800',
+  SR:      'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800',
+  SMG:     'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+  LMG:     'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800',
+  SG:      'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800',
+  Pistol:  'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+  Special:   'bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 border-pink-200 dark:border-pink-800',
+  Throwable: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
+  Other:     'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700',
 };
 
 // API 무기 ID → WEAPON_MAP 키 해석
@@ -177,11 +177,11 @@ function calcWeaponScore(kills, damage) {
 }
 
 function getWeaponGrade(score) {
-  if (score >= 75) return { grade: 'S', label: '최상급',  color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-300' }
-  if (score >= 55) return { grade: 'A', label: '상급',    color: 'text-green-600',  bg: 'bg-green-50 border-green-300' }
-  if (score >= 35) return { grade: 'B', label: '중상급',  color: 'text-blue-600',   bg: 'bg-blue-50 border-blue-300' }
-  if (score >= 15) return { grade: 'C', label: '중급',    color: 'text-gray-500',   bg: 'bg-gray-100 border-gray-300' }
-  return               { grade: 'D', label: '입문',    color: 'text-red-400',    bg: 'bg-red-50 border-red-200' }
+  if (score >= 75) return { grade: 'S', label: '최상급',  color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' }
+  if (score >= 55) return { grade: 'A', label: '상급',    color: 'text-green-600 dark:text-green-400',   bg: 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' }
+  if (score >= 35) return { grade: 'B', label: '중상급',  color: 'text-blue-600 dark:text-blue-400',     bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' }
+  if (score >= 15) return { grade: 'C', label: '중급',    color: 'text-gray-500 dark:text-gray-400',     bg: 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600' }
+  return               { grade: 'D', label: '입문',    color: 'text-red-400 dark:text-red-400',       bg: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' }
 }
 
 // 재시도 포함 fetch 헬퍼 (최대 maxRetry회, 500 에러만 재시도)
@@ -309,8 +309,8 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
     <div>
       {/* 상단 컨트롤 */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
-        <p className="text-xs text-gray-400">누적 전체 기록 기준 · 상위 5개 무기</p>
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <p className="text-xs text-gray-400 dark:text-gray-500">누적 전체 기록 기준 · 상위 5개 무기</p>
+        <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           {[
             { key: 'kills',  label: '킬수' },
             { key: 'damage', label: '데미지' },
@@ -320,8 +320,8 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
               onClick={() => setSortBy(key)}
               className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                 sortBy === key
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               {label}
@@ -334,7 +334,7 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
       {(idResolving || loading) && (
         <div className="flex items-center justify-center py-14 gap-3">
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
             {idResolving ? '플레이어 정보 조회 중...' : '무기 데이터 로딩 중...'}
           </span>
         </div>
@@ -344,11 +344,11 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
       {!idResolving && !loading && error && (
         <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
           <span className="text-3xl">🔒</span>
-          <p className="text-sm text-gray-500">{error}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{error}</p>
           {rawError && (
-            <p className="text-xs text-gray-400 max-w-xs">{rawError}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 max-w-xs">{rawError}</p>
           )}
-          <p className="text-xs text-gray-400">weapon_mastery API는 PUBG 로그인 후 최근 플레이 기록이 필요합니다</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">weapon_mastery API는 PUBG 로그인 후 최근 플레이 기록이 필요합니다</p>
         </div>
       )}
 
@@ -356,8 +356,8 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
       {!idResolving && !loading && !error && weapons.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
           <span className="text-3xl">🎮</span>
-          <p className="text-sm text-gray-500">무기 사용 기록이 없습니다</p>
-          <p className="text-xs text-gray-400">게임을 더 플레이하면 데이터가 쌓입니다</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">무기 사용 기록이 없습니다</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">게임을 더 플레이하면 데이터가 쌓입니다</p>
         </div>
       )}
 
@@ -375,10 +375,10 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
             return (
               <div
                 key={w.id}
-                className="flex gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100"
+                className="flex gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors border border-gray-100 dark:border-gray-700"
               >
                 {/* 무기 이미지 */}
-                <div className="relative w-20 h-14 flex-shrink-0 bg-white rounded-lg border border-gray-200 overflow-hidden flex items-center justify-center">
+                <div className="relative w-20 h-14 flex-shrink-0 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden flex items-center justify-center">
                   <WeaponImage img={w.img} name={w.name} />
                   {/* 순위 뱃지 */}
                   <span className={`absolute top-1 left-1 w-4 h-4 flex items-center justify-center rounded-full text-[9px] font-bold ${rankBadgeClass(i)}`}>
@@ -390,7 +390,7 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
                 <div className="flex-1 min-w-0">
                   {/* 이름 + 카테고리 + 등급 */}
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className="text-sm font-bold text-gray-800 truncate">{w.name}</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">{w.name}</span>
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border flex-shrink-0 ${badgeCls}`}>
                       {w.category}
                     </span>
@@ -425,24 +425,24 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
 
                   {/* 바 차트 */}
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                    <div className="flex-1 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-700 ${barColor}`}
                         style={{ width: `${barPct}%` }}
                       />
                     </div>
-                    <span className="text-xs font-bold text-gray-700 flex-shrink-0 w-16 text-right">
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300 flex-shrink-0 w-16 text-right">
                       {sortBy === 'kills'  && `${val.toLocaleString()}킬`}
                       {sortBy === 'damage' && `${val.toLocaleString()}`}
                     </span>
                   </div>
 
                   {/* 보조 스탯 3개 */}
-                  <div className="flex gap-3 text-[11px] text-gray-500">
-                    <span>킬 <span className="font-semibold text-gray-700">{w.kills.toLocaleString()}</span></span>
-                    <span>데미지 <span className="font-semibold text-gray-700">{w.damage.toLocaleString()}</span></span>
+                  <div className="flex gap-3 text-[11px] text-gray-500 dark:text-gray-400">
+                    <span>킬 <span className="font-semibold text-gray-700 dark:text-gray-200">{w.kills.toLocaleString()}</span></span>
+                    <span>데미지 <span className="font-semibold text-gray-700 dark:text-gray-200">{w.damage.toLocaleString()}</span></span>
                     {w.longestKill > 0 && (
-                      <span>최장 <span className="font-semibold text-gray-700">{w.longestKill}m</span></span>
+                      <span>최장 <span className="font-semibold text-gray-700 dark:text-gray-200">{w.longestKill}m</span></span>
                     )}
                   </div>
                 </div>
@@ -454,13 +454,13 @@ export default function WeaponMasteryCard({ playerId, nickname, shard = 'steam',
 
       {/* 전체 무기 수 안내 */}
       {!loading && !error && weapons.length > 5 && (
-        <p className="text-[11px] text-gray-400 text-center mt-4">
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-4">
           총 <span className="font-semibold">{weapons.length}</span>개 무기 기록 중 상위 5개 표시
         </p>
       )}
 
       {/* 면책 문구 */}
-      <p className="text-[10px] text-gray-300 text-center mt-4">
+      <p className="text-[10px] text-gray-300 dark:text-gray-600 text-center mt-4">
         PUBG 공식 weapon_mastery API · update 18.2 이후 누적 기록
       </p>
     </div>

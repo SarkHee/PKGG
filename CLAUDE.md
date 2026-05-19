@@ -243,6 +243,12 @@ if (raw) {
 
 ## 최근 주요 변경 이력
 
+### 2026-05-19 공식 랭킹 페이지 추가
+- **leaderboard.js** (`pages/leaderboard.js`): PUBG 공식 경쟁전 랭킹 TOP 500. 서버(아시아/북미/유럽/동남아/남미)·모드(스쿼드/듀오/솔로)·시점(FPP/TPP) 필터. 상위 3명 금/은/동 뱃지. 내 닉네임 강조(localStorage 자동 로드). KDA·평균딜·승률 컬러 코딩
+- **pages/api/pubg/leaderboard.js**: PUBG 리더보드 API 래퍼. platform=pc-as/pc-na/pc-eu/pc-sea/pc-sa, gameMode=squad-fpp 등. 2시간 인메모리 캐시. 시즌 ID 자동 조회(30분 캐시). 500명 반환
+- **헤더 네비 추가**: analysisLinks 최상단에 🏆 공식 랭킹 (highlight) 추가
+- **주의**: 리더보드 API shard는 steam/kakao X → pc-as/pc-na/pc-eu 등 지역 코드 사용
+
 ### 2026-05-19 팀 분석 개선
 - **RecentTeammatesCard 신규** (`components/charts/RecentTeammatesCard.jsx`): 최근 경기에서 함께한 모든 플레이어 집계 (클랜 여부 무관). 함께한 경기 수 순 정렬, 내 딜량 평균·승률·평균 등수 표시. 상위 10명 노출
 - **팀 분석 탭 구성 변경** (`player/[server]/[nickname].js`): 클랜원 시너지(SynergyHeatmap) 위에 RecentTeammatesCard 항상 표시. 클랜 소속 시 클랜원 시너지 추가 노출

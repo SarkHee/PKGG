@@ -87,7 +87,7 @@ export default async function handler(req, res) {
           const member = members.find(m => m.nickname.toLowerCase() === nickname.toLowerCase());
           if (!member) continue;
 
-          // Option A: 모든 일반 게임모드 합산 (이벤트 모드 제외)
+          // 일반전 6모드 합산 (이벤트 제외)
           const ALL_MODES = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
           let totalRounds = 0, totalDamage = 0, totalKills = 0;
           let totalSurvival = 0, totalWins = 0, totalTop10s = 0, totalAssists = 0;
@@ -102,6 +102,28 @@ export default async function handler(req, res) {
             totalSurvival += stats.timeSurvived || 0;
             totalWins     += stats.wins         || 0;
             totalTop10s   += stats.top10s       || 0;
+          }
+
+          // 경쟁전 합산 — PKGG점수를 플레이어 페이지와 동일하게 맞추기 위해 ranked도 포함
+          if (member.pubgPlayerId && currentSeason) {
+            try {
+              const shard = member.pubgShardId || DEFAULT_SHARD;
+              const rankedData = await cachedPubgFetch(
+                `https://api.pubg.com/shards/${shard}/players/${member.pubgPlayerId}/seasons/${currentSeason.id}/ranked`,
+                { ttl: TTL.PLAYER }
+              );
+              const rms = rankedData?.data?.attributes?.rankedGameModeStats || {};
+              for (const rm of Object.values(rms)) {
+                if (!rm?.roundsPlayed) continue;
+                totalRounds   += rm.roundsPlayed;
+                totalDamage   += rm.damageDealt  || 0;
+                totalKills    += rm.kills        || 0;
+                totalAssists  += rm.assists      || 0;
+                totalSurvival += rm.timeSurvived || 0;
+                totalWins     += rm.wins         || 0;
+                totalTop10s   += rm.top10s       || 0;
+              }
+            } catch (_) { /* ranked 데이터 없으면 일반전만으로 계산 */ }
           }
 
           let avgDamage = 0, avgKills = 0, avgAssists = 0;
