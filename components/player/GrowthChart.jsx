@@ -15,11 +15,11 @@ import {
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler);
 
 const METRICS = [
-  { key: 'score',     label: 'MMR',   unit: '',   color: '#7C3AED', bg: '#EDE9FE', icon: '🏆' },
-  { key: 'avgDamage', label: '평균딜', unit: '딜', color: '#2563EB', bg: '#DBEAFE', icon: '⚔️' },
-  { key: 'avgKills',  label: '평균킬', unit: 'K',  color: '#059669', bg: '#D1FAE5', icon: '🎯' },
-  { key: 'winRate',   label: '승률',   unit: '%',  color: '#D97706', bg: '#FEF3C7', icon: '🥇' },
-  { key: 'top10Rate', label: 'Top10',  unit: '%',  color: '#DC2626', bg: '#FEE2E2', icon: '📊' },
+  { key: 'score',     label: 'MMR',   unit: '',   color: '#7C3AED', bg: '#EDE9FE', darkBg: 'rgba(124,58,237,0.2)', icon: '🏆' },
+  { key: 'avgDamage', label: '평균딜', unit: '딜', color: '#2563EB', bg: '#DBEAFE', darkBg: 'rgba(37,99,235,0.2)',  icon: '⚔️' },
+  { key: 'avgKills',  label: '평균킬', unit: 'K',  color: '#059669', bg: '#D1FAE5', darkBg: 'rgba(5,150,105,0.2)', icon: '🎯' },
+  { key: 'winRate',   label: '승률',   unit: '%',  color: '#D97706', bg: '#FEF3C7', darkBg: 'rgba(217,119,6,0.2)', icon: '🥇' },
+  { key: 'top10Rate', label: 'Top10',  unit: '%',  color: '#DC2626', bg: '#FEE2E2', darkBg: 'rgba(220,38,38,0.2)', icon: '📊' },
 ];
 
 const PERIODS = [
@@ -45,6 +45,15 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
   const [period,    setPeriod]    = useState('all');
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState('');
+  const [isDark,    setIsDark]    = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains('dark'));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!nickname) return;
@@ -78,6 +87,13 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
     const maxVal  = Math.max(...values);
     const padding = (maxVal - minVal) * 0.2 || 10;
 
+    const gridColor   = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+    const tickColor   = isDark ? '#6B7280' : '#9CA3AF';
+    const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+    const tooltipBg   = isDark ? '#1f2937' : '#ffffff';
+    const tooltipTitle = isDark ? '#f9fafb' : '#111827';
+    const tooltipBody  = isDark ? '#d1d5db' : '#374151';
+
     chartRef.current = new Chart(canvasRef.current, {
       type: 'line',
       data: {
@@ -93,7 +109,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
           pointRadius: filteredSnaps.length <= 14 ? 4 : 2,
           pointHoverRadius: 7,
           pointBackgroundColor: metric.color,
-          pointBorderColor: '#ffffff',
+          pointBorderColor: isDark ? '#1f2937' : '#ffffff',
           pointBorderWidth: 2,
         }],
       },
@@ -103,32 +119,31 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
         interaction: { mode: 'index', intersect: false },
         scales: {
           x: {
-            grid:  { color: 'rgba(0,0,0,0.06)' },
-            ticks: { color: '#9CA3AF', font: { size: 11 }, maxTicksLimit: 10 },
-            border: { color: 'rgba(0,0,0,0.08)' },
+            grid:  { color: gridColor },
+            ticks: { color: tickColor, font: { size: 11 }, maxTicksLimit: 10 },
+            border: { color: borderColor },
           },
           y: {
             min:  Math.max(0, minVal - padding),
             max:  maxVal + padding,
-            grid:  { color: 'rgba(0,0,0,0.06)' },
+            grid:  { color: gridColor },
             ticks: {
-              color: '#9CA3AF',
+              color: tickColor,
               font: { size: 11 },
               callback: (v) => `${Math.round(v * 10) / 10}${metric.unit}`,
             },
-            border: { color: 'rgba(0,0,0,0.08)' },
+            border: { color: borderColor },
           },
         },
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#ffffff',
-            titleColor: '#111827',
-            bodyColor: '#374151',
+            backgroundColor: tooltipBg,
+            titleColor: tooltipTitle,
+            bodyColor: tooltipBody,
             borderColor: metric.color + '40',
             borderWidth: 1,
             padding: 12,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
             callbacks: {
               title: (items) => fmtFull(filteredSnaps[items[0].dataIndex]?.capturedAt),
               label: (ctx) => ` ${metric.label}: ${ctx.raw}${metric.unit}`,
@@ -146,24 +161,24 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
     });
 
     return () => chartRef.current?.destroy();
-  }, [filteredSnaps, active]);
+  }, [filteredSnaps, active, isDark]);
 
   /* ── 로딩 / 빈 상태 ── */
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center shadow-sm">
         <div className="inline-block w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-gray-400 text-sm">성장 데이터 로딩 중…</p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm">성장 데이터 로딩 중…</p>
       </div>
     );
   }
 
   if (error || snapshots.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 text-center shadow-sm">
         <div className="text-3xl mb-3">📉</div>
-        <p className="text-gray-600 text-sm font-medium">아직 성장 기록이 없습니다</p>
-        <p className="text-gray-400 text-xs mt-1">플레이어 페이지 방문 시 하루 1회 자동 저장됩니다</p>
+        <p className="text-gray-600 dark:text-gray-300 text-sm font-medium">아직 성장 기록이 없습니다</p>
+        <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">플레이어 페이지 방문 시 하루 1회 자동 저장됩니다</p>
       </div>
     );
   }
@@ -177,28 +192,28 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
   const isUp   = delta >= 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
 
       {/* ── 상단 헤더 ── */}
-      <div className="px-5 pt-5 pb-4 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+      <div className="px-5 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700/50 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-lg">📈</span>
-          <span className="font-bold text-gray-800 text-base">성장 추적</span>
-          <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5 border border-gray-200">
+          <span className="font-bold text-gray-800 dark:text-gray-100 text-base">성장 추적</span>
+          <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full px-2 py-0.5 border border-gray-200 dark:border-gray-600">
             {snapshots.length}회 기록
           </span>
         </div>
 
         {/* 기간 필터 */}
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+        <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
           {PERIODS.map((p) => (
             <button
               key={p.key}
               onClick={() => setPeriod(p.key)}
               className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                 period === p.key
-                  ? 'bg-white text-gray-800 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-600'
+                  ? 'bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 shadow-sm'
+                  : 'text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
               }`}
             >
               {p.label}
@@ -208,7 +223,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
       </div>
 
       {/* ── 지표 카드 ── */}
-      <div className="grid grid-cols-5 gap-0 border-b border-gray-100 overflow-x-auto">
+      <div className="grid grid-cols-5 gap-0 border-b border-gray-100 dark:border-gray-700/50 overflow-x-auto">
         {METRICS.map((m, i) => {
           const lv    = latest[m.key];
           const fv    = first[m.key];
@@ -220,21 +235,23 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
               key={m.key}
               onClick={() => setActive(m.key)}
               className={`relative flex flex-col items-center py-3 px-1.5 sm:px-2 text-center transition-all min-w-[60px]
-                ${i > 0 ? 'border-l border-gray-100' : ''}
-                ${isAct ? '' : 'hover:bg-gray-50'}`}
-              style={isAct ? { backgroundColor: m.bg } : {}}
+                ${i > 0 ? 'border-l border-gray-100 dark:border-gray-700/50' : ''}
+                ${isAct ? '' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+              style={isAct ? { backgroundColor: isDark ? m.darkBg : m.bg } : {}}
             >
-              {/* 활성 인디케이터 바 */}
               {isAct && (
                 <div className="absolute top-0 left-0 right-0 h-0.5" style={{ backgroundColor: m.color }} />
               )}
               <span className="text-sm mb-1">{m.icon}</span>
-              <div className="text-[11px] text-gray-400 mb-0.5">{m.label}</div>
-              <div className="text-sm font-bold" style={{ color: isAct ? m.color : '#374151' }}>
+              <div className="text-[11px] text-gray-400 dark:text-gray-500 mb-0.5">{m.label}</div>
+              <div
+                className={`text-sm font-bold ${!isAct ? 'text-gray-700 dark:text-gray-200' : ''}`}
+                style={isAct ? { color: m.color } : {}}
+              >
                 {typeof lv === 'number' ? (Number.isInteger(lv) ? lv : lv.toFixed(1)) : '–'}{m.unit}
               </div>
               {d !== 0 && (
-                <div className={`text-[10px] font-semibold mt-0.5 ${up ? 'text-emerald-600' : 'text-red-500'}`}>
+                <div className={`text-[10px] font-semibold mt-0.5 ${up ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
                   {up ? '▲' : '▼'} {Math.abs(Math.round(d * 10) / 10)}{m.unit}
                 </div>
               )}
@@ -245,13 +262,13 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
 
       {/* ── 선택 지표 요약 배너 ── */}
       <div
-        className="px-4 sm:px-5 py-3 flex items-center justify-between flex-wrap gap-2 border-b border-gray-100"
-        style={{ backgroundColor: metric.bg + 'aa' }}
+        className="px-4 sm:px-5 py-3 flex items-center justify-between flex-wrap gap-2 border-b border-gray-100 dark:border-gray-700/50"
+        style={{ backgroundColor: isDark ? metric.darkBg : (metric.bg + 'aa') }}
       >
         <div className="flex items-center gap-2">
           <span className="text-base">{metric.icon}</span>
-          <span className="text-gray-700 text-sm font-semibold">{metric.label}</span>
-          <span className="text-gray-400 text-xs">{fmtDate(first.capturedAt)} → {fmtDate(latest.capturedAt)}</span>
+          <span className="text-gray-700 dark:text-gray-200 text-sm font-semibold">{metric.label}</span>
+          <span className="text-gray-400 dark:text-gray-500 text-xs">{fmtDate(first.capturedAt)} → {fmtDate(latest.capturedAt)}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xl font-black" style={{ color: metric.color }}>
@@ -262,8 +279,8 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
           <div
             className={`flex items-center gap-0.5 text-sm font-bold px-2.5 py-0.5 rounded-full border ${
               isUp
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-red-50 text-red-600 border-red-200'
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800'
             }`}
           >
             {isUp ? '▲' : '▼'} {sign}{Math.round(Math.abs(delta) * 10) / 10}{metric.unit}
@@ -275,7 +292,7 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
       {/* ── 차트 ── */}
       <div className="px-3 sm:px-5 pt-4 pb-2">
         {filteredSnaps.length < 2 ? (
-          <div className="h-56 flex flex-col items-center justify-center gap-2 text-gray-400">
+          <div className="h-56 flex flex-col items-center justify-center gap-2 text-gray-400 dark:text-gray-500">
             <span className="text-2xl">📊</span>
             <span className="text-sm">데이터가 2개 이상 필요합니다</span>
           </div>
@@ -288,10 +305,10 @@ export default function GrowthChart({ nickname, shard = 'steam' }) {
 
       {/* ── 푸터 ── */}
       <div className="px-5 pb-4 pt-1 flex items-center justify-between">
-        <p className="text-xs text-gray-300">
+        <p className="text-xs text-gray-300 dark:text-gray-600">
           {filteredSnaps.length}개 표시 중 · 하루 1회 자동 저장
         </p>
-        <p className="text-xs text-gray-300">
+        <p className="text-xs text-gray-300 dark:text-gray-600">
           최근 기록: {fmtFull(latest.capturedAt)}
         </p>
       </div>

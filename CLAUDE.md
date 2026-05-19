@@ -243,6 +243,10 @@ if (raw) {
 
 ## 최근 주요 변경 이력
 
+### 2026-05-19 팀 분석 개선
+- **RecentTeammatesCard 신규** (`components/charts/RecentTeammatesCard.jsx`): 최근 경기에서 함께한 모든 플레이어 집계 (클랜 여부 무관). 함께한 경기 수 순 정렬, 내 딜량 평균·승률·평균 등수 표시. 상위 10명 노출
+- **팀 분석 탭 구성 변경** (`player/[server]/[nickname].js`): 클랜원 시너지(SynergyHeatmap) 위에 RecentTeammatesCard 항상 표시. 클랜 소속 시 클랜원 시너지 추가 노출
+
 ### 2026-05-07 관리자·인증·클랜 리더 시스템
 - **관리자 Google 인증 통합**: `pages/api/auth/[...nextauth].js` — JWT/세션 콜백에서 `isAdmin` 플래그(`sssyck123@gmail.com`). Footer에 관리자 모드 보기 버튼(조건부 노출). Footer 숨겨진 admin 링크 제거
 - **관리자 대시보드 탭 개편**: 탭 3종 (📬 문의함 / 👑 리더 변경 요청 / 👤 구글 로그인 유저). "← 메인" 버튼 추가. Google 세션 자동 인증 (비밀번호 입력 불필요)

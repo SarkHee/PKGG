@@ -17,7 +17,8 @@ const ModeDistributionChart = dynamic(() => import('../../../components/charts/M
 const RecentDamageTrendChart= dynamic(() => import('../../../components/charts/RecentDamageTrendChart'), { ssr: false });
 const SeasonStatsTabs       = dynamic(() => import('../../../components/SeasonStatsTabs'), { ssr: false });
 const RankDistributionChart = dynamic(() => import('../../../components/charts/RankDistributionChart'), { ssr: false });
-const SynergyHeatmap        = dynamic(() => import('../../../components/charts/SynergyHeatmap'), { ssr: false });
+const SynergyHeatmap        = dynamic(() => import('../../../components/charts/SynergyHeatmap'), { ssr: false })
+const RecentTeammatesCard   = dynamic(() => import('../../../components/charts/RecentTeammatesCard'), { ssr: false });
 const EnhancedPlayerStats   = dynamic(() => import('../../../components/player/EnhancedPlayerStats'), { ssr: false });
 const MatchDetailExpandable = dynamic(() => import('../../../components/match/MatchDetailExpandable'), { ssr: false });
 const WeaponMasteryCard     = dynamic(() => import('../../../components/player/WeaponMasteryCard'), { ssr: false, loading: () => <div className="h-40 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" /> });
@@ -978,17 +979,35 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
           const mode = (match.mode || '').toLowerCase();
           return mode.includes('solo') && mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
         });
+      case '솔로 TPP':
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mode.includes('solo') && !mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
+        });
       case '듀오 FPP':
         return matches.filter((match) => {
           const mt = (match.matchType || '').toLowerCase();
           const mode = (match.mode || '').toLowerCase();
           return mode.includes('duo') && mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
         });
+      case '듀오 TPP':
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mode.includes('duo') && !mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
+        });
       case '스쿼드 FPP':
         return matches.filter((match) => {
           const mt = (match.matchType || '').toLowerCase();
           const mode = (match.mode || '').toLowerCase();
           return mode.includes('squad') && mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
+        });
+      case '스쿼드 TPP':
+        return matches.filter((match) => {
+          const mt = (match.matchType || '').toLowerCase();
+          const mode = (match.mode || '').toLowerCase();
+          return mode.includes('squad') && !mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
         });
       case '이벤트': {
         const EVENT_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom']);
@@ -1648,9 +1667,12 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                         { label: '듀오', key: '듀오' },
                         { label: '스쿼드', key: '스쿼드' },
                         { label: '경쟁전 솔로', key: '경쟁전 솔로' },
-                        { label: 'FPP 솔로', key: '솔로 FPP' },
-                        { label: 'FPP 듀오', key: '듀오 FPP' },
-                        { label: 'FPP 스쿼드', key: '스쿼드 FPP' },
+                        { label: '1인칭 솔로', key: '솔로 FPP' },
+                        { label: '3인칭 솔로', key: '솔로 TPP' },
+                        { label: '1인칭 듀오', key: '듀오 FPP' },
+                        { label: '3인칭 듀오', key: '듀오 TPP' },
+                        { label: '1인칭 스쿼드', key: '스쿼드 FPP' },
+                        { label: '3인칭 스쿼드', key: '스쿼드 TPP' },
                         { label: '🎉 이벤트', key: '이벤트' },
                       ].map(({ label, key }) => (
                         <button
@@ -1835,10 +1857,10 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-4 px-1">
                 <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                <h2 className="text-lg font-bold text-gray-800">주사용 무기 통계</h2>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">weapon mastery</span>
+                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">주사용 무기 통계</h2>
+                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">weapon mastery</span>
               </div>
-              <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+              <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
                 {lazyVisible && <WeaponMasteryCard
                   playerId={profile.playerId || null}
                   nickname={profile.nickname}
@@ -1856,39 +1878,58 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
 
           {/* ══ 팀 분석 ══ */}
           {activeTab === 'team' && (
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-4 px-1">
-                <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                <h2 className="text-lg font-bold text-gray-800">클랜 및 팀플레이 분석</h2>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">클랜 시너지</span>
+            <div className="mb-8 flex flex-col gap-4">
+              {/* 최근 함께한 플레이어 */}
+              <div>
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <div className="w-1 h-5 bg-indigo-500 rounded-full flex-shrink-0"></div>
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">최근 함께한 플레이어</h2>
+                  <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2.5 py-0.5 rounded-full font-semibold border border-indigo-200 dark:border-indigo-800">최근 20경기</span>
+                </div>
+                <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <RecentTeammatesCard
+                    matches={recentMatches}
+                    myNickname={profile?.nickname}
+                  />
+                </div>
               </div>
-              <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-sm">
-                <PlayerDashboard
-                  profile={profile}
-                  summary={summary}
-                  clanAverage={clanAverage}
-                  clanMembers={clanMembers}
-                  clanTier={clanTier}
-                  synergyTop={synergyTop}
-                  clanSynergyStatusList={clanSynergyStatusList}
-                  bestSquad={bestSquad}
-                  seasonStats={seasonStats}
-                />
-                {(() => {
-                  const clanInfo = profile?.clan
-                  const clanName = typeof clanInfo === 'string' ? clanInfo : clanInfo?.name
-                  const hasValidClan = clanName && clanName !== '-' && clanName !== '무소속' && clanName !== 'N/A'
-                  return hasValidClan && clanMembers?.length > 0 ? (
-                    <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-700">
-                      <SynergyHeatmap
-                        matches={recentMatches}
-                        myNickname={profile?.nickname}
-                        clanMembers={clanMembers}
-                        playerClan={clanName}
-                      />
-                    </div>
-                  ) : null
-                })()}
+
+              {/* 클랜 및 팀플레이 분석 */}
+              <div>
+                <div className="flex items-center gap-3 mb-4 px-1">
+                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">클랜 및 팀플레이 분석</h2>
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">클랜 시너지</span>
+                </div>
+                <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                  <PlayerDashboard
+                    profile={profile}
+                    summary={summary}
+                    clanAverage={clanAverage}
+                    clanMembers={clanMembers}
+                    clanTier={clanTier}
+                    synergyTop={synergyTop}
+                    clanSynergyStatusList={clanSynergyStatusList}
+                    bestSquad={bestSquad}
+                    seasonStats={seasonStats}
+                  />
+                  {/* 클랜원 시너지 (클랜 소속 시에만) */}
+                  {(() => {
+                    const clanInfo = profile?.clan
+                    const clanName = typeof clanInfo === 'string' ? clanInfo : clanInfo?.name
+                    const hasValidClan = clanName && clanName !== '-' && clanName !== '무소속' && clanName !== 'N/A'
+                    return hasValidClan && clanMembers?.length > 0 ? (
+                      <div className="mt-10 pt-8 border-t border-gray-200 dark:border-gray-700">
+                        <SynergyHeatmap
+                          matches={recentMatches}
+                          myNickname={profile?.nickname}
+                          clanMembers={clanMembers}
+                          playerClan={clanName}
+                        />
+                      </div>
+                    ) : null
+                  })()}
+                </div>
               </div>
             </div>
           )}
@@ -1898,8 +1939,8 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-4 px-1">
                 <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                <h2 className="text-lg font-bold text-gray-800">개인 맞춤형 AI 코칭</h2>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200">훈련/피드백</span>
+                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">개인 맞춤형 AI 코칭</h2>
+                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">훈련/피드백</span>
               </div>
               <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 {lazyVisible && <AICoachingCard
@@ -1915,11 +1956,10 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
                           )
                         )
                       : {}
-                    const bestModeStats =
-                      nonEventModes['squad-fpp'] || nonEventModes['squad'] ||
-                      nonEventModes['duo-fpp']   || nonEventModes['duo']   ||
-                      nonEventModes['solo-fpp']  || nonEventModes['solo']  ||
-                      Object.values(nonEventModes)[0]
+                    // 판수가 가장 많은 모드를 선택 (1인칭/3인칭 무관하게 주력 모드 기준)
+                    const bestModeStats = Object.values(nonEventModes)
+                      .filter(Boolean)
+                      .sort((a, b) => (b?.rounds || 0) - (a?.rounds || 0))[0] ?? null
                     const totalSeasonMatches = latestSeasonStats
                       ? Object.values(latestSeasonStats).reduce((total, ms) => total + (ms?.rounds || 0), 0)
                       : 0

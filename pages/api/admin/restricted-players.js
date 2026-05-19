@@ -2,14 +2,13 @@ import prisma from '../../../utils/prisma.js'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth].js'
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'gonjia91@gmail.com'
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || ADMIN_EMAIL).split(',').map((e) => e.trim())
+const ADMIN_EMAIL = 'sssyck123@gmail.com'
 
 async function checkAdmin(req, res) {
   const pw = req.headers['x-admin-token'] || req.query.pw
   if (pw && pw === process.env.ADMIN_PASSWORD) return true
   const session = await getServerSession(req, res, authOptions)
-  return ADMIN_EMAILS.includes(session?.user?.email)
+  return session?.user?.email === ADMIN_EMAIL
 }
 
 export default async function handler(req, res) {

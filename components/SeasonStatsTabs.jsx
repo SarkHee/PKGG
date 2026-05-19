@@ -155,6 +155,15 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
       { label: '생존시간', value: survText, noBar: true,                  barColor: C.gray },
     ]
 
+    // FPP / TPP 판수 계산
+    const fppKey  = `${group.key}-fpp`
+    const tppKey  = group.key
+    const fppRounds = allModeStats[fppKey]
+      ? (allModeStats[fppKey].rounds ?? allModeStats[fppKey].roundsPlayed ?? 0) : 0
+    const tppRounds = allModeStats[tppKey]
+      ? (allModeStats[tppKey].rounds ?? allModeStats[tppKey].roundsPlayed ?? 0) : 0
+    const hasBothViews = fppRounds > 0 && tppRounds > 0
+
     return (
       <div
         key={group.key}
@@ -164,6 +173,17 @@ export default function SeasonStatsTabs({ seasonStatsBySeason }) {
           <div className="flex items-center gap-2">
             <div className={`w-1 h-5 ${group.accentBar} rounded-full flex-shrink-0`} />
             <span className={`text-base font-black ${group.accentText}`}>{group.title}</span>
+            {hasBothViews && (
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                1인칭 {fppRounds}G · 3인칭 {tppRounds}G
+              </span>
+            )}
+            {!hasBothViews && fppRounds > 0 && (
+              <span className="text-[10px] bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded-full font-semibold">1인칭</span>
+            )}
+            {!hasBothViews && tppRounds > 0 && (
+              <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-semibold">3인칭</span>
+            )}
           </div>
           {hasData ? (
             <div className="flex items-center gap-1.5 text-[11px] font-bold">
