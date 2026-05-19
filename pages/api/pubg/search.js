@@ -11,7 +11,7 @@ function searchCacheKey(shard, nickname) {
 // 검색 제한 닉네임 캐시 (5분 TTL, DB 부하 감소)
 let _restrictedCache = null
 let _restrictedCacheAt = 0
-const RESTRICTED_CACHE_MS = 5 * 60 * 1000
+const RESTRICTED_CACHE_MS = 30 * 1000
 
 async function getRestrictedSet() {
   const now = Date.now()
@@ -191,6 +191,9 @@ export default async function handler(req, res) {
       })
 
       if (dbHit?.pubgPlayerId) {
+        if (await isRestricted(dbHit.nickname)) {
+          return res.json({ results: [] })
+        }
         // 기존 유저: DB 그대로 반환 + 백그라운드 갱신
         found = [{
           shard:      dbHit.pubgShardId,
@@ -224,6 +227,9 @@ export default async function handler(req, res) {
 
       if (dbRows.length > 0) {
         // DB hit → 정확한 케이스로 직접 반환 (PUBG API 불필요)
+        if (await isRestricted(dbRows[0].nickname)) {
+          return res.json({ results: [] })
+        }
         const byId = new Map()
         for (const u of dbRows) {
           if (!byId.has(u.pubgPlayerId))
