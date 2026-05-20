@@ -9,79 +9,137 @@ const MAPS = [
     id: 'erangel',
     name: '에란겔',
     nameEn: 'Erangel',
-    size: '8x8 km',
+    size: '8×8 km',
     terrain: '초원 / 도시 / 해안',
     desc: '배틀그라운드의 첫 번째 맵. 클래식 배틀로얄 환경.',
+    features: ['클래식 배틀로얄', '다양한 지형 구성', '밀 밭·학교·공항 랜드마크'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/590dba7.webp',
     maxPlayers: 100,
     tag: '클래식',
     tagColor: 'bg-blue-500',
     tagBorder: 'border-blue-500',
+    mapSize: 'large',
   },
   {
     id: 'miramar',
     name: '미라마',
     nameEn: 'Miramar',
-    size: '8x8 km',
+    size: '8×8 km',
     terrain: '사막 / 협곡 / 도시',
     desc: '광활한 사막 지형. 장거리 저격전이 두드러지는 맵.',
+    features: ['장거리 교전 특화', '고지대 협곡 전략', '넓은 사막 엄폐물 부족'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/24a088e.webp',
     maxPlayers: 100,
     tag: '사막',
     tagColor: 'bg-yellow-500',
     tagBorder: 'border-yellow-500',
+    mapSize: 'large',
   },
   {
     id: 'vikendi',
     name: '비켄디',
     nameEn: 'Vikendi',
-    size: '6x6 km',
+    size: '6×6 km',
     terrain: '설원 / 성 / 마을',
     desc: '눈 덮인 설원 배경. 발자국 추적 기능이 특징.',
+    features: ['발자국 추적 시스템', '설원 위장 전략 중요', '성(castle) 랜드마크'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/d1080a6.webp',
     maxPlayers: 100,
     tag: '설원',
     tagColor: 'bg-cyan-400',
     tagBorder: 'border-cyan-400',
+    mapSize: 'large',
   },
   {
     id: 'taego',
     name: '태이고',
     nameEn: 'Taego',
-    size: '8x8 km',
+    size: '8×8 km',
     terrain: '산악 / 농촌 / 도시',
     desc: '한국 배경 맵. 자기소생 아이템과 컴파운드 시스템.',
+    features: ['자기소생 아이템 지원', '컴파운드 시스템', '한국 농촌 배경'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/19581ee.webp',
     maxPlayers: 100,
     tag: '한국',
     tagColor: 'bg-red-500',
     tagBorder: 'border-red-500',
+    mapSize: 'large',
   },
   {
     id: 'deston',
     name: '데스턴',
     nameEn: 'Deston',
-    size: '8x8 km',
+    size: '8×8 km',
     terrain: '습지 / 고층빌딩 / 해안',
     desc: '미래지향적 미국 배경. 고층 빌딩 수직 전투 + 글라이더.',
+    features: ['글라이더 탑승 가능', '수직 빌딩 전투', 'O12 비밀 지역'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/e2bdf1e.webp',
     maxPlayers: 100,
     tag: '미래',
     tagColor: 'bg-purple-500',
     tagBorder: 'border-purple-500',
+    mapSize: 'large',
   },
   {
     id: 'rondo',
     name: '론도',
     nameEn: 'Rondo',
-    size: '8x8 km',
+    size: '8×8 km',
     terrain: '산악 / 강 / 설원',
     desc: '중국 서남부 배경. 험준한 산악 지형과 보트 이동.',
+    features: ['산악 고지대 전투', '강·수로 보트 이동', '다층 지형 구조'],
     img: '/maps/rondo.jpg',
     maxPlayers: 100,
     tag: '산악',
     tagColor: 'bg-emerald-500',
     tagBorder: 'border-emerald-500',
+    mapSize: 'large',
+  },
+  // ── 소형 맵 ────────────────────────────────────────────────────────────────
+  {
+    id: 'sanhok',
+    name: '사녹',
+    nameEn: 'Sanhok',
+    size: '4×4 km',
+    terrain: '밀림 / 폭포 / 해안',
+    desc: '동남아시아 정글 배경. 빠른 블루존으로 근거리 교전이 집중되는 소형 맵.',
+    features: ['빠른 블루존 수축', '밀림 위장·매복 전략', '캐로우 강 수상 이동'],
+    img: '/maps/sanhok.webp',
+    maxPlayers: 64,
+    tag: '정글',
+    tagColor: 'bg-lime-500',
+    tagBorder: 'border-lime-500',
+    mapSize: 'small',
+  },
+  {
+    id: 'paramo',
+    name: '파라모',
+    nameEn: 'Paramo',
+    size: '3×3 km',
+    terrain: '고산 / 화산 / 밀림',
+    desc: '콜롬비아 고산 지대 배경. 경기마다 지형이 바뀌는 동적 맵.',
+    features: ['경기마다 지형 변화', '헬리콥터 순찰·스폰', '용암 지역 위험 구간'],
+    img: '/maps/paramo.webp',
+    maxPlayers: 64,
+    tag: '동적',
+    tagColor: 'bg-orange-500',
+    tagBorder: 'border-orange-500',
+    mapSize: 'small',
+  },
+  {
+    id: 'karakin',
+    name: '카라킨',
+    nameEn: 'Karakin',
+    size: '2×2 km',
+    terrain: '사막 / 절벽 / 마을',
+    desc: '북아프리카 소형 사막 맵. 폭발형 블루존과 지하 터널이 특징.',
+    features: ['폭탄 폭발 블루존', '지하 터널 시스템', '파괴 가능 건물·벽'],
+    img: '/maps/karakin.webp',
+    maxPlayers: 64,
+    tag: '소형',
+    tagColor: 'bg-amber-600',
+    tagBorder: 'border-amber-600',
+    mapSize: 'small',
   },
 ]
 
@@ -328,38 +386,75 @@ export default function MapsPage() {
           </div>
         )}
 
-        {/* 맵 선택 카드 */}
-        <div className="flex-shrink-0 flex gap-2 overflow-x-auto pb-1 scrollbar-hide justify-center">
-          {MAPS.map((map) => {
-            const isActive = selected?.id === map.id
-            return (
-              <button
-                key={map.id}
-                onClick={() => handleSelect(map)}
-                className={`flex-shrink-0 relative rounded-xl overflow-hidden border-2 transition-all duration-200 focus:outline-none ${
-                  isActive
-                    ? `${map.tagBorder} shadow-lg shadow-black/50 brightness-110`
-                    : 'border-gray-700 opacity-50 hover:opacity-80 hover:border-gray-500'
-                }`}
-                style={{ width: 130, height: 80 }}
-              >
-                <Image
-                  src={map.img}
-                  alt={map.name}
-                  fill
-                  className="object-cover"
-                  sizes="130px"
-                  unoptimized={map.img.startsWith('https://')}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                {isActive && <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-white shadow" />}
-                <div className="absolute bottom-2 left-2">
-                  <div className="text-white font-bold text-xs leading-tight">{map.name}</div>
-                  <div className="text-gray-300 text-[10px]">{map.size}</div>
-                </div>
-              </button>
-            )
-          })}
+        {/* 맵 선택 카드 — 대형/소형 분리 */}
+        <div className="flex-shrink-0 flex flex-col gap-1.5">
+          {/* 대형 맵 행 */}
+          <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide justify-center">
+            {MAPS.filter(m => m.mapSize !== 'small').map((map) => {
+              const isActive = selected?.id === map.id
+              return (
+                <button
+                  key={map.id}
+                  onClick={() => handleSelect(map)}
+                  className={`flex-shrink-0 relative rounded-xl overflow-hidden border-2 transition-all duration-200 focus:outline-none ${
+                    isActive
+                      ? `${map.tagBorder} shadow-lg shadow-black/50 brightness-110`
+                      : 'border-gray-700 opacity-50 hover:opacity-80 hover:border-gray-500'
+                  }`}
+                  style={{ width: 130, height: 80 }}
+                >
+                  <Image
+                    src={map.img}
+                    alt={map.name}
+                    fill
+                    className="object-cover"
+                    sizes="130px"
+                    unoptimized={map.img.startsWith('https://')}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  {isActive && <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-white shadow" />}
+                  <div className="absolute bottom-2 left-2">
+                    <div className="text-white font-bold text-xs leading-tight">{map.name}</div>
+                    <div className="text-gray-300 text-[10px]">{map.size}</div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          {/* 소형 맵 행 */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide justify-center items-center">
+            <span className="flex-shrink-0 text-[10px] text-gray-600 font-semibold uppercase tracking-wide">소형</span>
+            {MAPS.filter(m => m.mapSize === 'small').map((map) => {
+              const isActive = selected?.id === map.id
+              return (
+                <button
+                  key={map.id}
+                  onClick={() => handleSelect(map)}
+                  className={`flex-shrink-0 relative rounded-xl overflow-hidden border-2 transition-all duration-200 focus:outline-none ${
+                    isActive
+                      ? `${map.tagBorder} shadow-lg shadow-black/50 brightness-110`
+                      : 'border-gray-700 opacity-50 hover:opacity-80 hover:border-gray-500'
+                  }`}
+                  style={{ width: 100, height: 64 }}
+                >
+                  <Image
+                    src={map.img}
+                    alt={map.name}
+                    fill
+                    className="object-cover"
+                    sizes="100px"
+                    unoptimized={map.img.startsWith('https://')}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  {isActive && <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white shadow" />}
+                  <div className="absolute bottom-1.5 left-2">
+                    <div className="text-white font-bold text-[11px] leading-tight">{map.name}</div>
+                    <div className="text-gray-300 text-[9px]">{map.size}</div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* 맵 영역 + 오른쪽 사이드 패널 */}
@@ -553,7 +648,12 @@ export default function MapsPage() {
                 <div className="px-4 py-3 grid grid-cols-2 gap-2">
                   <div className="bg-gray-800 rounded-lg px-3 py-2">
                     <div className="text-[10px] text-gray-500 mb-0.5">맵 크기</div>
-                    <div className="text-xs text-white font-bold">{selected.size}</div>
+                    <div className="text-xs text-white font-bold flex items-center gap-1.5">
+                      {selected.size}
+                      {selected.mapSize === 'small' && (
+                        <span className="px-1 py-0.5 rounded text-[9px] bg-gray-700 text-gray-400 font-normal">소형</span>
+                      )}
+                    </div>
                   </div>
                   <div className="bg-gray-800 rounded-lg px-3 py-2">
                     <div className="text-[10px] text-gray-500 mb-0.5">최대 인원</div>
@@ -563,6 +663,19 @@ export default function MapsPage() {
                     <div className="text-[10px] text-gray-500 mb-0.5">지형</div>
                     <div className="text-xs text-gray-300 leading-relaxed">{selected.terrain}</div>
                   </div>
+                  {selected.features?.length > 0 && (
+                    <div className="col-span-2 bg-gray-800 rounded-lg px-3 py-2">
+                      <div className="text-[10px] text-gray-500 mb-1.5">주요 특징</div>
+                      <ul className="space-y-1">
+                        {selected.features.map((f, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-gray-300">
+                            <span className="mt-0.5 flex-shrink-0 text-gray-600">▸</span>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
 

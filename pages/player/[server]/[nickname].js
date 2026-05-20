@@ -642,7 +642,7 @@ function setCachedPlayer(key, data) {
   } catch {}
 }
 
-export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
+export default function PlayerPage({ playerData: ssrData, error, isBanned, dataSource }) {
   const router = useRouter();
   const { server, nickname } = router.query;
   const cacheKey = `${server}_${nickname}`;
@@ -1040,6 +1040,37 @@ export default function PlayerPage({ playerData: ssrData, error, dataSource }) {
       setCooldown(30);
     });
   };
+
+  if (isBanned) {
+    return (
+      <>
+        <Header />
+        <div className="container mx-auto p-6 min-h-screen">
+          <div className="max-w-2xl mx-auto mt-20">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-red-300 dark:border-red-700 shadow-lg text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">⚠️</span>
+                </div>
+                <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
+                  정지된 계정입니다
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  이 플레이어는 PUBG 서비스 이용이 제한된 계정입니다.
+                </p>
+              </div>
+              <button
+                onClick={() => router.push('/')}
+                className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+              >
+                메인으로
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   if (error) {
     return (
@@ -2093,6 +2124,9 @@ async function getPlayerFromDB(nickname, server) {
       orderBy: { lastUpdated: 'desc' },
     });
 
+    // 정지 계정 체크 (캐시 신선도와 무관하게 먼저 처리)
+    if (cached?.isBanned) return { __banned: true }
+
     if (cached) {
       const hoursSince = (Date.now() - new Date(cached.lastUpdated).getTime()) / 3600000;
       const hasRealStats = (cached.avgDamage > 0 || cached.avgKills > 0 || (cached.roundsPlayed ?? 0) > 0);
@@ -2103,7 +2137,6 @@ async function getPlayerFromDB(nickname, server) {
           where: { nickname: { equals: nickname, mode: 'insensitive' } },
           include: {
             clan: true,
-            matches: { orderBy: { createdAt: 'desc' }, take: 10 },
             modeStats: true,
           },
         });
@@ -2150,10 +2183,20 @@ async function getPlayerFromDB(nickname, server) {
       where: { nickname: { equals: nickname, mode: 'insensitive' } },
       include: {
         clan: true,
-        matches: { orderBy: { createdAt: 'desc' }, take: 10 },
         modeStats: true,
       },
     });
+
+    // PlayerMatch 별도 조회 (ClanMember에 matches relation 없음)
+    const memberMatches = member
+      ? await prisma.playerMatch.findMany({
+          where: member.pubgPlayerId
+            ? { pubgAccountId: member.pubgPlayerId }
+            : { nickname: { equals: nickname, mode: 'insensitive' } },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        })
+      : [];
 
     if (!member) return null;
 
@@ -2201,7 +2244,7 @@ async function getPlayerFromDB(nickname, server) {
       style: member.style && member.style !== '-' ? member.style : playstyle,
     };
 
-    const recentMatches = member.matches.map(m => ({
+    const recentMatches = memberMatches.map(m => ({
       matchId: m.matchId,
       mode: m.mode,
       mapName: m.mapName,
@@ -2312,6 +2355,9 @@ export async function getServerSideProps({ params, query }) {
     // ── 2순위: DB 캐시 (force=1이면 무조건 API 호출) ──
     if (!forceRefresh) {
       const cached = await getPlayerFromDB(nickname, server);
+      if (cached?.__banned) {
+        return { props: { playerData: null, error: null, isBanned: true, dataSource: null } };
+      }
       if (cached) {
         console.log(`[SSR] DB 캐시 HIT: ${nickname}`);
 

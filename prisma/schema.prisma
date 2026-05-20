@@ -233,21 +233,24 @@ model Notice {
 }
 
 model PlayerCache {
-  id             Int      @id @default(autoincrement())
-  nickname       String
-  pubgShardId    String   @default("steam")
-  pubgPlayerId   String?
-  score          Int      @default(0)
-  style          String   @default("")
-  avgDamage      Float    @default(0)
-  avgKills       Float    @default(0)
-  avgAssists     Float    @default(0)
-  avgSurviveTime Float    @default(0)
-  winRate        Float    @default(0)
-  top10Rate      Float    @default(0)
-  lastUpdated    DateTime @default(now())
-  roundsPlayed   Int?     @default(0)
-  ranked_json    String?
+  id                Int       @id @default(autoincrement())
+  nickname          String
+  pubgShardId       String    @default("steam")
+  pubgPlayerId      String?
+  score             Int       @default(0)
+  style             String    @default("")
+  avgDamage         Float     @default(0)
+  avgKills          Float     @default(0)
+  avgAssists        Float     @default(0)
+  avgSurviveTime    Float     @default(0)
+  winRate           Float     @default(0)
+  top10Rate         Float     @default(0)
+  lastUpdated       DateTime  @default(now())
+  roundsPlayed      Int?      @default(0)
+  ranked_json       String?
+  isBanned          Boolean   @default(false)
+  bannedAt          DateTime?
+  banCheckFailCount Int       @default(0)
 
   @@unique([nickname, pubgShardId])
   @@map("player_cache")
