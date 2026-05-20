@@ -3,6 +3,7 @@ import Head from 'next/head'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import Header from '../components/layout/Header'
+import { useT } from '../utils/i18n'
 
 // 정규화된 무기 key → { name, type, img }
 // img: /weapons/Item_Weapon_{img}_C.png 경로에 쓰이는 파일명 부분
@@ -45,7 +46,6 @@ const WEAPON_INFO = {
   MP9:         { name: 'MP9',          type: 'SMG',    img: 'MP9' },
   P90:         { name: 'P90',          type: 'SMG',    img: 'P90' },
   UZI:         { name: 'Micro Uzi',    type: 'SMG',    img: 'UZI' },
-  Skorpion:    { name: 'Skorpion',     type: 'SMG',    img: 'Skorpion' },
   Thompson:    { name: 'Tommy Gun',    type: 'SMG',    img: 'Thompson' },
   JS9:         { name: 'JS9',          type: 'SMG',    img: 'JS9' },
   // SG
@@ -59,13 +59,14 @@ const WEAPON_INFO = {
   DP28:        { name: 'DP-28',        type: 'LMG',    img: 'DP28' },
   M249:        { name: 'M249',         type: 'LMG',    img: 'M249' },
   MG3:         { name: 'MG3',          type: 'LMG',    img: 'MG3' },
-  // Pistol
+  // Pistol — Skorpion(.32 ACP 완전자동 권총)은 SMG가 아닌 Pistol 분류
   DesertEagle: { name: 'Deagle',       type: 'Pistol', img: 'DesertEagle' },
   M1911:       { name: 'P1911',        type: 'Pistol', img: 'M1911' },
   G18:         { name: 'P18C',         type: 'Pistol', img: 'G18' },
   M9:          { name: 'P92',          type: 'Pistol', img: 'M9' },
   Rhino:       { name: 'R45',          type: 'Pistol', img: 'Rhino' },
   NagantM1895: { name: 'R1895',        type: 'Pistol', img: 'NagantM1895' },
+  Skorpion:    { name: 'Skorpion',     type: 'Pistol', img: 'Skorpion' },
 }
 
 const TYPE_COLOR = {
@@ -78,9 +79,7 @@ const TYPE_COLOR = {
   Pistol: { bg: 'bg-gray-100 dark:bg-gray-700',        text: 'text-gray-600 dark:text-gray-300' },
 }
 
-const PERIODS  = [{ key: 'week', label: '주간' }, { key: 'month', label: '월간' }, { key: 'season', label: '시즌 전체' }]
-const SHARDS   = [{ key: 'all', label: '전체' }, { key: 'steam', label: 'Steam' }, { key: 'kakao', label: '카카오' }, { key: 'psn', label: 'PS' }]
-const TYPES    = ['전체', 'AR', 'DMR', 'SR', 'SMG', 'SG', 'LMG', 'Pistol']
+const TYPE_KEYS = ['all', 'AR', 'DMR', 'SR', 'SMG', 'SG', 'LMG', 'Pistol']
 
 const RANK_STYLE = {
   1: { card: 'from-yellow-400/20 to-amber-500/10 border-yellow-400/50', badge: 'bg-yellow-400 text-yellow-900', label: '🥇' },
@@ -135,11 +134,25 @@ function TypeBadge({ type }) {
 }
 
 export default function WeaponMetaLivePage() {
+  const { t } = useT()
   const [period,  setPeriod]  = useState('week')
   const [shard,   setShard]   = useState('all')
-  const [typeTab, setTypeTab] = useState('전체')
+  const [typeTab, setTypeTab] = useState('all')
   const [data,    setData]    = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const PERIODS = [
+    { key: 'week',   label: t('wml.period.week') },
+    { key: 'month',  label: t('wml.period.month') },
+    { key: 'season', label: t('wml.period.season') },
+  ]
+  const SHARDS = [
+    { key: 'all',   label: t('wml.shard.all') },
+    { key: 'steam', label: 'Steam' },
+    { key: 'kakao', label: t('wml.shard.kakao') },
+    { key: 'psn',   label: 'PS' },
+  ]
+  const TYPES = TYPE_KEYS.map(k => ({ key: k, label: k === 'all' ? t('wml.type.all') : k }))
 
   useEffect(() => {
     setLoading(true)
@@ -155,7 +168,7 @@ export default function WeaponMetaLivePage() {
     info: WEAPON_INFO[w.key] || { name: w.key, type: '?', img: null },
   }))
 
-  const filtered = typeTab === '전체'
+  const filtered = typeTab === 'all'
     ? weapons
     : weapons.filter(w => w.info.type === typeTab)
 
@@ -165,10 +178,10 @@ export default function WeaponMetaLivePage() {
   return (
     <>
       <Head>
-        <title>배그 실시간 무기 메타 | PKGG</title>
-        <meta name="description" content="실제 플레이어 데이터 기반 배틀그라운드 무기 메타. PKGG 유저들의 실전 경기 텔레메트리에서 집계한 무기 킬률, 픽률, 평균 딜량 통계." />
-        <meta property="og:title" content="배그 실시간 무기 메타 | PKGG" />
-        <meta property="og:description" content="실제 플레이어 데이터 기반 배틀그라운드 무기 메타" />
+        <title>{t('wml.meta_title')}</title>
+        <meta name="description" content={t('wml.meta_desc')} />
+        <meta property="og:title" content={t('wml.meta_title')} />
+        <meta property="og:description" content={t('wml.meta_desc')} />
       </Head>
 
       <Header />
@@ -181,15 +194,15 @@ export default function WeaponMetaLivePage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                    실시간 무기 메타
+                    {t('wml.title')}
                   </h1>
                   <span className="text-xs bg-red-500 text-white font-bold px-2 py-0.5 rounded-full">LIVE</span>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  실제 PKGG 유저 데이터 기반
+                  {t('wml.subtitle')}
                   {!loading && meta.totalKills > 0 && (
                     <span className="text-blue-500 font-semibold ml-1">
-                      · 총 {meta.totalKills.toLocaleString()}킬 집계
+                      · 총 {meta.totalKills.toLocaleString()}{t('wml.kills_suffix')}
                     </span>
                   )}
                 </p>
@@ -268,19 +281,19 @@ export default function WeaponMetaLivePage() {
                             <div className="text-lg font-black text-gray-800 dark:text-gray-100">
                               {w.kills.toLocaleString()}
                             </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400">킬</div>
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400">{t('wml.col_kills')}</div>
                           </div>
                           <div>
                             <div className="text-lg font-black text-gray-800 dark:text-gray-100">
                               {w.killRate}%
                             </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400">킬률</div>
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400">{t('wml.col_killrate')}</div>
                           </div>
                           <div>
                             <div className="text-lg font-black text-gray-800 dark:text-gray-100">
                               {w.avgDmg}
                             </div>
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400">평균딜</div>
+                            <div className="text-[10px] text-gray-500 dark:text-gray-400">{t('wml.col_avgdmg')}</div>
                           </div>
                         </div>
                         {w.trend !== null && (
@@ -296,16 +309,16 @@ export default function WeaponMetaLivePage() {
 
               {/* 무기 종류 필터 */}
               <div className="flex gap-1.5 flex-wrap mb-4">
-                {TYPES.map(t => (
+                {TYPES.map(tp => (
                   <button
-                    key={t}
-                    onClick={() => setTypeTab(t)}
+                    key={tp.key}
+                    onClick={() => setTypeTab(tp.key)}
                     className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-                      typeTab === t
+                      typeTab === tp.key
                         ? 'bg-gray-800 dark:bg-gray-100 text-white dark:text-gray-900 border-transparent'
                         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-gray-400'
                     }`}
-                  >{t}</button>
+                  >{tp.label}</button>
                 ))}
               </div>
 
@@ -314,16 +327,16 @@ export default function WeaponMetaLivePage() {
                 {/* 테이블 헤더 */}
                 <div className="grid grid-cols-[40px_1fr_60px_80px_80px_80px_60px] gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 text-xs font-semibold text-gray-400 dark:text-gray-500">
                   <div className="text-center">#</div>
-                  <div>무기</div>
-                  <div className="text-center hidden sm:block">타입</div>
-                  <div className="text-right">킬</div>
-                  <div className="text-right">킬률</div>
-                  <div className="text-right">평균딜</div>
-                  <div className="text-center">추세</div>
+                  <div>{t('wml.col_weapon')}</div>
+                  <div className="text-center hidden sm:block">{t('wml.col_type')}</div>
+                  <div className="text-right">{t('wml.col_kills')}</div>
+                  <div className="text-right">{t('wml.col_killrate')}</div>
+                  <div className="text-right">{t('wml.col_avgdmg')}</div>
+                  <div className="text-center">{t('wml.col_trend')}</div>
                 </div>
 
                 {filtered.length === 0 && (
-                  <div className="py-12 text-center text-gray-400 text-sm">해당 기간 데이터 없음</div>
+                  <div className="py-12 text-center text-gray-400 text-sm">{t('wml.no_data')}</div>
                 )}
 
                 {filtered.map((w, idx) => {
@@ -394,7 +407,7 @@ export default function WeaponMetaLivePage() {
 
               {/* 하단 안내 */}
               <div className="mt-4 text-xs text-gray-400 dark:text-gray-500 text-center">
-                PKGG 유저 실전 경기 텔레메트리 기반 · 매일 자동 갱신 · 랭크전+일반전 통합
+                {t('wml.footer_note')}
               </div>
             </>
           )}

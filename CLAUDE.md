@@ -243,6 +243,14 @@ if (raw) {
 
 ## 최근 주요 변경 이력
 
+### 2026-05-20 다국어 지원 전체 점검
+- **pages/leaderboard.js**: `useT()` 적용, 모든 한국어 → `t()` 변환 (lb.* 키)
+- **pages/weapon-meta-live.js**: `useT()` 적용. `TYPE_KEYS`(sentinel `'all'`) + 내부 PERIODS/SHARDS/TYPES 계산. 모든 UI 텍스트 `t()` 변환 (wml.* 키)
+- **pages/index.js**: 뱃지·피처카드·FAQ·PKGG란? 섹션 `t()` 변환 (home.badge*, feat.*, faq.*, about.* 키)
+- **pages/mypage.js**: `useT()` 적용, GOAL_META/DIFF_META를 DailyGoals 내부로 이동. 전체 UI `t()` 변환 (mypage.* 키)
+- **pages/maps.js**: `useT()` 적용. MAPS 배열을 키 기반으로 리팩터 (`tagKey`, `nameEn`). OVERLAY_TYPE_DEFS → 런타임에 label 계산. 모든 UI 텍스트 `t()` 변환 (maps.* 키)
+- **utils/i18n.js**: `lb.*`, `wml.*`, `home.*`, `feat.*`, `faq.*`, `about.*`, `mypage.*`, `maps.*` 키를 KO/EN/JA/ZH 4개 언어에 추가
+
 ### 2026-05-19 공식 랭킹 페이지 추가
 - **leaderboard.js** (`pages/leaderboard.js`): PUBG 공식 경쟁전 랭킹 TOP 500. 서버(아시아/북미/유럽/동남아/남미)·모드(스쿼드/듀오/솔로)·시점(FPP/TPP) 필터. 상위 3명 금/은/동 뱃지. 내 닉네임 강조(localStorage 자동 로드). KDA·평균딜·승률 컬러 코딩
 - **pages/api/pubg/leaderboard.js**: PUBG 리더보드 API 래퍼. platform=pc-as/pc-na/pc-eu/pc-sea/pc-sa, gameMode=squad-fpp 등. 2시간 인메모리 캐시. 시즌 ID 자동 조회(30분 캐시). 500명 반환

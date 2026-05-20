@@ -192,7 +192,6 @@ const handleSearchSubmit = async (e) => {
   const weaponLinks = [
     { href: '/weapon-test',   labelKey: 'nav.weapon_test',   icon: '🔫', highlight: true },
     { href: '/weapon-damage', labelKey: 'nav.weapon_damage', icon: '💥' },
-    { href: '/weapon-meta',      labelKey: 'nav.weapon_meta',      icon: '📈' },
     { href: '/weapon-meta-live', labelKey: 'nav.weapon_meta_live', icon: '🔥', highlight: true },
   ];
 

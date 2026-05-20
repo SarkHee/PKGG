@@ -4,15 +4,16 @@ import Tooltip from '../ui/Tooltip';
 import { calculateMMR, getMMRTier, MMR_DISCLAIMER, calculateSeasonMMR } from '../../utils/mmrCalculator';
 import PlayerShareCard from './PlayerShareCard';
 import { classifyPlaystyle, MAJOR } from '../../utils/playstyleClassifier';
+import { useT } from '../../utils/i18n';
 
 // DB 캐시 업데이트 시간 → 상대 표시
-function timeAgo(isoString) {
+function timeAgo(isoString, t) {
   if (!isoString) return null;
   const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
-  if (diff < 60) return '방금 전';
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-  return `${Math.floor(diff / 86400)}일 전`;
+  if (diff < 60) return t('ph.time.just_now');
+  if (diff < 3600) return `${Math.floor(diff / 60)}${t('ph.time.min_ago')}`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}${t('ph.time.hour_ago')}`;
+  return `${Math.floor(diff / 86400)}${t('ph.time.day_ago')}`;
 }
 
 // localStorage 즐겨찾기 헬퍼 (최대 10개)
@@ -51,6 +52,7 @@ const PlayerHeader = ({
   const [showRecentDetails, setShowRecentDetails] = useState(false);
   const [botFilterOn, setBotFilterOn] = useState(false);
   const excludeEvents = true;
+  const { t } = useT();
   const router = useRouter();
   const shard = (router.query.server || 'steam');
   const nickname = profile?.nickname || '';
@@ -158,7 +160,7 @@ const PlayerHeader = ({
 
   // PKGG 점수: mmr prop (경쟁전 포함 서버사이드 계산값) 우선, 없으면 시즌 일반전 기준 계산
   const displayMmr = mmr || calculateSeasonMMR(seasonData) || 1000;
-  const mmrSource = '시즌 전체 기준 (일반+경쟁전, 이벤트 제외)';
+  const mmrSource = t('ph.mmr_source');
 
   // 이벤트 모드 필터 — matchType OR gameMode OR mapName 기반
   const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom', 'arcade'])
@@ -215,22 +217,22 @@ const PlayerHeader = ({
 
   const calculateFormStatus = (matches) => {
     if (!matches || matches.length < 5)
-      return { form: '데이터 부족', comment: '경기가 더 필요합니다.' };
+      return { formKey: 'insufficient', commentKey: 'insufficient_c' };
 
     const recent5 = matches.slice(0, 5);
     const previous5 = matches.slice(5, 10);
 
-    if (previous5.length === 0) return { form: '신규', comment: '신규 플레이어입니다.' };
+    if (previous5.length === 0) return { formKey: 'new', commentKey: 'new_c' };
 
     const recent5Avg = recent5.reduce((sum, m) => sum + (m.damage || 0), 0) / recent5.length;
     const previous5Avg = previous5.reduce((sum, m) => sum + (m.damage || 0), 0) / previous5.length;
     const improvement = ((recent5Avg - previous5Avg) / previous5Avg) * 100;
 
-    if (improvement > 15) return { form: '급상승', comment: '최근 성과가 크게 향상되었습니다!' };
-    if (improvement > 5) return { form: '상승', comment: '꾸준히 성과가 향상되고 있습니다.' };
-    if (improvement > -5) return { form: '안정', comment: '일정한 성과를 유지하고 있습니다.' };
-    if (improvement > -15) return { form: '하락', comment: '최근 성과가 다소 아쉽습니다.' };
-    return { form: '급감', comment: '컨디션 회복이 필요해 보입니다.' };
+    if (improvement > 15) return { formKey: 'surge', commentKey: 'surge_c' };
+    if (improvement > 5) return { formKey: 'up', commentKey: 'up_c' };
+    if (improvement > -5) return { formKey: 'stable', commentKey: 'stable_c' };
+    if (improvement > -15) return { formKey: 'down', commentKey: 'down_c' };
+    return { formKey: 'drop', commentKey: 'drop_c' };
   };
 
   const recent20Form = calculateFormStatus(filteredRecentMatches);
@@ -247,9 +249,9 @@ const PlayerHeader = ({
   })
   const majorInfo = MAJOR[psResult.major] || MAJOR.BALANCED
 
-  const getFormStyle = (form) => {
-    if (form === '급상승' || form === '상승') return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
-    if (form === '하락' || form === '급감') return 'bg-red-100 text-red-700 border border-red-200';
+  const getFormStyle = (formKey) => {
+    if (formKey === 'surge' || formKey === 'up') return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+    if (formKey === 'down' || formKey === 'drop') return 'bg-red-100 text-red-700 border border-red-200';
     return 'bg-blue-100 text-blue-700 border border-blue-200';
   };
 
@@ -265,8 +267,8 @@ const PlayerHeader = ({
             <span className="absolute inset-0 flex items-center justify-center text-xl">🔄</span>
           </div>
           <div className="text-center">
-            <div className="text-sm font-bold text-gray-800 mb-0.5">전적 최신화 중...</div>
-            <div className="text-xs text-gray-400">PUBG API에서 데이터를 불러오고 있습니다</div>
+            <div className="text-sm font-bold text-gray-800 mb-0.5">{t('ph.refresh_overlay_title')}</div>
+            <div className="text-xs text-gray-400">{t('ph.refresh_overlay_desc')}</div>
           </div>
           <div className="flex gap-1">
             {[0,1,2].map(i => (
@@ -302,7 +304,7 @@ const PlayerHeader = ({
                 <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight truncate">
                   {profile?.nickname || '-'}
                 </h1>
-                {timeAgo(profile?.lastCachedAt) && (() => {
+                {timeAgo(profile?.lastCachedAt, t) && (() => {
                   const isLive = dataSource === 'pubg_api_refreshed' || dataSource === 'pubg_api'
                   const isDb = dataSource === 'database' || dataSource === 'memory_cache'
                   return (
@@ -313,7 +315,7 @@ const PlayerHeader = ({
                         ? 'bg-gray-700/70 border-gray-600/50 text-gray-400'
                         : 'bg-gray-700/70 border-gray-600/50 text-gray-400'
                     }`}>
-                      {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt)} 업데이트
+                      {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt, t)} {t('ph.update_label')}
                     </span>
                   )
                 })()}
@@ -323,7 +325,7 @@ const PlayerHeader = ({
                 {(() => {
                   const PLATFORM = {
                     steam:   { label: 'Steam',  icon: '🎮', cls: 'bg-[#1b2838]/80 border-[#2a475e] text-[#c7d5e0]' },
-                    kakao:   { label: '카카오배그', icon: '🟡', cls: 'bg-yellow-900/40 border-yellow-600/50 text-yellow-300' },
+                    kakao:   { label: 'Kakao PUBG', icon: '🟡', cls: 'bg-yellow-900/40 border-yellow-600/50 text-yellow-300' },
                     psn:     { label: 'PlayStation', icon: '🎯', cls: 'bg-blue-900/60 border-blue-500/50 text-blue-300' },
                     xbox:    { label: 'Xbox',   icon: '🟢', cls: 'bg-green-900/40 border-green-600/50 text-green-300' },
                     console: { label: 'Console', icon: '🎯', cls: 'bg-gray-700/60 border-gray-500/50 text-gray-300' },
@@ -363,7 +365,7 @@ const PlayerHeader = ({
             {/* 1줄: 즐겨찾기 · 비교 · 카드 · 티어 */}
             <div className="flex items-center gap-1.5">
               {nickname && (
-                <Tooltip content={isFav ? '즐겨찾기에서 제거' : '즐겨찾기에 추가'}>
+                <Tooltip content={isFav ? t('ph.fav_remove') : t('ph.fav_add')}>
                   <button
                     onClick={toggleFavorite}
                     className={`px-2.5 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
@@ -375,26 +377,26 @@ const PlayerHeader = ({
                 </Tooltip>
               )}
               {nickname && (
-                <Tooltip content="이 플레이어와 비교하기">
+                <Tooltip content={t('ph.compare_tooltip')}>
                   <button
                     onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
                     className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
-                  >⚔️<span className="hidden sm:inline"> 비교</span></button>
+                  >⚔️<span className="hidden sm:inline"> {t('ph.compare')}</span></button>
                 </Tooltip>
               )}
               {nickname && (
-                <Tooltip content="전적 카드 PNG 저장">
+                <Tooltip content={t('ph.save_card')}>
                   <button
                     onClick={handleSaveCard}
                     disabled={saving}
                     className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white text-sm font-bold transition-all select-none disabled:opacity-50"
-                  >{saving ? '저장 중...' : <>📷<span className="hidden sm:inline"> 카드</span></>}</button>
+                  >{saving ? t('ph.saving') : <>📷<span className="hidden sm:inline"> {t('ph.card')}</span></>}</button>
                 </Tooltip>
               )}
               <div className="relative">
                 <button
                   onClick={handleBotFilter}
-                  title={botFilterOn ? '봇(AI) 킬을 제외한 실제 플레이어 킬만 표시해요' : '봇(AI) 킬이 포함된 수치예요'}
+                  title={botFilterOn ? t('ph.bot_filter_on_tooltip') : t('ph.bot_filter_off_tooltip')}
                   className={`px-2.5 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
                     selectedSeasonId
                       ? 'border-white/10 bg-white/5 text-gray-500 cursor-not-allowed'
@@ -402,21 +404,21 @@ const PlayerHeader = ({
                       ? 'bg-cyan-500 border-cyan-400 text-white'
                       : 'border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300'
                   }`}
-                >🤖<span className="hidden sm:inline">{botFilterOn ? ' 봇킬 제외 ✓' : ' 봇킬 포함'}</span></button>
+                >🤖<span className="hidden sm:inline"> {botFilterOn ? t('ph.bot_excl') : t('ph.bot_incl')}</span></button>
 
                 {/* 이전 시즌 클릭 시 토스트 */}
                 {showBotSeasonAlert && (
                   <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none">
                     <div className="flex items-start gap-2.5 bg-gray-900 border border-amber-500/60 rounded-2xl px-4 py-3 shadow-2xl max-w-xs w-max">
                       <span className="text-amber-400 text-lg flex-shrink-0">⚠️</span>
-                      <div className="text-sm font-bold text-amber-400">이전 시즌은 봇킬 분석 불가</div>
+                      <div className="text-sm font-bold text-amber-400">{t('ph.bot_season_alert')}</div>
                     </div>
                   </div>
                 )}
               </div>
               {(() => {
                 const tier = getMMRTier(displayMmr);
-                const tooltipText = `PKGG 추정 점수 — 배그 공식 수치 아님\n\n계산 기준\n💥 평균 딜량   30%\n🎯 평균 킬수   25%\n🏆 승률        20%\n🛡️ Top10 진입  10%\n🤝 평균 어시   8%\n⏱️ 평균 생존   7%\n\n📌 ${mmrSource}`;
+                const tooltipText = `${t('ph.mmr_tooltip_full')}\n\n📌 ${mmrSource}`;
                 return (
                   <Tooltip content={tooltipText}>
                     <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
@@ -446,7 +448,7 @@ const PlayerHeader = ({
                     </option>
                   ))
                 ) : (
-                  <option value="current">현재 시즌</option>
+                  <option value="current">{t('ph.current_season')}</option>
                 )}
               </select>
               {seasonChanging && (
@@ -462,9 +464,9 @@ const PlayerHeader = ({
                 }`}
               >
                 {refreshing ? (
-                  <><div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent" /><span className="hidden sm:inline">최신화 중</span></>
+                  <><div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent" /><span className="hidden sm:inline">{t('ph.refreshing')}</span></>
                 ) : cooldown > 0 ? `${cooldown}s` : (
-                  <><span>🔄</span><span className="hidden sm:inline">최신화</span></>
+                  <><span>🔄</span><span className="hidden sm:inline">{t('ph.refresh')}</span></>
                 )}
               </button>
             </div>
@@ -481,10 +483,10 @@ const PlayerHeader = ({
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">일반게임</h2>
+              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('ph.normal_game')}</h2>
               {seasonStat && (
                 <span className="ml-auto text-xs bg-blue-50 text-blue-500 border border-blue-100 px-2 py-0.5 rounded-full font-semibold">
-                  {seasonStat.rounds}경기
+                  {seasonStat.rounds}{t('ph.games_unit')}
                 </span>
               )}
             </div>
@@ -494,11 +496,11 @@ const PlayerHeader = ({
                 {/* 핵심 스탯 2개 */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
-                    <div className="text-xs text-blue-400 mb-1 font-medium">평균 딜량</div>
+                    <div className="text-xs text-blue-400 mb-1 font-medium">{t('ph.avg_damage')}</div>
                     <div className="text-lg font-black text-gray-900 dark:text-gray-100">{seasonStat.avgDamage}</div>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
-                    <div className="text-xs text-blue-400 mb-1 font-medium">평균 킬</div>
+                    <div className="text-xs text-blue-400 mb-1 font-medium">{t('ph.avg_kills')}</div>
                     <div className="text-lg font-black text-gray-900 dark:text-gray-100">{seasonStat.avgKills}</div>
                   </div>
                 </div>
@@ -506,7 +508,7 @@ const PlayerHeader = ({
                 {/* 보조 스탯 3개 */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
-                    <div className="text-xs text-gray-400 mb-0.5">승률</div>
+                    <div className="text-xs text-gray-400 mb-0.5">{t('ph.win_rate')}</div>
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{seasonStat.winRate}%</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
@@ -514,8 +516,8 @@ const PlayerHeader = ({
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{seasonStat.top10Rate}%</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
-                    <div className="text-xs text-gray-400 mb-0.5">생존</div>
-                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{Math.round(seasonStat.avgSurvival / 60)}분</div>
+                    <div className="text-xs text-gray-400 mb-0.5">{t('ph.survival')}</div>
+                    <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{Math.round(seasonStat.avgSurvival / 60)}{t('ph.min_unit')}</div>
                   </div>
                 </div>
 
@@ -524,28 +526,28 @@ const PlayerHeader = ({
                   onClick={() => setShowSeasonDetails(!showSeasonDetails)}
                   className="w-full py-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg transition-colors"
                 >
-                  {showSeasonDetails ? '▲ 상세 숨기기' : '▼ 모드별 상세 통계'}
+                  {showSeasonDetails ? t('ph.hide_details') : t('ph.show_mode_details')}
                 </button>
 
                 {showSeasonDetails && (() => {
                   const seasonData = Object.values(seasonStats || {})[0] || {};
                   const MODE_META = {
-                    'squad-fpp': { label: '스쿼드', view: '1인칭', fpp: true },
-                    'squad':     { label: '스쿼드', view: '3인칭', fpp: false },
-                    'duo-fpp':   { label: '듀오',   view: '1인칭', fpp: true },
-                    'duo':       { label: '듀오',   view: '3인칭', fpp: false },
-                    'solo-fpp':  { label: '솔로',   view: '1인칭', fpp: true },
-                    'solo':      { label: '솔로',   view: '3인칭', fpp: false },
+                    'squad-fpp': { label: t('ph.mode_squad'), view: t('ph.view_fpp'), fpp: true },
+                    'squad':     { label: t('ph.mode_squad'), view: t('ph.view_tpp'), fpp: false },
+                    'duo-fpp':   { label: t('ph.mode_duo'),   view: t('ph.view_fpp'), fpp: true },
+                    'duo':       { label: t('ph.mode_duo'),   view: t('ph.view_tpp'), fpp: false },
+                    'solo-fpp':  { label: t('ph.mode_solo'),  view: t('ph.view_fpp'), fpp: true },
+                    'solo':      { label: t('ph.mode_solo'),  view: t('ph.view_tpp'), fpp: false },
                   };
                   const activeModes = Object.entries(seasonData).filter(([, ms]) => (ms.rounds || 0) > 0);
                   return (
                     <div className="mt-3 rounded-xl border border-blue-100 dark:border-blue-800 overflow-hidden">
                       <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800">
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">모드별 통계</span>
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">{t('ph.mode_stats_title')}</span>
                       </div>
                       <div className="p-2 space-y-1.5">
                         {activeModes.length === 0 ? (
-                          <div className="text-xs text-gray-400 text-center py-2">모드 데이터 없음</div>
+                          <div className="text-xs text-gray-400 text-center py-2">{t('ph.mode_no_data')}</div>
                         ) : activeModes.map(([mode, ms]) => {
                           const meta = MODE_META[mode] || { label: mode, view: '', fpp: false };
                           return (
@@ -558,10 +560,10 @@ const PlayerHeader = ({
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
                               {[
-                                { label: '게임', value: ms.rounds || 0 },
-                                { label: '평균딜', value: Math.round(ms.avgDamage || 0) },
-                                { label: '평균킬', value: ((ms.totalKills || 0) / (ms.rounds || 1)).toFixed(1) },
-                                { label: '승률', value: (((ms.wins || 0) / (ms.rounds || 1)) * 100).toFixed(1) + '%' },
+                                { label: t('ph.games_col'), value: ms.rounds || 0 },
+                                { label: t('ph.avg_deal'), value: Math.round(ms.avgDamage || 0) },
+                                { label: t('ph.avg_kill_col'), value: ((ms.totalKills || 0) / (ms.rounds || 1)).toFixed(1) },
+                                { label: t('ph.win_rate'), value: (((ms.wins || 0) / (ms.rounds || 1)) * 100).toFixed(1) + '%' },
                               ].map(({ label, value }) => (
                                 <div key={label} className={`rounded p-1.5 text-center ${meta.fpp ? 'bg-orange-50/60 dark:bg-orange-900/20' : 'bg-blue-50/60 dark:bg-blue-900/20'}`}>
                                   <div className={`text-[10px] font-medium ${meta.fpp ? 'text-orange-400' : 'text-blue-400'}`}>{label}</div>
@@ -580,8 +582,8 @@ const PlayerHeader = ({
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <div className="text-3xl mb-2">📊</div>
-                <div className="text-sm text-gray-500">시즌 데이터가 없습니다</div>
-                <div className="text-xs text-gray-400 mt-1">최신화 버튼으로 데이터를 불러오세요</div>
+                <div className="text-sm text-gray-500">{t('ph.no_season_data')}</div>
+                <div className="text-xs text-gray-400 mt-1">{t('ph.no_season_hint')}</div>
               </div>
             )}
           </div>
@@ -591,18 +593,18 @@ const PlayerHeader = ({
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-cyan-500 rounded-full"></div>
-              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">최근 {recent20Stats.totalMatches}경기</h2>
-              <span className="px-1.5 py-0.5 bg-cyan-50 border border-cyan-200 rounded-full text-[10px] text-cyan-500 font-medium">이벤트 제외</span>
+              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('ph.recent_label')} {recent20Stats.totalMatches}{t('ph.games_unit')}</h2>
+              <span className="px-1.5 py-0.5 bg-cyan-50 border border-cyan-200 rounded-full text-[10px] text-cyan-500 font-medium">{t('ph.event_excluded')}</span>
               {/* 폼 배지 + 말풍선 */}
               <div className="ml-auto relative flex flex-col items-end">
-                {recent20Form.comment && (
+                {recent20Form.commentKey && (
                   <div className="animate-bounce absolute -top-9 right-0 whitespace-nowrap bg-gray-800 text-white text-[10px] px-2.5 py-1.5 rounded-lg pointer-events-none shadow-md z-10">
-                    {recent20Form.comment}
+                    {t(`ph.form.${recent20Form.commentKey}`)}
                     <div className="absolute top-full right-3 border-4 border-transparent border-t-gray-800"></div>
                   </div>
                 )}
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getFormStyle(recent20Form.form)}`}>
-                  {recent20Form.form}
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getFormStyle(recent20Form.formKey)}`}>
+                  {t(`ph.form.${recent20Form.formKey}`)}
                 </span>
               </div>
             </div>
@@ -624,19 +626,19 @@ const PlayerHeader = ({
                         : null
                       return <>
                         <div className="text-xs text-cyan-500 mb-1 font-medium">
-                          {botFilterOn ? '실 딜량 평균' : '평균 딜량'}
+                          {botFilterOn ? t('ph.real_avg_damage') : t('ph.avg_damage')}
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-gray-100">
                           {avgRealDmg !== null ? avgRealDmg.toFixed(0) : recent20Stats.avgDamage.toFixed(0)}
                         </div>
                         {totalBotDmg !== null && totalBotDmg > 0 && (
-                          <div className="text-[10px] text-gray-400 mt-0.5">봇 평균 데미지 {totalBotDmg.toFixed(0)} 제외</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{t('ph.bot_avg_dmg_excl').replace('{n}', totalBotDmg.toFixed(0))}</div>
                         )}
                         {totalBotDmg === 0 && correctedCount > 0 && (
-                          <div className="text-[10px] text-emerald-500 mt-0.5">봇 딜 없음 — 차이 없음</div>
+                          <div className="text-[10px] text-emerald-500 mt-0.5">{t('ph.bot_dmg_none')}</div>
                         )}
                         {botFilterOn && correctedCount === 0 && (
-                          <div className="text-[10px] text-gray-400 mt-0.5">분석 데이터 없음</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{t('ph.no_analysis_data')}</div>
                         )}
                       </>
                     })()}
@@ -654,16 +656,16 @@ const PlayerHeader = ({
                         : null
                       return <>
                         <div className="text-xs text-cyan-500 mb-1 font-medium">
-                          {botFilterOn ? '실킬 평균' : '평균 킬'}
+                          {botFilterOn ? t('ph.real_avg_kills') : t('ph.avg_kills')}
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-gray-100">
                           {avgReal !== null ? avgReal.toFixed(1) : recent20Stats.avgKills.toFixed(1)}
                         </div>
                         {avgBot !== null && (
-                          <div className="text-[10px] text-gray-400 mt-0.5">봇 {avgBot.toFixed(1)}킬 제외</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{t('ph.bot_kills_excl').replace('{n}', avgBot.toFixed(1))}</div>
                         )}
                         {botFilterOn && correctedCount === 0 && (
-                          <div className="text-[10px] text-gray-400 mt-0.5">데이터 없음</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">{t('ph.no_data_label')}</div>
                         )}
                       </>
                     })()}
@@ -673,7 +675,7 @@ const PlayerHeader = ({
                 {/* 보조 스탯 3개 */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
-                    <div className="text-xs text-gray-400 mb-0.5">승률</div>
+                    <div className="text-xs text-gray-400 mb-0.5">{t('ph.win_rate')}</div>
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{recent20Stats.winRate.toFixed(1)}%</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
@@ -681,7 +683,7 @@ const PlayerHeader = ({
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{recent20Stats.top10Rate.toFixed(1)}%</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
-                    <div className="text-xs text-gray-400 mb-0.5">{botFilterOn ? '실 어시스트' : '어시스트'}</div>
+                    <div className="text-xs text-gray-400 mb-0.5">{botFilterOn ? t('ph.real_assists') : t('ph.assists')}</div>
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
                       {(() => {
                         if (!botFilterOn) return recent20Stats.avgAssists.toFixed(1)
@@ -700,7 +702,7 @@ const PlayerHeader = ({
                   onClick={() => setShowRecentDetails(!showRecentDetails)}
                   className="w-full py-2 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800 text-cyan-600 dark:text-cyan-400 text-xs font-bold rounded-lg transition-colors"
                 >
-                  {showRecentDetails ? '▲ 상세 숨기기' : '▼ 추가 상세 통계'}
+                  {showRecentDetails ? t('ph.hide_details') : t('ph.show_recent_details')}
                 </button>
 
                 {showRecentDetails && (() => {
@@ -728,18 +730,18 @@ const PlayerHeader = ({
                     <>
                       <div className="mt-3 rounded-xl border border-cyan-100 dark:border-cyan-800 overflow-hidden">
                         <div className="px-3 py-2 bg-cyan-50 dark:bg-cyan-900/20 border-b border-cyan-100 dark:border-cyan-800 flex items-center justify-between">
-                          <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">추가 통계</span>
-                          {botFilterOn && <span className="text-[10px] text-cyan-400">🤖 봇딜 제외</span>}
+                          <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">{t('ph.extra_stats_title')}</span>
+                          {botFilterOn && <span className="text-[10px] text-cyan-400">🤖 {t('ph.bot_excl_label')}</span>}
                         </div>
                         <div className="p-2">
                           <div className="grid grid-cols-3 gap-1.5">
                             {[
-                              { label: botFilterOn ? '최고 실딜' : '최고 딜량', value: Math.round(maxDmg).toLocaleString(), color: 'text-orange-500' },
-                              { label: botFilterOn ? '실K/D' : 'K/D', value: kd, color: 'text-red-500' },
-                              { label: '평균 생존', value: Math.round(avgSurv / 60) + '분', color: 'text-gray-500 dark:text-gray-400' },
-                              { label: botFilterOn ? '총 실딜량' : '총 딜량', value: Math.round(totalDmg).toLocaleString(), color: 'text-cyan-600', sub: botFilterOn && botDmgExcluded > 0 ? `봇 ${Math.round(botDmgExcluded).toLocaleString()} 제외` : null },
-                              { label: botFilterOn ? '총 실킬' : '총 킬', value: effectiveKills.toLocaleString(), color: 'text-red-400' },
-                              { label: '총 어시스트', value: totalAssists.toLocaleString(), color: 'text-blue-400' },
+                              { label: botFilterOn ? t('ph.max_real_dmg') : t('ph.max_damage'), value: Math.round(maxDmg).toLocaleString(), color: 'text-orange-500' },
+                              { label: botFilterOn ? t('ph.real_kd') : t('ph.kd'), value: kd, color: 'text-red-500' },
+                              { label: t('ph.avg_survival_label'), value: Math.round(avgSurv / 60) + t('ph.min_unit'), color: 'text-gray-500 dark:text-gray-400' },
+                              { label: botFilterOn ? t('ph.total_real_dmg') : t('ph.total_dmg'), value: Math.round(totalDmg).toLocaleString(), color: 'text-cyan-600', sub: botFilterOn && botDmgExcluded > 0 ? t('ph.bot_dmg_excl_sub').replace('{n}', Math.round(botDmgExcluded).toLocaleString()) : null },
+                              { label: botFilterOn ? t('ph.total_real_kills') : t('ph.total_kills'), value: effectiveKills.toLocaleString(), color: 'text-red-400' },
+                              { label: t('ph.total_assists'), value: totalAssists.toLocaleString(), color: 'text-blue-400' },
                             ].map(({ label, value, color, sub }) => (
                               <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                                 <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
@@ -762,13 +764,13 @@ const PlayerHeader = ({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
-                <div className="text-sm font-medium text-cyan-500">매치 데이터 분석 중...</div>
-                <div className="text-xs text-gray-400">봇킬 분석 포함 — 잠시 기다려 주세요</div>
+                <div className="text-sm font-medium text-cyan-500">{t('ph.matches_loading_title')}</div>
+                <div className="text-xs text-gray-400">{t('ph.matches_loading_desc')}</div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <div className="text-3xl mb-2">🎮</div>
-                <div className="text-sm text-gray-500">최근 경기 데이터가 없습니다</div>
+                <div className="text-sm text-gray-500">{t('ph.no_recent_matches')}</div>
               </div>
             )}
           </div>
@@ -778,8 +780,8 @@ const PlayerHeader = ({
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
-              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">경쟁전</h2>
-              <span className="ml-auto text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full font-semibold">PUBG 공식</span>
+              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('ph.ranked_game')}</h2>
+              <span className="ml-auto text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full font-semibold">{t('ph.pubg_official')}</span>
             </div>
 
             {rankedSummary && rankedSummary.games > 0 ? (
@@ -787,7 +789,7 @@ const PlayerHeader = ({
                 {/* 핵심 스탯 */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl p-3 text-center">
-                    <div className="text-xs text-amber-500 mb-1 font-medium">랭크</div>
+                    <div className="text-xs text-amber-500 mb-1 font-medium">{t('ph.rank_label')}</div>
                     <div className="text-base font-black text-gray-900 dark:text-gray-100">
                       {rankedSummary.currentTier || rankedSummary.tier || 'Unranked'}
                       {rankedSummary.subTier && rankedSummary.subTier > 0 ? ` ${rankedSummary.subTier}` : ''}
@@ -795,7 +797,7 @@ const PlayerHeader = ({
                     <div className="text-xs text-amber-500 font-semibold">{rankedSummary.rp || 0} RP</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1 font-medium">게임수</div>
+                    <div className="text-xs text-gray-400 mb-1 font-medium">{t('ph.game_count')}</div>
                     <div className="text-base font-black text-gray-900 dark:text-gray-100">{rankedSummary.games || 0}</div>
                     <div className="text-xs text-gray-400">K/D {(rankedSummary.kd || 0).toFixed(1)}</div>
                   </div>
@@ -804,11 +806,11 @@ const PlayerHeader = ({
                 {/* 보조 스탯 */}
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
-                    <div className="text-xs text-gray-400 mb-0.5">평균딜</div>
+                    <div className="text-xs text-gray-400 mb-0.5">{t('ph.avg_deal')}</div>
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{(rankedSummary.avgDamage || 0).toFixed(0)}</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
-                    <div className="text-xs text-gray-400 mb-0.5">승률</div>
+                    <div className="text-xs text-gray-400 mb-0.5">{t('ph.win_rate')}</div>
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{(rankedSummary.winRate || 0).toFixed(1)}%</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
@@ -826,21 +828,21 @@ const PlayerHeader = ({
                   onClick={() => setShowRankedDetails(!showRankedDetails)}
                   className="w-full py-2 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-lg transition-colors"
                 >
-                  {showRankedDetails ? '▲ 상세 숨기기' : '▼ 상세 통계 보기'}
+                  {showRankedDetails ? t('ph.hide_details') : t('ph.show_ranked_details')}
                 </button>
 
                 {showRankedDetails && (
                   <div className="mt-3 rounded-xl border border-amber-100 dark:border-amber-800 overflow-hidden">
                     <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800">
-                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">상세 경쟁전 통계</span>
+                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">{t('ph.ranked_detail_title')}</span>
                     </div>
                     <div className="p-2 space-y-1.5">
                       {/* 킬/데스/KDA */}
                       <div className="grid grid-cols-3 gap-1.5">
                         {[
-                          { label: '킬', value: (rankedSummary.kills || 0).toLocaleString(), color: 'text-red-500' },
-                          { label: '데스', value: (rankedSummary.deaths || 0).toLocaleString(), color: 'text-gray-500' },
-                          { label: 'KDA', value: typeof rankedSummary.kda === 'number' ? rankedSummary.kda.toFixed(1) : '0.0', color: 'text-blue-500' },
+                          { label: t('ph.kills'), value: (rankedSummary.kills || 0).toLocaleString(), color: 'text-red-500' },
+                          { label: t('ph.deaths'), value: (rankedSummary.deaths || 0).toLocaleString(), color: 'text-gray-500' },
+                          { label: t('ph.kda'), value: typeof rankedSummary.kda === 'number' ? rankedSummary.kda.toFixed(1) : '0.0', color: 'text-blue-500' },
                         ].map(({ label, value, color }) => (
                           <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                             <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
@@ -851,9 +853,9 @@ const PlayerHeader = ({
                       {/* 어시스트/승리/기절 */}
                       <div className="grid grid-cols-3 gap-1.5">
                         {[
-                          { label: '어시스트', value: (rankedSummary.assists || 0).toLocaleString(), color: 'text-blue-400' },
-                          { label: '승리', value: (rankedSummary.wins || 0).toLocaleString(), color: 'text-green-500' },
-                          { label: '기절', value: (rankedSummary.dBNOs || 0).toLocaleString(), color: 'text-purple-400' },
+                          { label: t('ph.assists'), value: (rankedSummary.assists || 0).toLocaleString(), color: 'text-blue-400' },
+                          { label: t('ph.wins'), value: (rankedSummary.wins || 0).toLocaleString(), color: 'text-green-500' },
+                          { label: t('ph.knockdowns'), value: (rankedSummary.dBNOs || 0).toLocaleString(), color: 'text-purple-400' },
                         ].map(({ label, value, color }) => (
                           <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                             <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
@@ -864,7 +866,7 @@ const PlayerHeader = ({
                       {/* 총딜 */}
                       <div className="grid grid-cols-1 gap-1.5">
                         {[
-                          { label: '총 딜량', value: (rankedSummary.damageDealt || 0).toLocaleString(), color: 'text-orange-500' },
+                          { label: t('ph.total_dmg'), value: (rankedSummary.damageDealt || 0).toLocaleString(), color: 'text-orange-500' },
                         ].map(({ label, value, color }) => (
                           <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                             <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
@@ -875,8 +877,8 @@ const PlayerHeader = ({
                       {/* 최고 티어/RP */}
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
-                          { label: '최고 티어', value: rankedSummary.bestTier || 'Unranked', color: 'text-amber-500' },
-                          { label: '최고 RP', value: (rankedSummary.bestRankPoint || 0).toLocaleString(), color: 'text-amber-500' },
+                          { label: t('ph.best_tier'), value: rankedSummary.bestTier || 'Unranked', color: 'text-amber-500' },
+                          { label: t('ph.best_rp'), value: (rankedSummary.bestRankPoint || 0).toLocaleString(), color: 'text-amber-500' },
                         ].map(({ label, value, color }) => (
                           <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">
                             <div className={`text-[10px] font-medium mb-0.5 ${color}`}>{label}</div>
@@ -891,8 +893,8 @@ const PlayerHeader = ({
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-50 rounded-xl border border-gray-100">
                 <div className="text-3xl mb-2">🏆</div>
-                <div className="text-sm text-gray-500 font-medium">아직 경쟁전 기록이 없습니다</div>
-                <div className="text-xs text-gray-400 mt-1">경쟁전에 참여하면 랭크 정보가 표시됩니다</div>
+                <div className="text-sm text-gray-500 font-medium">{t('ph.no_ranked_data')}</div>
+                <div className="text-xs text-gray-400 mt-1">{t('ph.no_ranked_hint')}</div>
               </div>
             )}
           </div>

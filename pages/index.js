@@ -397,7 +397,7 @@ export default function Home() {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="닉네임 입력 (플랫폼 자동 감지)"
+                    placeholder="닉네임 입력 (최초 검색 유저는 대소문자 구분 필요)"
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setSearchCard(null); if (!e.target.value) setShowDropdown(true); }}
                     onFocus={() => setShowDropdown(true)}
@@ -418,9 +418,6 @@ export default function Home() {
                   </button>
                 </div>
 
-
-                {/* 대소문자 안내 */}
-                <p className="mt-2 text-[11px] text-gray-500 text-center">최초 검색 유저는 대소문자 구별이 필요합니다</p>
 
                 {/* 최근 검색 드롭다운 */}
                 {showDropdown && recentSearches.length > 0 && (
@@ -451,6 +448,12 @@ export default function Home() {
                 )}
               </div>
               <p className="text-gray-600 text-xs mt-2.5">{t('search.hint')}</p>
+              {/* 뱃지 */}
+              <div className="flex flex-wrap justify-center gap-2 mt-3">
+                {[t('home.badge1'), t('home.badge2'), t('home.badge3')].map((badge, bi) => (
+                  <span key={bi} className="text-[11px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full">{badge}</span>
+                ))}
+              </div>
             </div>
 
             {/* 즐겨찾기 섹션 */}
@@ -489,13 +492,13 @@ export default function Home() {
               <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">{t('home.features')}</h2>
               <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {/* 디스코드 봇 배너 카드 */}
               <a
                 href="https://discord.com/api/oauth2/authorize?client_id=1498570099689521172&permissions=274877991936&scope=bot%20applications.commands"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="col-span-2 md:col-span-3 flex items-center justify-between gap-3 px-5 py-4 rounded-xl border transition-all duration-200 hover:brightness-110 group"
+                className="col-span-1 sm:col-span-2 md:col-span-3 flex items-center justify-between gap-3 px-5 py-4 rounded-xl border transition-all duration-200 hover:brightness-110 group"
                 style={{ background: 'rgba(88,101,242,0.12)', borderColor: 'rgba(88,101,242,0.35)' }}
               >
                 <div className="flex items-center gap-3">
@@ -512,6 +515,8 @@ export default function Home() {
                 </svg>
               </a>
               {[
+                { icon: '🤖', titleKey: 'feat.bot_title', descKey: 'feat.bot_desc', highlight: true },
+                { icon: '🔥', titleKey: 'feat.live_meta_title', descKey: 'feat.live_meta_desc', highlight: true },
                 { icon: '📊', titleKey: 'feat.stats_title', descKey: 'feat.stats_desc' },
                 { icon: '👥', titleKey: 'feat.clan_title', descKey: 'feat.clan_desc' },
                 { icon: '🏆', titleKey: 'feat.score_title', descKey: 'feat.score_desc' },
@@ -520,22 +525,26 @@ export default function Home() {
                 { icon: '⚡', titleKey: 'feat.search_title', descKey: 'feat.search_desc' },
               ].map((item) => (
                 <div
-                  key={item.titleKey}
-                  className="bg-white/5 border border-blue-500/10 rounded-xl p-4 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-200 group"
+                  key={item.titleKey || item.title}
+                  className={`border rounded-xl p-4 hover:brightness-110 transition-all duration-200 group ${
+                    item.highlight
+                      ? 'bg-blue-500/8 border-blue-500/30 hover:border-blue-400/50'
+                      : 'bg-white/5 border-blue-500/10 hover:border-blue-500/30 hover:bg-blue-500/5'
+                  }`}
                 >
                   <div className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-200 inline-block">{item.icon}</div>
-                  <h3 className="text-sm font-bold text-gray-200 mb-1">{t(item.titleKey)}</h3>
-                  <p className="text-gray-500 text-xs leading-relaxed">{t(item.descKey)}</p>
+                  <h3 className="text-sm font-bold text-gray-200 mb-1">{item.title || t(item.titleKey)}</h3>
+                  <p className="text-gray-500 text-xs leading-relaxed">{item.desc || t(item.descKey)}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* 광고: 특징 카드 아래 — 콘텐츠 로드 후에만 노출 */}
-          <AdUnit slot="1234567890" format="horizontal" className="w-full max-w-4xl mx-auto px-4 mt-6" show={mounted && !navigating} />
+          <AdUnit slot="1234567890" format="horizontal" className="w-full max-w-6xl mx-auto px-4 mt-6" show={mounted && !navigating} />
 
           {/* PKGG 플레이 분석 카드 */}
-          <div className="w-full max-w-4xl mx-auto px-4 mt-8 sm:mt-12">
+          <div className="w-full max-w-6xl mx-auto px-4 mt-8 sm:mt-12">
             <div className="flex items-center justify-center gap-3 mb-6">
               <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
               <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">PKGG 플레이 분석</h2>
@@ -595,69 +604,36 @@ export default function Home() {
           </div>
 
           {/* PKGG란? */}
-          <div className="w-full max-w-2xl mx-auto px-4 mt-8 sm:mt-14 mb-6 sm:mb-10">
+          <div className="w-full max-w-6xl mx-auto px-4 mt-8 sm:mt-14 mb-6 sm:mb-10">
             <div className="flex items-center justify-center gap-3 mb-6">
               <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
-              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">PKGG란?</h2>
+              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">{t('about.section_title')}</h2>
               <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
             </div>
             <div className="bg-white/5 border border-blue-500/10 rounded-xl px-6 py-5 space-y-3 text-sm text-gray-400 leading-relaxed">
-              <p>
-                <strong className="text-gray-200">PKGG(PK.GG)</strong>는 PUBG(배틀그라운드) 플레이어를 위한 무료 전적 조회 및 분석 플랫폼입니다. 닉네임 하나만 입력하면 시즌 통계, 랭크 정보, 무기 숙련도, 플레이스타일 분석까지 한눈에 확인할 수 있습니다.
-              </p>
-              <p>
-                단순한 K/D 조회를 넘어, <strong className="text-gray-200">PKGG MMR(PPS)</strong>이라는 자체 지표로 플레이어의 종합 실력을 수치화합니다. 딜량·생존·승률·어시스트 등 6가지 지표를 정규화해 Bronze부터 Legend까지 7단계 티어로 표현합니다.
-              </p>
-              <p>
-                클랜 기능도 강력합니다. 클랜원 전체 스탯 비교, 시너지 히트맵, 스쿼드 자동 편성, 내전 기록 관리까지 지원합니다. 공개 클랜 디렉토리에서 MMR 랭킹 순으로 전국 클랜을 탐색할 수도 있습니다.
-              </p>
-              <p>
-                그 외에도 에임 트레이너, 반동 패턴 시뮬레이터, 크로스헤어 배치 트레이너, 피킹 트레이너 등 실력 향상을 위한 미니게임과 훈련 도구를 무료로 제공합니다. PUBG 공식 API 데이터를 기반으로 하며, 회원가입 없이 누구나 이용 가능합니다.
-              </p>
+              <p>{t('about.p1')}</p>
+              <p>{t('about.p2')}</p>
+              <p>{t('about.p3')}</p>
+              <p>{t('about.p4')}</p>
             </div>
           </div>
 
           {/* FAQ */}
-          <div className="w-full max-w-2xl mx-auto px-4 mt-4 mb-4">
+          <div className="w-full max-w-6xl mx-auto px-4 mt-4 mb-4">
             <div className="flex items-center justify-center gap-3 mb-6">
               <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
               <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">FAQ</h2>
               <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
             </div>
             <div className="space-y-3">
-              {[
-                {
-                  q: 'PKGG는 무료인가요?',
-                  a: '네, 완전 무료입니다. 회원가입·로그인 없이 닉네임 검색만으로 전적 조회, 클랜 분석, 훈련 도구 등 모든 기능을 이용할 수 있습니다.',
-                },
-                {
-                  q: '어떤 플랫폼을 지원하나요?',
-                  a: 'Steam, Kakao, Console(PS·Xbox) 세 가지 플랫폼을 지원합니다. 닉네임만 입력하면 플랫폼을 자동으로 감지해 결과를 보여줍니다. 같은 닉네임이 여러 플랫폼에 있는 경우 선택 화면이 나타납니다.',
-                },
-                {
-                  q: 'PKGG MMR(PPS)은 어떻게 계산되나요?',
-                  a: 'K/D, 딜량, 승률, Top10 진입률, 어시스트, 생존시간 6가지 지표를 0~1 범위로 정규화한 뒤 가중 합산해 1000~2500 범위로 환산합니다. 공식 랭크와는 별개로 실력을 종합적으로 나타내는 PKGG 자체 지표입니다.',
-                },
-                {
-                  q: '클랜 분석은 어떻게 사용하나요?',
-                  a: '상단 메뉴 → 클랜 분석에서 클랜명을 검색하면 멤버 스탯 비교, 시너지 히트맵, 스쿼드 자동 편성, 내전 기록 등을 확인할 수 있습니다. 공개 클랜은 /clans 페이지에서 MMR 랭킹 순으로 탐색할 수도 있습니다.',
-                },
-                {
-                  q: '데이터는 얼마나 자주 업데이트되나요?',
-                  a: '플레이어 정보는 조회 시점 기준으로 PUBG 공식 API에서 실시간으로 가져옵니다. 클랜 멤버 일괄 업데이트는 주기적인 배치 작업으로 진행됩니다.',
-                },
-                {
-                  q: '훈련 도구에는 어떤 것들이 있나요?',
-                  a: '에임 트레이너(반응속도·플리커·이동타겟), 반동 패턴 시뮬레이터, 크로스헤어 배치 트레이너, 피킹 트레이너, 낙하 지점 계산기, 감도 분석기, 반동 퀴즈 등을 무료로 제공합니다. 모두 브라우저에서 바로 실행되며 별도 설치가 필요 없습니다.',
-                },
-              ].map((item, i) => (
-                <FaqItem key={i} q={item.q} a={item.a} />
+              {[1,2,3,4,5,6,7,8].map(n => (
+                <FaqItem key={n} q={t(`faq.q${n}`)} a={t(`faq.a${n}`)} />
               ))}
             </div>
           </div>
 
           {/* 광고: FAQ 아래 — 콘텐츠 로드 후에만 노출 */}
-          <AdUnit slot="0987654321" format="horizontal" className="w-full max-w-2xl mx-auto px-4 mt-6" show={mounted && !navigating} />
+          <AdUnit slot="0987654321" format="horizontal" className="w-full max-w-6xl mx-auto px-4 mt-6" show={mounted && !navigating} />
 
         </main>
 

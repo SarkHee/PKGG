@@ -3,12 +3,36 @@
 
 import prisma from '../../../utils/prisma.js'
 import { cachedPubgFetch, TTL } from '../../../utils/pubgApiCache.js'
+import { calculateMMR } from '../../../utils/mmrCalculator.js'
 
 const PUBG_BASE        = 'https://api.pubg.com/shards'
 const MAX_MS           = 250_000  // 250초 안전 마진 (Vercel Pro 300s 기준)
 const MAX_MATCHES      = 50       // 실행당 최대 처리 경기 수
 const MATCHES_PER_USER = 5        // 유저당 최대 경기 수
 const STALE_DAYS = 5 // 마지막 갱신 후 5일 이상 지난 유저만 대상
+const MAX_SEED_USERS   = 30       // 2차 루프: 시즌 스탯 초기화 최대 처리 수
+
+// ── 현재 시즌 ID 조회 (인메모리 30분 캐시) ────────────────────────────────
+let _seasonCache = null
+let _seasonCacheAt = 0
+const SEASON_CACHE_MS = 30 * 60 * 1000
+
+async function getCurrentSeasonId(shard = 'steam') {
+  if (_seasonCache && Date.now() - _seasonCacheAt < SEASON_CACHE_MS) return _seasonCache
+  const res = await fetch(`${PUBG_BASE}/${shard}/seasons`, {
+    headers: {
+      Authorization: `Bearer ${process.env.PUBG_API_KEY}`,
+      Accept: 'application/vnd.api+json',
+    },
+  })
+  if (!res.ok) throw new Error(`시즌 조회 실패 (${res.status})`)
+  const json = await res.json()
+  const current = (json.data || []).find((s) => s.attributes?.isCurrentSeason)
+  if (!current) throw new Error('현재 시즌 없음')
+  _seasonCache   = current.id
+  _seasonCacheAt = Date.now()
+  return current.id
+}
 
 // ── 매치 roster에서 같은 팀원 accountId 추출 ─────────────────────────────
 function extractTeammates(matchData, myAccountId) {
@@ -135,13 +159,15 @@ async function incrementBanCount(nickname, shard, accountId, currentCount, log) 
 async function autoSaveTeammatesToPlayerCache(shard, myAccountId, matchData) {
   const included = matchData?.included ?? []
 
-  // participant id → { accountId, nickname } 맵 빌드
+  // participant id → { accountId, nickname, stats } 맵 빌드
   const partMap = new Map()
   for (const item of included) {
     if (item.type !== 'participant') continue
     const pid  = item.attributes?.stats?.playerId ?? ''
     const name = item.attributes?.stats?.name ?? ''
-    if (pid.startsWith('account.')) partMap.set(item.id, { accountId: pid, nickname: name })
+    if (pid.startsWith('account.')) {
+      partMap.set(item.id, { accountId: pid, nickname: name, stats: item.attributes?.stats ?? {} })
+    }
   }
 
   // 같은 팀 roster 탐색
@@ -174,6 +200,16 @@ async function autoSaveTeammatesToPlayerCache(shard, myAccountId, matchData) {
     if (existingSet.has(tm.accountId)) continue // 이미 있음
     if (bannedSet.has(tm.accountId))   continue // 정지됨
 
+    // 이번 경기 스탯으로 초기값 산출 (추가 API 호출 없음)
+    const s          = tm.stats
+    const avgDamage  = Math.round(s.damageDealt  ?? 0)
+    const avgKills   = s.kills      ?? 0
+    const avgAssists = s.assists    ?? 0
+    const surviveTime = s.timeSurvived ?? 0
+    const winRate    = (s.winPlace === 1) ? 100 : 0
+    const top10Rate  = (s.winPlace != null && s.winPlace <= 10) ? 100 : 0
+    const score      = calculateMMR({ avgDamage, avgKills, avgAssists, avgSurviveTime: surviveTime, winRate, top10Rate })
+
     try {
       await prisma.playerCache.upsert({
         where: { nickname_pubgShardId: { nickname: tm.nickname, pubgShardId: shard } },
@@ -181,14 +217,15 @@ async function autoSaveTeammatesToPlayerCache(shard, myAccountId, matchData) {
           nickname:       tm.nickname,
           pubgPlayerId:   tm.accountId,
           pubgShardId:    shard,
-          score:          0,
+          score,
           style:          '',
-          avgDamage:      0,
-          avgKills:       0,
-          avgAssists:     0,
-          avgSurviveTime: 0,
-          winRate:        0,
-          top10Rate:      0,
+          avgDamage,
+          avgKills,
+          avgAssists,
+          avgSurviveTime: surviveTime,
+          winRate,
+          top10Rate,
+          roundsPlayed:   1,
         },
         update: {
           pubgPlayerId: tm.accountId,
@@ -201,7 +238,7 @@ async function autoSaveTeammatesToPlayerCache(shard, myAccountId, matchData) {
   }
 
   if (count > 0) {
-    console.log(`[telemetry-batch] 👥 팀원 PlayerCache 저장: ${count}명`)
+    console.log(`[telemetry-batch] 👥 팀원 PlayerCache 저장: ${count}명 (경기 스탯 초기화 완료)`)
   }
   return count
 }
@@ -458,7 +495,81 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── 3. 실행 로그 저장 ────────────────────────────────────────────────────
+    // ── 3. avgDamage=0 유저 시즌 스탯 초기화 ────────────────────────────────
+    log.seedUpdated = 0
+    if (Date.now() - startTime < MAX_MS) {
+      try {
+        const seedUsers = await prisma.playerCache.findMany({
+          where: { avgDamage: 0, pubgPlayerId: { not: null }, isBanned: { not: true } },
+          orderBy: { lastUpdated: 'asc' },
+          take: MAX_SEED_USERS,
+          select: { nickname: true, pubgPlayerId: true, pubgShardId: true },
+        })
+
+        if (seedUsers.length > 0) {
+          console.log(`[telemetry-batch] 🌱 시즌 스탯 초기화 대상: ${seedUsers.length}명`)
+
+          // shard별 시즌 ID 캐시 (보통 steam 하나지만 kakao 대비)
+          const shardSeasonMap = {}
+
+          for (const u of seedUsers) {
+            if (Date.now() - startTime > MAX_MS) break
+
+            const shard = u.pubgShardId || 'steam'
+            try {
+              // shard별 현재 시즌 ID (중복 조회 방지)
+              if (!shardSeasonMap[shard]) {
+                shardSeasonMap[shard] = await getCurrentSeasonId(shard)
+              }
+              const seasonId = shardSeasonMap[shard]
+
+              const url = `${PUBG_BASE}/${shard}/players/${u.pubgPlayerId}/seasons/${seasonId}`
+              const json = await cachedPubgFetch(url, { ttl: TTL.SEASON })
+              const gameModeStats = json?.data?.attributes?.gameModeStats ?? {}
+
+              // 전체 모드 합산
+              let totalRounds = 0, totalDamage = 0, totalKills = 0
+              let totalAssists = 0, totalSurvive = 0, totalWins = 0, totalTop10 = 0
+              for (const s of Object.values(gameModeStats)) {
+                const r = s.roundsPlayed || 0
+                if (r === 0) continue
+                totalRounds   += r
+                totalDamage   += s.damageDealt   || 0
+                totalKills    += s.kills         || 0
+                totalAssists  += s.assists       || 0
+                totalSurvive  += s.timeSurvived  || 0
+                totalWins     += s.wins          || 0
+                totalTop10    += s.top10s        || 0
+              }
+
+              if (totalRounds === 0) continue
+
+              const avgDamage      = parseFloat((totalDamage  / totalRounds).toFixed(1))
+              const avgKills       = parseFloat((totalKills   / totalRounds).toFixed(2))
+              const avgAssists     = parseFloat((totalAssists / totalRounds).toFixed(2))
+              const avgSurviveTime = parseFloat((totalSurvive / totalRounds).toFixed(1))
+              const winRate        = parseFloat(((totalWins  / totalRounds) * 100).toFixed(1))
+              const top10Rate      = parseFloat(((totalTop10 / totalRounds) * 100).toFixed(1))
+              const score          = calculateMMR({ avgDamage, avgKills, avgAssists, avgSurviveTime, winRate, top10Rate })
+
+              await prisma.playerCache.updateMany({
+                where: { pubgPlayerId: u.pubgPlayerId },
+                data: { avgDamage, avgKills, avgAssists, avgSurviveTime, winRate, top10Rate, score, roundsPlayed: totalRounds, lastUpdated: new Date() },
+              })
+
+              log.seedUpdated++
+              console.log(`[telemetry-batch] 🌱 ${u.nickname} 시즌 스탯 초기화 완료 (${totalRounds}경기, 딜${avgDamage})`)
+            } catch (err) {
+              console.warn(`[telemetry-batch] 🌱 ${u.nickname} 초기화 실패:`, err.message)
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[telemetry-batch] 시즌 스탯 초기화 루프 오류:', err.message)
+      }
+    }
+
+    // ── 4. 실행 로그 저장 ────────────────────────────────────────────────────
     const elapsed = Math.round((Date.now() - startTime) / 1000)
     console.log(`[telemetry-batch] 완료 — 분석 ${log.analyzed}경기, ${elapsed}초`)
 

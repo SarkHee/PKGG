@@ -5,20 +5,7 @@ import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
 import Layout from '../components/layout/Layout';
-
-// ── 일일 목표 ────────────────────────────────────────────────────────────────
-const GOAL_META = {
-  damage: { icon: '💥', label: '단판 최고 딜량', unit: '',   step: 50,  type: 'int' },
-  kills:  { icon: '🔫', label: '단판 최고 킬',   unit: '킬', step: 1,   type: 'int' },
-  top10:  { icon: '🏅', label: 'Top10 횟수',     unit: '회', step: 1,   type: 'int' },
-  win:    { icon: '🏆', label: '치킨 횟수',       unit: '회', step: 1,   type: 'int' },
-};
-
-const DIFF_META = {
-  easy:   { label: '이지', emoji: '🟢', accent: 'green',  desc: '현재 실력보다 살짝 낮게 — 부담 없이 달성' },
-  medium: { label: '중간', emoji: '🟡', accent: 'yellow', desc: '현재 실력의 120% — 집중하면 가능' },
-  hell:   { label: '헬',   emoji: '🔴', accent: 'red',    desc: '현재 실력의 180% — 최고의 컨디션 필요' },
-};
+import { useT } from '../utils/i18n';
 
 const DIFF_ACCENT = {
   green:  { border: 'border-green-500/50',  bg: 'bg-green-500/10',  text: 'text-green-400',  bar: 'bg-green-500',  btn: 'bg-green-600 hover:bg-green-500' },
@@ -42,6 +29,20 @@ const GOAL_KEY = 'pkgg_daily_goals';
 const today = () => new Date().toISOString().slice(0, 10);
 
 function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
+  const { t } = useT()
+
+  const GOAL_META = {
+    damage: { icon: '💥', label: t('mypage.goal.damage'), unit: '',                   step: 50, type: 'int' },
+    kills:  { icon: '🔫', label: t('mypage.goal.kills'),  unit: t('mypage.unit.kill'), step: 1,  type: 'int' },
+    top10:  { icon: '🏅', label: t('mypage.goal.top10'),  unit: t('mypage.unit.times'), step: 1, type: 'int' },
+    win:    { icon: '🏆', label: t('mypage.goal.win'),    unit: t('mypage.unit.times'), step: 1, type: 'int' },
+  }
+  const DIFF_META = {
+    easy:   { label: t('mypage.diff.easy'),   emoji: '🟢', accent: 'green',  desc: t('mypage.diff.easy_desc') },
+    medium: { label: t('mypage.diff.medium'), emoji: '🟡', accent: 'yellow', desc: t('mypage.diff.medium_desc') },
+    hell:   { label: t('mypage.diff.hell'),   emoji: '🔴', accent: 'red',    desc: t('mypage.diff.hell_desc') },
+  }
+
   const [phase,         setPhase]       = useState('loading');
   const [date]                          = useState(today());
   const [difficulty,    setDiff]        = useState(null);
@@ -165,12 +166,12 @@ function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
     return (
       <div className="text-center py-10">
         <div className="text-5xl mb-3">🎉</div>
-        <p className="text-xl font-bold text-white mb-1">오늘의 목표 달성!</p>
+        <p className="text-xl font-bold text-white mb-1">{t('mypage.goal_done')}</p>
         <p className="text-sm text-gray-400 mb-1">
-          난이도 <span className={`font-bold ${ac.text}`}>{DIFF_META[difficulty]?.emoji} {DIFF_META[difficulty]?.label}</span> 클리어
+          <span className={`font-bold ${ac.text}`}>{DIFF_META[difficulty]?.emoji} {DIFF_META[difficulty]?.label}</span>
         </p>
-        <p className="text-xs text-gray-600 mb-6">수고하셨습니다. 내일도 화이팅!</p>
-        <button onClick={reset} className={`px-5 py-2 ${ac.btn} text-white rounded-lg text-sm font-semibold transition-colors`}>다시 시작</button>
+        <p className="text-xs text-gray-600 mb-6">{t('mypage.goal_done_sub')}</p>
+        <button onClick={reset} className={`px-5 py-2 ${ac.btn} text-white rounded-lg text-sm font-semibold transition-colors`}>{t('mypage.restart')}</button>
       </div>
     );
   }
@@ -179,19 +180,19 @@ function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
     if (statsLoading) return (
       <div className="h-20 flex items-center justify-center gap-2 text-gray-500 text-sm">
         <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
-        스탯 불러오는 중...
+        {t('mypage.loading_stats')}
       </div>
     );
     if (!playerStats) return (
       <div className="text-center py-8 text-gray-600 text-sm">
         <p className="text-2xl mb-2">🎮</p>
-        대표 PUBG 계정을 연동하면<br />스탯 기반 목표를 추천해드립니다.
+        {t('mypage.no_account_hint')}
       </div>
     );
     return (
       <div className="space-y-3">
         <p className="text-xs text-gray-500 text-center">
-          내 평균 딜량 <span className="text-gray-300 font-bold">{Math.round(playerStats.avgDamage)}</span> · 평균 킬 <span className="text-gray-300 font-bold">{(playerStats.avgKills || 0).toFixed(1)}</span> 기준 추천
+          {t('mypage.stat_based')} · {Math.round(playerStats.avgDamage)} dmg / {(playerStats.avgKills || 0).toFixed(1)} kills
         </p>
         {Object.entries(DIFF_META).map(([diff, meta]) => {
           const tgt = buildGoalTargets(playerStats, diff);
@@ -244,10 +245,10 @@ function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
             </div>
             <div>
               <p className={`text-sm font-bold ${ac.text}`}>
-                {DIFF_META[difficulty]?.emoji} {DIFF_META[difficulty]?.label} 도전 중
+                {DIFF_META[difficulty]?.emoji} {DIFF_META[difficulty]?.label} {t('mypage.in_challenge')}
               </p>
               <p className="text-xs text-gray-500">
-                {newMatchCount > 0 ? `목표 시작 후 ${newMatchCount}경기 감지` : `목표 시작 후 신규 경기 없음`} · {date}
+                {newMatchCount > 0 ? `+${newMatchCount}` : t('mypage.no_new_match')} · {date}
               </p>
             </div>
           </div>
@@ -263,14 +264,14 @@ function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
               {refreshing
                 ? <span className="w-3 h-3 border border-gray-500 border-t-transparent rounded-full animate-spin inline-block" />
                 : '↻'}
-              {refreshing ? '조회 중' : '전적 반영'}
+              {refreshing ? t('mypage.checking') : t('mypage.apply_stats')}
             </button>
-            <button onClick={reset} className="text-xs text-gray-500 hover:text-gray-300 border border-gray-700 hover:border-gray-600 px-3 py-1.5 rounded-lg transition-colors">초기화</button>
+            <button onClick={reset} className="text-xs text-gray-500 hover:text-gray-300 border border-gray-700 hover:border-gray-600 px-3 py-1.5 rounded-lg transition-colors">{t('mypage.reset')}</button>
           </div>
         </div>
         {(lastRefresh || showDelayHint) && (
           <p className="text-[10px] text-gray-600 mt-1.5 text-right">
-            {lastRefresh && `마지막 반영: ${lastRefresh} · `}최대 10~15분 뒤 반영됩니다
+            {lastRefresh && `${lastRefresh} · `}{t('mypage.refresh_delay')}
           </p>
         )}
       </div>
@@ -290,9 +291,9 @@ function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
                 <span className="text-base">{g.icon}</span>
                 <div>
                   <span className="text-sm font-semibold text-gray-200">{g.label}</span>
-                  <span className="text-[10px] text-gray-600 ml-1.5">{isCountGoal ? '누적 횟수' : '단판 최고'}</span>
+                  <span className="text-[10px] text-gray-600 ml-1.5">{isCountGoal ? t('mypage.count_goal') : t('mypage.best_single')}</span>
                 </div>
-                {done && <span className="text-xs text-green-400 font-bold">✓ 달성!</span>}
+                {done && <span className="text-xs text-green-400 font-bold">{t('mypage.achieved')}</span>}
               </div>
               <span className={`text-sm font-bold ${done ? 'text-green-400' : ac.text}`}>
                 {cur}{g.unit} / {tgt}{g.unit}
@@ -306,7 +307,7 @@ function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
       })}
 
       {!nickname && (
-        <p className="text-xs text-gray-600 text-center">대표 계정이 없으면 자동 반영이 되지 않습니다.</p>
+        <p className="text-xs text-gray-600 text-center">{t('mypage.no_main_warning')}</p>
       )}
     </div>
   );
@@ -314,6 +315,7 @@ function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
 
 // ── 메인 ─────────────────────────────────────────────────────────────────────
 export default function MyPage() {
+  const { t } = useT()
   const { data: session, status } = useSession();
   const [userData, setUserData]   = useState(null);
   const [loadingUser, setLoadingUser] = useState(false);
@@ -381,13 +383,13 @@ export default function MyPage() {
       const r = await fetch('/api/user/set-clan-leader', { method: 'POST' });
       const d = await r.json();
       if (r.ok) {
-        setClanLeaderMsg({ ok: true, text: `${d.clanName} 클랜 리더로 등록됐습니다.` });
+        setClanLeaderMsg({ ok: true, text: `${d.clanName} ${t('mypage.register_leader')}` });
         fetchUser();
       } else {
-        setClanLeaderMsg({ ok: false, text: d.error || '등록 실패' });
+        setClanLeaderMsg({ ok: false, text: d.error || t('mypage.register_fail') });
       }
     } catch {
-      setClanLeaderMsg({ ok: false, text: '네트워크 오류' });
+      setClanLeaderMsg({ ok: false, text: t('mypage.network_error') });
     } finally {
       setClanLeaderLoading(false);
     }
@@ -395,7 +397,7 @@ export default function MyPage() {
 
   const handleLeaderRequest = async () => {
     if (leaderRequestReason.trim().length < 5) {
-      setLeaderRequestMsg({ ok: false, text: '변경 사유를 5자 이상 입력해주세요.' });
+      setLeaderRequestMsg({ ok: false, text: t('mypage.reason_too_short') });
       return;
     }
     setLeaderRequestLoading(true);
@@ -408,14 +410,14 @@ export default function MyPage() {
       });
       const d = await r.json();
       if (r.ok) {
-        setLeaderRequestMsg({ ok: true, text: '변경 요청이 접수됐습니다. 관리자 검토 후 처리됩니다.' });
+        setLeaderRequestMsg({ ok: true, text: t('mypage.request_submitted') });
         setLeaderRequestReason('');
         setTimeout(() => { setShowLeaderRequestPopup(false); setLeaderRequestMsg(null); }, 2500);
       } else {
-        setLeaderRequestMsg({ ok: false, text: d.error || '요청 실패' });
+        setLeaderRequestMsg({ ok: false, text: d.error || t('mypage.request_fail') });
       }
     } catch {
-      setLeaderRequestMsg({ ok: false, text: '네트워크 오류' });
+      setLeaderRequestMsg({ ok: false, text: t('mypage.network_error') });
     } finally {
       setLeaderRequestLoading(false);
     }
@@ -435,12 +437,12 @@ export default function MyPage() {
   // ── 미로그인 ──
   if (status === 'unauthenticated') return (
     <Layout>
-      <Head><title>마이페이지 — PK.GG</title></Head>
+      <Head><title>{t('mypage.page_title')}</title></Head>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col items-center justify-center gap-6" style={{ marginTop: '-5rem' }}>
         <div className="text-center">
           <div className="text-5xl mb-4">🔐</div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">로그인이 필요합니다</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">구글 계정으로 로그인하면 PUBG 연동, 일일 목표 등을 이용할 수 있습니다.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('mypage.login_required')}</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">{t('mypage.login_desc')}</p>
           <button onClick={() => signIn('google')}
             className="flex items-center gap-3 mx-auto px-6 py-3 bg-white hover:bg-gray-100 rounded-xl text-gray-800 font-semibold text-sm transition-colors shadow-lg"
           >
@@ -450,7 +452,7 @@ export default function MyPage() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Google로 로그인
+            {t('mypage.google_login')}
           </button>
         </div>
       </div>
@@ -462,7 +464,7 @@ export default function MyPage() {
 
   return (
     <Layout>
-      <Head><title>마이페이지 — PK.GG</title></Head>
+      <Head><title>{t('mypage.page_title')}</title></Head>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white" style={{ marginTop: '-5rem' }}>
         <div className="max-w-2xl mx-auto px-4 pt-28 pb-16 space-y-5">
 
@@ -486,14 +488,14 @@ export default function MyPage() {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  Google 로그인
+                  {t('mypage.google_login_badge')}
                 </span>
               </div>
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
                 className="flex-shrink-0 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-all font-medium"
               >
-                로그아웃
+                {t('mypage.logout')}
               </button>
             </div>
           </div>
@@ -501,12 +503,12 @@ export default function MyPage() {
           {/* ── PUBG 계정 연동 ── */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
             <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-              🎮 <span>PUBG 계정 연동</span>
+              🎮 <span>{t('mypage.pubg_link_title')}</span>
             </h2>
 
             {loadingUser ? (
               <div className="h-10 flex items-center gap-2 text-gray-500 text-sm">
-                <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> 불러오는 중...
+                <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> {t('mypage.loading')}
               </div>
             ) : userData?.pubgAccounts?.length > 0 ? (
               <div className="space-y-2 mb-5">
@@ -525,12 +527,12 @@ export default function MyPage() {
                           </Link>
                           <div className="text-xs text-gray-500">{acc.platform === 'steam' ? 'Steam' : 'Kakao'}</div>
                         </div>
-                        {isMain && <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">대표</span>}
+                        {isMain && <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">{t('mypage.main_badge')}</span>}
                       </div>
                       {!isMain && (
                         <button onClick={() => handleSetMain(acc.id)} disabled={settingMain}
                           className="text-xs text-blue-400 hover:text-blue-300 font-semibold disabled:opacity-50 transition-colors">
-                          대표 설정
+                          {t('mypage.set_main')}
                         </button>
                       )}
                     </div>
@@ -538,7 +540,7 @@ export default function MyPage() {
                 })}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-600 mb-5 text-center py-3">연동된 PUBG 계정이 없습니다.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-600 mb-5 text-center py-3">{t('mypage.no_accounts')}</p>
             )}
 
             {/* 연동 폼 */}
@@ -550,12 +552,12 @@ export default function MyPage() {
                   <option value="kakao">Kakao</option>
                 </select>
                 <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)}
-                  placeholder="PUBG 닉네임"
+                  placeholder={t('mypage.nick_placeholder')}
                   className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500"
                 />
                 <button type="submit" disabled={linking || !nickname.trim()}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg text-sm font-semibold transition-colors whitespace-nowrap">
-                  {linking ? '확인 중...' : '연동'}
+                  {linking ? t('mypage.verifying') : t('mypage.link')}
                 </button>
               </div>
               {linkMsg && (
@@ -567,7 +569,7 @@ export default function MyPage() {
 
             {mainAccount && (
               <div className="mt-4 pt-4 border-t border-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-600 mb-2">대표 계정 바로가기</p>
+                <p className="text-xs text-gray-500 dark:text-gray-600 mb-2">{t('mypage.main_account_link')}</p>
                 <Link href={`/player/${mainAccount.platform}/${mainAccount.nickname}`}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors">
                   📊 {mainAccount.nickname} 전적 보기
@@ -580,12 +582,12 @@ export default function MyPage() {
           {userData?.clan && (
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
               <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center justify-between">
-                <span className="flex items-center gap-2">🏰 소속 클랜</span>
+                <span className="flex items-center gap-2">🏰 {t('mypage.clan_title')}</span>
                 <Link
                   href={`/clan/${encodeURIComponent(userData.clan.name)}`}
                   className="text-xs text-blue-400 hover:text-blue-300 font-semibold transition-colors"
                 >
-                  상세보기 →
+                  {t('mypage.clan_detail')}
                 </Link>
               </h2>
               <div className="flex items-start gap-4">
@@ -610,7 +612,7 @@ export default function MyPage() {
                   </div>
                   {userData.clan.leader && (
                     <div className="mt-1 text-xs text-gray-500 dark:text-gray-500">
-                      리더: <span className="text-gray-700 dark:text-gray-300">{userData.clan.leader}</span>
+                      {t('mypage.leader_label')}: <span className="text-gray-700 dark:text-gray-300">{userData.clan.leader}</span>
                     </div>
                   )}
                   {userData.clan.description && (
@@ -623,10 +625,10 @@ export default function MyPage() {
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
                 <div className="text-xs text-gray-500 dark:text-gray-500">
                   {userData.clan.leader === mainAccount?.nickname
-                    ? '✅ 현재 이 클랜의 리더입니다.'
+                    ? t('mypage.is_leader')
                     : userData.clan.leader
-                      ? `현재 리더: ${userData.clan.leader}`
-                      : '대표 계정을 이 클랜의 리더로 등록할 수 있습니다.'}
+                      ? `${t('mypage.current_leader')}: ${userData.clan.leader}`
+                      : t('mypage.can_register_leader')}
                 </div>
                 {userData.clan.leader === mainAccount?.nickname ? null
                   : !userData.clan.leader ? (
@@ -636,7 +638,7 @@ export default function MyPage() {
                       disabled={clanLeaderLoading || !mainAccount}
                       className="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
                     >
-                      {clanLeaderLoading ? '등록 중...' : '클랜 리더 등록'}
+                      {clanLeaderLoading ? t('mypage.registering') : t('mypage.register_leader')}
                     </button>
                   ) : (
                     // 이미 다른 리더 존재 — 변경 문의 버튼
@@ -644,7 +646,7 @@ export default function MyPage() {
                       onClick={() => { setShowLeaderRequestPopup(true); setLeaderRequestMsg(null); }}
                       className="flex-shrink-0 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
                     >
-                      리더 변경 문의
+                      {t('mypage.request_leader_change')}
                     </button>
                   )
                 }
@@ -660,14 +662,14 @@ export default function MyPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
                   <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 w-full max-w-sm space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-gray-900 dark:text-white">리더 변경 문의</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">{t('mypage.request_leader_change')}</span>
                       <button onClick={() => setShowLeaderRequestPopup(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white text-lg leading-none">×</button>
                     </div>
 
                     {/* 현재 → 변경 표시 */}
                     <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 space-y-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">현 리더</span>
+                        <span className="text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">{t('mypage.current_leader')}</span>
                         <span className="text-gray-900 dark:text-white font-semibold">{userData.clan.leader}</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500">
@@ -675,19 +677,19 @@ export default function MyPage() {
                         <span>↓</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">변경 리더</span>
+                        <span className="text-gray-500 dark:text-gray-400 w-16 flex-shrink-0">{t('mypage.new_leader')}</span>
                         <span className="text-blue-500 dark:text-blue-400 font-semibold">{mainAccount?.nickname}</span>
                       </div>
                     </div>
 
                     {/* 사유 입력 */}
                     <div>
-                      <label className="text-xs text-gray-400 mb-1.5 block">변경 사유</label>
+                      <label className="text-xs text-gray-400 mb-1.5 block">{t('mypage.change_reason')}</label>
                       <textarea
                         value={leaderRequestReason}
                         onChange={(e) => setLeaderRequestReason(e.target.value)}
                         rows={3}
-                        placeholder="변경 사유를 입력해주세요..."
+                        placeholder={t('mypage.reason_placeholder')}
                         className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-blue-500 resize-none"
                       />
                     </div>
@@ -703,14 +705,14 @@ export default function MyPage() {
                         onClick={() => setShowLeaderRequestPopup(false)}
                         className="flex-1 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-semibold rounded-xl transition-colors"
                       >
-                        취소
+                        {t('mypage.cancel')}
                       </button>
                       <button
                         onClick={handleLeaderRequest}
                         disabled={leaderRequestLoading}
                         className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-semibold rounded-xl transition-colors"
                       >
-                        {leaderRequestLoading ? '제출 중...' : '변경 요청'}
+                        {leaderRequestLoading ? t('mypage.submitting') : t('mypage.submit_request')}
                       </button>
                     </div>
                   </div>
@@ -722,7 +724,7 @@ export default function MyPage() {
           {/* ── 커뮤니티 활동 ── */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
             <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
-              ✏️ <span>커뮤니티 활동</span>
+              ✏️ <span>{t('mypage.community_title')}</span>
             </h2>
             <Link
               href="/mypage/posts"
@@ -731,8 +733,8 @@ export default function MyPage() {
               <div className="flex items-center gap-3">
                 <span className="text-lg">📋</span>
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">내가 쓴 글 확인하기</p>
-                  <p className="text-xs text-gray-500 mt-0.5">커뮤니티 포럼에 작성한 글 목록</p>
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-200">{t('mypage.my_posts')}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{t('mypage.my_posts_desc')}</p>
                 </div>
               </div>
               <span className="text-gray-400 dark:text-gray-500 group-hover:text-blue-400 transition-colors">→</span>
@@ -742,10 +744,10 @@ export default function MyPage() {
           {/* ── 일일 목표 ── */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
             <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-              📅 <span>일일 목표</span>
+              📅 <span>{t('mypage.daily_goal_title')}</span>
               {mainAccount && (
                 <span className="text-xs font-normal text-gray-500">
-                  {playerStats ? `${mainAccount.nickname} 스탯 기반 자동 추천` : statsLoading ? '스탯 로딩 중...' : `${mainAccount.nickname}`}
+                  {playerStats ? `${mainAccount.nickname} ${t('mypage.stat_based')}` : statsLoading ? t('mypage.stat_loading') : `${mainAccount.nickname}`}
                 </span>
               )}
             </h2>

@@ -3,164 +3,139 @@ import Image from 'next/image'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Layout from '../components/layout/Layout'
+import { useT } from '../utils/i18n'
 
 const MAPS = [
   {
     id: 'erangel',
-    name: '에란겔',
     nameEn: 'Erangel',
     size: '8×8 km',
-    terrain: '초원 / 도시 / 해안',
-    desc: '배틀그라운드의 첫 번째 맵. 클래식 배틀로얄 환경.',
-    features: ['클래식 배틀로얄', '다양한 지형 구성', '밀 밭·학교·공항 랜드마크'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/590dba7.webp',
     maxPlayers: 100,
-    tag: '클래식',
+    tagKey: 'maps.tag.classic',
     tagColor: 'bg-blue-500',
     tagBorder: 'border-blue-500',
     mapSize: 'large',
   },
   {
     id: 'miramar',
-    name: '미라마',
     nameEn: 'Miramar',
     size: '8×8 km',
-    terrain: '사막 / 협곡 / 도시',
-    desc: '광활한 사막 지형. 장거리 저격전이 두드러지는 맵.',
-    features: ['장거리 교전 특화', '고지대 협곡 전략', '넓은 사막 엄폐물 부족'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/24a088e.webp',
     maxPlayers: 100,
-    tag: '사막',
+    tagKey: 'maps.tag.desert',
     tagColor: 'bg-yellow-500',
     tagBorder: 'border-yellow-500',
     mapSize: 'large',
   },
   {
     id: 'vikendi',
-    name: '비켄디',
     nameEn: 'Vikendi',
     size: '6×6 km',
-    terrain: '설원 / 성 / 마을',
-    desc: '눈 덮인 설원 배경. 발자국 추적 기능이 특징.',
-    features: ['발자국 추적 시스템', '설원 위장 전략 중요', '성(castle) 랜드마크'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/d1080a6.webp',
     maxPlayers: 100,
-    tag: '설원',
+    tagKey: 'maps.tag.snow',
     tagColor: 'bg-cyan-400',
     tagBorder: 'border-cyan-400',
     mapSize: 'large',
   },
   {
     id: 'taego',
-    name: '태이고',
     nameEn: 'Taego',
     size: '8×8 km',
-    terrain: '산악 / 농촌 / 도시',
-    desc: '한국 배경 맵. 자기소생 아이템과 컴파운드 시스템.',
-    features: ['자기소생 아이템 지원', '컴파운드 시스템', '한국 농촌 배경'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/19581ee.webp',
     maxPlayers: 100,
-    tag: '한국',
+    tagKey: 'maps.tag.korea',
     tagColor: 'bg-red-500',
     tagBorder: 'border-red-500',
     mapSize: 'large',
   },
   {
     id: 'deston',
-    name: '데스턴',
     nameEn: 'Deston',
     size: '8×8 km',
-    terrain: '습지 / 고층빌딩 / 해안',
-    desc: '미래지향적 미국 배경. 고층 빌딩 수직 전투 + 글라이더.',
-    features: ['글라이더 탑승 가능', '수직 빌딩 전투', 'O12 비밀 지역'],
     img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/e2bdf1e.webp',
     maxPlayers: 100,
-    tag: '미래',
+    tagKey: 'maps.tag.future',
     tagColor: 'bg-purple-500',
     tagBorder: 'border-purple-500',
     mapSize: 'large',
   },
   {
     id: 'rondo',
-    name: '론도',
     nameEn: 'Rondo',
     size: '8×8 km',
-    terrain: '산악 / 강 / 설원',
-    desc: '중국 서남부 배경. 험준한 산악 지형과 보트 이동.',
-    features: ['산악 고지대 전투', '강·수로 보트 이동', '다층 지형 구조'],
     img: '/maps/rondo.jpg',
     maxPlayers: 100,
-    tag: '산악',
+    tagKey: 'maps.tag.mountain',
     tagColor: 'bg-emerald-500',
     tagBorder: 'border-emerald-500',
     mapSize: 'large',
   },
-  // ── 소형 맵 ────────────────────────────────────────────────────────────────
   {
     id: 'sanhok',
-    name: '사녹',
     nameEn: 'Sanhok',
     size: '4×4 km',
-    terrain: '밀림 / 폭포 / 해안',
-    desc: '동남아시아 정글 배경. 빠른 블루존으로 근거리 교전이 집중되는 소형 맵.',
-    features: ['빠른 블루존 수축', '밀림 위장·매복 전략', '캐로우 강 수상 이동'],
     img: '/maps/sanhok.webp',
     maxPlayers: 64,
-    tag: '정글',
+    tagKey: 'maps.tag.jungle',
     tagColor: 'bg-lime-500',
     tagBorder: 'border-lime-500',
     mapSize: 'small',
   },
   {
     id: 'paramo',
-    name: '파라모',
     nameEn: 'Paramo',
     size: '3×3 km',
-    terrain: '고산 / 화산 / 밀림',
-    desc: '콜롬비아 고산 지대 배경. 경기마다 지형이 바뀌는 동적 맵.',
-    features: ['경기마다 지형 변화', '헬리콥터 순찰·스폰', '용암 지역 위험 구간'],
     img: '/maps/paramo.webp',
     maxPlayers: 64,
-    tag: '동적',
+    tagKey: 'maps.tag.dynamic',
     tagColor: 'bg-orange-500',
     tagBorder: 'border-orange-500',
     mapSize: 'small',
   },
   {
     id: 'karakin',
-    name: '카라킨',
     nameEn: 'Karakin',
     size: '2×2 km',
-    terrain: '사막 / 절벽 / 마을',
-    desc: '북아프리카 소형 사막 맵. 폭발형 블루존과 지하 터널이 특징.',
-    features: ['폭탄 폭발 블루존', '지하 터널 시스템', '파괴 가능 건물·벽'],
     img: '/maps/karakin.webp',
     maxPlayers: 64,
-    tag: '소형',
+    tagKey: 'maps.tag.small_tag',
     tagColor: 'bg-amber-600',
     tagBorder: 'border-amber-600',
     mapSize: 'small',
   },
 ]
 
-const OVERLAY_TYPES = [
-  { key: 'fixed_vehicle', label: '고정 차량', icon: '🚗', color: '#f59e0b' },
-  { key: 'spawn_vehicle', label: '스폰 차량', icon: '🚙', color: '#3b82f6' },
-  { key: 'boat',          label: '선박',      icon: '🚤', color: '#06b6d4', mapLabels: { vikendi: { label: '곰굴', icon: '🐻' } } },
-  { key: 'secret_room',   label: '비밀의 방', icon: '🚪', color: '#a855f7', exclude: [], mapLabels: { vikendi: { label: '보안키방', icon: '🔑' } } },
-  { key: 'glider',        label: '글라이드',  icon: '🪂', color: '#10b981' },
+const OVERLAY_TYPE_DEFS = [
+  { key: 'fixed_vehicle', labelKey: 'maps.ot.fixed_vehicle', icon: '🚗', color: '#f59e0b' },
+  { key: 'spawn_vehicle', labelKey: 'maps.ot.spawn_vehicle', icon: '🚙', color: '#3b82f6' },
+  { key: 'boat',          labelKey: 'maps.ot.boat',          icon: '🚤', color: '#06b6d4', mapLabelKeys: { vikendi: { labelKey: 'maps.ot.boat_vikendi', icon: '🐻' } } },
+  { key: 'secret_room',   labelKey: 'maps.ot.secret_room',   icon: '🚪', color: '#a855f7', exclude: [], mapLabelKeys: { vikendi: { labelKey: 'maps.ot.secret_room_vikendi', icon: '🔑' } } },
+  { key: 'glider',        labelKey: 'maps.ot.glider',        icon: '🪂', color: '#10b981' },
 ]
+
+const HEADER_H = 58
 
 function getOverlayDisplay(type, mapId) {
   const ov = type.mapLabels?.[mapId]
   return { label: ov?.label ?? type.label, icon: ov?.icon ?? type.icon }
 }
 
-const HEADER_H = 58
-
 export default function MapsPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.isAdmin
+  const { t } = useT()
+
+  const OVERLAY_TYPES = OVERLAY_TYPE_DEFS.map((def) => ({
+    ...def,
+    label: t(def.labelKey),
+    mapLabels: def.mapLabelKeys
+      ? Object.fromEntries(
+          Object.entries(def.mapLabelKeys).map(([mapId, v]) => [mapId, { label: t(v.labelKey), icon: v.icon }])
+        )
+      : undefined,
+  }))
 
   const [selected, setSelected]             = useState(MAPS[0])
   const [activeOverlays, setActiveOverlays] = useState(new Set())
@@ -312,13 +287,13 @@ export default function MapsPage() {
       const failed = results.filter((r) => !r.ok)
       if (failed.length > 0) {
         const data = await failed[0].json()
-        setSaveError(data.error || '일부 저장 실패')
+        setSaveError(data.error || t('maps.save_fail'))
       } else {
         await fetchMarkers(selected.id)
         setPendingList([])
       }
     } catch {
-      setSaveError('네트워크 오류')
+      setSaveError(t('maps.net_error'))
     } finally {
       setSaving(false)
     }
@@ -327,7 +302,7 @@ export default function MapsPage() {
   // 마커 삭제
   const deleteMarker = async (id, e) => {
     e.stopPropagation()
-    if (!confirm('이 마커를 삭제할까요?')) return
+    if (!confirm(t('maps.delete_confirm'))) return
     await fetch(`/api/maps/markers/${id}`, { method: 'DELETE' })
     setDbMarkers((prev) => prev.filter((m) => m.id !== id))
   }
@@ -348,8 +323,8 @@ export default function MapsPage() {
   return (
     <Layout>
       <Head>
-        <title>맵 정보 — PK.GG</title>
-        <meta name="description" content="PUBG 배틀그라운드 맵 정보. 에란겔, 미라마, 비켄디, 태이고, 데스턴, 론도." />
+        <title>{t('maps.page_title')} — PK.GG</title>
+        <meta name="description" content={t('maps.meta_desc')} />
       </Head>
 
       {/* 다크 배경 전체 커버 */}
@@ -360,7 +335,7 @@ export default function MapsPage() {
         {/* 페이지 타이틀 */}
         <div className="flex-shrink-0 flex items-center justify-between py-0.5">
           <div>
-            <h1 className="text-lg font-black text-white leading-tight">맵 정보</h1>
+            <h1 className="text-lg font-black text-white leading-tight">{t('maps.page_title')}</h1>
           </div>
           {/* 관리자 전용 편집 모드 버튼 */}
           {isAdmin && (
@@ -373,7 +348,7 @@ export default function MapsPage() {
               }`}
             >
               <span>{editMode ? '✏️' : '⚙️'}</span>
-              {editMode ? '편집 모드 종료' : '관리자 편집'}
+              {editMode ? t('maps.edit_exit') : t('maps.admin_edit')}
             </button>
           )}
         </div>
@@ -382,7 +357,7 @@ export default function MapsPage() {
         {editMode && (
           <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-900/30 border border-red-700/50 text-xs text-red-300">
             <span className="text-base">✏️</span>
-            <span>오른쪽 패널에서 배치할 유형을 선택한 후, 맵을 클릭하여 마커를 추가하세요.</span>
+            <span>{t('maps.edit_banner')}</span>
           </div>
         )}
 
@@ -392,6 +367,7 @@ export default function MapsPage() {
           <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide justify-center">
             {MAPS.filter(m => m.mapSize !== 'small').map((map) => {
               const isActive = selected?.id === map.id
+              const mapName = t(`maps.${map.id}.name`)
               return (
                 <button
                   key={map.id}
@@ -405,7 +381,7 @@ export default function MapsPage() {
                 >
                   <Image
                     src={map.img}
-                    alt={map.name}
+                    alt={mapName}
                     fill
                     className="object-cover"
                     sizes="130px"
@@ -414,7 +390,7 @@ export default function MapsPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                   {isActive && <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-white shadow" />}
                   <div className="absolute bottom-2 left-2">
-                    <div className="text-white font-bold text-xs leading-tight">{map.name}</div>
+                    <div className="text-white font-bold text-xs leading-tight">{mapName}</div>
                     <div className="text-gray-300 text-[10px]">{map.size}</div>
                   </div>
                 </button>
@@ -423,9 +399,10 @@ export default function MapsPage() {
           </div>
           {/* 소형 맵 행 */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide justify-center items-center">
-            <span className="flex-shrink-0 text-[10px] text-gray-600 font-semibold uppercase tracking-wide">소형</span>
+            <span className="flex-shrink-0 text-[10px] text-gray-600 font-semibold uppercase tracking-wide">{t('maps.small_label')}</span>
             {MAPS.filter(m => m.mapSize === 'small').map((map) => {
               const isActive = selected?.id === map.id
+              const mapName = t(`maps.${map.id}.name`)
               return (
                 <button
                   key={map.id}
@@ -439,7 +416,7 @@ export default function MapsPage() {
                 >
                   <Image
                     src={map.img}
-                    alt={map.name}
+                    alt={mapName}
                     fill
                     className="object-cover"
                     sizes="100px"
@@ -448,7 +425,7 @@ export default function MapsPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                   {isActive && <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white shadow" />}
                   <div className="absolute bottom-1.5 left-2">
-                    <div className="text-white font-bold text-[11px] leading-tight">{map.name}</div>
+                    <div className="text-white font-bold text-[11px] leading-tight">{mapName}</div>
                     <div className="text-gray-300 text-[9px]">{map.size}</div>
                   </div>
                 </button>
@@ -457,9 +434,19 @@ export default function MapsPage() {
           </div>
         </div>
 
+        {/* 모바일 전용: 선택된 맵 기본 정보 */}
+        {selected && (
+          <div className="sm:hidden flex-shrink-0 flex items-center gap-3 px-3 py-2 rounded-xl bg-gray-900 border border-gray-700">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${selected.tagColor}`}>{t(selected.tagKey)}</span>
+            <span className="text-white font-bold text-sm">{t(`maps.${selected.id}.name`)}</span>
+            <span className="text-gray-400 text-xs">{selected.size}</span>
+            <span className="text-gray-500 text-xs ml-auto">{t('maps.max_players_label')} {selected.maxPlayers}{t('maps.max_players_unit')}</span>
+          </div>
+        )}
+
         {/* 맵 영역 + 오른쪽 사이드 패널 */}
         {selected && (
-          <div className="flex-1 min-h-0 flex gap-3 justify-center">
+          <div className="flex-1 min-h-0 flex gap-3 justify-center overflow-hidden">
 
             {/* ── 맵 이미지 영역 — 정사각형 비율 고정 ── */}
             <div
@@ -490,7 +477,7 @@ export default function MapsPage() {
               >
                 <img
                   src={selected.img}
-                  alt={selected.name}
+                  alt={t(`maps.${selected.id}.name`)}
                   className="w-full h-full object-contain"
                   draggable={false}
                 />
@@ -542,7 +529,7 @@ export default function MapsPage() {
                       onClick={(e) => { e.stopPropagation(); resetTransform() }}
                       className="bg-gray-900/85 text-white text-[11px] px-2.5 py-1 rounded-lg backdrop-blur-sm hover:bg-gray-700/90 transition-colors"
                     >
-                      ↺ 초기화
+                      {t('maps.reset')}
                     </button>
                   )}
                   <div className="bg-gray-900/85 text-gray-400 text-[11px] px-2.5 py-1 rounded-lg backdrop-blur-sm tabular-nums">
@@ -554,7 +541,7 @@ export default function MapsPage() {
               {/* 조작 힌트 */}
               {!editMode && transform.scale === 1 && (
                 <div className="absolute bottom-3 left-3 text-[10px] text-gray-600 z-10 pointer-events-none">
-                  스크롤로 확대 · 드래그로 이동 · 더블클릭으로 초기화
+                  {t('maps.controls_hint')}
                 </div>
               )}
 
@@ -579,26 +566,26 @@ export default function MapsPage() {
                     <>
                       <div className="flex items-center gap-2 bg-gray-900/95 border border-gray-600 rounded-xl px-3 py-2 shadow-xl backdrop-blur-sm">
                         <span className="text-yellow-400 text-xs">●</span>
-                        <span className="text-white text-xs font-bold">{pendingList.length}개</span>
-                        <span className="text-gray-400 text-xs">선택됨</span>
+                        <span className="text-white text-xs font-bold">{pendingList.length}</span>
+                        <span className="text-gray-400 text-xs">{t('maps.selected')}</span>
                         <button
                           onClick={confirmSave}
                           disabled={saving}
                           className="ml-1 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
                         >
-                          {saving ? '저장 중…' : `일괄 저장`}
+                          {saving ? t('maps.saving') : t('maps.save_all')}
                         </button>
                         <button
                           onClick={() => { setPendingList((p) => p.slice(0, -1)); setSaveError('') }}
                           className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors"
                         >
-                          ↩ 하나 취소
+                          {t('maps.undo_one')}
                         </button>
                         <button
                           onClick={() => { setPendingList([]); setSaveError('') }}
                           className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-500 text-xs rounded-lg transition-colors"
                         >
-                          전체 취소
+                          {t('maps.cancel_all')}
                         </button>
                       </div>
                       {saveError && (
@@ -609,7 +596,7 @@ export default function MapsPage() {
                     </>
                   ) : (
                     <div className="bg-gray-900/80 text-gray-500 text-[11px] px-3 py-1.5 rounded-xl backdrop-blur-sm pointer-events-none">
-                      맵을 클릭해 마커를 추가하세요 · 일괄 저장 가능
+                      {t('maps.edit_click_hint')}
                     </div>
                   )}
                 </div>
@@ -618,13 +605,13 @@ export default function MapsPage() {
               {/* 로딩 표시 */}
               {loadingMarkers && (
                 <div className="absolute top-3 left-3 z-20 bg-gray-900/80 text-gray-400 text-[11px] px-2 py-1 rounded-lg backdrop-blur-sm">
-                  로딩 중…
+                  {t('maps.loading')}
                 </div>
               )}
             </div>
 
-            {/* ── 오른쪽 사이드 패널 ── */}
-            <div className="flex-shrink-0 w-80 flex flex-col rounded-2xl border border-gray-700 overflow-hidden shadow-lg">
+            {/* ── 오른쪽 사이드 패널 (모바일에서 숨김) ── */}
+            <div className="hidden sm:flex flex-shrink-0 w-80 flex-col rounded-2xl border border-gray-700 overflow-hidden shadow-lg">
 
               {/* 맵 기본 정보 */}
               <div className="bg-gray-900 border-b border-gray-700 overflow-hidden flex-shrink-0">
@@ -632,57 +619,55 @@ export default function MapsPage() {
                 <div className="relative h-28">
                   <img
                     src={selected.img}
-                    alt={selected.name}
+                    alt={t(`maps.${selected.id}.name`)}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
                     <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${selected.tagColor}`}>
-                      {selected.tag}
+                      {t(selected.tagKey)}
                     </span>
-                    <div className="text-white font-black text-lg mt-0.5 leading-tight">{selected.name}</div>
+                    <div className="text-white font-black text-lg mt-0.5 leading-tight">{t(`maps.${selected.id}.name`)}</div>
                     <div className="text-gray-300 text-[11px]">{selected.nameEn}</div>
                   </div>
                 </div>
                 {/* 스탯 그리드 */}
                 <div className="px-4 py-3 grid grid-cols-2 gap-2">
                   <div className="bg-gray-800 rounded-lg px-3 py-2">
-                    <div className="text-[10px] text-gray-500 mb-0.5">맵 크기</div>
+                    <div className="text-[10px] text-gray-500 mb-0.5">{t('maps.map_size')}</div>
                     <div className="text-xs text-white font-bold flex items-center gap-1.5">
                       {selected.size}
                       {selected.mapSize === 'small' && (
-                        <span className="px-1 py-0.5 rounded text-[9px] bg-gray-700 text-gray-400 font-normal">소형</span>
+                        <span className="px-1 py-0.5 rounded text-[9px] bg-gray-700 text-gray-400 font-normal">{t('maps.small_label')}</span>
                       )}
                     </div>
                   </div>
                   <div className="bg-gray-800 rounded-lg px-3 py-2">
-                    <div className="text-[10px] text-gray-500 mb-0.5">최대 인원</div>
-                    <div className="text-xs text-white font-bold">{selected.maxPlayers}인</div>
+                    <div className="text-[10px] text-gray-500 mb-0.5">{t('maps.max_players_label')}</div>
+                    <div className="text-xs text-white font-bold">{selected.maxPlayers}{t('maps.max_players_unit')}</div>
                   </div>
                   <div className="col-span-2 bg-gray-800 rounded-lg px-3 py-2">
-                    <div className="text-[10px] text-gray-500 mb-0.5">지형</div>
-                    <div className="text-xs text-gray-300 leading-relaxed">{selected.terrain}</div>
+                    <div className="text-[10px] text-gray-500 mb-0.5">{t('maps.terrain_label')}</div>
+                    <div className="text-xs text-gray-300 leading-relaxed">{t(`maps.${selected.id}.terrain`)}</div>
                   </div>
-                  {selected.features?.length > 0 && (
-                    <div className="col-span-2 bg-gray-800 rounded-lg px-3 py-2">
-                      <div className="text-[10px] text-gray-500 mb-1.5">주요 특징</div>
-                      <ul className="space-y-1">
-                        {selected.features.map((f, i) => (
-                          <li key={i} className="flex items-start gap-1.5 text-xs text-gray-300">
-                            <span className="mt-0.5 flex-shrink-0 text-gray-600">▸</span>
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <div className="col-span-2 bg-gray-800 rounded-lg px-3 py-2">
+                    <div className="text-[10px] text-gray-500 mb-1.5">{t('maps.features_label')}</div>
+                    <ul className="space-y-1">
+                      {[1, 2, 3].map((n) => (
+                        <li key={n} className="flex items-start gap-1.5 text-xs text-gray-300">
+                          <span className="mt-0.5 flex-shrink-0 text-gray-600">▸</span>
+                          {t(`maps.${selected.id}.feat${n}`)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
 
               {/* 표시 옵션 / 편집 타입 선택 */}
               <div className="flex-1 px-4 py-3 bg-gray-800 flex flex-col gap-2 overflow-y-auto">
                 <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
-                  {editMode ? '배치 유형 선택' : '표시 옵션'}
+                  {editMode ? t('maps.place_type') : t('maps.display_options')}
                 </div>
                 {OVERLAY_TYPES.filter((type) => !type.exclude?.includes(selected.id)).map((type) => {
                   const count = dbMarkers.filter((m) => m.type === type.key).length
@@ -706,7 +691,7 @@ export default function MapsPage() {
                       <span className="flex-1 text-left">{displayLabel}</span>
                       {count > 0
                         ? <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white/30' : 'bg-gray-600 text-gray-500'}`}>{count}</span>
-                        : <span className="text-[10px] text-gray-600">{editMode ? '' : '준비중'}</span>
+                        : <span className="text-[10px] text-gray-600">{editMode ? '' : t('maps.coming_soon')}</span>
                       }
                     </button>
                   )
@@ -715,7 +700,7 @@ export default function MapsPage() {
                 {/* 편집 모드: 마커 총 개수 */}
                 {editMode && (
                   <div className="mt-2 text-xs text-gray-500 text-center">
-                    총 {dbMarkers.length}개 마커
+                    {dbMarkers.length}{t('maps.marker_count')}
                   </div>
                 )}
 
@@ -723,21 +708,21 @@ export default function MapsPage() {
                 {!editMode && (
                   <div className="mt-auto pt-3 flex items-start gap-1.5 text-[11px] text-gray-400 leading-relaxed">
                     <span className="mt-0.5 flex-shrink-0 text-yellow-500/70">⚠</span>
-                    <span>마커 위치는 실제와 오차가 있을 수 있습니다.</span>
+                    <span>{t('maps.marker_accuracy')}</span>
                   </div>
                 )}
               </div>
 
               {/* 설명 + 출처 */}
               <div className="px-4 py-3 bg-gray-900 border-t border-gray-700">
-                <p className="text-xs text-gray-500 leading-relaxed">{selected.desc}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{t(`maps.${selected.id}.desc`)}</p>
                 <a
                   href="https://pubg.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[11px] text-gray-600 hover:text-gray-400 underline mt-1.5 block"
                 >
-                  맵 이미지 출처: PUBG 공식
+                  {t('maps.image_source')}
                 </a>
               </div>
             </div>

@@ -70,9 +70,7 @@ const WEAPON_MAP = {
   Item_Weapon_Rhino_C:       { name: 'R45',         category: 'Pistol', img: 'Item_Weapon_Rhino_C.png' },
   Item_Weapon_Sawnoff_C:     { name: 'Sawed-Off',   category: 'Pistol', img: 'Item_Weapon_Sawnoff_C.png' },
   Item_Weapon_M9_C:          { name: 'P92',         category: 'Pistol', img: 'Item_Weapon_M9_C.png' },
-
-  // ── SMG (추가) ────────────────────────────────────────────────────
-  Item_Weapon_Skorpion_C:    { name: 'Skorpion',    category: 'SMG',      img: 'Item_Weapon_Skorpion_C.png' },
+  Item_Weapon_Skorpion_C:    { name: 'Skorpion',    category: 'Pistol', img: 'Item_Weapon_Skorpion_C.png' },
 
   // ── Special ───────────────────────────────────────────────────────
   Item_Weapon_Crossbow_C:    { name: 'Crossbow',    category: 'Special',  img: 'Item_Weapon_Crossbow_C.png' },

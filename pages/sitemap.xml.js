@@ -13,7 +13,6 @@ function generateSiteMap(clans) {
     { url: '/party',                changefreq: 'daily',   priority: '0.8' },
     { url: '/weapon-test',          changefreq: 'weekly',  priority: '0.8' },
     { url: '/weapon-damage',        changefreq: 'monthly', priority: '0.7' },
-    { url: '/weapon-meta',          changefreq: 'monthly', priority: '0.7' },
     { url: '/aim-trainer',          changefreq: 'monthly', priority: '0.7' },
     { url: '/sensitivity-analyzer', changefreq: 'monthly', priority: '0.7' },
     { url: '/recoil-pattern',       changefreq: 'monthly', priority: '0.7' },
