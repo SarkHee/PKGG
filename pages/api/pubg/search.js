@@ -97,11 +97,27 @@ async function findPlayerByName(name, pubgBase) {
 
 // 플랫폼 감지 결과를 기존 PlayerCache 레코드에 백필 (fire-and-forget)
 // 빈 스탯 레코드를 새로 생성하지 않음 — 신규 유저는 플레이어 페이지 방문 시 full 저장됨
-function savePlayerCache(accountId, nickname, shard) {
-  prisma.playerCache.updateMany({
-    where: { nickname: { equals: nickname, mode: 'insensitive' } },
-    data:  { pubgPlayerId: accountId, pubgShardId: shard, lastUpdated: new Date() },
-  }).catch(e => console.warn('[search] PlayerCache 백필 실패:', e.message))
+async function savePlayerCache(accountId, nickname, shard) {
+  try {
+    // 올바른 shard 레코드가 이미 있는지 확인
+    const correctRecord = await prisma.playerCache.findFirst({
+      where: { pubgPlayerId: accountId, pubgShardId: shard },
+    })
+    if (correctRecord) {
+      // 올바른 레코드 있음 → 잘못된 shard 레코드만 삭제
+      await prisma.playerCache.deleteMany({
+        where: { pubgPlayerId: accountId, pubgShardId: { not: shard } },
+      })
+    } else {
+      // 없음 → 기존 레코드 shard 수정 (unique 충돌 없이 안전하게)
+      await prisma.playerCache.updateMany({
+        where: { pubgPlayerId: accountId },
+        data: { pubgShardId: shard, lastUpdated: new Date() },
+      })
+    }
+  } catch (e) {
+    console.warn('[search] PlayerCache shard 수정 실패:', e.message)
+  }
 }
 
 async function getClanInfo(nickname) {
@@ -226,18 +242,31 @@ export default async function handler(req, res) {
       })
 
       if (dbRows.length > 0) {
-        // DB hit → 정확한 케이스로 직접 반환 (PUBG API 불필요)
         if (await isRestricted(dbRows[0].nickname)) {
           return res.json({ results: [] })
         }
-        const byId = new Map()
-        for (const u of dbRows) {
-          if (!byId.has(u.pubgPlayerId))
-            byId.set(u.pubgPlayerId, { shard: u.pubgShardId, nickname: u.nickname, accountId: u.pubgPlayerId, matchCount: 0 })
+        // DB hit여도 PUBG API로 실제 shard 확인 — 잘못 저장된 shard 즉시 수정
+        const correctName = dbRows[0].nickname
+        const apiFound = await findPlayerByName(correctName, PUBG_BASE)
+        if (apiFound.length > 0) {
+          found = apiFound
+          for (const p of apiFound) {
+            const dbEntry = dbRows.find(u => u.pubgPlayerId === p.accountId)
+            if (dbEntry && dbEntry.pubgShardId !== p.shard) {
+              savePlayerCache(p.accountId, p.nickname, p.shard)
+            }
+          }
+        } else {
+          // PUBG API 실패 → DB 데이터 fallback
+          const byId = new Map()
+          for (const u of dbRows) {
+            if (!byId.has(u.pubgPlayerId))
+              byId.set(u.pubgPlayerId, { shard: u.pubgShardId, nickname: u.nickname, accountId: u.pubgPlayerId, matchCount: 0 })
+          }
+          found = [...byId.values()]
         }
-        found = [...byId.values()]
       } else {
-        // DB 미스 → PUBG API (정확한 케이스 필요 — 대소문자 틀리면 못 찾을 수 있음)
+        // DB 미스 → PUBG API
         found = await findPlayerByName(name, PUBG_BASE)
         for (const p of found) savePlayerCache(p.accountId, p.nickname, p.shard)
       }
@@ -247,7 +276,7 @@ export default async function handler(req, res) {
 
     // ── Step 2: DB 스탯 보강 + 결과 조합 ────────────────────────────────
     const results = await Promise.all(found.map(async entry => {
-      const { accountId, shard, nickname: nick, matchCount } = entry
+      const { accountId, shard: apiShard, nickname: nick, matchCount } = entry
 
       // DB에서 accountId 또는 닉네임으로 스탯 조회
       const cache = await prisma.playerCache.findFirst({
@@ -265,11 +294,17 @@ export default async function handler(req, res) {
         },
       })
 
-      // accountId·shard 백필 — 잘못된 shard도 함께 수정 (fire-and-forget)
-      if (cache?.id && (!cache.pubgPlayerId || cache.pubgShardId !== shard)) {
+      // PUBG 플레이어 검색 API는 cross-play로 인해 shardId가 부정확함
+      // → DB에 accountId 일치 레코드가 있으면 DB shard 우선 (seed가 시즌 API 404로 정확히 감지)
+      const shard = (cache?.pubgPlayerId === accountId && cache.pubgShardId)
+        ? cache.pubgShardId
+        : apiShard
+
+      // accountId 백필만 수행 — shard는 덮어쓰지 않음
+      if (cache?.id && !cache.pubgPlayerId) {
         prisma.playerCache.update({
           where: { id: cache.id },
-          data: { pubgPlayerId: accountId, pubgShardId: shard, nickname: nick },
+          data: { pubgPlayerId: accountId, nickname: nick },
         }).catch(() => {})
       }
 

@@ -186,7 +186,6 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
         pubgShardId: shard,
         score: summary?.score || 0,
         style: summary?.playstyle || summary?.style || '',
-        avgDamage: summary?.avgDamage || 0,
         avgKills: summary?.avgKills || 0,
         avgAssists: summary?.avgAssists || 0,
         avgSurviveTime: summary?.avgSurviveTime || 0,
@@ -194,10 +193,12 @@ async function savePlayerToDatabase(pubgPlayer, shard, pubgClan, summary, matche
         top10Rate: summary?.top10Rate || 0,
         lastUpdated: new Date(),
       };
+      // avgDamage가 실제로 있으면 업데이트, 없으면(-1 포함) 기존 값 유지
+      if ((summary?.avgDamage || 0) > 0) cacheData.avgDamage = summary.avgDamage
       await prisma.playerCache.upsert({
         where: { nickname_pubgShardId: { nickname, pubgShardId: shard } },
         update: cacheData,
-        create: { nickname, ...cacheData },
+        create: { nickname, avgDamage: summary?.avgDamage || 0, ...cacheData },
       });
       console.log(`✅ PlayerCache 저장: ${nickname} (${shard})`);
     } catch (cacheErr) {
@@ -779,6 +780,101 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
 
   const [activeTab, setActiveTab] = useState('overall')
 
+  // isBanned / error 체크는 pageLoading/playerData 체크보다 먼저 와야 함
+  // (isBanned=true일 때 playerData=null이므로 !playerData 조건에 걸려 스켈레톤만 보임)
+  if (isBanned) {
+    return (
+      <>
+        <Header />
+        <div className="container mx-auto p-6 min-h-screen">
+          <div className="max-w-2xl mx-auto mt-20">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-red-300 dark:border-red-700 shadow-lg text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">⚠️</span>
+                </div>
+                <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
+                  정지된 계정입니다
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  이 플레이어는 PUBG 서비스 이용이 제한된 계정입니다.
+                </p>
+              </div>
+              <button
+                onClick={() => router.push('/')}
+                className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+              >
+                메인으로
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Header />
+        <div className="container mx-auto p-6 bg-gradient-to-br from-white dark:from-gray-900 via-gray-50 dark:via-gray-900 to-blue-50 dark:to-gray-950 min-h-screen">
+          <div className="max-w-2xl mx-auto mt-20">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">🔍</span>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                  {error === '등록되지 않은 유저입니다' ? '등록되지 않은 유저입니다' : '플레이어를 찾을 수 없습니다'}
+                </h1>
+                <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+                  {error === '등록되지 않은 유저입니다'
+                    ? 'PUBG에 존재하지 않거나 아직 PKGG에 등록되지 않은 플레이어입니다.'
+                    : 'PKGG에 등록되어있지않은 플레이어입니다.'}
+                </p>
+                <p className="text-base text-gray-500 dark:text-gray-400">
+                  닉네임 확인 후 다시 검색해주세요.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">
+                    💡 검색 팁
+                  </h3>
+                  <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 text-left">
+                    <li>• 정확한 닉네임을 입력했는지 확인해주세요</li>
+                    <li>• 대소문자, 특수문자를 정확히 입력해주세요</li>
+                    <li>
+                      • 올바른 플랫폼(Steam/Kakao/Console)을 선택했는지
+                      확인해주세요
+                    </li>
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() => router.push('/?searchFailed=true')}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                >
+                  다시 검색하기
+                </button>
+              </div>
+
+              <details className="mt-6 text-left">
+                <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
+                  기술적 오류 정보 보기
+                </summary>
+                <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400 font-mono">
+                  {error}
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   if (pageLoading || !playerData) {
     return (
       <>
@@ -1040,125 +1136,6 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
       setCooldown(30);
     });
   };
-
-  if (isBanned) {
-    return (
-      <>
-        <Header />
-        <div className="container mx-auto p-6 min-h-screen">
-          <div className="max-w-2xl mx-auto mt-20">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-red-300 dark:border-red-700 shadow-lg text-center">
-              <div className="mb-6">
-                <div className="w-20 h-20 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl">⚠️</span>
-                </div>
-                <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
-                  정지된 계정입니다
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400">
-                  이 플레이어는 PUBG 서비스 이용이 제한된 계정입니다.
-                </p>
-              </div>
-              <button
-                onClick={() => router.push('/')}
-                className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
-              >
-                메인으로
-              </button>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  if (error) {
-    return (
-      <>
-        <Header />
-        <div className="container mx-auto p-6 bg-gradient-to-br from-white dark:from-gray-900 via-gray-50 dark:via-gray-900 to-blue-50 dark:to-gray-950 min-h-screen">
-          <div className="max-w-2xl mx-auto mt-20">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-lg text-center">
-              <div className="mb-6">
-                <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl">🔍</span>
-                </div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  플레이어를 찾을 수 없습니다
-                </h1>
-                <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                  PKGG에 등록되어있지않은 플레이어입니다.
-                </p>
-                <p className="text-base text-gray-500 dark:text-gray-400">
-                  닉네임확인 후 다시 검색해주세요.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">
-                    💡 검색 팁
-                  </h3>
-                  <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 text-left">
-                    <li>• 정확한 닉네임을 입력했는지 확인해주세요</li>
-                    <li>• 대소문자, 특수문자를 정확히 입력해주세요</li>
-                    <li>
-                      • 올바른 플랫폼(Steam/Kakao/Console)을 선택했는지
-                      확인해주세요
-                    </li>
-                  </ul>
-                </div>
-
-                <button
-                  onClick={() => router.push('/?searchFailed=true')}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-                >
-                  다시 검색하기
-                </button>
-              </div>
-
-              {/* 기술적 오류 정보 (개발자용) */}
-              <details className="mt-6 text-left">
-                <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
-                  기술적 오류 정보 보기
-                </summary>
-                <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400 font-mono">
-                  {error}
-                </div>
-              </details>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  if (!playerData) {
-    return (
-      <>
-        <Header />
-        <div className="container mx-auto p-4 text-center mt-20">
-          {error ? (
-            <>
-              <p className="text-xl font-bold text-red-500 mb-2">플레이어를 찾을 수 없습니다</p>
-              <p className="text-gray-400 mb-6">{error}</p>
-              <button
-                onClick={() => router.back()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                뒤로 가기
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-lg text-gray-600 dark:text-gray-400">플레이어 데이터를 불러오는 중입니다...</p>
-              <div className="mt-4 animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            </>
-          )}
-        </div>
-      </>
-    );
-  }
 
   // 구조 분해 - 표시할 데이터 사용 (안전한 기본값 설정)
   const {
@@ -2125,7 +2102,7 @@ async function getPlayerFromDB(nickname, server) {
     });
 
     // 정지 계정 체크 (캐시 신선도와 무관하게 먼저 처리)
-    if (cached?.isBanned) return { __banned: true }
+    if (cached?.isBanned) return { __banned: true, __bannedNick: cached.nickname, __bannedPlayerId: cached.pubgPlayerId }
 
     if (cached) {
       const hoursSince = (Date.now() - new Date(cached.lastUpdated).getTime()) / 3600000;
@@ -2356,6 +2333,33 @@ export async function getServerSideProps({ params, query }) {
     if (!forceRefresh) {
       const cached = await getPlayerFromDB(nickname, server);
       if (cached?.__banned) {
+        // 이미 banned 상태지만 클랜 데이터가 남아있을 수 있으므로 정리
+        const bannedNick = cached.__bannedNick || nickname
+        const bannedPlayerId = cached.__bannedPlayerId || null
+        const cmWhere = bannedPlayerId
+          ? { pubgPlayerId: bannedPlayerId }
+          : { nickname: { equals: bannedNick, mode: 'insensitive' } }
+        try {
+          const members = await prisma.clanMember.findMany({ where: cmWhere, select: { clanId: true } })
+          const clanIds = [...new Set(members.map((m) => m.clanId).filter(Boolean))]
+          if (members.length > 0) {
+            await prisma.clanMember.deleteMany({ where: cmWhere })
+            await prisma.clan.updateMany({
+              where: { leader: { equals: bannedNick, mode: 'insensitive' } },
+              data: { leader: '' },
+            })
+            for (const clanId of clanIds) {
+              const count = await prisma.clanMember.count({ where: { clanId } })
+              await prisma.clan.update({
+                where: { id: clanId },
+                data: { memberCount: count, ...(count === 0 ? { avgScore: 0 } : {}) },
+              })
+            }
+            console.log(`[SSR] 🧹 기존 정지 계정 클랜 잔여 데이터 정리: ${bannedNick}`)
+          }
+        } catch (e) {
+          console.warn('[SSR] 정지 계정 클랜 정리 실패:', e.message)
+        }
         return { props: { playerData: null, error: null, isBanned: true, dataSource: null } };
       }
       if (cached) {
@@ -2542,7 +2546,50 @@ export async function getServerSideProps({ params, query }) {
     }
 
     if (!pubgPlayer) {
-      throw new Error(`플레이어를 찾을 수 없습니다: ${nickname}`);
+      // DB에 등록된 유저인지 확인 → 있으면 정지 계정으로 처리
+      try {
+        const dbRecord = await prisma.playerCache.findFirst({
+          where: { nickname: { equals: nickname, mode: 'insensitive' } },
+          select: { id: true, pubgPlayerId: true, pubgShardId: true, banCheckFailCount: true },
+        })
+        if (dbRecord) {
+          // DB에는 있지만 PUBG API 404 → 정지 계정으로 판정
+          const newCount = (dbRecord.banCheckFailCount ?? 0) + 1
+          await prisma.playerCache.update({
+            where: { id: dbRecord.id },
+            data: { banCheckFailCount: newCount, isBanned: true, bannedAt: new Date() },
+          })
+          console.warn(`[SSR] 🚫 정지 계정 감지 (페이지 방문): ${nickname}`)
+          // 클랜 관련 데이터 정리 (ClanMember 삭제 + memberCount 재계산 + 리더 초기화)
+          try {
+            const cmWhere = dbRecord.pubgPlayerId
+              ? { pubgPlayerId: dbRecord.pubgPlayerId }
+              : { nickname: { equals: nickname, mode: 'insensitive' } }
+            const members = await prisma.clanMember.findMany({ where: cmWhere, select: { clanId: true } })
+            const clanIds = [...new Set(members.map((m) => m.clanId).filter(Boolean))]
+            await prisma.clanMember.deleteMany({ where: cmWhere })
+            await prisma.clan.updateMany({
+              where: { leader: { equals: nickname, mode: 'insensitive' } },
+              data: { leader: '' },
+            })
+            for (const clanId of clanIds) {
+              const count = await prisma.clanMember.count({ where: { clanId } })
+              await prisma.clan.update({
+                where: { id: clanId },
+                data: { memberCount: count, ...(count === 0 ? { avgScore: 0 } : {}) },
+              })
+            }
+            console.log(`[SSR] 🧹 정지 계정 클랜 데이터 정리: ${nickname}`)
+          } catch (cleanErr) {
+            console.warn('[SSR] 클랜 정리 실패:', cleanErr.message)
+          }
+          return { props: { playerData: null, error: null, isBanned: true, dataSource: null } }
+        }
+      } catch (dbErr) {
+        console.warn('[SSR] 정지 여부 DB 확인 실패:', dbErr.message)
+      }
+      // DB에도 없으면 완전히 미등록 유저
+      return { props: { playerData: null, error: '등록되지 않은 유저입니다', isBanned: false, dataSource: null } }
     }
 
     // Step 2: 클랜 + 시즌 목록 병렬 조회 (캐시 + 중복제거 적용)

@@ -42,6 +42,66 @@ export default function AdminDashboard() {
   const [restrictedForm,   setRestrictedForm]   = useState({ nickname: '', type: 'search_restricted', reason: '' });
   const [restrictedAdding, setRestrictedAdding] = useState(false);
 
+  // 배치 실행
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchResult,  setBatchResult]  = useState(null);
+
+  // 신규 등록 유저
+  const [newUsers,        setNewUsers]        = useState([]);
+  const [newUsersLoading, setNewUsersLoading] = useState(false);
+  const [newUsersDate,    setNewUsersDate]    = useState(() => {
+    const kst = new Date(Date.now() + 9 * 3600000);
+    return kst.toISOString().split('T')[0];
+  });
+  const [newUsersTotal,   setNewUsersTotal]   = useState(0);
+  const [newUsersPage,    setNewUsersPage]    = useState(1);
+  const [seedRunning,     setSeedRunning]     = useState(false);
+  const [seedResult,      setSeedResult]      = useState(null);
+  const [newUsersStatus,  setNewUsersStatus]  = useState('all'); // all | unset | noSeason | normal | banned
+  const [cronLog,         setCronLog]         = useState(null);
+
+  const runSeedUsers = async (type = 'all') => {
+    if (seedRunning) return;
+    setSeedRunning(true);
+    setSeedResult(null);
+    try {
+      const res = await fetch(`/api/admin/seed-users?type=${type}`, {
+        method: 'POST',
+        headers: { 'x-admin-token': password || '' },
+      });
+      const data = await res.json();
+      setSeedResult(data);
+      // 완료 후 목록 새로고침
+      const r2 = await fetch(`/api/admin/new-users?date=${newUsersDate}&page=${newUsersPage}&status=${newUsersStatus}`, { headers: { 'x-admin-token': adminPw() } });
+      const d2 = await r2.json();
+      setNewUsers(d2.users || []);
+      setNewUsersTotal(d2.total || 0);
+      setCronLog(d2.cronLog || null);
+    } catch (e) {
+      setSeedResult({ error: e.message });
+    } finally {
+      setSeedRunning(false);
+    }
+  };
+
+  const runBatch = async () => {
+    if (batchRunning) return;
+    setBatchRunning(true);
+    setBatchResult(null);
+    try {
+      const res = await fetch('/api/admin/run-batch', {
+        method: 'POST',
+        headers: { 'x-admin-token': password || '' },
+      });
+      const data = await res.json();
+      setBatchResult(data);
+    } catch (e) {
+      setBatchResult({ error: e.message });
+    } finally {
+      setBatchRunning(false);
+    }
+  };
+
   // 저장된 인증 복원
   useEffect(() => {
     const saved = sessionStorage.getItem('admin_authed');
@@ -124,6 +184,17 @@ export default function AdminDashboard() {
       .catch(() => setUsers([]))
       .finally(() => setUsersLoading(false));
   }, [isAuthed, tab]);
+
+  // 신규 등록 유저 로드
+  useEffect(() => {
+    if (!isAuthed || tab !== 'newUsers') return;
+    setNewUsersLoading(true);
+    fetch(`/api/admin/new-users?date=${newUsersDate}&page=${newUsersPage}&status=${newUsersStatus}`, { headers: { 'x-admin-token': adminPw() } })
+      .then((r) => r.json())
+      .then((d) => { setNewUsers(d.users || []); setNewUsersTotal(d.total || 0); setCronLog(d.cronLog || null); })
+      .catch(() => setNewUsers([]))
+      .finally(() => setNewUsersLoading(false));
+  }, [isAuthed, tab, newUsersDate, newUsersPage, newUsersStatus]);
 
   // 로그인
   const handleLogin = async (e) => {
@@ -256,6 +327,8 @@ export default function AdminDashboard() {
               { key: 'leaderRequests', label: '👑 리더 변경 요청' },
               { key: 'users',          label: '👤 구글 로그인 유저' },
               { key: 'restricted',     label: '🚫 검색 제한' },
+              { key: 'batch',          label: '⚙️ 배치 실행' },
+              { key: 'newUsers',       label: '🆕 신규 유저' },
             ].map((t) => (
               <button
                 key={t.key}
@@ -543,6 +616,284 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* 배치 실행 탭 */}
+          {tab === 'batch' && (
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <h1 className="text-xl font-bold">⚙️ 배치 실행</h1>
+              </div>
+
+              <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 mb-6">
+                <h2 className="text-sm font-bold text-white mb-1">텔레메트리 배치</h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  유저 스탯 갱신 · 팀원 자동 등록 · 신규 유저 스탯 채우기<br />
+                  매일 새벽 2시 자동 실행 / 여기서 수동 실행 가능 (소요 약 2~3분)
+                </p>
+                <button
+                  onClick={runBatch}
+                  disabled={batchRunning}
+                  className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-colors ${
+                    batchRunning
+                      ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white'
+                  }`}
+                >
+                  {batchRunning ? '⏳ 실행 중...' : '▶ 지금 실행'}
+                </button>
+              </div>
+
+              {batchResult && (
+                <div className={`rounded-xl border p-6 ${batchResult.error ? 'border-red-700 bg-red-900/20' : 'border-green-700 bg-green-900/20'}`}>
+                  {batchResult.error ? (
+                    <p className="text-red-400 text-sm">❌ 오류: {batchResult.error}</p>
+                  ) : (
+                    <>
+                      <p className="text-green-400 font-bold mb-4">✅ 완료 ({batchResult.elapsedSec}초)</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {[
+                          { label: '대상 유저',     value: batchResult.total },
+                          { label: '처리 유저',     value: batchResult.usersProcessed },
+                          { label: '분석 경기',     value: batchResult.analyzed },
+                          { label: '스킵',          value: batchResult.skipped },
+                          { label: '팀원 신규 등록', value: batchResult.teammateSaved },
+                          { label: '신규 스탯 채움', value: batchResult.seedUpdated },
+                          { label: '클랜 자동 등록', value: batchResult.clanAutoRegistered },
+                          { label: '정지 감지',     value: batchResult.bannedDetected },
+                          { label: '타임아웃',      value: batchResult.timedOut ? '⚠️ 예' : '없음' },
+                        ].map((item) => (
+                          <div key={item.label} className="bg-gray-800 rounded-lg px-4 py-3">
+                            <div className="text-xs text-gray-500 mb-1">{item.label}</div>
+                            <div className="text-lg font-bold text-white">{item.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 신규 등록 유저 탭 */}
+          {tab === 'newUsers' && (
+            <div>
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
+                <h1 className="text-xl font-bold">🆕 신규 등록 유저</h1>
+                <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">총 {newUsersTotal}명</span>
+              </div>
+
+              {/* 날짜 칩 필터 (오늘 포함 최근 14일) */}
+              <div className="flex gap-1.5 flex-wrap mb-3">
+                {Array.from({ length: 14 }, (_, i) => {
+                  const d = new Date(Date.now() + 9 * 3600000);
+                  d.setUTCDate(d.getUTCDate() - i);
+                  const dateStr = d.toISOString().split('T')[0];
+                  const label = i === 0 ? '오늘' : `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+                  return (
+                    <button
+                      key={dateStr}
+                      onClick={() => { setNewUsersDate(dateStr); setNewUsersPage(1); }}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                        newUsersDate === dateStr ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* 상태 필터 + 필터별 액션 버튼 */}
+              <div className="flex items-center gap-2 flex-wrap mb-3">
+                {[
+                  { key: 'all',      label: '전체' },
+                  { key: 'unset',    label: '미초기화' },
+                  { key: 'noSeason', label: '시즌없음' },
+                  { key: 'normal',   label: '정상' },
+                  { key: 'banned',   label: '정지' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setNewUsersStatus(key); setNewUsersPage(1); }}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      newUsersStatus === key ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+                <div className="ml-auto flex gap-2">
+                  {newUsersStatus === 'unset' && (
+                    <button
+                      onClick={() => runSeedUsers('unset')}
+                      disabled={seedRunning}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                        seedRunning ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 text-white'
+                      }`}
+                    >
+                      {seedRunning ? '⏳ 처리 중...' : '🔄 스탯 채우기'}
+                    </button>
+                  )}
+                  {newUsersStatus === 'noSeason' && (
+                    <button
+                      onClick={() => runSeedUsers('noSeason')}
+                      disabled={seedRunning}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                        seedRunning ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500 text-white'
+                      }`}
+                    >
+                      {seedRunning ? '⏳ 처리 중...' : '🔍 플랫폼 재확인 + 재시도'}
+                    </button>
+                  )}
+                  {newUsersStatus === 'all' && (
+                    <button
+                      onClick={() => runSeedUsers('all')}
+                      disabled={seedRunning}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                        seedRunning ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 text-white'
+                      }`}
+                    >
+                      {seedRunning ? '⏳ 처리 중...' : '🔄 미초기화 스탯 채우기'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* 텔레메트리 배치 로그 */}
+              {cronLog ? (
+                <div className={`rounded-xl border px-4 py-2.5 mb-3 text-xs flex items-center gap-3 ${
+                  cronLog.status === 'success' ? 'border-green-800 bg-green-900/10 text-green-400'
+                  : cronLog.status === 'partial' ? 'border-yellow-800 bg-yellow-900/10 text-yellow-400'
+                  : 'border-gray-700 bg-gray-800/50 text-gray-400'
+                }`}>
+                  <span className="font-bold">🤖 새벽 2시 텔레메트리</span>
+                  <span>{cronLog.status === 'success' ? '✅ 완료' : cronLog.status === 'partial' ? '⚠️ 부분완료' : '❌ 실패'}</span>
+                  {(() => {
+                    try {
+                      const d = JSON.parse(cronLog.details || '{}');
+                      return (
+                        <span className="text-gray-400">
+                          경기분석 {d.analyzed ?? 0}건 · 스탯채움 {d.seedUpdated ?? 0}명 · 팀원등록 {d.teammateSaved ?? 0}명
+                          {d.shardFixed > 0 && ` · 플랫폼수정 ${d.shardFixed}명`}
+                        </span>
+                      );
+                    } catch { return null; }
+                  })()}
+                  <span className="ml-auto text-gray-600">
+                    {new Date(cronLog.updateTime).toLocaleString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-gray-800 px-4 py-2 mb-3 text-xs text-gray-600">
+                  🤖 이 날짜의 텔레메트리 실행 기록 없음
+                </div>
+              )}
+
+              {seedResult && (
+                <div className={`rounded-xl border px-4 py-3 mb-4 text-sm ${seedResult.error ? 'border-red-700 bg-red-900/20 text-red-400' : 'border-green-700 bg-green-900/20 text-green-400'}`}>
+                  {seedResult.error
+                    ? `❌ 오류: ${seedResult.error}`
+                    : <>
+                        <div>{`✅ 완료 — 대상 ${seedResult.total}명 중 ${seedResult.updated}명 스탯 채움 (${seedResult.elapsedSec}초)`}</div>
+                        {seedResult.shardFixed > 0 && <div className="mt-1 text-xs text-blue-400">· 플랫폼 오류 자동 수정: {seedResult.shardFixed}명 (Steam↔카카오)</div>}
+                        {seedResult.skipped > 0 && (
+                          <div className="mt-1 text-xs text-gray-400 space-y-0.5">
+                            {seedResult.skipNoRounds > 0 && <div>· 이번 시즌 플레이 없음: {seedResult.skipNoRounds}명</div>}
+                            {seedResult.skipApi > 0 && <div>· API 오류 (HTTP {seedResult.sampleApiStatus}): {seedResult.skipApi}명</div>}
+                            {seedResult.skipErr > 0 && <div>· 예외: {seedResult.skipErr}명 {seedResult.sampleException ? `(${seedResult.sampleException})` : ''}</div>}
+                          </div>
+                        )}
+                      </>
+                  }
+                </div>
+              )}
+
+              {newUsersLoading ? (
+                <div className="space-y-2">
+                  {[...Array(8)].map((_, i) => <div key={i} className="h-12 bg-gray-800 rounded-xl animate-pulse" />)}
+                </div>
+              ) : newUsers.length === 0 ? (
+                <div className="bg-gray-900 rounded-xl border border-gray-700 p-8 text-center text-gray-500">
+                  해당 기간 신규 등록 유저가 없습니다.
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-gray-500 border-b border-gray-800">
+                          <th className="text-left py-2 px-3">닉네임</th>
+                          <th className="text-left py-2 px-3">플랫폼</th>
+                          <th className="text-left py-2 px-3">클랜</th>
+                          <th className="text-right py-2 px-3">평균딜</th>
+                          <th className="text-right py-2 px-3">판수</th>
+                          <th className="text-right py-2 px-3">PK점수</th>
+                          <th className="text-right py-2 px-3">등록일</th>
+                          <th className="text-center py-2 px-3">상태</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800">
+                        {newUsers.map((u) => (
+                          <tr key={u.id} className="hover:bg-gray-800/50 transition-colors">
+                            <td className="py-2 px-3 font-medium text-white">{u.nickname}</td>
+                            <td className="py-2 px-3 text-gray-400 text-xs">{u.pubgShardId === 'kakao' ? '카카오' : 'Steam'}</td>
+                            <td className="py-2 px-3 text-xs">
+                              {u.clan
+                                ? <span className="text-purple-400">{u.clan.pubgClanTag ? `[${u.clan.pubgClanTag}] ` : ''}{u.clan.name}</span>
+                                : <span className="text-gray-700">-</span>
+                              }
+                            </td>
+                            <td className="py-2 px-3 text-right text-gray-300">
+                              {u.avgDamage > 0 ? Math.round(u.avgDamage) : u.avgDamage === -1 ? <span className="text-yellow-600 text-xs">시즌없음</span> : '-'}
+                            </td>
+                            <td className="py-2 px-3 text-right text-gray-400">{u.roundsPlayed || 0}</td>
+                            <td className="py-2 px-3 text-right text-yellow-400 font-bold">{u.score > 0 ? u.score.toLocaleString() : '-'}</td>
+                            <td className="py-2 px-3 text-right text-gray-500 text-xs">
+                              {new Date(u.lastUpdated).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="py-2 px-3 text-center">
+                              {u.isBanned
+                                ? <span className="text-xs text-red-400 bg-red-900/30 px-2 py-0.5 rounded-full">정지</span>
+                                : u.avgDamage === -1
+                                  ? <span className="text-xs text-yellow-500 bg-yellow-900/20 px-2 py-0.5 rounded-full">시즌없음</span>
+                                  : u.avgDamage === 0
+                                    ? <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">미초기화</span>
+                                    : <span className="text-xs text-green-400 bg-green-900/30 px-2 py-0.5 rounded-full">정상</span>
+                              }
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* 페이지네이션 */}
+                  {newUsersTotal > 50 && (
+                    <div className="flex gap-2 justify-center mt-4">
+                      <button
+                        onClick={() => setNewUsersPage((p) => Math.max(1, p - 1))}
+                        disabled={newUsersPage === 1}
+                        className="px-4 py-1.5 rounded-lg text-sm bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40"
+                      >
+                        이전
+                      </button>
+                      <span className="px-4 py-1.5 text-sm text-gray-400">
+                        {newUsersPage} / {Math.ceil(newUsersTotal / 50)}
+                      </span>
+                      <button
+                        onClick={() => setNewUsersPage((p) => p + 1)}
+                        disabled={newUsersPage >= Math.ceil(newUsersTotal / 50)}
+                        className="px-4 py-1.5 rounded-lg text-sm bg-gray-800 text-gray-400 hover:text-white disabled:opacity-40"
+                      >
+                        다음
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

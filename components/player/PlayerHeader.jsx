@@ -115,7 +115,7 @@ const PlayerHeader = ({
   };
 
   // ── 시즌 통계 전체 모드 통합 집계 (이벤트 모드 제외) ──
-  const SEASON_NORMAL_MODES = new Set(['squad', 'squad-fpp', 'duo', 'duo-fpp', 'solo', 'solo-fpp', 'ranked-squad', 'ranked-squad-fpp', 'ranked-duo', 'ranked-duo-fpp', 'ranked-solo', 'ranked-solo-fpp'])
+  const SEASON_NORMAL_MODES = new Set(['squad', 'squad-fpp', 'duo', 'duo-fpp', 'solo', 'solo-fpp'])
   const seasonData = Object.values(seasonStats || {})[0] || {};
   let tR = 0, tW = 0, tT10 = 0, tDmg = 0, tKills = 0, tAssists = 0, tSurvival = 0;
   for (const [modeKey, ms] of Object.entries(seasonData)) {
@@ -147,16 +147,8 @@ const PlayerHeader = ({
       avgSurviveTime: combinedStat.avgSurvival,
     });
   }
-  // combinedStat가 없으면 summary 데이터로 폴백
-  const seasonStat = combinedStat || (summary?.avgDamage ? {
-    rounds:      summary.roundsPlayed || 0,
-    avgDamage:   Math.round(summary.avgDamage || 0),
-    avgKills:    parseFloat((summary.avgKills || 0).toFixed(2)),
-    winRate:     parseFloat((summary.winRate || 0).toFixed(1)),
-    top10Rate:   parseFloat((summary.top10Rate || 0).toFixed(1)),
-    avgSurvival: Math.round(summary.avgSurviveTime || 0),
-    score:       calculateMMR(summary),
-  } : null);
+  // combinedStat가 없으면 (일반전 없음) null — 경쟁전만 한 유저는 경쟁전 카드만 표시
+  const seasonStat = combinedStat || null;
 
   // PKGG 점수: mmr prop (경쟁전 포함 서버사이드 계산값) 우선, 없으면 시즌 일반전 기준 계산
   const displayMmr = mmr || calculateSeasonMMR(seasonData) || 1000;

@@ -10,7 +10,7 @@ const MAX_MS           = 250_000  // 250초 안전 마진 (Vercel Pro 300s 기�
 const MAX_MATCHES      = 50       // 실행당 최대 처리 경기 수
 const MATCHES_PER_USER = 5        // 유저당 최대 경기 수
 const STALE_DAYS = 5 // 마지막 갱신 후 5일 이상 지난 유저만 대상
-const MAX_SEED_USERS   = 30       // 2차 루프: 시즌 스탯 초기화 최대 처리 수
+const MAX_SEED_USERS   = 150      // 2차 루프: 신규 유저 스탯 채우기 최대 처리 수
 
 // ── 현재 시즌 ID 조회 (인메모리 30분 캐시) ────────────────────────────────
 let _seasonCache = null
@@ -126,6 +126,39 @@ async function autoRegisterClanTeammates(shard, myAccountId, teammateIds) {
   return count
 }
 
+// ── 밴 확정 시 클랜 관련 데이터 정리 ────────────────────────────────────
+async function cleanupBannedUser(nickname, accountId) {
+  try {
+    const where = accountId
+      ? { pubgPlayerId: accountId }
+      : { nickname: { equals: nickname, mode: 'insensitive' } }
+
+    // 삭제 전 소속 clanId 수집
+    const members = await prisma.clanMember.findMany({ where, select: { clanId: true } })
+    const clanIds = [...new Set(members.map((m) => m.clanId).filter(Boolean))]
+
+    await prisma.clanMember.deleteMany({ where })
+
+    // 클랜 리더였으면 leader 필드 초기화
+    await prisma.clan.updateMany({
+      where: { leader: { equals: nickname, mode: 'insensitive' } },
+      data: { leader: '' },
+    })
+
+    // 영향받은 클랜 memberCount 재계산
+    for (const clanId of clanIds) {
+      const count = await prisma.clanMember.count({ where: { clanId } })
+      await prisma.clan.update({
+        where: { id: clanId },
+        data: { memberCount: count, ...(count === 0 ? { avgScore: 0 } : {}) },
+      })
+    }
+    console.log(`[ban-cleanup] 🧹 클랜 데이터 정리 완료: ${nickname}`)
+  } catch (e) {
+    console.warn(`[ban-cleanup] 클랜 정리 실패 ${nickname}:`, e.message)
+  }
+}
+
 // ── ban 카운트 증가 / 임계치 도달 시 isBanned 처리 ────────────────────────
 async function incrementBanCount(nickname, shard, accountId, currentCount, log) {
   const newCount = (currentCount ?? 0) + 1
@@ -150,6 +183,8 @@ async function incrementBanCount(nickname, shard, accountId, currentCount, log) 
         data: updateData,
       })
     }
+    // 밴 확정 시 클랜 데이터도 정리
+    if (newCount >= 3) await cleanupBannedUser(nickname, accountId)
   } catch (e) {
     console.warn(`[telemetry-batch] ban 카운트 저장 실패 ${nickname}:`, e.message)
   }
@@ -200,32 +235,24 @@ async function autoSaveTeammatesToPlayerCache(shard, myAccountId, matchData) {
     if (existingSet.has(tm.accountId)) continue // 이미 있음
     if (bannedSet.has(tm.accountId))   continue // 정지됨
 
-    // 이번 경기 스탯으로 초기값 산출 (추가 API 호출 없음)
-    const s          = tm.stats
-    const avgDamage  = Math.round(s.damageDealt  ?? 0)
-    const avgKills   = s.kills      ?? 0
-    const avgAssists = s.assists    ?? 0
-    const surviveTime = s.timeSurvived ?? 0
-    const winRate    = (s.winPlace === 1) ? 100 : 0
-    const top10Rate  = (s.winPlace != null && s.winPlace <= 10) ? 100 : 0
-    const score      = calculateMMR({ avgDamage, avgKills, avgAssists, avgSurviveTime: surviveTime, winRate, top10Rate })
-
     try {
+      // avgDamage=0으로 저장 → seed loop(step 3)에서 즉시 시즌 스탯 조회 대상이 됨
       await prisma.playerCache.upsert({
         where: { nickname_pubgShardId: { nickname: tm.nickname, pubgShardId: shard } },
         create: {
           nickname:       tm.nickname,
           pubgPlayerId:   tm.accountId,
           pubgShardId:    shard,
-          score,
+          score:          0,
           style:          '',
-          avgDamage,
-          avgKills,
-          avgAssists,
-          avgSurviveTime: surviveTime,
-          winRate,
-          top10Rate,
-          roundsPlayed:   1,
+          avgDamage:      0,
+          avgKills:       0,
+          avgAssists:     0,
+          avgSurviveTime: 0,
+          winRate:        0,
+          top10Rate:      0,
+          roundsPlayed:   0,
+          lastUpdated:    new Date(Date.now() - 7 * 86400000), // 7일 전으로 설정 → seed 쿼리 즉시 포함
         },
         update: {
           pubgPlayerId: tm.accountId,
@@ -238,7 +265,7 @@ async function autoSaveTeammatesToPlayerCache(shard, myAccountId, matchData) {
   }
 
   if (count > 0) {
-    console.log(`[telemetry-batch] 👥 팀원 PlayerCache 저장: ${count}명 (경기 스탯 초기화 완료)`)
+    console.log(`[telemetry-batch] 👥 팀원 PlayerCache 등록: ${count}명 (seed loop 대상으로 저장)`)
   }
   return count
 }
@@ -495,54 +522,213 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── 3. avgDamage=0 유저 시즌 스탯 초기화 ────────────────────────────────
+    // ── 3. 신규/시즌없음 유저 스탯 채우기 ─────────────────────────────────────
+    // avgDamage=0 (미초기화): 24시간 cutoff 적용 (무한루프 방지)
+    // avgDamage=-1 (시즌없음): 매일 재시도 (shard 오류 또는 새 시즌 시작 가능)
     log.seedUpdated = 0
     if (Date.now() - startTime < MAX_MS) {
       try {
+        const seedCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000)
         const seedUsers = await prisma.playerCache.findMany({
-          where: { avgDamage: 0, pubgPlayerId: { not: null }, isBanned: { not: true } },
+          where: {
+            OR: [
+              { avgDamage: 0,  pubgPlayerId: { not: null }, isBanned: { not: true }, lastUpdated: { lt: seedCutoff } },
+              { avgDamage: -1, pubgPlayerId: { not: null }, isBanned: { not: true } },
+            ],
+          },
           orderBy: { lastUpdated: 'asc' },
           take: MAX_SEED_USERS,
-          select: { nickname: true, pubgPlayerId: true, pubgShardId: true },
+          select: { id: true, nickname: true, pubgPlayerId: true, pubgShardId: true },
         })
 
         if (seedUsers.length > 0) {
-          console.log(`[telemetry-batch] 🌱 시즌 스탯 초기화 대상: ${seedUsers.length}명`)
+          console.log(`[telemetry-batch] 🌱 스탯 채우기 대상: ${seedUsers.length}명`)
 
-          // shard별 시즌 ID 캐시 (보통 steam 하나지만 kakao 대비)
           const shardSeasonMap = {}
+          const CALL_DELAY_MS  = 700
+          const RETRY_WAIT_MS  = 12000
+          const delay = (ms) => new Promise((r) => setTimeout(r, ms))
+          let shardFixed = 0
 
           for (const u of seedUsers) {
             if (Date.now() - startTime > MAX_MS) break
 
-            const shard = u.pubgShardId || 'steam'
+            let shard = u.pubgShardId || 'steam'
             try {
-              // shard별 현재 시즌 ID (중복 조회 방지)
-              if (!shardSeasonMap[shard]) {
-                shardSeasonMap[shard] = await getCurrentSeasonId(shard)
-              }
-              const seasonId = shardSeasonMap[shard]
+              if (!shardSeasonMap[shard]) shardSeasonMap[shard] = await getCurrentSeasonId(shard)
+              let seasonId = shardSeasonMap[shard]
 
-              const url = `${PUBG_BASE}/${shard}/players/${u.pubgPlayerId}/seasons/${seasonId}`
-              const json = await cachedPubgFetch(url, { ttl: TTL.SEASON })
+              // 기본 shard 시즌 조회
+              let apiRes = await fetch(`${PUBG_BASE}/${shard}/players/${u.pubgPlayerId}/seasons/${seasonId}`, {
+                headers: { Authorization: `Bearer ${process.env.PUBG_API_KEY}`, Accept: 'application/vnd.api+json' },
+              })
+              if (apiRes.status === 429) {
+                await delay(RETRY_WAIT_MS)
+                apiRes = await fetch(`${PUBG_BASE}/${shard}/players/${u.pubgPlayerId}/seasons/${seasonId}`, {
+                  headers: { Authorization: `Bearer ${process.env.PUBG_API_KEY}`, Accept: 'application/vnd.api+json' },
+                })
+              }
+              // 404 → 반대 shard 시도 (shard 오감지 수정)
+              if (apiRes.status === 404) {
+                const altShard = shard === 'steam' ? 'kakao' : 'steam'
+                if (!shardSeasonMap[altShard]) shardSeasonMap[altShard] = await getCurrentSeasonId(altShard)
+                await delay(CALL_DELAY_MS)
+                const altRes = await fetch(`${PUBG_BASE}/${altShard}/players/${u.pubgPlayerId}/seasons/${shardSeasonMap[altShard]}`, {
+                  headers: { Authorization: `Bearer ${process.env.PUBG_API_KEY}`, Accept: 'application/vnd.api+json' },
+                })
+                if (altRes.ok) {
+                  const correctRecord = await prisma.playerCache.findFirst({
+                    where: { pubgPlayerId: u.pubgPlayerId, pubgShardId: altShard },
+                  })
+                  if (correctRecord) {
+                    await prisma.playerCache.deleteMany({ where: { pubgPlayerId: u.pubgPlayerId, pubgShardId: shard } })
+                  } else {
+                    await prisma.playerCache.updateMany({ where: { pubgPlayerId: u.pubgPlayerId }, data: { pubgShardId: altShard } })
+                  }
+                  shard = altShard
+                  seasonId = shardSeasonMap[altShard]
+                  apiRes = altRes
+                  shardFixed++
+                }
+              }
+              if (!apiRes.ok) { await delay(CALL_DELAY_MS); continue }
+
+              const json = await apiRes.json()
               const gameModeStats = json?.data?.attributes?.gameModeStats ?? {}
 
-              // 전체 모드 합산
               let totalRounds = 0, totalDamage = 0, totalKills = 0
               let totalAssists = 0, totalSurvive = 0, totalWins = 0, totalTop10 = 0
               for (const s of Object.values(gameModeStats)) {
                 const r = s.roundsPlayed || 0
                 if (r === 0) continue
-                totalRounds   += r
-                totalDamage   += s.damageDealt   || 0
-                totalKills    += s.kills         || 0
-                totalAssists  += s.assists       || 0
-                totalSurvive  += s.timeSurvived  || 0
-                totalWins     += s.wins          || 0
-                totalTop10    += s.top10s        || 0
+                totalRounds  += r
+                totalDamage  += s.damageDealt  || 0
+                totalKills   += s.kills        || 0
+                totalAssists += s.assists      || 0
+                totalSurvive += s.timeSurvived || 0
+                totalWins    += s.wins         || 0
+                totalTop10   += s.top10s       || 0
               }
 
-              if (totalRounds === 0) continue
+              // 일반전 없으면 경쟁전 fallback
+              if (totalRounds === 0) {
+                await delay(CALL_DELAY_MS)
+                let rankedRes = await fetch(`${PUBG_BASE}/${shard}/players/${u.pubgPlayerId}/seasons/${seasonId}/ranked`, {
+                  headers: { Authorization: `Bearer ${process.env.PUBG_API_KEY}`, Accept: 'application/vnd.api+json' },
+                })
+                if (rankedRes.status === 429) {
+                  await delay(RETRY_WAIT_MS)
+                  rankedRes = await fetch(`${PUBG_BASE}/${shard}/players/${u.pubgPlayerId}/seasons/${seasonId}/ranked`, {
+                    headers: { Authorization: `Bearer ${process.env.PUBG_API_KEY}`, Accept: 'application/vnd.api+json' },
+                  })
+                }
+                if (rankedRes.ok) {
+                  const rj = await rankedRes.json()
+                  for (const rm of Object.values(rj?.data?.attributes?.rankedGameModeStats ?? {})) {
+                    const r = rm.roundsPlayed || 0
+                    if (r === 0) continue
+                    totalRounds  += r
+                    totalDamage  += rm.damageDealt   || 0
+                    totalKills   += rm.kills         || 0
+                    totalAssists += rm.assists       || 0
+                    totalSurvive += rm.timeSurvived  || 0
+                    totalWins    += rm.wins          || 0
+                    totalTop10   += rm.top10s        || 0
+                  }
+                }
+              }
+
+              // 현재 shard 모두 0 → 반대 shard 시도 (cross-play 플랫폼 오감지 보정)
+              if (totalRounds === 0) {
+                const altShard2 = shard === 'steam' ? 'kakao' : 'steam'
+                if (!shardSeasonMap[altShard2]) shardSeasonMap[altShard2] = await getCurrentSeasonId(altShard2)
+                await delay(CALL_DELAY_MS)
+                let altNRes = await fetch(`${PUBG_BASE}/${altShard2}/players/${u.pubgPlayerId}/seasons/${shardSeasonMap[altShard2]}`, {
+                  headers: { Authorization: `Bearer ${process.env.PUBG_API_KEY}`, Accept: 'application/vnd.api+json' },
+                })
+                if (altNRes.status === 429) {
+                  await delay(RETRY_WAIT_MS)
+                  altNRes = await fetch(`${PUBG_BASE}/${altShard2}/players/${u.pubgPlayerId}/seasons/${shardSeasonMap[altShard2]}`, {
+                    headers: { Authorization: `Bearer ${process.env.PUBG_API_KEY}`, Accept: 'application/vnd.api+json' },
+                  })
+                }
+                if (altNRes.ok) {
+                  const altNJ = await altNRes.json()
+                  for (const s2 of Object.values(altNJ?.data?.attributes?.gameModeStats ?? {})) {
+                    const r = s2.roundsPlayed || 0
+                    if (r === 0) continue
+                    totalRounds  += r; totalDamage  += s2.damageDealt  || 0
+                    totalKills   += s2.kills        || 0; totalAssists += s2.assists      || 0
+                    totalSurvive += s2.timeSurvived || 0; totalWins    += s2.wins         || 0
+                    totalTop10   += s2.top10s       || 0
+                  }
+                  if (totalRounds === 0) {
+                    await delay(CALL_DELAY_MS)
+                    let altRRes = await fetch(`${PUBG_BASE}/${altShard2}/players/${u.pubgPlayerId}/seasons/${shardSeasonMap[altShard2]}/ranked`, {
+                      headers: { Authorization: `Bearer ${process.env.PUBG_API_KEY}`, Accept: 'application/vnd.api+json' },
+                    })
+                    if (altRRes.ok) {
+                      const altRJ = await altRRes.json()
+                      for (const rm of Object.values(altRJ?.data?.attributes?.rankedGameModeStats ?? {})) {
+                        const r = rm.roundsPlayed || 0
+                        if (r === 0) continue
+                        totalRounds  += r; totalDamage  += rm.damageDealt   || 0
+                        totalKills   += rm.kills         || 0; totalAssists += rm.assists       || 0
+                        totalSurvive += rm.timeSurvived  || 0; totalWins    += rm.wins          || 0
+                        totalTop10   += rm.top10s        || 0
+                      }
+                    }
+                  }
+                  if (totalRounds > 0) {
+                    const correctRecord = await prisma.playerCache.findFirst({
+                      where: { pubgPlayerId: u.pubgPlayerId, pubgShardId: altShard2 },
+                    })
+                    if (correctRecord) {
+                      await prisma.playerCache.deleteMany({ where: { pubgPlayerId: u.pubgPlayerId, pubgShardId: shard } })
+                    } else {
+                      await prisma.playerCache.updateMany({ where: { pubgPlayerId: u.pubgPlayerId }, data: { pubgShardId: altShard2 } })
+                    }
+                    shard = altShard2
+                    shardFixed++
+                  }
+                }
+              }
+
+              // 현재 시즌 데이터 없음 → 라이프타임으로 실제 플랫폼 감지 (shard 오감지 최종 보정)
+              if (totalRounds === 0) {
+                const SHARDS_TO_CHECK = shard === 'steam' ? ['kakao', 'steam'] : ['steam', 'kakao']
+                let correctShard = null
+                for (const ls of SHARDS_TO_CHECK) {
+                  try {
+                    const lRes = await fetch(`${PUBG_BASE}/${ls}/players/${u.pubgPlayerId}/seasons/lifetime`, {
+                      headers: { Authorization: `Bearer ${process.env.PUBG_API_KEY}`, Accept: 'application/vnd.api+json' },
+                    })
+                    if (!lRes.ok) continue
+                    const lJson = await lRes.json()
+                    const lRounds = Object.values(lJson?.data?.attributes?.gameModeStats ?? {})
+                      .reduce((sum, s2) => sum + (s2.roundsPlayed || 0), 0)
+                    if (lRounds > 0) { correctShard = ls; break }
+                  } catch { /* 무시 */ }
+                  await delay(CALL_DELAY_MS)
+                }
+                if (correctShard && correctShard !== shard) {
+                  const correctRecord = await prisma.playerCache.findFirst({
+                    where: { pubgPlayerId: u.pubgPlayerId, pubgShardId: correctShard },
+                  })
+                  if (correctRecord) {
+                    await prisma.playerCache.deleteMany({ where: { pubgPlayerId: u.pubgPlayerId, pubgShardId: shard } })
+                  } else {
+                    await prisma.playerCache.updateMany({ where: { pubgPlayerId: u.pubgPlayerId }, data: { pubgShardId: correctShard } })
+                  }
+                  shard = correctShard
+                  shardFixed++
+                }
+                await prisma.playerCache.updateMany({
+                  where: { pubgPlayerId: u.pubgPlayerId },
+                  data: { avgDamage: -1, lastUpdated: new Date() },
+                })
+                continue
+              }
 
               const avgDamage      = parseFloat((totalDamage  / totalRounds).toFixed(1))
               const avgKills       = parseFloat((totalKills   / totalRounds).toFixed(2))
@@ -556,13 +742,14 @@ export default async function handler(req, res) {
                 where: { pubgPlayerId: u.pubgPlayerId },
                 data: { avgDamage, avgKills, avgAssists, avgSurviveTime, winRate, top10Rate, score, roundsPlayed: totalRounds, lastUpdated: new Date() },
               })
-
               log.seedUpdated++
-              console.log(`[telemetry-batch] 🌱 ${u.nickname} 시즌 스탯 초기화 완료 (${totalRounds}경기, 딜${avgDamage})`)
+              console.log(`[telemetry-batch] 🌱 ${u.nickname} 완료 (${totalRounds}경기, 딜${avgDamage}, shard=${shard})`)
             } catch (err) {
-              console.warn(`[telemetry-batch] 🌱 ${u.nickname} 초기화 실패:`, err.message)
+              console.warn(`[telemetry-batch] 🌱 ${u.nickname} 실패:`, err.message)
             }
+            await delay(CALL_DELAY_MS)
           }
+          if (shardFixed > 0) console.log(`[telemetry-batch] 🔧 플랫폼 shard 수정: ${shardFixed}명`)
         }
       } catch (err) {
         console.warn('[telemetry-batch] 시즌 스탯 초기화 루프 오류:', err.message)

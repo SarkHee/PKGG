@@ -126,7 +126,7 @@ const SHARD_COLOR = {
   console: 'bg-blue-800/40 text-blue-300 border border-blue-500/40',
 }
 
-export default function Home() {
+export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], mapRotation = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMajor, setActiveMajor] = useState('OFFENSIVE');
   const [activeType, setActiveType]   = useState(null);
@@ -603,6 +603,123 @@ export default function Home() {
             </div>
           </div>
 
+          {/* ─── 서버 렌더링 정적 콘텐츠 (SEO / AdSense) ─── */}
+          <div className="w-full max-w-6xl mx-auto px-4 mt-10">
+
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
+              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">실시간 PUBG 데이터</h2>
+              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+              {/* 1. 무기 메타 TOP 5 */}
+              {weaponMeta.length > 0 && (
+                <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-5">
+                  <h2 className="text-sm font-bold text-white mb-1">🔥 실시간 무기 메타 TOP 5</h2>
+                  <p className="text-xs text-gray-500 mb-4">PKGG 수집 데이터 기반 킬 비중 순위</p>
+                  <ol className="space-y-3">
+                    {weaponMeta.map((w, i) => (
+                      <li key={w.id} className="flex items-center gap-3">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                          i === 0 ? 'bg-yellow-500 text-black' :
+                          i === 1 ? 'bg-gray-400 text-black' :
+                          i === 2 ? 'bg-amber-700 text-white' :
+                          'bg-white/10 text-gray-400'
+                        }`}>{i + 1}</span>
+                        <span className="flex-1 text-sm font-semibold text-gray-200">{w.name}</span>
+                        <span className="text-xs text-blue-400 font-bold w-12 text-right">{w.pickRate}%</span>
+                        <div className="w-20 bg-white/10 rounded-full h-1.5 flex-shrink-0">
+                          <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, parseFloat(w.pickRate) * 4)}%` }} />
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="text-[10px] text-gray-600 mt-3">※ 픽률은 전체 킬 기준 상대 비율 · 봇킬 제외</p>
+                </div>
+              )}
+
+              {/* 3. 클랜 랭킹 TOP 5 */}
+              {topClans.length > 0 && (
+                <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-5">
+                  <h2 className="text-sm font-bold text-white mb-1">
+                    👥 클랜 랭킹 TOP 5
+                  </h2>
+                  <p className="text-xs text-gray-500 mb-4">
+                    PKGG 점수(MMR) 기준 상위 클랜
+                  </p>
+                  <ol className="space-y-3">
+                    {topClans.map((clan, i) => {
+                      const masked = clan.name.length <= 2
+                        ? clan.name
+                        : clan.name.slice(0, 2) + '*'.repeat(clan.name.length - 2)
+                      return (
+                        <li key={clan.name} className="flex items-center gap-3">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                            i === 0 ? 'bg-yellow-500 text-black' :
+                            i === 1 ? 'bg-gray-400 text-black' :
+                            i === 2 ? 'bg-amber-700 text-white' :
+                            'bg-white/10 text-gray-400'
+                          }`}>{i + 1}</span>
+                          <span className="flex-1 text-sm font-semibold text-gray-200 truncate">
+                            {clan.pubgClanTag ? `[${clan.pubgClanTag}] ` : ''}{masked}
+                          </span>
+                          <span className="text-xs text-blue-400/70 flex-shrink-0">
+                            {clan.shard === 'kakao' ? '카카오' : 'Steam'}
+                          </span>
+                          <span className="text-xs text-yellow-400 font-bold flex-shrink-0">{clan.avgScore?.toLocaleString()} PK</span>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                </div>
+              )}
+
+              {/* 4. 최신 PUBG 패치노트 */}
+              {patchNotes.length > 0 && (
+                <div className="md:col-span-2 bg-white/5 border border-blue-500/10 rounded-2xl p-5">
+                  <h2 className="text-sm font-bold text-white mb-1">📋 최신 PUBG 패치노트</h2>
+                  <p className="text-xs text-gray-500 mb-4">주요 무기·밸런스 업데이트 요약</p>
+                  <ul className="space-y-3">
+                    {patchNotes.map((note, i) => (
+                      <li key={i} className="border-l-2 border-blue-500/30 pl-3">
+                        <a
+                          href={note.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-gray-300 hover:text-white transition-colors leading-snug block"
+                        >
+                          {note.title}
+                        </a>
+                        <span className="text-xs text-gray-600">{note.date}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* 5. 맵 로테이션 */}
+            {mapRotation.length > 0 && (
+              <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-5 mt-5">
+                <h2 className="text-sm font-bold text-white mb-1">🗺️ 현재 맵 로테이션</h2>
+                <p className="text-xs text-gray-500 mb-4">일반 매치 기준 활성 맵 목록</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                  {mapRotation.map((map) => (
+                    <div key={map.nameEn} className="bg-white/5 rounded-xl p-3 text-center">
+                      <p className="text-sm font-bold text-gray-200">{map.name}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">{map.nameEn}</p>
+                      <p className="text-[10px] text-blue-400 mt-0.5">{map.size}</p>
+                      <p className="text-[10px] text-gray-600 mt-1 leading-tight hidden sm:block">{map.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* ─── 정적 콘텐츠 끝 ─── */}
+
           {/* PKGG란? */}
           <div className="w-full max-w-6xl mx-auto px-4 mt-8 sm:mt-14 mb-6 sm:mb-10">
             <div className="flex items-center justify-center gap-3 mb-6">
@@ -640,4 +757,126 @@ export default function Home() {
       </div>
     </>
   );
+}
+
+// ── 서버사이드 렌더링 (구글 봇 크롤링용 정적 데이터) ──────────────────────
+const EXCLUDE_PATTERNS = [
+  /^Player(Female|Male)/i, /^UltAIPawn/i, /^TslGameMode/i, /^BP_/i,
+  /^Buggy_/i, /^Dacia_/i, /^Uaz_/i, /^Boat_/i,
+  /^RedZone/i, /^Bluezonebomb/i, /^Buff_/i,
+  /^HR_Proj/i, /^ProjGrenade/i, /^ProjMolotov/i, /^ProjC4/i, /^ProjSticky/i,
+  /^WeapGrenade/i, /^WeapMolotov/i, /^WeapFlareGun/i, /^WeapFlash/i,
+  /^WeapSmoke/i, /^WeapDecoy/i, /^WeapBlue/i, /^WeapStickyGrenade/i,
+  /^WeapC4/i, /^WeapMortar/i, /^WeapPanzer/i, /^WeapPan_/i,
+  /^WeapMachete/i, /^WeapPickaxe/i, /^WeapSickle/i, /^WeapCow/i,
+  /^WeapRock/i, /^WeapPackageFlare/i, /^WeapCoverStruct/i,
+  /^WeapIntegrated/i, /^WeapTrauma/i, /^WeapTacPack/i,
+  /^WeapZipline/i, /^WeapCamoNet/i, /^WeapStunGun/i, /^WeapM79/i,
+  /^None$/, /^Jerrycan/, /^TslDestructible/, /^Mortar_/, /^PanzerFaust/,
+]
+
+const WEAPON_NORMALIZE = {
+  vz61Skorpion: 'Skorpion', 'Mads_QBU88': 'QBU88', MadsQBU88: 'QBU88',
+  Win1894: 'Win94', MosinNagant: 'Mosin', FamasG2: 'FAMASG2',
+  'SCAR-L': 'SCAR_L', Crossbow_1: 'Crossbow', CowBar: 'Cowbar',
+}
+
+const WEAPON_DISPLAY = {
+  M416: 'M416', AKM: 'AKM', SCAR_L: 'SCAR-L', M762: 'Beryl M762', HK416: 'HK416',
+  G36C: 'G36C', QBZ: 'QBZ95', Aug: 'AUG A3', M16A4: 'M16A4', K2: 'K2',
+  MG3: 'MG3', DP28: 'DP-28', M249: 'M249', Mini14: 'Mini 14', QBU88: 'QBU88',
+  SLR: 'SLR', VSS: 'VSS', Mk12: 'Mk12', Mk14: 'Mk14', Dragunov: 'Dragunov',
+  AWM: 'AWM', KAR98K: 'Kar98k', M24: 'M24', Mosin: 'Mosin-Nagant',
+  UMP45: 'UMP45', UZI: 'Micro UZI', Vector: 'Vector', MP5K: 'MP5K',
+  Bizon: 'PP-19 Bizon', Tommy: 'Tommy Gun', P90: 'P90', JS9: 'JS9',
+  S12K: 'S12K', S1897: 'S1897', S686: 'S686', DBS: 'DBS',
+  Skorpion: 'Skorpion', R1895: 'R1895', Win94: 'Win94',
+}
+
+function normalizeWeaponId(raw) {
+  const id = raw
+    .replace(/^Item_Weapon_/, '').replace(/^Weap/, '')
+    .replace(/(_HR)?_C$/, '').replace(/_HR$/, '')
+  return WEAPON_NORMALIZE[id] ?? id
+}
+
+export async function getServerSideProps() {
+  const { PrismaClient } = require('@prisma/client')
+  const prisma = new PrismaClient()
+
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
+
+    const [weaponRows, topClans] = await Promise.all([
+      // 1. 무기 메타: 최근 30일 groupBy weaponId
+      prisma.player_weapon_stats.groupBy({
+        by: ['weaponId'],
+        _sum: { kills: true, pickup_count: true },
+        where: { match_id: { not: '' }, savedAt: { gte: thirtyDaysAgo } },
+        orderBy: { _sum: { kills: 'desc' } },
+        take: 120,
+      }),
+
+      // 2. 클랜 랭킹 TOP 5
+      prisma.clan.findMany({
+        where: { avgScore: { gt: 0 }, memberCount: { gt: 0 } },
+        orderBy: { avgScore: 'desc' },
+        take: 5,
+        select: { name: true, avgScore: true, memberCount: true, pubgClanTag: true, region: true, shard: true },
+      }),
+    ])
+
+    // 무기 집계 (제외·정규화 적용)
+    const weaponMap = {}
+    let totalKills = 0
+    for (const r of weaponRows) {
+      if (EXCLUDE_PATTERNS.some((p) => p.test(r.weaponId))) continue
+      const id = normalizeWeaponId(r.weaponId)
+      if (!weaponMap[id]) weaponMap[id] = { kills: 0 }
+      weaponMap[id].kills += Number(r._sum.kills) || 0
+      totalKills += Number(r._sum.kills) || 0
+    }
+    const weaponMeta = Object.entries(weaponMap)
+      .sort(([, a], [, b]) => b.kills - a.kills)
+      .slice(0, 5)
+      .map(([id, v]) => ({
+        id,
+        name: WEAPON_DISPLAY[id] || id,
+        kills: v.kills,
+        pickRate: totalKills > 0 ? ((v.kills / totalKills) * 100).toFixed(1) : '0',
+      }))
+
+    // 패치노트 (정적)
+    const patchNotes = [
+      { title: 'PUBG Update 41.1 — 신규 SMG JS9 추가, 틸티드 그립 추가, 하이브리드 스코프 신규', date: '2026년 4월', url: 'https://www.pubg.com/ko/news/' },
+      { title: 'PUBG Update 40.2 — Dragunov(SVD) 반동 감소, 앵글 손잡이 삭제, 하프 그립 버프', date: '2026년 2월', url: 'https://www.pubg.com/ko/news/' },
+      { title: 'PUBG Update 40.1 — Mk12·SLR 조정, 경쟁전 보상 변경, 봇 매칭 개선', date: '2025년 12월', url: 'https://www.pubg.com/ko/news/' },
+    ]
+
+    // 맵 로테이션 (정적)
+    const mapRotation = [
+      { name: '에란겔', nameEn: 'Erangel', size: '8×8km', desc: '클래식 초원 맵' },
+      { name: '미라마', nameEn: 'Miramar', size: '8×8km', desc: '광활한 사막 맵' },
+      { name: '산혹', nameEn: 'Sanhok', size: '4×4km', desc: '열대 밀림 소형 맵' },
+      { name: '태고', nameEn: 'Taego', size: '8×8km', desc: '한국 배경 맵' },
+      { name: '데스턴', nameEn: 'Deston', size: '8×8km', desc: '미래 도시 맵' },
+      { name: '론도', nameEn: 'Rondo', size: '8×8km', desc: '동아시아 산악 맵' },
+    ]
+
+    return {
+      props: {
+        weaponMeta,
+        topClans: JSON.parse(JSON.stringify(topClans)),
+        patchNotes,
+        mapRotation,
+      },
+    }
+  } catch (e) {
+    console.error('[index SSR] 데이터 로드 실패:', e.message)
+    return {
+      props: { weaponMeta: [], topClans: [], patchNotes: [], mapRotation: [] },
+    }
+  } finally {
+    await prisma.$disconnect()
+  }
 }
