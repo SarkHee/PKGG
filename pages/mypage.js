@@ -519,13 +519,17 @@ export default function MyPage() {
                       isMain ? 'border-blue-500/40 bg-blue-500/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
                     }`}>
                       <div className="flex items-center gap-3">
-                        <span className="text-lg">{acc.platform === 'steam' ? '🖥️' : '📱'}</span>
+                        <span className="text-lg">
+                          {acc.platform === 'steam' ? '🖥️' : acc.platform === 'kakao' ? '📱' : '🎮'}
+                        </span>
                         <div>
                           <Link href={`/player/${acc.platform}/${acc.nickname}`}
                             className="text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-blue-400 dark:hover:text-blue-400 transition-colors">
                             {acc.nickname}
                           </Link>
-                          <div className="text-xs text-gray-500">{acc.platform === 'steam' ? 'Steam' : 'Kakao'}</div>
+                          <div className="text-xs text-gray-500">
+                            {acc.platform === 'steam' ? 'Steam (PC)' : acc.platform === 'kakao' ? 'Kakao (PC)' : acc.platform === 'psn' ? 'PlayStation' : acc.platform === 'xbox' ? 'Xbox' : acc.platform}
+                          </div>
                         </div>
                         {isMain && <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">{t('mypage.main_badge')}</span>}
                       </div>
@@ -548,8 +552,10 @@ export default function MyPage() {
               <div className="flex gap-2">
                 <select value={platform} onChange={(e) => setPlatform(e.target.value)}
                   className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500">
-                  <option value="steam">Steam</option>
-                  <option value="kakao">Kakao</option>
+                  <option value="steam">🖥️ Steam (PC)</option>
+                  <option value="kakao">📱 Kakao (PC 카카오)</option>
+                  <option value="psn">🎮 PlayStation (PS4/PS5)</option>
+                  <option value="xbox">🎮 Xbox</option>
                 </select>
                 <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)}
                   placeholder={t('mypage.nick_placeholder')}
