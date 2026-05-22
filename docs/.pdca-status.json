@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-05-21T07:00:22.599Z",
+  "lastUpdated": "2026-05-22T09:57:11.923Z",
   "activeFeatures": [
     "PKGG",
     "clan",
@@ -36,7 +36,8 @@
     "pubg_bot_kills",
     "admin",
     "pubg-news",
-    "maps"
+    "maps",
+    "team-damage"
   ],
   "primaryFeature": "PKGG",
   "features": {
@@ -49,9 +50,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:15:14.704Z",
-        "lastUpdated": "2026-05-21T07:00:22.598Z"
+        "lastUpdated": "2026-05-22T09:57:11.923Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/index.js"
+      "lastFile": "/Users/mac/Desktop/PKGG/pages/weapon-damage.js"
     },
     "clan": {
       "phase": "do",
@@ -62,9 +63,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-26T06:15:28.697Z",
-        "lastUpdated": "2026-05-19T06:08:58.340Z"
+        "lastUpdated": "2026-05-22T01:12:28.021Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/pages/api/clan/batch-update.js"
+      "lastFile": "/Users/mac/Desktop/PKGG/pages/clan/[clanName].js"
     },
     "layout": {
       "phase": "do",
@@ -166,7 +167,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-03T06:41:43.321Z",
-        "lastUpdated": "2026-05-21T04:32:06.991Z"
+        "lastUpdated": "2026-05-22T09:44:49.419Z"
       },
       "lastFile": "/Users/mac/Desktop/PKGG/components/player/PlayerHeader.jsx"
     },
@@ -231,9 +232,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-04T01:07:03.631Z",
-        "lastUpdated": "2026-05-11T08:58:40.341Z"
+        "lastUpdated": "2026-05-22T09:32:12.930Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG-1/pages/api/matches/load-more.js"
+      "lastFile": "/Users/mac/Desktop/PKGG/pages/api/matches/load-more.js"
     },
     "[server]": {
       "phase": "do",
@@ -244,7 +245,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-04T02:24:04.089Z",
-        "lastUpdated": "2026-05-21T04:24:07.269Z"
+        "lastUpdated": "2026-05-22T09:44:35.971Z"
       },
       "lastFile": "/Users/mac/Desktop/PKGG/pages/player/[server]/[nickname].js"
     },
@@ -374,9 +375,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-24T01:32:14.074Z",
-        "lastUpdated": "2026-05-18T05:42:44.890Z"
+        "lastUpdated": "2026-05-22T09:49:21.022Z"
       },
-      "lastFile": "/Users/mac/Desktop/PKGG/components/match/MatchDetailLog.jsx"
+      "lastFile": "/Users/mac/Desktop/PKGG/components/match/MatchListRow.jsx"
     },
     "scripts": {
       "phase": "do",
@@ -494,6 +495,19 @@
         "lastUpdated": "2026-05-19T08:55:01.598Z"
       },
       "lastFile": "/Users/mac/Desktop/PKGG/pages/api/maps/stats.js"
+    },
+    "team-damage": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-05-22T08:46:39.600Z",
+        "lastUpdated": "2026-05-22T08:46:39.600Z"
+      },
+      "lastFile": "/Users/mac/Desktop/PKGG/pages/api/team-damage/[matchId].js"
     }
   },
   "pipeline": {
@@ -504,7 +518,7 @@
   "session": {
     "startedAt": "2026-02-26T02:34:01.887Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-05-21T07:00:22.599Z"
+    "lastActivity": "2026-05-22T09:57:11.923Z"
   },
   "history": [
     {
@@ -13769,6 +13783,600 @@
     },
     {
       "timestamp": "2026-05-21T07:00:22.598Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T01:11:54.168Z",
+      "feature": "clan",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T01:12:13.946Z",
+      "feature": "clan",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T01:12:28.021Z",
+      "feature": "clan",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T01:12:36.762Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T01:12:45.173Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T01:29:46.282Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T01:30:10.187Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T01:31:16.727Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T01:31:21.617Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T06:53:20.633Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T06:53:31.842Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T06:53:51.471Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T06:53:57.339Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T06:54:03.041Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T06:54:33.445Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:07:34.190Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:07:38.295Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:07:45.784Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:08:31.594Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:08:37.043Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:09:32.436Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:09:51.057Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:11:10.897Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:13:29.209Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:18:21.519Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:18:29.434Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:18:37.292Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T07:18:49.785Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:13:29.480Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:13:44.972Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:13:57.012Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:14:01.688Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:14:05.690Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:14:11.328Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:14:21.753Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:14:36.584Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:14:47.152Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:14:54.789Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:15:07.910Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:15:13.698Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:15:26.139Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:15:32.000Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:15:36.047Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:15:41.137Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:15:48.702Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:20:05.056Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:20:18.372Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:26:23.295Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:26:32.865Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:26:41.710Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:26:50.272Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:26:55.286Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:27:26.377Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:27:37.644Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:28:19.836Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:45:45.867Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:45:58.997Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:46:17.581Z",
+      "feature": "matches",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:46:29.139Z",
+      "feature": "matches",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:46:39.600Z",
+      "feature": "team-damage",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:46:57.491Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T08:47:16.056Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:17:21.033Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:21:39.522Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:21:55.193Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:22:02.734Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:23:23.296Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:24:07.837Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:24:21.584Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:24:26.591Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:25:59.913Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:26:05.618Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:26:49.232Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:27:08.560Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:27:24.491Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:27:31.169Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:27:47.341Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:27:52.282Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:32:03.199Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:32:12.930Z",
+      "feature": "matches",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:32:22.393Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:32:29.352Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:33:05.666Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:34:59.767Z",
+      "feature": "PKGG",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:35:06.986Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:35:15.044Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:38:59.949Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:41:38.320Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:41:48.095Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:41:57.228Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:42:03.736Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:42:23.814Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:44:31.889Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:44:35.971Z",
+      "feature": "[server]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:44:39.972Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:44:49.419Z",
+      "feature": "player",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:49:08.968Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:49:21.022Z",
+      "feature": "match",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-22T09:57:11.923Z",
       "feature": "PKGG",
       "phase": "do",
       "action": "updated"

@@ -68,7 +68,7 @@ const WEAPON_DATA = [
 
   // ── 경기관총 (LMG) ──
   { name: 'DP-28', type: 'LMG', damage: 52, rpm: 550,  dps: 491.4, magBase: 47, magExt: null, modes: '완전자동',           caliber: '7.62mm', dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
-  { name: 'MG3',   type: 'LMG', damage: 42, rpm: 660,  dps: 462,   rpm2: 990, dps2: 672, magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능' },
+  { name: 'MG3',   type: 'LMG', damage: 44.1, rpm: 660,  dps: 485.1, rpm2: 990, dps2: 727.65, magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능' },
   { name: 'M249',  type: 'LMG', damage: 41, rpm: 800,  dps: 559.65,magBase: 75, magExt: 100,  modes: '완전자동',           caliber: '5.56mm', dataFrom: 'Update 28.1' },
 
   // ── 산탄총 (SGN) ──
