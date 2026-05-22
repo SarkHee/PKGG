@@ -7,8 +7,7 @@ export default function MatchMapView({
   combatCoords,
 }) {
   const { name: displayName, img: mapImgSrc } = getMapInfo(mapName);
-  // 이미지 없는 맵(사녹·헤이븐 등)은 에란겔 이미지로 대체 표시
-  const mapImg = mapImgSrc ?? '/maps/erangel.jpg';
+  const mapImg = mapImgSrc ?? null;
 
   // 맵 크기 (예시)
   const mapSize = 400;
@@ -19,16 +18,17 @@ export default function MatchMapView({
         맵 이동/교전 위치
       </div>
       <div style={{ position: 'relative', width: mapSize, height: mapSize }}>
-        <img
-          src={mapImg}
-          alt={displayName}
-          style={{
-            width: mapSize,
-            height: mapSize,
-            borderRadius: 8,
-            opacity: 0.95,
-          }}
-        />
+        {mapImg ? (
+          <img
+            src={mapImg}
+            alt={displayName}
+            style={{ width: mapSize, height: mapSize, borderRadius: 8, opacity: 0.95 }}
+          />
+        ) : (
+          <div style={{ width: mapSize, height: mapSize, borderRadius: 8, background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: '#94a3b8', fontSize: 14 }}>{displayName} 맵 이미지 없음</span>
+          </div>
+        )}
         {/* 이동 경로 라인 */}
         {Array.isArray(movePathCoords) && movePathCoords.length > 1 && (
           <svg

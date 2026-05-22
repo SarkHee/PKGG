@@ -243,6 +243,19 @@ if (raw) {
 
 ## 최근 주요 변경 이력
 
+### 2026-05-22 봇킬 UI 개선 + 팀 내 피해 기능 추가
+- **MatchListRow 봇킬 표시 개선**: 봇 분석 완료 시 "총킬 / 실N / 봇N" 3줄 표시 (총킬 라벨, 실킬 cyan, 봇킬 gray). 봇 필터 버튼 완전 제거. `isBotCorrected === true`인 경우만 분리 표시, 나머지는 "(분석 중...)"
+- **PlayerHeader 봇킬 제거 기본 반영**: `correctedAvgKills` 계산 (최근 20경기 혼합 평균, 텔레메트리 있는 경기는 `realKills` 사용). 시즌 성과 avgKills 카드에 자동 적용 + "(봇킬 제외)" 레이블. PKGG 점수도 correctedAvgKills 기준으로 재계산
+- **팀 내 피해 수집 기능 추가** (`utils/botKills.js` → `extractTeamDamage`):
+  - `LogPlayerTakeDamage` 이벤트에서 같은 팀원 간 피해 양방향 집계
+  - 자해·봇·적 피해 모두 제외, 실제 플레이어(`account.*`) 간 팀 피해만
+  - 적용 피해 = `min(event.damage, victim.health)` (HP 캡 적용)
+  - `attackerAccountId|victimAccountId` 키로 aggregation (총 피해·히트 수·무기별 횟수·첫 피해 시각)
+- **team_damage_stats 테이블**: Prisma `TeamDamageStat` 모델 추가. `@@unique([matchId, attackerAccountId, victimAccountId])`. Supabase SQL Editor에서 테이블 생성 필요
+- **`pages/api/team-damage/[matchId].js`**: GET 엔드포인트. totalDamage 내림차순 반환
+- **`load-more.js` 팀 피해 저장**: 봇 분석 성공(`isBotCorrected=true`) 경기에 한해 `teamDamageUpserts` 수집 후 `createMany(skipDuplicates: true)` 저장
+- **MatchDetailLog 팀 내 피해 섹션**: 오렌지 테마 카드. 공격자→피해자 행(색상 분기: 내 공격=빨강, 내 피해=파랑, 팀원끼리=회색). 최다 사용 무기·히트 수·총 피해량 표시. 봇 분석 완료 경기에만 표시
+
 ### 2026-05-20 다국어 지원 전체 점검
 - **pages/leaderboard.js**: `useT()` 적용, 모든 한국어 → `t()` 변환 (lb.* 키)
 - **pages/weapon-meta-live.js**: `useT()` 적용. `TYPE_KEYS`(sentinel `'all'`) + 내부 PERIODS/SHARDS/TYPES 계산. 모든 UI 텍스트 `t()` 변환 (wml.* 키)
@@ -324,7 +337,7 @@ if (raw) {
   - 게시글 목록 (category, 최근 목록): 미리보기 텍스트 제거 → 제목만 표시
   - 게시글 상세: 이미지 `-mx-6 w-full` 풀-와이드 렌더링
   - 글 작성: 이미지 드래그 앤 드롭 업로드 (`onDrop` → `uploadFile()`)
-- **무기 데미지 표** (`pages/weapon-damage.js`): 공식 패치노트 기반, Update 41.1 기준. 타입 필터·정렬·DPS·방어구 시뮬레이터. ⚡(최신 패치 변경) / ℹ(이전 패치 이력) / 🗑️(삭제 예정) 툴팁 뱃지
+- **무기 데미지 표** (`pages/weapon-damage.js`): 공식 패치노트 기반, Update 41.1 기준. **2컬럼 레이아웃** (좌: 무기 목록 테이블, 우: 마네킹 피해 시뮬레이션 패널). 무기 클릭 시 우측 `WeaponDetailPanel`에 SVG 마네킹·부위별 피해량(헤드/몸통/사지)·방어구 설정 표시. 사지 피해: `LIMB_MULT = 0.65`. 방어구/헬멧 설정은 우측 패널 내 `ArmorSelector(showPct=false)`. 타입 필터·정렬·비교 모드·패치 이력 유지
   - 패치 이력 반영: U34.1(Mk12 추가), U36.1(VSS·AUG), U37.1(DMR 전체 너프), U38.1(MP5K), U39.1(반동 조정), U40.1(Mk12·SLR), U41.1(하이브리드 스코프 추가, 틸티드 그립 추가, 앵글 손잡이 삭제, 하프 그립 버프, Dragunov 반동 감소)
   - `deletePending: true` 필드: 42.1(2026년 6월) 삭제 예정 총기 → 🗑️ 뱃지 + 취소선. 대상: 모신 나강·R45·DP-28·PP-19 Bizon·P1911·QBU
   - Dragunov(SVD) 신규 추가: DMR·7.62mm·damage 56·RPM 240

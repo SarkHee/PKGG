@@ -99,15 +99,37 @@ function isValidWeapon(weaponId) {
 }
 
 function getWeaponDisplayName(weaponId) {
+  if (!weaponId) return '알 수 없음'
   if (WEAP_NAME[weaponId]) return WEAP_NAME[weaponId]
   if (/^Player(Female|Male)/i.test(weaponId)) return '근접 공격'
+  if (weaponId === 'Pickaxe' || weaponId === 'Crowbar' || weaponId === 'Machete' || weaponId === 'Sickle') return '근접 무기'
+  // 차량 ID 패턴 매칭 (BP_ 또는 다양한 변형)
+  const v = weaponId.toLowerCase()
+  if (v.includes('motorbike') || v.includes('sidecar')) return '오토바이'
+  if (v.includes('uaz')) return 'UAZ'
+  if (v.includes('pickup')) return '픽업트럭'
+  if (v.includes('dacia')) return '다시아'
+  if (v.includes('buggy')) return '버기'
+  if (v.includes('mirado')) return '미라도'
+  if (v.includes('rony')) return '로니'
+  if (v.includes('snowmobile') || v.includes('snowbike')) return '설상 차량'
+  if (v.includes('aquarail')) return '아쿠아레일'
+  if (v.includes('boat') || v.includes('pg117') || v.includes('ponycoupe') || v.includes('ponytug')) return '보트/수상차량'
+  if (v.includes('tukshai') || v.includes('tuktuk')) return '툭샤이'
+  if (v.includes('helicopter') || v.includes('heli')) return '헬기'
+  if (v.includes('brdm')) return 'BRDM-2'
+  if (v.includes('zima')) return '지마'
+  if (v.includes('kart')) return '레이싱 카트'
+  if (v.includes('bicycle') || v.includes('cycle')) return '자전거'
+  if (v.includes('coupe') || v.includes('v8')) return '차량'
+  if (v.startsWith('bp_') || v.includes('vehicle') || v.includes('van') || v.includes('truck')) return '차량'
   return weaponId.replace(/^(Weap|Proj)/, '').replace(/_C$/, '').replace(/_/g, ' ')
 }
 
 export default function MatchDetailLog({ match, playerNickname }) {
   const [telemetry, setTelemetry] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState(null)
 
   useEffect(() => {
     if (!match?.telemetryUrl || !playerNickname) return
@@ -340,6 +362,7 @@ export default function MatchDetailLog({ match, playerNickname }) {
           </div>
         </div>
       </div>
+
     </div>
   )
 }

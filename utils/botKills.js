@@ -269,21 +269,82 @@ async function setCachedCounts(matchId, counts, assistCounts, damages, weaponKil
   )
 }
 
+// ── 팀 내 피해 집계 ───────────────────────────────────────────────────────────
+// LogPlayerTakeDamage에서 같은 팀원 간 피해만 추출 (양방향)
+// 자해 제외, 실제 플레이어만(account.*), 적용 데미지 = min(damage, victim.health)
+export function extractTeamDamage(telemetry) {
+  const map = new Map() // key: `${attackerId}|${victimId}`
+
+  const getOrCreate = (attackerId, victimId, attacker, victim) => {
+    const key = `${attackerId}|${victimId}`
+    if (!map.has(key)) {
+      map.set(key, {
+        attackerAccountId: attackerId,
+        victimAccountId:   victimId,
+        attackerName:      attacker?.name ?? '',
+        victimName:        victim?.name   ?? '',
+        totalDamage: 0, hitCount: 0, groggyCount: 0, killCount: 0,
+        weapons: {}, firstHitAt: null,
+      })
+    }
+    return map.get(key)
+  }
+
+  const sameTeam = (a, b) =>
+    a?.teamId && b?.teamId && a.teamId === b.teamId
+
+  for (const event of telemetry) {
+    if (event._T === 'LogPlayerTakeDamage') {
+      const aId = event.attacker?.accountId ?? ''
+      const vId = event.victim?.accountId   ?? ''
+      if (!aId.startsWith('account.') || !vId.startsWith('account.') || aId === vId) continue
+      if (!sameTeam(event.attacker, event.victim)) continue
+      const applied = Math.min(event.damage ?? 0, event.victim?.health ?? 0)
+      if (applied <= 0) continue
+      const ts  = event._D ?? new Date().toISOString()
+      const row = getOrCreate(aId, vId, event.attacker, event.victim)
+      row.totalDamage += applied
+      row.hitCount    += 1
+      const w = event.damageCauserName ?? 'unknown'
+      row.weapons[w] = (row.weapons[w] ?? 0) + 1
+      if (!row.firstHitAt || ts < row.firstHitAt) row.firstHitAt = ts
+    }
+
+    if (event._T === 'LogPlayerMakeGroggy') {
+      const aId = event.attacker?.accountId ?? ''
+      const vId = event.victim?.accountId   ?? ''
+      if (!aId.startsWith('account.') || !vId.startsWith('account.') || aId === vId) continue
+      if (!sameTeam(event.attacker, event.victim)) continue
+      getOrCreate(aId, vId, event.attacker, event.victim).groggyCount += 1
+    }
+
+    if (event._T === 'LogPlayerKillV2') {
+      const aId = event.killer?.accountId ?? ''
+      const vId = event.victim?.accountId ?? ''
+      if (!aId.startsWith('account.') || !vId.startsWith('account.') || aId === vId) continue
+      if (!sameTeam(event.killer, event.victim)) continue
+      getOrCreate(aId, vId, event.killer, event.victim).killCount += 1
+    }
+  }
+  return [...map.values()]
+}
+
 // ── 텔레메트리 안전 fetch ─────────────────────────────────────────────────────
 
 const EMPTY_TEL = () => ({
-  counts:       new Map(),
-  assistCounts: new Map(),
-  damages:      new Map(),
-  weaponKills:  new Map(),
-  weaponDamages: new Map(),
-  weaponPickups: new Map(),
+  counts:          new Map(),
+  assistCounts:    new Map(),
+  damages:         new Map(),
+  weaponKills:     new Map(),
+  weaponDamages:   new Map(),
+  weaponPickups:   new Map(),
+  teamDamageRows:  [],
 })
 
 async function safeFetchBotKills(matchData, matchId) {
-  // Redis 캐시 우선
+  // Redis 캐시 우선 (팀 피해는 Redis에 캐시하지 않으므로 cached hit 시 teamDamageRows 없음)
   const cached = await getCachedCounts(matchId)
-  if (cached) return { status: 'ok', ...cached }
+  if (cached) return { status: 'ok', ...cached, teamDamageRows: [] }
 
   const telemetryUrl = getTelemetryUrl(matchData)
   if (!telemetryUrl) return { status: 'missing', ...EMPTY_TEL() }
@@ -295,16 +356,18 @@ async function safeFetchBotKills(matchData, matchId) {
       console.warn('[botKills] 텔레메트리 fetch 실패:', res?.status)
       return { status: 'failed', ...EMPTY_TEL() }
     }
-    const telemetry    = await res.json()
-    const counts       = countBotKillsByAccount(telemetry)
-    const assistCounts = countBotAssistsByAccount(telemetry)
-    const damages      = countBotDamageByAccount(telemetry)
+    const telemetry     = await res.json()
+    const counts        = countBotKillsByAccount(telemetry)
+    const assistCounts  = countBotAssistsByAccount(telemetry)
+    const damages       = countBotDamageByAccount(telemetry)
     // 무기별 통계
     const weaponKills   = countWeaponKillsByAccount(telemetry)
     const weaponDamages = countWeaponDamageByAccountByWeapon(telemetry)
     const weaponPickups = countWeaponPickupsByAccount(telemetry)
+    // 팀 내 피해
+    const teamDamageRows = extractTeamDamage(telemetry)
     await setCachedCounts(matchId, counts, assistCounts, damages, weaponKills, weaponDamages, weaponPickups)
-    return { status: 'ok', counts, assistCounts, damages, weaponKills, weaponDamages, weaponPickups }
+    return { status: 'ok', counts, assistCounts, damages, weaponKills, weaponDamages, weaponPickups, teamDamageRows }
   } catch (err) {
     console.warn('[botKills] 텔레메트리 처리 오류:', err)
     return { status: 'failed', ...EMPTY_TEL(), error: err }
@@ -388,29 +451,30 @@ function buildRows(players, botKillsById, assistCounts, damages, isBotCorrected,
  */
 export async function analyzeMatchData(matchData, matchId) {
   if (!matchData || !matchId) {
-    return { status: 'invalid_args', rows: [], isBotCorrected: false }
+    return { status: 'invalid_args', rows: [], isBotCorrected: false, teamDamageRows: [] }
   }
 
   try {
     const players   = extractRealPlayers(matchData)
     const telResult = await safeFetchBotKills(matchData, matchId)
 
-    const isBotCorrected = telResult.status === 'ok'
+    const isBotCorrected  = telResult.status === 'ok'
+    const teamDamageRows  = telResult.teamDamageRows ?? []
     const rows = buildRows(
       players, telResult.counts, telResult.assistCounts, telResult.damages, isBotCorrected,
       telResult.weaponKills, telResult.weaponDamages, telResult.weaponPickups
     )
 
     if (telResult.status === 'ok') {
-      return { status: 'ok', rows, isBotCorrected: true }
+      return { status: 'ok', rows, isBotCorrected: true, teamDamageRows }
     }
     if (telResult.status === 'missing') {
-      return { status: 'telemetry_missing', rows, isBotCorrected: false }
+      return { status: 'telemetry_missing', rows, isBotCorrected: false, teamDamageRows: [] }
     }
-    return { status: 'telemetry_failed', rows, isBotCorrected: false, error: telResult.error }
+    return { status: 'telemetry_failed', rows, isBotCorrected: false, teamDamageRows: [], error: telResult.error }
   } catch (err) {
     console.warn('[botKills] analyzeMatchData 예기치 못한 오류:', err)
-    return { status: 'unknown_error', rows: [], isBotCorrected: false, error: err }
+    return { status: 'unknown_error', rows: [], isBotCorrected: false, teamDamageRows: [], error: err }
   }
 }
 

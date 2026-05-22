@@ -40,7 +40,6 @@ const PlayerHeader = ({
   refreshMsg,
   mmr = 1000,
   dataSource,
-  onBotFilterChange,
   matchesLoading = false,
   availableSeasons = [],
   selectedSeasonId = null,
@@ -50,7 +49,6 @@ const PlayerHeader = ({
   const [showRankedDetails, setShowRankedDetails] = useState(false);
   const [showSeasonDetails, setShowSeasonDetails] = useState(false);
   const [showRecentDetails, setShowRecentDetails] = useState(false);
-  const [botFilterOn, setBotFilterOn] = useState(false);
   const excludeEvents = true;
   const { t } = useT();
   const router = useRouter();
@@ -78,19 +76,6 @@ const PlayerHeader = ({
     }
   };
 
-  const [showBotSeasonAlert, setShowBotSeasonAlert] = useState(false);
-
-  const handleBotFilter = () => {
-    if (selectedSeasonId) {
-      setShowBotSeasonAlert(true);
-      setTimeout(() => setShowBotSeasonAlert(false), 3500);
-      return;
-    }
-    setBotFilterOn((v) => {
-      onBotFilterChange?.(!v);
-      return !v;
-    });
-  };
 
   // 리뷰 로드
 
@@ -151,7 +136,8 @@ const PlayerHeader = ({
   const seasonStat = combinedStat || null;
 
   // PKGG 점수: mmr prop (경쟁전 포함 서버사이드 계산값) 우선, 없으면 시즌 일반전 기준 계산
-  const displayMmr = mmr || calculateSeasonMMR(seasonData) || 1000;
+  // correctedAvgKills는 filteredRecentMatches 계산 후 아래에서 재정의됨
+  let displayMmr = mmr || calculateSeasonMMR(seasonData) || 1000;
   const mmrSource = t('ph.mmr_source');
 
   // 이벤트 모드 필터 — matchType OR gameMode OR mapName 기반
@@ -206,6 +192,28 @@ const PlayerHeader = ({
 
   const recent20Stats = calculate20MatchStats(filteredRecentMatches);
 
+  // 봇킬 보정 평균 킬: isBotCorrected=true → realKills, false → kills 혼합 평균
+  const correctedAvgKills = (() => {
+    const recent20 = filteredRecentMatches.slice(0, 20)
+    if (recent20.length === 0) return null
+    const anyAnalyzed = recent20.some(m => m.isBotCorrected !== undefined)
+    if (!anyAnalyzed) return null
+    const total = recent20.reduce((s, m) => s + (m.isBotCorrected === true ? (m.realKills ?? m.kills ?? 0) : (m.kills ?? 0)), 0)
+    return parseFloat((total / recent20.length).toFixed(2))
+  })()
+
+  // 봇킬 보정 PKGG 점수 재계산 (일반전 데이터 기준)
+  if (correctedAvgKills !== null && combinedStat) {
+    const corrected = calculateMMR({
+      avgDamage:      combinedStat.avgDamage,
+      avgKills:       correctedAvgKills,
+      avgAssists:     combinedStat.avgAssists,
+      winRate:        combinedStat.winRate,
+      top10Rate:      combinedStat.top10Rate,
+      avgSurviveTime: combinedStat.avgSurvival,
+    })
+    if (corrected) displayMmr = corrected
+  }
 
   const calculateFormStatus = (matches) => {
     if (!matches || matches.length < 5)
@@ -385,29 +393,6 @@ const PlayerHeader = ({
                   >{saving ? t('ph.saving') : <>📷<span className="hidden sm:inline"> {t('ph.card')}</span></>}</button>
                 </Tooltip>
               )}
-              <div className="relative">
-                <button
-                  onClick={handleBotFilter}
-                  title={botFilterOn ? t('ph.bot_filter_on_tooltip') : t('ph.bot_filter_off_tooltip')}
-                  className={`px-2.5 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
-                    selectedSeasonId
-                      ? 'border-white/10 bg-white/5 text-gray-500 cursor-not-allowed'
-                      : botFilterOn
-                      ? 'bg-cyan-500 border-cyan-400 text-white'
-                      : 'border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300'
-                  }`}
-                >🤖<span className="hidden sm:inline"> {botFilterOn ? t('ph.bot_excl') : t('ph.bot_incl')}</span></button>
-
-                {/* 이전 시즌 클릭 시 토스트 */}
-                {showBotSeasonAlert && (
-                  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none">
-                    <div className="flex items-start gap-2.5 bg-gray-900 border border-amber-500/60 rounded-2xl px-4 py-3 shadow-2xl max-w-xs w-max">
-                      <span className="text-amber-400 text-lg flex-shrink-0">⚠️</span>
-                      <div className="text-sm font-bold text-amber-400">{t('ph.bot_season_alert')}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
               {(() => {
                 const tier = getMMRTier(displayMmr);
                 const tooltipText = `${t('ph.mmr_tooltip_full')}\n\n📌 ${mmrSource}`;
@@ -492,8 +477,12 @@ const PlayerHeader = ({
                     <div className="text-lg font-black text-gray-900 dark:text-gray-100">{seasonStat.avgDamage}</div>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
-                    <div className="text-xs text-blue-400 mb-1 font-medium">{t('ph.avg_kills')}</div>
-                    <div className="text-lg font-black text-gray-900 dark:text-gray-100">{seasonStat.avgKills}</div>
+                    <div className="text-xs text-blue-400 mb-1 font-medium">
+                      {t('ph.avg_kills')}
+                    </div>
+                    <div className="text-lg font-black text-gray-900 dark:text-gray-100">
+                      {seasonStat.avgKills}
+                    </div>
                   </div>
                 </div>
 
@@ -610,15 +599,15 @@ const PlayerHeader = ({
                       const recent20 = filteredRecentMatches.slice(0, 20)
                       const correctedCount = recent20.filter((m) => m.isBotCorrected).length
                       const n = recent20.length || 1
-                      const avgRealDmg = botFilterOn && correctedCount > 0
+                      const avgRealDmg = correctedCount > 0
                         ? recent20.reduce((s, m) => s + (m.isBotCorrected ? (m.realDamage ?? m.damage ?? 0) : (m.damage ?? 0)), 0) / n
                         : null
-                      const totalBotDmg = botFilterOn && correctedCount > 0
+                      const totalBotDmg = correctedCount > 0
                         ? recent20.reduce((s, m) => s + (m.botDamage ?? 0), 0) / n
                         : null
                       return <>
                         <div className="text-xs text-cyan-500 mb-1 font-medium">
-                          {botFilterOn ? t('ph.real_avg_damage') : t('ph.avg_damage')}
+                          {correctedCount > 0 ? t('ph.real_avg_damage') : t('ph.avg_damage')}
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-gray-100">
                           {avgRealDmg !== null ? avgRealDmg.toFixed(0) : recent20Stats.avgDamage.toFixed(0)}
@@ -629,9 +618,6 @@ const PlayerHeader = ({
                         {totalBotDmg === 0 && correctedCount > 0 && (
                           <div className="text-[10px] text-emerald-500 mt-0.5">{t('ph.bot_dmg_none')}</div>
                         )}
-                        {botFilterOn && correctedCount === 0 && (
-                          <div className="text-[10px] text-gray-400 mt-0.5">{t('ph.no_analysis_data')}</div>
-                        )}
                       </>
                     })()}
                   </div>
@@ -640,24 +626,18 @@ const PlayerHeader = ({
                       const recent20 = filteredRecentMatches.slice(0, 20)
                       const correctedCount = recent20.filter((m) => m.isBotCorrected).length
                       const n = recent20.length || 1
-                      const avgReal = botFilterOn && correctedCount > 0
+                      const avgReal = correctedCount > 0
                         ? recent20.reduce((s, m) => s + (m.isBotCorrected ? (m.realKills ?? m.kills ?? 0) : (m.kills ?? 0)), 0) / n
-                        : null
-                      const avgBot = botFilterOn && correctedCount > 0
-                        ? recent20.reduce((s, m) => s + (m.botKills ?? 0), 0) / n
                         : null
                       return <>
                         <div className="text-xs text-cyan-500 mb-1 font-medium">
-                          {botFilterOn ? t('ph.real_avg_kills') : t('ph.avg_kills')}
+                          {correctedCount > 0 ? t('ph.real_avg_kills') : t('ph.avg_kills')}
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-gray-100">
                           {avgReal !== null ? avgReal.toFixed(1) : recent20Stats.avgKills.toFixed(1)}
                         </div>
-                        {avgBot !== null && (
-                          <div className="text-[10px] text-gray-400 mt-0.5">{t('ph.bot_kills_excl').replace('{n}', avgBot.toFixed(1))}</div>
-                        )}
-                        {botFilterOn && correctedCount === 0 && (
-                          <div className="text-[10px] text-gray-400 mt-0.5">{t('ph.no_data_label')}</div>
+                        {avgReal !== null && (
+                          <div className="text-[10px] text-gray-400 mt-0.5">(봇킬 포함 {recent20Stats.avgKills.toFixed(1)})</div>
                         )}
                       </>
                     })()}
@@ -675,16 +655,9 @@ const PlayerHeader = ({
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">{recent20Stats.top10Rate.toFixed(1)}%</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-2.5 text-center">
-                    <div className="text-xs text-gray-400 mb-0.5">{botFilterOn ? t('ph.real_assists') : t('ph.assists')}</div>
+                    <div className="text-xs text-gray-400 mb-0.5">{t('ph.assists')}</div>
                     <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                      {(() => {
-                        if (!botFilterOn) return recent20Stats.avgAssists.toFixed(1)
-                        const recent20 = filteredRecentMatches.slice(0, 20)
-                        const corrected = recent20.filter((m) => m.isBotCorrected)
-                        if (corrected.length === 0) return recent20Stats.avgAssists.toFixed(1)
-                        const avgReal = corrected.reduce((s, m) => s + Math.max(0, (m.assists ?? 0) - (m.botAssist ?? 0)), 0) / corrected.length
-                        return avgReal.toFixed(1)
-                      })()}
+                      {recent20Stats.avgAssists.toFixed(1)}
                     </div>
                   </div>
                 </div>
@@ -699,19 +672,18 @@ const PlayerHeader = ({
 
                 {showRecentDetails && (() => {
                   const recent = filteredRecentMatches.slice(0, recent20Stats.totalMatches);
+                  const correctedCount = recent.filter((m) => m.isBotCorrected).length
                   const effectiveDmg = (m) =>
-                    botFilterOn && m.isBotCorrected ? (m.realDamage ?? m.damage ?? 0) : (m.damage || 0)
+                    m.isBotCorrected ? (m.realDamage ?? m.damage ?? 0) : (m.damage || 0)
                   const maxDmg = Math.max(...recent.map(effectiveDmg));
                   const totalKills = recent.reduce((s, m) => s + (m.kills || 0), 0);
                   const totalDmg = recent.reduce((s, m) => s + effectiveDmg(m), 0);
-                  const botDmgExcluded = botFilterOn
-                    ? recent.reduce((s, m) => s + (m.botDamage ?? 0), 0)
-                    : 0
+                  const botDmgExcluded = recent.reduce((s, m) => s + (m.botDamage ?? 0), 0)
                   const totalDeaths = recent.filter((m) => (m.rank || m.placement || 100) > 1).length;
                   const avgSurv = recent20Stats.avgSurvivalTime;
                   const totalAssists = recent.reduce((s, m) => s + (m.assists || 0), 0);
 
-                  const effectiveKills = botFilterOn
+                  const effectiveKills = correctedCount > 0
                     ? recent.reduce((s, m) => s + (m.isBotCorrected ? (m.realKills ?? m.kills ?? 0) : (m.kills ?? 0)), 0)
                     : totalKills
                   const kd = totalDeaths > 0
@@ -723,16 +695,16 @@ const PlayerHeader = ({
                       <div className="mt-3 rounded-xl border border-cyan-100 dark:border-cyan-800 overflow-hidden">
                         <div className="px-3 py-2 bg-cyan-50 dark:bg-cyan-900/20 border-b border-cyan-100 dark:border-cyan-800 flex items-center justify-between">
                           <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">{t('ph.extra_stats_title')}</span>
-                          {botFilterOn && <span className="text-[10px] text-cyan-400">🤖 {t('ph.bot_excl_label')}</span>}
+                          {correctedCount > 0 && <span className="text-[10px] text-cyan-400">🤖 {t('ph.bot_excl_label')}</span>}
                         </div>
                         <div className="p-2">
                           <div className="grid grid-cols-3 gap-1.5">
                             {[
-                              { label: botFilterOn ? t('ph.max_real_dmg') : t('ph.max_damage'), value: Math.round(maxDmg).toLocaleString(), color: 'text-orange-500' },
-                              { label: botFilterOn ? t('ph.real_kd') : t('ph.kd'), value: kd, color: 'text-red-500' },
+                              { label: correctedCount > 0 ? t('ph.max_real_dmg') : t('ph.max_damage'), value: Math.round(maxDmg).toLocaleString(), color: 'text-orange-500' },
+                              { label: correctedCount > 0 ? t('ph.real_kd') : t('ph.kd'), value: kd, color: 'text-red-500' },
                               { label: t('ph.avg_survival_label'), value: Math.round(avgSurv / 60) + t('ph.min_unit'), color: 'text-gray-500 dark:text-gray-400' },
-                              { label: botFilterOn ? t('ph.total_real_dmg') : t('ph.total_dmg'), value: Math.round(totalDmg).toLocaleString(), color: 'text-cyan-600', sub: botFilterOn && botDmgExcluded > 0 ? t('ph.bot_dmg_excl_sub').replace('{n}', Math.round(botDmgExcluded).toLocaleString()) : null },
-                              { label: botFilterOn ? t('ph.total_real_kills') : t('ph.total_kills'), value: effectiveKills.toLocaleString(), color: 'text-red-400' },
+                              { label: correctedCount > 0 ? t('ph.total_real_dmg') : t('ph.total_dmg'), value: Math.round(totalDmg).toLocaleString(), color: 'text-cyan-600', sub: correctedCount > 0 && botDmgExcluded > 0 ? t('ph.bot_dmg_excl_sub').replace('{n}', Math.round(botDmgExcluded).toLocaleString()) : null },
+                              { label: correctedCount > 0 ? t('ph.total_real_kills') : t('ph.total_kills'), value: effectiveKills.toLocaleString(), color: 'text-red-400' },
                               { label: t('ph.total_assists'), value: totalAssists.toLocaleString(), color: 'text-blue-400' },
                             ].map(({ label, value, color, sub }) => (
                               <div key={label} className="bg-white dark:bg-gray-800 rounded-lg p-2.5 text-center border border-gray-100 dark:border-gray-700">

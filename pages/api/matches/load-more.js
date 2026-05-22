@@ -129,7 +129,8 @@ export default async function handler(req, res) {
       .filter((m) => m !== null);
 
     // ── 2-2. 봇킬 분석 — 텔레메트리 대용량(50MB)이라 순차 처리 ──────────────
-    const botUpserts = []  // DB upsert 대상 수집
+    const botUpserts        = []  // DB upsert 대상 수집
+    const teamDamageUpserts = []  // 팀 내 피해 upsert 대상 수집
 
     for (const m of rawMatches) {
       try {
@@ -164,6 +165,13 @@ export default async function handler(req, res) {
             botAssist:   m.botAssist,
             weaponStats: m.weaponStats,
           })
+
+          // 팀 내 피해 rows 수집 (해당 경기에 관련된 rows만)
+          if (result.teamDamageRows?.length > 0) {
+            for (const td of result.teamDamageRows) {
+              teamDamageUpserts.push({ matchId: m.matchId, ...td })
+            }
+          }
         }
       } catch (err) {
         console.warn('[load-more] 봇킬 분석 실패:', m.matchId, err?.message);
@@ -231,6 +239,32 @@ export default async function handler(req, res) {
           data: weaponRows,
           skipDuplicates: true,
         }).catch(e => console.warn('[load-more] 무기 통계 저장 실패:', e.message))
+      }
+
+      // ── 2-5. 팀 내 피해 team_damage_stats 저장 ───────────────────────────
+      if (teamDamageUpserts.length > 0) {
+        const uniqueTeamDmg = []
+        const seen = new Set()
+        for (const td of teamDamageUpserts) {
+          const key = `${td.matchId}|${td.attackerAccountId}|${td.victimAccountId}`
+          if (!seen.has(key)) { seen.add(key); uniqueTeamDmg.push(td) }
+        }
+        await prisma.teamDamageStat.createMany({
+          data: uniqueTeamDmg.map(td => ({
+            matchId:           td.matchId,
+            attackerAccountId: td.attackerAccountId,
+            victimAccountId:   td.victimAccountId,
+            attackerName:      td.attackerName,
+            victimName:        td.victimName,
+            totalDamage:       td.totalDamage,
+            hitCount:          td.hitCount,
+            groggyCount:       td.groggyCount ?? 0,
+            killCount:         td.killCount   ?? 0,
+            weapons:           td.weapons,
+            firstHitAt:        td.firstHitAt ? new Date(td.firstHitAt) : null,
+          })),
+          skipDuplicates: true,
+        }).catch(e => console.warn('[load-more] 팀 피해 통계 저장 실패:', e.message))
       }
     }
 

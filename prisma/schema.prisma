@@ -509,3 +509,24 @@ model RestrictedPlayer {
   @@unique([nickname, type])
   @@map("restricted_players")
 }
+
+// 팀 내 피해 통계 (LogPlayerTakeDamage 양방향 집계)
+model TeamDamageStat {
+  id                Int       @id @default(autoincrement())
+  matchId           String
+  attackerAccountId String
+  victimAccountId   String
+  attackerName      String    @default("")
+  victimName        String    @default("")
+  totalDamage       Float     @default(0)
+  hitCount          Int       @default(0)
+  groggyCount       Int       @default(0)
+  killCount         Int       @default(0)
+  weapons           Json      @default("[]")
+  firstHitAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@unique([matchId, attackerAccountId, victimAccountId])
+  @@index([matchId])
+  @@map("team_damage_stats")
+}

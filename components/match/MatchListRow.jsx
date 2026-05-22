@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import MatchDetailLog from './MatchDetailLog.jsx';
 import MatchTeammateStats from './MatchTeammateStats.jsx';
 import RankChangeIndicator from '../ui/RankChangeIndicator.jsx';
@@ -51,14 +52,74 @@ function calcTeamContrib(match, myNickname) {
   }
 }
 
+function getWeaponLabel(weaponId) {
+  if (!weaponId) return null
+  const v = weaponId.toLowerCase()
+  if (v.includes('motorbike') || v.includes('sidecar')) return '오토바이'
+  if (v.includes('uaz')) return 'UAZ'
+  if (v.includes('pickup')) return '픽업트럭'
+  if (v.includes('dacia')) return '다시아'
+  if (v.includes('buggy')) return '버기'
+  if (v.includes('mirado')) return '미라도'
+  if (v.includes('rony')) return '로니'
+  if (v.includes('snowmobile') || v.includes('snowbike')) return '설상 차량'
+  if (v.includes('aquarail')) return '아쿠아레일'
+  if (v.includes('boat') || v.includes('pg117') || v.includes('ponycoupe')) return '보트'
+  if (v.includes('tukshai') || v.includes('tuktuk')) return '툭샤이'
+  if (v.includes('helicopter') || v.includes('heli')) return '헬기'
+  if (v.includes('brdm')) return 'BRDM-2'
+  if (v.startsWith('bp_') || v.includes('vehicle') || v.includes('van') || v.includes('truck')) return '차량'
+  if (/^player(female|male)/i.test(weaponId)) return '근접'
+  if (weaponId === 'Pickaxe' || weaponId === 'Crowbar' || weaponId === 'Machete' || weaponId === 'Sickle') return '근접 무기'
+  return weaponId.replace(/^(Weap|Proj)/, '').replace(/_C$/, '').replace(/_/g, ' ')
+}
+
 export default function MatchListRow({
   match,
   isOpen,
   onToggle,
   prevMatch,
   playerData,
-  showBotKills,
 }) {
+  const [detailTab, setDetailTab]           = useState('summary')
+  const [teamDmg, setTeamDmg]               = useState(null)
+  const [teamDmgLoading, setTeamDmgLoading] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen || !match?.matchId || !match?.isBotCorrected) return
+    if (teamDmg !== null) return
+    setTeamDmgLoading(true)
+    fetch(`/api/team-damage/${match.matchId}`)
+      .then((r) => r.json())
+      .then((data) => setTeamDmg(data.rows ?? []))
+      .catch(() => setTeamDmg([]))
+      .finally(() => setTeamDmgLoading(false))
+  }, [isOpen, match?.matchId, match?.isBotCorrected])
+
+  // 팀 피해 공격자 집계 맵 (닉네임 소문자 → 합산 데이터)
+  const friendlyFireMap = {}
+  if (Array.isArray(teamDmg)) {
+    const myTeamNames = new Set(
+      (match.teammatesDetail ?? []).map((t) => t.name?.toLowerCase()).filter(Boolean)
+    )
+    for (const row of teamDmg) {
+      const a = row.attackerName?.toLowerCase()
+      if (!a || !myTeamNames.has(a)) continue
+      if (!friendlyFireMap[a]) friendlyFireMap[a] = { totalDamage: 0, groggyCount: 0, killCount: 0 }
+      friendlyFireMap[a].totalDamage  += row.totalDamage  ?? 0
+      friendlyFireMap[a].groggyCount  += row.groggyCount  ?? 0
+      friendlyFireMap[a].killCount    += row.killCount     ?? 0
+    }
+  }
+
+  function getFriendlyFireBadge(name) {
+    const ff = friendlyFireMap[name?.toLowerCase()]
+    if (!ff) return null
+    if (ff.killCount >= 1)                      return { label: '아군킬잡이', cls: 'bg-red-100 text-red-600 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700' }
+    if (ff.groggyCount >= 1)                    return { label: '아군킬잡이', cls: 'bg-orange-100 text-orange-600 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700' }
+    if (ff.totalDamage >= 100)                  return { label: '아군킬잡이', cls: 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' }
+    return null
+  }
   const prevScore = prevMatch?.avgMmr;
   const currentScore = match.avgMmr;
 
@@ -186,22 +247,24 @@ export default function MatchListRow({
         {/* 3행: 핵심 스탯 4개 */}
         <div className="grid grid-cols-4 gap-1 mb-1">
           <div className="text-center bg-gray-50 dark:bg-gray-800 rounded-lg py-1.5">
-            {showBotKills && match.isBotCorrected ? (
+            {match.isBotCorrected === true ? (
               <>
-                <div className={`text-base font-black ${(match.realKills ?? 0) >= 5 ? 'text-red-500' : (match.realKills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800'}`}>
-                  {match.realKills ?? match.kills ?? 0}
+                <div className={`text-base font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                  {match.kills ?? 0}
                 </div>
-                <div className="text-[10px] text-cyan-500">실킬</div>
-                {(match.botKills ?? 0) > 0 && (
-                  <div className="text-[9px] text-gray-400">봇{match.botKills}</div>
-                )}
+                <div className="text-[9px] text-gray-400">총킬</div>
+                <div className="text-[9px] mt-0.5">
+                  <span className="text-cyan-500">실{match.realKills ?? 0}</span>
+                  <span className="text-gray-400"> / 봇{match.botKills ?? 0}</span>
+                </div>
               </>
             ) : (
               <>
                 <div className={`text-base font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                  {match.kills ?? 0}{showBotKills && !match.isBotCorrected ? <span className="text-xs ml-0.5" title="봇킬 분석 불가">⚠️</span> : null}
+                  {match.kills ?? 0}
                 </div>
                 <div className="text-[10px] text-gray-400">킬</div>
+                <div className="text-[9px] text-blue-400">(분석 중...)</div>
               </>
             )}
           </div>
@@ -270,22 +333,24 @@ export default function MatchListRow({
 
         {/* 킬 */}
         <div className="w-12 flex-shrink-0 text-center">
-          {showBotKills && match.isBotCorrected ? (
+          {match.isBotCorrected === true ? (
             <>
-              <div className={`text-lg font-black ${(match.realKills ?? 0) >= 5 ? 'text-red-500' : (match.realKills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800'}`}>
-                {match.realKills ?? match.kills ?? 0}
+              <div className={`text-lg font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                {match.kills ?? 0}
               </div>
-              <div className="text-xs text-cyan-500">실킬</div>
-              {(match.botKills ?? 0) > 0 && (
-                <div className="text-[10px] text-gray-400">봇{match.botKills}</div>
-              )}
+              <div className="text-[10px] text-gray-400">총킬</div>
+              <div className="text-[10px] mt-0.5">
+                <span className="text-cyan-500">실{match.realKills ?? 0}</span>
+                <span className="text-gray-400"> / 봇{match.botKills ?? 0}</span>
+              </div>
             </>
           ) : (
             <>
               <div className={`text-lg font-black ${(match.kills ?? 0) >= 5 ? 'text-red-500' : (match.kills ?? 0) >= 3 ? 'text-orange-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                {match.kills ?? 0}{showBotKills && !match.isBotCorrected ? <span className="text-xs ml-0.5" title="봇킬 분석 불가">⚠️</span> : null}
+                {match.kills ?? 0}
               </div>
               <div className="text-xs text-gray-400">킬</div>
+              <div className="text-[10px] text-blue-400">(분석 중...)</div>
             </>
           )}
         </div>
@@ -336,10 +401,16 @@ export default function MatchListRow({
             <div className="flex flex-wrap gap-1">
               {match.teammatesDetail.map((t) => {
                 const shard = playerData?.profile?.shardId || 'steam';
+                const ffBadge = !t.isSelf ? getFriendlyFireBadge(t.name) : null
                 const chip = (
-                  <span key={t.name} className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 max-w-[110px] ${t.isSelf ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer transition-colors'}`}>
+                  <span key={t.name} className={`px-2 py-0.5 rounded-full text-xs flex items-center gap-1 max-w-[160px] ${t.isSelf ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer transition-colors'}`}>
                     {t.clanTag && <span className="text-gray-400 font-normal">[{t.clanTag}]</span>}
                     <span className="truncate">{t.name}</span>
+                    {ffBadge && (
+                      <span className={`flex-shrink-0 px-1 py-0.5 rounded text-[9px] font-bold border ${ffBadge.cls}`}>
+                        {ffBadge.label}
+                      </span>
+                    )}
                   </span>
                 );
                 if (t.isSelf) return chip;
@@ -368,90 +439,197 @@ export default function MatchListRow({
 
       {/* 상세 정보 */}
       {isOpen && (
-        <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-5">
-          <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <span className="w-1 h-4 bg-blue-500 rounded-full inline-block"></span>
-              경기 상세 분석
-            </h3>
-            <div className="text-xs text-gray-400 mt-1 flex items-center gap-2 flex-wrap">
-              {match.mapName && <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded">{getMapName(match.mapName)}</span>}
-              <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded">{translateGameMode(match.mode)}</span>
-              <span className="text-gray-400">{Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분 생존</span>
+        <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          {/* 경기 메타 + 탭 바 */}
+          <div className="px-4 pt-3 pb-0 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              {match.mapName && <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-xs">{getMapName(match.mapName)}</span>}
+              <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded text-xs">{translateGameMode(match.mode)}</span>
+              <span className="text-gray-400 text-xs">{Math.round((match.survivalTime || match.surviveTime || 0) / 60)}분 생존</span>
+            </div>
+            <div className="flex gap-1">
+              {[
+                { id: 'summary', label: '요약',     icon: '📊' },
+                { id: 'log',     label: '전투 로그', icon: '🔍' },
+              ].map(({ id, label, icon }) => (
+                <button
+                  key={id}
+                  onClick={(e) => { e.stopPropagation(); setDetailTab(id) }}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-t-lg border-b-2 transition-colors ${
+                    detailTab === id
+                      ? 'text-blue-600 dark:text-blue-400 border-blue-500 bg-white dark:bg-gray-900'
+                      : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <span className="mr-1">{icon}</span>{label}
+                </button>
+              ))}
             </div>
           </div>
-          {/* 팀 기여도 + PPS 상세 */}
-          {(() => {
-            const myNick  = playerData?.profile?.nickname
-            const contrib = calcTeamContrib(match, myNick)
-            const pps     = calcPPS(match)
-            return (
-              <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* PPS 상세 */}
-                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400">퍼포먼스 점수 (PPS)</span>
-                    <span className={`text-lg font-black ${pps.color}`}>{pps.grade}</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {[
-                      { label: '딜량', val: match.damage || 0, pts: Math.round((match.damage || 0) * 0.3), fmt: (v) => Math.round(v) },
-                      { label: '킬',   val: match.kills || 0,  pts: (match.kills || 0) * 20,              fmt: (v) => v },
-                      { label: '어시', val: match.assists || 0,pts: (match.assists || 0) * 8,             fmt: (v) => v },
-                      { label: '생존', val: Math.round((match.survivalTime || match.surviveTime || 0) / 60), pts: Math.round(Math.min(25, ((match.survivalTime || match.surviveTime || 0) / 60) * 1.2)), fmt: (v) => `${v}분` },
-                    ].map(({ label, val, pts, fmt }) => (
-                      <div key={label} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500 dark:text-gray-400 w-10">{label}</span>
-                        <span className="text-gray-700 dark:text-gray-300 font-medium">{fmt(val)}</span>
-                        <span className="text-blue-500 font-bold">+{pts}pt</span>
-                      </div>
-                    ))}
-                    <div className="border-t border-gray-100 dark:border-gray-700 pt-1.5 flex justify-between text-xs">
-                      <span className="text-gray-500 dark:text-gray-400">총점</span>
-                      <span className={`font-black ${pps.color}`}>{pps.score}pt</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* 팀 기여도 */}
-                {contrib ? (
+          {/* 탭 콘텐츠 */}
+          <div className="p-4">
+            {/* 요약 탭 */}
+            {detailTab === 'summary' && (() => {
+              const myNick  = playerData?.profile?.nickname
+              const contrib = calcTeamContrib(match, myNick)
+              const pps     = calcPPS(match)
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* PPS 상세 */}
                   <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-gray-600 dark:text-gray-400">팀 내 기여도</span>
-                      <span className="text-[10px] text-gray-400">{contrib.teamSize}인 스쿼드</span>
+                      <span className="text-xs font-bold text-gray-600 dark:text-gray-400">퍼포먼스 점수 (PPS)</span>
+                      <span className={`text-lg font-black ${pps.color}`}>{pps.grade}</span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {[
-                        { label: '딜 기여', pct: contrib.damagePct, my: `${contrib.myDamage}`, total: `${contrib.teamDamage}`, color: 'bg-orange-400' },
-                        { label: '킬 기여', pct: contrib.killPct,   my: `${contrib.myKills}킬`, total: `${contrib.teamKills}킬`, color: 'bg-red-400' },
-                        { label: '넉다운', pct: contrib.dbnosPct,  my: `${contrib.myDbnos}회`, total: null, color: 'bg-purple-400' },
-                      ].map(({ label, pct, my, total, color }) => (
-                        <div key={label}>
-                          <div className="flex justify-between text-xs mb-0.5">
-                            <span className="text-gray-500 dark:text-gray-400">{label}</span>
-                            <span className="font-bold text-gray-700 dark:text-gray-300">
-                              {my}{total ? ` / 팀 ${total}` : ''} <span className="text-blue-600">({pct}%)</span>
-                            </span>
-                          </div>
-                          <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${Math.min(100, pct)}%` }} />
-                          </div>
+                        { label: '딜량', val: match.damage || 0, pts: Math.round((match.damage || 0) * 0.3), fmt: (v) => Math.round(v) },
+                        { label: '킬',   val: match.kills || 0,  pts: (match.kills || 0) * 20,              fmt: (v) => v },
+                        { label: '어시', val: match.assists || 0,pts: (match.assists || 0) * 8,             fmt: (v) => v },
+                        { label: '생존', val: Math.round((match.survivalTime || match.surviveTime || 0) / 60), pts: Math.round(Math.min(25, ((match.survivalTime || match.surviveTime || 0) / 60) * 1.2)), fmt: (v) => `${v}분` },
+                      ].map(({ label, val, pts, fmt }) => (
+                        <div key={label} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500 dark:text-gray-400 w-10">{label}</span>
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">{fmt(val)}</span>
+                          <span className="text-blue-500 font-bold">+{pts}pt</span>
                         </div>
                       ))}
+                      <div className="border-t border-gray-100 dark:border-gray-700 pt-1.5 flex justify-between text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">총점</span>
+                        <span className={`font-black ${pps.color}`}>{pps.score}pt</span>
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3 flex items-center justify-center">
-                    <span className="text-xs text-gray-400">팀 데이터 없음 (솔로 또는 DB 매치)</span>
-                  </div>
-                )}
-              </div>
-            )
-          })()}
 
-          <MatchTeammateStats teammatesDetail={match.teammatesDetail} shard={playerData?.profile?.shardId || 'steam'} />
-          <div className="mt-4">
-            <MatchDetailLog match={match} playerNickname={playerData?.profile?.nickname || ''} />
+                  {/* 팀 기여도 */}
+                  {contrib ? (
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-gray-600 dark:text-gray-400">팀 내 기여도</span>
+                        <span className="text-[10px] text-gray-400">{contrib.teamSize}인 스쿼드</span>
+                      </div>
+                      <div className="space-y-2">
+                        {[
+                          { label: '딜 기여', pct: contrib.damagePct, my: `${contrib.myDamage}`, total: `${contrib.teamDamage}`, color: 'bg-orange-400' },
+                          { label: '킬 기여', pct: contrib.killPct,   my: `${contrib.myKills}킬`, total: `${contrib.teamKills}킬`, color: 'bg-red-400' },
+                          { label: '넉다운', pct: contrib.dbnosPct,  my: `${contrib.myDbnos}회`, total: null, color: 'bg-purple-400' },
+                        ].map(({ label, pct, my, total, color }) => (
+                          <div key={label}>
+                            <div className="flex justify-between text-xs mb-0.5">
+                              <span className="text-gray-500 dark:text-gray-400">{label}</span>
+                              <span className="font-bold text-gray-700 dark:text-gray-300">
+                                {my}{total ? ` / 팀 ${total}` : ''} <span className="text-blue-600">({pct}%)</span>
+                              </span>
+                            </div>
+                            <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${Math.min(100, pct)}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3 flex items-center justify-center">
+                      <span className="text-xs text-gray-400">팀 데이터 없음 (솔로 또는 DB 매치)</span>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+            {detailTab === 'summary' && (
+              <MatchTeammateStats teammatesDetail={match.teammatesDetail} shard={playerData?.profile?.shardId || 'steam'} />
+            )}
+
+            {/* 전투 로그 탭 (팀 내 피해 포함) */}
+            {detailTab === 'log' && (() => {
+              const myNick = playerData?.profile?.nickname?.toLowerCase()
+              const myTeamNames = new Set(
+                (match.teammatesDetail ?? []).map((t) => t.name?.toLowerCase()).filter(Boolean)
+              )
+              const filtered = (teamDmg ?? []).filter((td) => {
+                const a = td.attackerName?.toLowerCase()
+                const v = td.victimName?.toLowerCase()
+                return myTeamNames.has(a) || myTeamNames.has(v)
+              })
+              return (
+                <>
+                  <MatchDetailLog match={match} playerNickname={playerData?.profile?.nickname || ''} />
+
+                  {/* 팀 내 피해 */}
+                  {match.isBotCorrected && (
+                    <div className="mt-3 rounded-xl border border-orange-200 dark:border-orange-800/40 overflow-hidden">
+                      <div className="px-4 py-2.5 bg-orange-50 dark:bg-orange-900/20 border-b border-orange-200 dark:border-orange-800/40 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-orange-400 rounded-full" />
+                        <span className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider">팀 내 피해</span>
+                        {teamDmgLoading && (
+                          <svg className="animate-spin w-3 h-3 text-orange-400 ml-1" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                          </svg>
+                        )}
+                        <span className="ml-auto text-[10px] text-orange-400 dark:text-orange-500">같은 팀원에게 준/받은 피해</span>
+                      </div>
+                      <div className="p-3 bg-white dark:bg-gray-900">
+                        {teamDmgLoading ? (
+                          <div className="py-4 text-center text-xs text-gray-400">불러오는 중...</div>
+                        ) : filtered.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-5 text-center">
+                            <div className="text-xl mb-1">🤝</div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500">팀 내 피해 없음</div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {filtered.map((td, i) => {
+                              const topWeapon = Object.entries(td.weapons ?? {}).sort((a, b) => b[1] - a[1])[0]
+                              const weaponLabel = topWeapon ? getWeaponLabel(topWeapon[0]) : null
+                              const isMyAttack = td.attackerName?.toLowerCase() === myNick
+                              const isMyVictim = td.victimName?.toLowerCase() === myNick
+                              return (
+                                <div
+                                  key={i}
+                                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${
+                                    isMyAttack
+                                      ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                                      : isMyVictim
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                                  }`}
+                                >
+                                  <span className={`font-bold truncate max-w-[90px] ${isMyAttack ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                                    {td.attackerName || '?'}
+                                  </span>
+                                  <span className="text-gray-400 flex-shrink-0">→</span>
+                                  <span className={`font-bold truncate max-w-[90px] ${isMyVictim ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-200'}`}>
+                                    {td.victimName || '?'}
+                                  </span>
+                                  <span className="ml-auto flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end">
+                                    {weaponLabel && <span className="text-[10px] text-gray-400 hidden sm:inline">{weaponLabel}</span>}
+                                    {(td.groggyCount > 0) && (
+                                      <span className="text-[10px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 px-1.5 py-0.5 rounded font-bold">
+                                        기절×{td.groggyCount}
+                                      </span>
+                                    )}
+                                    {(td.killCount > 0) && (
+                                      <span className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded font-bold">
+                                        팀킬×{td.killCount}
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] text-gray-400">{td.hitCount}회</span>
+                                    <span className="font-black text-orange-500 dark:text-orange-400">{Math.round(td.totalDamage)}</span>
+                                    <span className="text-[10px] text-gray-400">dmg</span>
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </div>
         </div>
       )}

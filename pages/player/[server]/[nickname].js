@@ -27,7 +27,7 @@ const AICoachingCard        = dynamic(() => import('../../../components/player/A
 const PlayerPercentileCard  = dynamic(() => import('../../../components/player/PlayerPercentileCard'), { ssr: false, loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-xl" /> });
 
 // 반드시 export default 함수 바깥에 위치!
-function MatchList({ recentMatches, playerData, showBotKills }) {
+function MatchList({ recentMatches, playerData }) {
   const [openIdx, setOpenIdx] = useState(null);
   return (
     <div className="space-y-4">
@@ -39,7 +39,6 @@ function MatchList({ recentMatches, playerData, showBotKills }) {
           onToggle={() => setOpenIdx(openIdx === i ? null : i)}
           prevMatch={i > 0 ? recentMatches[i - 1] : null}
           playerData={playerData}
-          showBotKills={showBotKills}
         />
       ))}
     </div>
@@ -761,7 +760,6 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
   const [matchOffset, setMatchOffset] = useState(10);
   const [noMoreMatches, setNoMoreMatches] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [botFilterOn, setBotFilterOn] = useState(false);
 
   // 쿨타임 타이머 — early return 이전에 위치해야 훅 규칙 준수
   useEffect(() => {
@@ -1526,6 +1524,16 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
   const allMatches = [...recentMatches, ...extraMatches];
   const filteredMatches = filterMatches(allMatches, selectedMatchFilter);
 
+  // 봇킬 보정 평균 킬 (퍼포먼스 백분위·스탯 카드용)
+  const correctedAvgKills = (() => {
+    const recent20 = allMatches.slice(0, 20)
+    if (recent20.length === 0) return null
+    const anyAnalyzed = recent20.some(m => m.isBotCorrected !== undefined)
+    if (!anyAnalyzed) return null
+    const total = recent20.reduce((s, m) => s + (m.isBotCorrected === true ? (m.realKills ?? m.kills ?? 0) : (m.kills ?? 0)), 0)
+    return parseFloat((total / recent20.length).toFixed(2))
+  })()
+
   const SECTION_TABS = [
     { key: 'overall',  label: '종합 전적',    icon: '📊' },
     { key: 'analysis', label: '플레이어 분석', icon: '🔍' },
@@ -1603,7 +1611,6 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
           refreshMsg={refreshMsg}
           mmr={displayData?.mmr || 1000}
           dataSource={dataSource}
-          onBotFilterChange={setBotFilterOn}
           matchesLoading={matchesLoading}
           availableSeasons={playerData?.availableSeasons?.length > 0 ? playerData.availableSeasons : (clientSeasons || [])}
           selectedSeasonId={selectedSeasonId}
@@ -1722,7 +1729,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
                         </div>
                       </div>
                     ) : filteredMatches && filteredMatches.length > 0 ? (
-                      <MatchList recentMatches={filteredMatches} playerData={playerData} showBotKills={botFilterOn} />
+                      <MatchList recentMatches={filteredMatches} playerData={playerData} />
                     ) : (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <div className="text-4xl mb-3">📋</div>
@@ -1854,7 +1861,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
               {/* 퍼포먼스 백분위 */}
               <div className="mb-6">
                 {lazyVisible
-                  ? <PlayerPercentileCard playerStats={summary || profile} />
+                  ? <PlayerPercentileCard playerStats={{ ...(summary || profile), ...(correctedAvgKills !== null ? { avgKills: correctedAvgKills } : {}) }} />
                   : <div className="h-24 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" />}
               </div>
             </>
