@@ -373,8 +373,8 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
             <p className="text-base sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-2">
               {t('home.subtitle')}
             </p>
-            <p className="text-xs text-gray-600 mb-4 sm:mb-6">
-              {t('home.notice')}
+            <p className="text-xs text-yellow-400/70 mb-4 sm:mb-6">
+              다음 시즌부터 봇 킬 제외 순수 실력 데이터 제공
             </p>
 
 {/* 검색 메시지 알림 */}
@@ -447,7 +447,6 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                   </div>
                 )}
               </div>
-              <p className="text-gray-600 text-xs mt-2.5">{t('search.hint')}</p>
               {/* 뱃지 */}
               <div className="flex flex-wrap justify-center gap-2 mt-3">
                 {[t('home.badge1'), t('home.badge2'), t('home.badge3')].map((badge, bi) => (
