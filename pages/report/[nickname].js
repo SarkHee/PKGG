@@ -56,6 +56,12 @@ export default function ReportPage({ data, error, nickname }) {
         <meta property="og:title"       content={`${nickname}의 시즌 리포트 — PKGG`} />
         <meta property="og:description" content={data ? `실킬 ${data.avgRealKills ?? data.avgKills} · 딜 ${data.avgRealDamage ?? data.avgDamage} · 승률 ${data.winRate}%` : ''} />
         <meta property="og:url"         content={`https://pkgg.vercel.app/report/${encodeURIComponent(nickname)}`} />
+        <meta property="og:image"       content={`https://pkgg.vercel.app/api/og/report?nickname=${encodeURIComponent(nickname)}&shard=${data?.shard || 'steam'}`} />
+        <meta property="og:image:width"  content="800" />
+        <meta property="og:image:height" content="420" />
+        <meta property="og:type"        content="website" />
+        <meta name="twitter:card"       content="summary_large_image" />
+        <meta name="twitter:image"      content={`https://pkgg.vercel.app/api/og/report?nickname=${encodeURIComponent(nickname)}&shard=${data?.shard || 'steam'}`} />
       </Head>
 
       <div style={{ minHeight: '100vh', background: '#080612', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>

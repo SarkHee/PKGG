@@ -78,6 +78,10 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `user/set-clan-leader.js` | 클랜 리더 최초 등록. 이미 리더 있으면 409 `alreadyHasLeader: true` 반환 |
 | `user/request-clan-leader.js` | 클랜 리더 변경 문의 제출. reason 5자 이상 필수. pending 중복 방지. `ClanLeaderRequest` 생성 |
 | `contact/submit.js` | 문의 폼 제출. POST → `prisma.inquiry` 생성 |
+| `report/[nickname].js` | 시즌 리포트 데이터 집계. 봇보정 실킬/딜 평균, TOP3무기, 베스트매치, MMR/티어/플레이스타일, currentSeason. SEASON_START 기준 필터 |
+| `og/report.js` | 리포트 OG 이미지 생성 (Edge Runtime, `@vercel/og`). 800×420 PNG. `/report/[nickname]` 공유 시 SNS 미리보기용 |
+| `player/bot-matches.js` | 봇포함 경기 목록 조회. `botKills > 0` 필터. `teammatesDetail` null 레코드는 PUBG API 실시간 보완 |
+| `team-damage/[matchId].js` | 팀 내 피해 통계 조회 (GET). totalDamage 내림차순 |
 | `cron/` | Vercel cron 작업들 |
 
 ### components/
@@ -87,6 +91,7 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | `player/AICoachingCard.jsx` | AI 코칭 카드. `playerStats`, `playerInfo`, `masteryWeapons` props. `masteryWeapons`는 WeaponMasteryCard `onReady`에서 받음 → 내부 `/api/pubg/player-id`, `/api/pubg/stats/mastery` 중복 호출 없음. 분석 결과는 `/api/player/ai-analysis` POST로 저장 |
 | `player/PlayerShareCard.jsx` | 플레이어 전적 공유 카드 (PNG 저장용, html-to-image 캡처). PlayerHeader에서 `cardRef` prop으로 연결 |
 | `player/GrowthChart.jsx` | 성장 추적 차트 (Line chart). `nickname` + `shard` props. 클랜 배치업데이트 시 스냅샷 저장, 5개 지표 탭(MMR/딜/킬/승률/Top10) |
+| `player/ReportCard.jsx` | 시즌 리포트 카드 UI. `/report/[nickname]` + OG 이미지 양쪽에서 사용. `WEAP_IMG` 맵(DB 실제 ID 기준), `CARD_W=680` export |
 | `player/PlayerDashboard.jsx` | 플레이어 대시보드 |
 | `player/PlayerHeader.jsx` | 플레이어 헤더 |
 | `player/EnhancedPlayerStats.jsx` | 향상된 플레이어 통계 |
@@ -243,8 +248,12 @@ if (raw) {
 
 ## 최근 주요 변경 이력
 
-### 2026-05-26 봇포함경기 팀원 표시 + 봇킬 보정 계산 개선
+### 2026-05-26 리포트 OG 이미지 + 봇포함경기 개선 + 시즌 필터
 
+- **리포트 OG 이미지** (`pages/api/og/report.js`): Edge Runtime + `@vercel/og`. `/report/[nickname]` 공유 시 800×420 PNG 미리보기. Satori 제약: 모든 `<div>` `display:'flex'` 필수, 텍스트 노드는 template literal, 조건부 렌더링은 ternary `? : null`
+- **`pages/report/[nickname].js` OG 메타 추가**: `og:image`, `og:image:width/height`, `og:type`, `twitter:card`, `twitter:image`
+- **`pages/api/report/[nickname].js` 시즌 필터**: `SEASON_START = new Date('2026-03-12')` 기준으로 matchAgg/bestMatch/topWeapons 전부 필터. `currentSeason` 응답에 포함. `getCurrentSeason()` — Redis 캐시 → PUBG API (`isCurrentSeason: true`)
+- **`components/player/ReportCard.jsx` 무기 이미지 수정**: `WEAP_IMG` 맵 DB 실제 ID 기준 완전 재작성 (WeapAUG_C, WeapBizonPP19_C, WeapFamasG2_C 등 HR_ 변형 포함)
 - **`PlayerMatch.teammatesDetail` 컬럼 추가** (`prisma/schema.prisma`): `Json?` 타입. Supabase SQL `ALTER TABLE "PlayerMatch" ADD COLUMN "teammatesDetail" JSONB`
 - **`load-more.js` 팀원 저장**: 봇 분석 성공 경기 upsert 시 `teammatesDetail` JSON 함께 저장 (create/update 양쪽)
 - **`bot-matches.js` 팀원 보완**: `teammatesDetail`이 null인 기존 레코드는 PUBG API 캐시에서 실시간 재조회 → 파싱 후 응답 + DB 백필(fire & forget)

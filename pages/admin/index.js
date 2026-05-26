@@ -91,7 +91,7 @@ export default function AdminDashboard() {
     try {
       const res = await fetch('/api/admin/run-batch', {
         method: 'POST',
-        headers: { 'x-admin-token': password || '' },
+        headers: { 'x-admin-token': adminPw() },
       });
       const data = await res.json();
       setBatchResult(data);

@@ -15,9 +15,21 @@ export default async function handler(req, res) {
 
   // 내부에서 telemetry-batch 호출 (CRON_SECRET 사용)
   const baseUrl = process.env.NEXTAUTH_URL || `http://localhost:${process.env.PORT || 3000}`
-  const batchRes = await fetch(`${baseUrl}/api/cron/telemetry-batch`, {
-    headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
-  })
-  const data = await batchRes.json()
-  return res.status(batchRes.status).json(data)
+  try {
+    const batchRes = await fetch(`${baseUrl}/api/cron/telemetry-batch`, {
+      headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+    })
+    const text = await batchRes.text()
+    let data
+    try {
+      data = JSON.parse(text)
+    } catch {
+      console.error('[run-batch] telemetry-batch 응답이 JSON 아님:', text.slice(0, 200))
+      return res.status(500).json({ error: `배치 서버 오류 (HTTP ${batchRes.status})` })
+    }
+    return res.status(batchRes.status).json(data)
+  } catch (err) {
+    console.error('[run-batch] fetch 실패:', err.message)
+    return res.status(500).json({ error: `배치 호출 실패: ${err.message}` })
+  }
 }
