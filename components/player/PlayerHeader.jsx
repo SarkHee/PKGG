@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Tooltip from '../ui/Tooltip';
 import { calculateMMR, getMMRTier, MMR_DISCLAIMER, calculateSeasonMMR } from '../../utils/mmrCalculator';
-import PlayerShareCard from './PlayerShareCard';
 import { classifyPlaystyle, MAJOR } from '../../utils/playstyleClassifier';
 import { useT } from '../../utils/i18n';
+import ReportCard from './ReportCard';
 
 // DB 캐시 업데이트 시간 → 상대 표시
 function timeAgo(isoString, t) {
@@ -49,33 +49,74 @@ const PlayerHeader = ({
   const [showRankedDetails, setShowRankedDetails] = useState(false);
   const [showSeasonDetails, setShowSeasonDetails] = useState(false);
   const [showRecentDetails, setShowRecentDetails] = useState(false);
+
+  // 봇킬 분석 스탯 상태 (일반게임 카드) — useEffect는 nickname 선언 후 아래에 위치
+  const [botStats, setBotStats] = useState(null);
+
+  // 리포트 모달
+  const [showReport, setShowReport]     = useState(false);
+  const [reportData, setReportData]     = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError]   = useState('');
+  const [reportSaving, setReportSaving] = useState(false);
+  const [reportCopied, setReportCopied] = useState(false);
+  const reportCardRef = useRef(null);
+
+  const openReport = async () => {
+    setShowReport(true);
+    if (reportData) return;
+    setReportLoading(true);
+    setReportError('');
+    try {
+      const res = await fetch(`/api/report/${encodeURIComponent(nickname)}?shard=${shard}`);
+      const json = await res.json();
+      if (!res.ok) { setReportError(json.error || '데이터 조회 실패'); return; }
+      setReportData(json);
+    } catch (e) {
+      setReportError(e.message);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handleReportSave = async () => {
+    if (reportSaving || !reportCardRef.current) return;
+    setReportSaving(true);
+    try {
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(reportCardRef.current, { pixelRatio: 2, cacheBust: true });
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `pkgg_report_${nickname}.png`;
+      a.click();
+    } catch (e) {
+      console.error('리포트 저장 실패:', e);
+    } finally {
+      setReportSaving(false);
+    }
+  };
+
+  const handleReportCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/report/${encodeURIComponent(nickname)}?shard=${shard}`);
+      setReportCopied(true);
+      setTimeout(() => setReportCopied(false), 2000);
+    } catch {}
+  };
   const excludeEvents = true;
   const { t } = useT();
   const router = useRouter();
   const shard = (router.query.server || 'steam');
   const nickname = profile?.nickname || '';
 
-  // 공유 카드 저장
-  const shareCardRef = useRef(null);
-  const [saving, setSaving] = useState(false);
-
-  const handleSaveCard = async () => {
-    if (saving) return;
-    setSaving(true);
-    try {
-      const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(shareCardRef.current, { pixelRatio: 2 });
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `pkgg_${nickname}.png`;
-      a.click();
-    } catch (e) {
-      console.error('카드 저장 실패:', e);
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  // 봇킬 분석 스탯 fetch (nickname/shard 선언 후)
+  useEffect(() => {
+    if (!nickname) return;
+    fetch(`/api/player/bot-stats?nickname=${encodeURIComponent(nickname)}&shard=${shard}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.analyzedCount > 0) setBotStats(d); })
+      .catch(() => {});
+  }, [nickname, shard]);
 
   // 리뷰 로드
 
@@ -135,8 +176,18 @@ const PlayerHeader = ({
   // combinedStat가 없으면 (일반전 없음) null — 경쟁전만 한 유저는 경쟁전 카드만 표시
   const seasonStat = combinedStat || null;
 
+  // 봇 비율 → 전체 시즌 평균에 적용한 추정값
+  // botKillRatio / botDamageRatio: 텔레메트리 분석 경기에서 계산된 봇 비중
+  const estRealKills  = (botStats && seasonStat && botStats.botKillRatio   != null)
+    ? Math.max(0, parseFloat((seasonStat.avgKills  * (1 - botStats.botKillRatio)).toFixed(2)))
+    : null
+  const estRealDamage = (botStats && seasonStat && botStats.botDamageRatio != null)
+    ? Math.max(0, Math.round(seasonStat.avgDamage * (1 - botStats.botDamageRatio)))
+    : null
+  // 분석 경기가 20개 미만이면 비율 신뢰도 낮음 → 추정 레이블
+  const isEstimate = botStats ? botStats.analyzedCount < 20 : false
+
   // PKGG 점수: mmr prop (경쟁전 포함 서버사이드 계산값) 우선, 없으면 시즌 일반전 기준 계산
-  // correctedAvgKills는 filteredRecentMatches 계산 후 아래에서 재정의됨
   let displayMmr = mmr || calculateSeasonMMR(seasonData) || 1000;
   const mmrSource = t('ph.mmr_source');
 
@@ -192,21 +243,12 @@ const PlayerHeader = ({
 
   const recent20Stats = calculate20MatchStats(filteredRecentMatches);
 
-  // 봇킬 보정 평균 킬: isBotCorrected=true → realKills, false → kills 혼합 평균
-  const correctedAvgKills = (() => {
-    const recent20 = filteredRecentMatches.slice(0, 20)
-    if (recent20.length === 0) return null
-    const anyAnalyzed = recent20.some(m => m.isBotCorrected !== undefined)
-    if (!anyAnalyzed) return null
-    const total = recent20.reduce((s, m) => s + (m.isBotCorrected === true ? (m.realKills ?? m.kills ?? 0) : (m.kills ?? 0)), 0)
-    return parseFloat((total / recent20.length).toFixed(2))
-  })()
-
-  // 봇킬 보정 PKGG 점수 재계산 (일반전 데이터 기준)
-  if (correctedAvgKills !== null && combinedStat) {
+  // 봇 비율 보정 PKGG 점수 재계산
+  // 일반전 데이터 있고 봇 분석 완료된 경우만 적용 (경쟁전 전용 플레이어는 그대로 유지)
+  if (seasonStat && (estRealKills !== null || estRealDamage !== null)) {
     const corrected = calculateMMR({
-      avgDamage:      combinedStat.avgDamage,
-      avgKills:       correctedAvgKills,
+      avgDamage:      estRealDamage ?? seasonStat.avgDamage,
+      avgKills:       estRealKills  ?? seasonStat.avgKills,
       avgAssists:     combinedStat.avgAssists,
       winRate:        combinedStat.winRate,
       top10Rate:      combinedStat.top10Rate,
@@ -278,16 +320,69 @@ const PlayerHeader = ({
         </div>
       </div>
     )}
-    {/* 공유 카드 (화면 밖에 렌더링, PNG 캡처용) */}
-    <PlayerShareCard
-      cardRef={shareCardRef}
-      nickname={nickname}
-      shard={shard}
-      mmr={mmr}
-      seasonStat={seasonStat}
-      playstyle={psResult.label}
-      clanInfo={clanInfo}
-    />
+
+    {/* ── 리포트 카드 모달 ── */}
+    {showReport && (
+      <div
+        className="fixed inset-0 z-[9998] flex items-center justify-center p-4"
+        style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', background: 'rgba(0,0,0,0.75)' }}
+        onClick={(e) => { if (e.target === e.currentTarget) setShowReport(false); }}
+      >
+        <div className="relative flex flex-col items-center gap-4 max-w-full">
+          {/* 닫기 버튼 */}
+          <button
+            onClick={() => setShowReport(false)}
+            className="absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-gray-800 border border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700 flex items-center justify-center text-sm font-bold transition-all"
+          >✕</button>
+
+          {/* 카드 영역 */}
+          <div style={{ maxWidth: '100%', overflowX: 'auto', borderRadius: 16, boxShadow: '0 25px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(127,119,221,0.3)' }}>
+            {reportLoading && (
+              <div style={{ width: 800, maxWidth: '100%', height: 420, background: 'linear-gradient(135deg, #0D0B1A 0%, #140D2E 50%, #0D1B2A 100%)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                <div className="w-5 h-5 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
+                <span style={{ color: 'rgba(165,160,240,0.7)', fontSize: 14 }}>불러오는 중...</span>
+              </div>
+            )}
+            {reportError && (
+              <div style={{ width: 800, maxWidth: '100%', height: 420, background: '#0D0B1A', borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span style={{ color: '#F87171', fontSize: 14, fontWeight: 700 }}>데이터를 불러올 수 없습니다</span>
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{reportError}</span>
+              </div>
+            )}
+            {reportData && !reportLoading && (
+              <div ref={reportCardRef}>
+                <ReportCard data={reportData} />
+              </div>
+            )}
+          </div>
+
+          {/* 공유 버튼 */}
+          {reportData && (
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <button
+                onClick={handleReportSave}
+                disabled={reportSaving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50"
+                style={{ background: '#7F77DD' }}
+              >{reportSaving ? '저장 중...' : '💾 이미지 저장'}</button>
+              <button
+                onClick={handleReportCopyLink}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: reportCopied ? '#34D399' : 'white' }}
+              >{reportCopied ? '✓ 복사됨' : '🔗 링크 복사'}</button>
+              <a
+                href={`/report/${encodeURIComponent(nickname)}?shard=${shard}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(165,160,240,0.8)', textDecoration: 'none' }}
+              >↗ 새 탭에서 열기</a>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
     <div className="mb-8 rounded-2xl overflow-hidden shadow-xl">
       {/* 상단 헤더 영역 - 다크 블루 배경 */}
       <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 px-4 py-4 sm:px-8 sm:py-6">
@@ -385,12 +480,11 @@ const PlayerHeader = ({
                 </Tooltip>
               )}
               {nickname && (
-                <Tooltip content={t('ph.save_card')}>
+                <Tooltip content="시즌 리포트 카드 보기">
                   <button
-                    onClick={handleSaveCard}
-                    disabled={saving}
-                    className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white text-sm font-bold transition-all select-none disabled:opacity-50"
-                  >{saving ? t('ph.saving') : <>📷<span className="hidden sm:inline"> {t('ph.card')}</span></>}</button>
+                    onClick={openReport}
+                    className="px-2.5 py-1.5 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/25 hover:border-purple-400/60 hover:text-purple-200 text-sm font-bold transition-all select-none"
+                  >📊<span className="hidden sm:inline"> 리포트</span></button>
                 </Tooltip>
               )}
               {(() => {
@@ -458,30 +552,57 @@ const PlayerHeader = ({
           {/* ── 1. 시즌 성과 ── */}
           <div className="p-4 sm:p-5 flex flex-col">
             {/* 헤더 */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('ph.normal_game')}</h2>
-              {seasonStat && (
-                <span className="ml-auto text-xs bg-blue-50 text-blue-500 border border-blue-100 px-2 py-0.5 rounded-full font-semibold">
-                  {seasonStat.rounds}{t('ph.games_unit')}
-                </span>
-              )}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1.5 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('ph.normal_game')}</h2>
+                  {seasonStat && (
+                    <span className="text-xs bg-blue-50 text-blue-500 border border-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400 px-2 py-0.5 rounded-full font-semibold">
+                      {seasonStat.rounds}{t('ph.games_unit')}
+                    </span>
+                  )}
+                </div>
+                {botStats && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-cyan-500">봇참여게임</span>
+                    <span className="text-xs text-cyan-600 dark:text-cyan-400 font-semibold">
+                      {seasonStat?.rounds ?? '?'}경기 중 {botStats.analyzedCount}경기
+                      {botStats.botKillRatio > 0 && (
+                        <span className="text-gray-400 ml-1">
+                          (봇킬 {(botStats.botKillRatio * 100).toFixed(0)}%)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {seasonStat ? (
               <>
-                {/* 핵심 스탯 2개 */}
+                {/* 핵심 스탯 2개 — 봇 비율 보정 추정값 */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
-                    <div className="text-xs text-blue-400 mb-1 font-medium">{t('ph.avg_damage')}</div>
-                    <div className="text-lg font-black text-gray-900 dark:text-gray-100">{seasonStat.avgDamage}</div>
-                  </div>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
-                    <div className="text-xs text-blue-400 mb-1 font-medium">
-                      {t('ph.avg_kills')}
+                    <div className="text-xs text-blue-400 mb-1 font-medium flex items-center justify-center gap-1">
+                      {estRealDamage != null ? (isEstimate ? '실딜 추정' : '실딜 평균') : t('ph.avg_damage')}
+                      {isEstimate && estRealDamage != null && (
+                        <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 px-1 rounded">추정</span>
+                      )}
                     </div>
                     <div className="text-lg font-black text-gray-900 dark:text-gray-100">
-                      {seasonStat.avgKills}
+                      {estRealDamage != null ? estRealDamage : seasonStat.avgDamage}
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
+                    <div className="text-xs text-blue-400 mb-1 font-medium flex items-center justify-center gap-1">
+                      {estRealKills != null ? (isEstimate ? '실킬 추정' : '실킬 평균') : t('ph.avg_kills')}
+                      {isEstimate && estRealKills != null && (
+                        <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 px-1 rounded">추정</span>
+                      )}
+                    </div>
+                    <div className="text-lg font-black text-gray-900 dark:text-gray-100">
+                      {estRealKills != null ? estRealKills : seasonStat.avgKills}
                     </div>
                   </div>
                 </div>

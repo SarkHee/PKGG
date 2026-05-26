@@ -26,6 +26,19 @@ function calcPPS(match) {
   return                   { grade: 'D',  score: Math.round(total), color: 'text-gray-300',   bg: 'bg-gray-50 border-gray-100' }
 }
 
+// 이벤트/연습장 경기 판별 (봇 분석 제외 대상)
+const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom'])
+const EVENT_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training', 'clansolo', 'clansquad', 'heistroyale']
+const EVENT_MAP_KEYWORDS  = ['range_main', '_tdm_', '_training_', 'pillarcompound', 'boardwalk']
+function isEventOrPractice(match) {
+  const mt = (match.matchType || '').toLowerCase()
+  const gm = (match.mode      || '').toLowerCase()
+  const mn = (match.mapName   || '').toLowerCase()
+  return EVENT_MATCH_TYPES.has(mt)
+    || EVENT_MODE_KEYWORDS.some(k => gm.includes(k))
+    || EVENT_MAP_KEYWORDS.some(k => mn.includes(k))
+}
+
 // 팀 기여도 계산 (teammatesDetail 기반)
 function calcTeamContrib(match, myNickname) {
   const teammates = match.teammatesDetail
@@ -264,7 +277,9 @@ export default function MatchListRow({
                   {match.kills ?? 0}
                 </div>
                 <div className="text-[10px] text-gray-400">킬</div>
-                <div className="text-[9px] text-blue-400">(분석 중...)</div>
+                {!isEventOrPractice(match) && (
+                  <div className="text-[9px] text-blue-400">(분석 중...)</div>
+                )}
               </>
             )}
           </div>
@@ -350,7 +365,9 @@ export default function MatchListRow({
                 {match.kills ?? 0}
               </div>
               <div className="text-xs text-gray-400">킬</div>
-              <div className="text-[10px] text-blue-400">(분석 중...)</div>
+              {!isEventOrPractice(match) && (
+                <div className="text-[10px] text-blue-400">(분석 중...)</div>
+              )}
             </>
           )}
         </div>

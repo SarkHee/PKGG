@@ -127,6 +127,7 @@ export default async function handler(req, res) {
               _accountId:  accountId,
               matchId,
               mode:        attrs.gameMode,
+              matchType:   attrs.matchType || '',
               mapName:     attrs.mapName || null,
               placement:   s.winPlace    || 0,
               kills:       s.kills       || 0,
@@ -138,10 +139,23 @@ export default async function handler(req, res) {
           })
           .filter(Boolean)
 
-        // 2-5. 봇 분석 (텔레메트리, 순차)
+        // 2-5. 봇 분석 (텔레메트리, 순차) — 이벤트·연습장 제외
         const botUpserts = []
 
+        const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom'])
+        const EVENT_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training', 'clansolo', 'clansquad', 'heistroyale']
+        const EVENT_MAP_KEYWORDS  = ['range_main', '_tdm_', '_training_', 'pillarcompound', 'boardwalk']
+        const isEventOrPractice = (m) => {
+          const mt = (m.matchType || '').toLowerCase()
+          const gm = (m.mode     || '').toLowerCase()
+          const mn = (m.mapName  || '').toLowerCase()
+          return EVENT_MATCH_TYPES.has(mt)
+            || EVENT_MODE_KEYWORDS.some(k => gm.includes(k))
+            || EVENT_MAP_KEYWORDS.some(k => mn.includes(k))
+        }
+
         for (const m of rawMatches) {
+          if (isEventOrPractice(m)) continue
           try {
             const result = await analyzeMatchData(m._matchData, m.matchId)
             const row    = result.rows.find((r) => r.accountId === m._accountId)

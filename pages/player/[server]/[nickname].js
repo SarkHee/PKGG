@@ -666,6 +666,21 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
     'division.bro.official.pc-2024-01'
   );
   const [selectedMatchFilter, setSelectedMatchFilter] = useState('전체');
+
+  const handleMatchFilterChange = (key) => {
+    setSelectedMatchFilter(key)
+    if (key === '봇포함경기' && botMatchesList === null) {
+      const nick  = playerData?.profile?.nickname || ''
+      const shard = playerData?.profile?.shardId  || 'steam'
+      if (!nick) return
+      setBotMatchesLoading(true)
+      fetch(`/api/player/bot-matches?nickname=${encodeURIComponent(nick)}&shard=${shard}`)
+        .then(r => r.json())
+        .then(d => setBotMatchesList(d.matches ?? []))
+        .catch(() => setBotMatchesList([]))
+        .finally(() => setBotMatchesLoading(false))
+    }
+  }
   const [selectedSeasonId, setSelectedSeasonId] = useState(null); // null = 현재 시즌
   const [overrideSeasonStats, setOverrideSeasonStats] = useState(null);
   const [overrideRankedSummary, setOverrideRankedSummary] = useState(undefined); // undefined=사용안함
@@ -760,6 +775,10 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
   const [matchOffset, setMatchOffset] = useState(10);
   const [noMoreMatches, setNoMoreMatches] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // 봇포함경기 필터용 DB 조회 상태
+  const [botMatchesList, setBotMatchesList] = useState(null);
+  const [botMatchesLoading, setBotMatchesLoading] = useState(false);
 
   // 쿨타임 타이머 — early return 이전에 위치해야 훅 규칙 준수
   useEffect(() => {
@@ -1103,6 +1122,11 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
           const mode = (match.mode || '').toLowerCase();
           return mode.includes('squad') && !mode.includes('fpp') && mt !== 'ranked' && mt !== 'competitive' && !mode.startsWith('ranked');
         });
+      case '치킨':
+        return matches.filter((match) => {
+          const placement = match.rank ?? match.placement ?? 0
+          return placement === 1 || match.win === true
+        });
       case '이벤트': {
         const EVENT_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom']);
         return matches.filter((match) => {
@@ -1116,6 +1140,8 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
           return false;
         });
       }
+      case '봇포함경기':
+        return matches.filter((match) => match.botKills > 0);
       default:
         return matches;
     }
@@ -1688,14 +1714,19 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
                         { label: '3인칭 듀오', key: '듀오 TPP' },
                         { label: '1인칭 스쿼드', key: '스쿼드 FPP' },
                         { label: '3인칭 스쿼드', key: '스쿼드 TPP' },
+                        { label: '🍗 치킨', key: '치킨' },
                         { label: '🎉 이벤트', key: '이벤트' },
+                        { label: '🤖 봇포함경기', key: '봇포함경기' },
                       ].map(({ label, key }) => (
                         <button
                           key={key}
-                          onClick={() => setSelectedMatchFilter(key)}
+                          onClick={() => handleMatchFilterChange(key)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                             selectedMatchFilter === key
-                              ? key === '이벤트' ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white'
+                              ? key === '이벤트' ? 'bg-amber-500 text-white'
+                              : key === '치킨' ? 'bg-yellow-400 text-yellow-900'
+                              : key === '봇포함경기' ? 'bg-cyan-500 text-white'
+                              : 'bg-blue-500 text-white'
                               : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'
                           }`}
                         >
@@ -1728,6 +1759,23 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
                           ))}
                         </div>
                       </div>
+                    ) : selectedMatchFilter === '봇포함경기' ? (
+                      botMatchesLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-10 text-cyan-500 text-sm">
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          봇포함 경기 불러오는 중...
+                        </div>
+                      ) : botMatchesList && botMatchesList.length > 0 ? (
+                        <MatchList recentMatches={botMatchesList} playerData={playerData} />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <div className="text-4xl mb-3">🤖</div>
+                          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">봇킬이 발생한 분석 경기가 없습니다.</div>
+                        </div>
+                      )
                     ) : filteredMatches && filteredMatches.length > 0 ? (
                       <MatchList recentMatches={filteredMatches} playerData={playerData} />
                     ) : (
@@ -2238,6 +2286,11 @@ async function getPlayerFromDB(nickname, server) {
       damage: m.damage,
       surviveTime: m.surviveTime,
       matchTimestamp: m.createdAt ? m.createdAt.toISOString() : new Date().toISOString(),
+      botKills:       m.botKills       ?? 0,
+      realKills:      m.realKills      ?? m.kills,
+      botDamage:      m.botDamage      ?? 0,
+      realDamage:     m.realDamage     ?? m.damage,
+      isBotCorrected: m.isBotCorrected ?? false,
     }));
 
     // 최근 경기에서 모드 분포 추정

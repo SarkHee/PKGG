@@ -132,7 +132,22 @@ export default async function handler(req, res) {
     const botUpserts        = []  // DB upsert 대상 수집
     const teamDamageUpserts = []  // 팀 내 피해 upsert 대상 수집
 
+    const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom'])
+    const EVENT_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training', 'clansolo', 'clansquad', 'heistroyale']
+    const EVENT_MAP_KEYWORDS  = ['range_main', '_tdm_', '_training_', 'pillarcompound', 'boardwalk']
+    const isEventOrPractice = (m) => {
+      const mt  = (m.matchType || '').toLowerCase()
+      const gm  = (m.mode     || '').toLowerCase()
+      const mn  = (m.mapName  || '').toLowerCase()
+      return EVENT_MATCH_TYPES.has(mt)
+        || EVENT_MODE_KEYWORDS.some(k => gm.includes(k))
+        || EVENT_MAP_KEYWORDS.some(k => mn.includes(k))
+    }
+
     for (const m of rawMatches) {
+      // 이벤트·연습장 경기는 봇 분석 제외
+      if (isEventOrPractice(m)) continue
+
       try {
         const result = await analyzeMatchData(m._matchData, m.matchId);
         const row    = result.rows.find((r) => r.accountId === m._accountId);
@@ -158,12 +173,14 @@ export default async function handler(req, res) {
             damage:      m.damage,
             surviveTime: m.surviveTime || 0,
             createdAt:   new Date(m.matchTimestamp),
-            botKills:    m.botKills,
-            realKills:   m.realKills,
-            botDamage:   m.botDamage,
-            realDamage:  m.realDamage,
-            botAssist:   m.botAssist,
-            weaponStats: m.weaponStats,
+            botKills:        m.botKills,
+            realKills:       m.realKills,
+            botDamage:       m.botDamage,
+            realDamage:      m.realDamage,
+            botAssist:       m.botAssist,
+            weaponStats:     m.weaponStats,
+            teammatesDetail: m.teammatesDetail || null,
+            telemetryUrl:    m.telemetryUrl || null,
           })
 
           // 팀 내 피해 rows 수집 (해당 경기에 관련된 rows만)
@@ -195,13 +212,15 @@ export default async function handler(req, res) {
               botAnalyzedAt:  now,
             },
             update: {
-              botKills:       fields.botKills,
-              realKills:      fields.realKills,
-              botDamage:      fields.botDamage,
-              realDamage:     fields.realDamage,
-              botAssist:      fields.botAssist,
-              isBotCorrected: true,
-              botAnalyzedAt:  now,
+              botKills:        fields.botKills,
+              realKills:       fields.realKills,
+              botDamage:       fields.botDamage,
+              realDamage:      fields.realDamage,
+              botAssist:       fields.botAssist,
+              teammatesDetail: fields.teammatesDetail ?? undefined,
+              telemetryUrl:    fields.telemetryUrl    ?? undefined,
+              isBotCorrected:  true,
+              botAnalyzedAt:   now,
             },
           })
         )

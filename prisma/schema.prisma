@@ -71,6 +71,8 @@ model PlayerMatch {
   botAssist       Int?
   isBotCorrected  Boolean   @default(false)
   botAnalyzedAt   DateTime?
+  teammatesDetail Json?
+  telemetryUrl    String?
 
   @@unique([pubgAccountId, matchId])
 }

@@ -243,6 +243,17 @@ if (raw) {
 
 ## 최근 주요 변경 이력
 
+### 2026-05-26 봇포함경기 팀원 표시 + 봇킬 보정 계산 개선
+
+- **`PlayerMatch.teammatesDetail` 컬럼 추가** (`prisma/schema.prisma`): `Json?` 타입. Supabase SQL `ALTER TABLE "PlayerMatch" ADD COLUMN "teammatesDetail" JSONB`
+- **`load-more.js` 팀원 저장**: 봇 분석 성공 경기 upsert 시 `teammatesDetail` JSON 함께 저장 (create/update 양쪽)
+- **`bot-matches.js` 팀원 보완**: `teammatesDetail`이 null인 기존 레코드는 PUBG API 캐시에서 실시간 재조회 → 파싱 후 응답 + DB 백필(fire & forget)
+- **봇킬 보정 계산 방식 변경** (`bot-stats.js`): `_avg` → `_sum` 집계로 변경. `botKillRatio = sum(botKills)/sum(kills)`, `botDamageRatio = sum(botDamage)/sum(damage)` 반환
+- **`PlayerHeader` estReal 계산**: `estRealKills = seasonStat.avgKills × (1 - botKillRatio)`, `estRealDamage` 동일 방식. `isEstimate = analyzedCount < 20`. "원본" 서브텍스트 제거
+- **PKGG 점수**: `estRealKills`/`estRealDamage` 기준으로 `calculateMMR()` 재계산 — 화면 표시와 일관성
+- **이벤트/연습장 경기 봇 분석 제외**: `load-more.js` + `refresh-stale.js` 양쪽에 `isEventOrPractice()` 필터 추가 (Range_Main, clansolo, clansquad 등)
+- **봇포함경기 필터**: DB에서 `botKills > 0` 조회 → 전용 `botMatchesList` 상태 + `/api/player/bot-matches` 엔드포인트
+
 ### 2026-05-22 봇킬 UI 개선 + 팀 내 피해 기능 추가
 - **MatchListRow 봇킬 표시 개선**: 봇 분석 완료 시 "총킬 / 실N / 봇N" 3줄 표시 (총킬 라벨, 실킬 cyan, 봇킬 gray). 봇 필터 버튼 완전 제거. `isBotCorrected === true`인 경우만 분리 표시, 나머지는 "(분석 중...)"
 - **PlayerHeader 봇킬 제거 기본 반영**: `correctedAvgKills` 계산 (최근 20경기 혼합 평균, 텔레메트리 있는 경기는 `realKills` 사용). 시즌 성과 avgKills 카드에 자동 적용 + "(봇킬 제외)" 레이블. PKGG 점수도 correctedAvgKills 기준으로 재계산

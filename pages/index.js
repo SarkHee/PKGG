@@ -10,8 +10,134 @@ import { useT } from '../utils/i18n';
 import { MAJOR, TYPES } from '../utils/playstyleClassifier';
 import { getMMRTier } from '../utils/mmrCalculator';
 
-const FAV_KEY    = 'pkgg_favorites';
-const SEARCH_KEY = 'pkgg_recent_searches';
+const FAV_KEY      = 'pkgg_favorites';
+const SEARCH_KEY   = 'pkgg_recent_searches';
+const FORTUNE_KEY  = 'pkgg_fortune_date';
+
+const FORTUNES = [
+  '오늘은 에란겔에서 치킨이 올 날입니다',
+  '팀원을 믿으세요. 오늘만큼은요.',
+  '저격 대신 돌진을 선택하는 날입니다',
+  '오늘 봇킬이 유독 많아도 기죽지 마세요',
+  '블루존이 유독 빨리 좁혀오는 날입니다. 준비하세요',
+  '오늘 밀리샥에서 드랍하면 치킨이 기다립니다',
+  '팀원이 먼저 쓰러져도 포기하지 마세요',
+  '오늘은 스나이퍼의 날입니다. 고지를 점령하세요',
+  '수류탄을 아끼지 마세요. 오늘은 터뜨리는 날',
+  '오늘 차량 운전은 팀원에게 맡기세요',
+  '엎드리면 살고 일어서면 죽는 날입니다',
+  '오늘은 북산사가 부릅니다. 드랍해보세요',
+  '조용히 생존하는 것이 오늘의 전략입니다',
+  '오늘 당신의 에임은 평소보다 10% 향상됩니다',
+  '섬 맵에서 보트를 타면 행운이 옵니다',
+  '오늘은 클랜원과 함께할 때 시너지가 폭발합니다',
+  '첫 번째 교전에서 살아남으면 치킨이 보입니다',
+  '오늘 그 자리에 있으면 안 됩니다. 이동하세요',
+  '판단보다 직감을 믿으세요. 오늘만큼은요',
+  '오늘은 UMP45가 당신을 치킨으로 이끕니다',
+  '드랍존을 바꾸면 새로운 운이 열립니다',
+  '오늘 당신의 팀원은 최고의 동료가 될 것입니다',
+  '인내심을 가지세요. 치킨은 기다리는 자에게 옵니다',
+  '오늘 블루존 끝에 서있으면 안 됩니다',
+  '지금 당장 배그를 켜세요. 오늘이 바로 그 날입니다',
+]
+
+const TIPS = [
+  '블루존 3페이즈 이후엔 차량보다 도보가 유리해요',
+  '수류탄은 문 앞에서 쿡킹 후 던지면 효과적이에요',
+  '에란겔 밀타는 저격 포인트가 많아요. 스모크 활용하세요',
+  '차량 탑승 시 조수석이 사격하기 더 유리해요',
+  '블루존 피해는 레벨3 장갑이 있어도 무시할 수 없어요',
+  '건물 진입 전 수류탄 먼저 던지는 습관을 들이세요',
+  '배낭 레벨이 높을수록 탄약을 더 많이 챙길 수 있어요',
+  '헤드샷 피해량은 일반 피해량의 2배예요',
+  '엎드린 상태에서 사격하면 반동이 줄어들어요',
+  '소음기는 총소리뿐만 아니라 총구 화염도 줄여줘요',
+]
+
+const WEAPONS = [
+  'M416 + UMP45',
+  'Beryl M762 + Mini-14',
+  'SCAR-L + SKS',
+  'AKM + S686',
+  'M249 + 카르98k',
+  'G36C + Vector',
+  'ACE32 + VSS',
+]
+
+function getTodayIndex(arr) {
+  const today = new Date()
+  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate()
+  return seed % arr.length
+}
+
+function FortuneModal({ onClose }) {
+  const fortune = FORTUNES[getTodayIndex(FORTUNES)]
+  const tip     = TIPS[getTodayIndex(TIPS)]
+  const weapon  = WEAPONS[getTodayIndex(WEAPONS)]
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', background: 'rgba(0,0,0,0.8)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        className="relative w-full max-w-sm rounded-3xl overflow-hidden"
+        style={{
+          background: 'linear-gradient(145deg, #12082a 0%, #0f172a 60%, #0a1628 100%)',
+          border: '1px solid rgba(127,119,221,0.4)',
+          boxShadow: '0 0 60px rgba(127,119,221,0.25), 0 25px 50px rgba(0,0,0,0.7)',
+          animation: 'fortuneIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards',
+        }}
+      >
+        {/* 상단 헤더 */}
+        <div style={{ background: 'linear-gradient(90deg, rgba(127,119,221,0.2) 0%, rgba(168,85,247,0.15) 100%)', borderBottom: '1px solid rgba(127,119,221,0.25)', padding: '18px 20px 14px' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span style={{ fontSize: 28, lineHeight: 1 }}>🥠</span>
+              <div>
+                <div style={{ color: '#A5A0F0', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>Fortune Cookie</div>
+                <div style={{ color: 'white', fontSize: 14, fontWeight: 800 }}>오늘의 배그 운세</div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-all text-sm font-bold"
+            >✕</button>
+          </div>
+        </div>
+
+        <div style={{ padding: '20px 20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* 운세 */}
+          <div style={{ background: 'rgba(127,119,221,0.1)', border: '1px solid rgba(127,119,221,0.3)', borderRadius: 16, padding: '16px 18px' }}>
+            <div style={{ color: '#A5A0F0', fontSize: 10, fontWeight: 700, letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' }}>🥠 오늘의 운세</div>
+            <div style={{ color: 'white', fontSize: 15, fontWeight: 700, lineHeight: 1.5 }}>"{fortune}"</div>
+          </div>
+
+          {/* 팁 */}
+          <div style={{ background: 'rgba(34,211,238,0.07)', border: '1px solid rgba(34,211,238,0.2)', borderRadius: 16, padding: '14px 18px' }}>
+            <div style={{ color: '#67E8F9', fontSize: 10, fontWeight: 700, letterSpacing: 1, marginBottom: 7, textTransform: 'uppercase' }}>💡 오늘의 팁</div>
+            <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.55 }}>{tip}</div>
+          </div>
+
+          {/* 추천 무기 */}
+          <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 16, padding: '14px 18px' }}>
+            <div style={{ color: '#FCD34D', fontSize: 10, fontWeight: 700, letterSpacing: 1, marginBottom: 7, textTransform: 'uppercase' }}>🎯 오늘의 추천 무기</div>
+            <div style={{ color: 'white', fontSize: 16, fontWeight: 900, letterSpacing: 0.5 }}>{weapon}</div>
+          </div>
+
+          <button
+            onClick={onClose}
+            style={{ width: '100%', padding: '12px', background: 'rgba(127,119,221,0.2)', border: '1px solid rgba(127,119,221,0.4)', borderRadius: 14, color: '#A5A0F0', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(127,119,221,0.35)'; e.currentTarget.style.color = 'white' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(127,119,221,0.2)'; e.currentTarget.style.color = '#A5A0F0' }}
+          >닫기</button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const STYLE_LABEL = {
   HYPER_CARRY: '하이퍼 캐리', ASSAULT: '공격형', SNIPER: '스나이퍼', SUPPORT: '서포터',
@@ -138,6 +264,11 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
   const [navigating, setNavigating]         = useState(false);
   const [searchCard, setSearchCard]         = useState(null);
   const [mounted, setMounted]               = useState(false);
+
+  // 포춘쿠키 상태
+  const [cookieAnim, setCookieAnim] = useState('idle'); // idle | shaking | cracking
+  const [showFortune, setShowFortune] = useState(false);
+
   const searchBoxRef = useRef(null);
   const router = useRouter();
   const { t } = useT();
@@ -147,7 +278,40 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
     setFavorites(loadFavs());
     setRecentSearches(loadRecentSearches());
     setMounted(true);
+
+    // 오늘 처음 방문 시 자동 팝업
+    const today = new Date().toISOString().slice(0, 10);
+    const last  = localStorage.getItem(FORTUNE_KEY);
+    if (last !== today) {
+      const timer = setTimeout(() => {
+        setCookieAnim('shaking');
+        setTimeout(() => {
+          setCookieAnim('cracking');
+          setTimeout(() => {
+            setCookieAnim('idle');
+            setShowFortune(true);
+            localStorage.setItem(FORTUNE_KEY, today);
+          }, 500);
+        }, 600);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
   }, []);
+
+  const handleCookieClick = () => {
+    if (cookieAnim !== 'idle') return;
+    if (showFortune) return;
+    setCookieAnim('shaking');
+    setTimeout(() => {
+      setCookieAnim('cracking');
+      setTimeout(() => {
+        setCookieAnim('idle');
+        setShowFortune(true);
+        const today = new Date().toISOString().slice(0, 10);
+        localStorage.setItem(FORTUNE_KEY, today);
+      }, 500);
+    }, 600);
+  };
 
   // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -242,6 +406,106 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
 
   return (
     <>
+      {/* 포춘쿠키 CSS 애니메이션 */}
+      <style>{`
+        @keyframes cookieShake {
+          0%   { transform: rotate(0deg) scale(1); }
+          10%  { transform: rotate(-8deg) scale(1.05); }
+          20%  { transform: rotate(8deg) scale(1.08); }
+          30%  { transform: rotate(-10deg) scale(1.1); }
+          40%  { transform: rotate(10deg) scale(1.08); }
+          50%  { transform: rotate(-6deg) scale(1.05); }
+          60%  { transform: rotate(6deg) scale(1.03); }
+          80%  { transform: rotate(-3deg) scale(1.01); }
+          100% { transform: rotate(0deg) scale(1); }
+        }
+        @keyframes cookieCrack {
+          0%   { transform: scale(1); }
+          20%  { transform: scale(1.3); filter: drop-shadow(0 0 30px rgba(245,158,11,1)); }
+          50%  { transform: scale(1.45) rotate(6deg); filter: drop-shadow(0 0 40px rgba(245,158,11,0.9)); }
+          80%  { transform: scale(0.9) rotate(-3deg); }
+          100% { transform: scale(1) rotate(0deg); opacity: 0.7; }
+        }
+        @keyframes fortuneIn {
+          0%   { opacity: 0; transform: scale(0.7) translateY(20px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes tabPulse {
+          0%, 100% { box-shadow: -4px 0 18px rgba(127,119,221,0.25); }
+          50%       { box-shadow: -4px 0 28px rgba(127,119,221,0.5); }
+        }
+        @keyframes tabBounce {
+          0%, 100% { transform: translateY(-50%) translateX(0); }
+          50%       { transform: translateY(-50%) translateX(-4px); }
+        }
+      `}</style>
+
+      {/* ── 오른쪽 고정 포춘쿠키 탭 ── */}
+      <div
+        style={{
+          position: 'fixed',
+          right: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 9990,
+          animation: cookieAnim === 'idle' ? 'tabBounce 3s ease-in-out infinite' : 'none',
+        }}
+      >
+        <button
+          onClick={handleCookieClick}
+          disabled={cookieAnim !== 'idle'}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            background: 'linear-gradient(160deg, #2d1b6e 0%, #1a0d4e 100%)',
+            border: '1px solid rgba(127,119,221,0.55)',
+            borderRight: 'none',
+            borderRadius: '14px 0 0 14px',
+            padding: '14px 11px',
+            cursor: cookieAnim !== 'idle' ? 'default' : 'pointer',
+            boxShadow: '-4px 0 18px rgba(127,119,221,0.25), inset 1px 0 0 rgba(255,255,255,0.05)',
+            animation: cookieAnim === 'idle' ? 'tabPulse 3s ease-in-out infinite' : 'none',
+            transition: 'background 0.2s',
+            minWidth: 42,
+          }}
+          onMouseEnter={(e) => { if (cookieAnim === 'idle') e.currentTarget.style.background = 'linear-gradient(160deg, #3d2b8e 0%, #2a1d6e 100%)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'linear-gradient(160deg, #2d1b6e 0%, #1a0d4e 100%)'; }}
+        >
+          {/* 쿠키 이모지 (애니메이션 적용) */}
+          <span
+            style={{
+              fontSize: 22,
+              lineHeight: 1,
+              display: 'block',
+              animation: cookieAnim === 'shaking'
+                ? 'cookieShake 0.6s ease-in-out'
+                : cookieAnim === 'cracking'
+                ? 'cookieCrack 0.5s ease-out forwards'
+                : 'none',
+              transformOrigin: 'center',
+            }}
+          >🥠</span>
+
+          {/* 세로 텍스트 */}
+          <span
+            style={{
+              writingMode: 'vertical-lr',
+              color: 'rgba(165,160,240,0.85)',
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: 1.5,
+              userSelect: 'none',
+            }}
+          >운세</span>
+        </button>
+      </div>
+
+      {/* 포춘쿠키 모달 */}
+      {showFortune && <FortuneModal onClose={() => setShowFortune(false)} />}
+
       {navigating && (
         <div className="fixed inset-0 z-[9999] bg-gray-900/70 backdrop-blur-sm flex items-center justify-center">
           <div className="flex flex-col items-center gap-4 bg-gray-900 border border-gray-700 rounded-2xl px-10 py-8 shadow-2xl">
@@ -369,6 +633,7 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                 priority
               />
             </h1>
+
             {/* 서브타이틀 */}
             <p className="text-base sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-2">
               {t('home.subtitle')}
