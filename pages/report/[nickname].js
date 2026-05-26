@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import ReportCard, { CARD_W } from '../../components/player/ReportCard'
@@ -8,6 +8,14 @@ export default function ReportPage({ data, error, nickname }) {
   const [saving, setSaving]     = useState(false)
   const [copied, setCopied]     = useState(false)
   const [shareErr, setShareErr] = useState('')
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 600)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   const handleSave = async () => {
     if (saving || !cardRef.current) return
@@ -86,28 +94,35 @@ export default function ReportPage({ data, error, nickname }) {
         ) : (
           <>
             {/* 카드 (캡처 대상) */}
-            <div ref={cardRef} style={{ maxWidth: '100%', overflow: 'auto', borderRadius: 16, boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(127,119,221,0.2)' }}>
-              <ReportCard data={data} />
+            <div ref={cardRef} style={{ maxWidth: '100%', overflow: isMobile ? 'visible' : 'auto', borderRadius: 16, boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(127,119,221,0.2)' }}>
+              <ReportCard data={data} mobile={isMobile} />
             </div>
 
             {/* 공유 버튼 */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, auto)',
+              gap: 10,
+              marginTop: 20,
+              width: isMobile ? '100%' : 'auto',
+              maxWidth: isMobile ? 360 : 'none',
+            }}>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', background: '#7F77DD', borderRadius: 10, border: 'none', color: 'white', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px 20px', background: '#7F77DD', borderRadius: 10, border: 'none', color: 'white', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
               >
                 {saving ? '저장 중...' : '💾 이미지 저장'}
               </button>
               <button
                 onClick={handleCopyLink}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: copied ? '#34D399' : 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px 20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: copied ? '#34D399' : 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
               >
                 {copied ? '✓ 복사됨' : '🔗 링크 복사'}
               </button>
               <button
                 onClick={handleShare}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px 20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', gridColumn: isMobile ? '1 / -1' : 'auto' }}
               >
                 📤 공유하기
               </button>
@@ -127,17 +142,25 @@ export default function ReportPage({ data, error, nickname }) {
   )
 }
 
-export async function getServerSideProps({ params, query }) {
+export async function getServerSideProps({ params, query, req }) {
   const { nickname } = params
   const shard = query.shard || 'steam'
 
   try {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000'
+    // req.headers 기반 URL → 환경 변수와 무관하게 항상 자기 자신을 정확히 가리킴
+    const protocol = req.headers['x-forwarded-proto'] || 'http'
+    const host     = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000'
+    const baseUrl  = `${protocol}://${host}`
 
-    const res = await fetch(`${baseUrl}/api/report/${encodeURIComponent(nickname)}?shard=${shard}`)
-    const json = await res.json()
+    const res  = await fetch(`${baseUrl}/api/report/${encodeURIComponent(nickname)}?shard=${shard}`)
+    const text = await res.text()
+
+    let json
+    try {
+      json = JSON.parse(text)
+    } catch {
+      return { props: { data: null, error: `서버 오류 (HTTP ${res.status})`, nickname } }
+    }
 
     if (!res.ok) {
       return { props: { data: null, error: json.error || '데이터 조회 실패', nickname } }

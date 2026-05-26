@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { getMMRTier } from '../../utils/mmrCalculator'
 
 export const CARD_W = 800
@@ -74,13 +75,136 @@ export function translateMode(mode) {
   return mode
 }
 
-export default function ReportCard({ data }) {
+export default function ReportCard({ data, mobile: mobileProp }) {
+  const [isMobile, setIsMobile] = useState(mobileProp ?? false)
+  useEffect(() => {
+    if (mobileProp !== undefined) { setIsMobile(mobileProp); return }
+    const check = () => setIsMobile(window.innerWidth < 600)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [mobileProp])
+
   const tier = getMMRTier(data.mmr)
   const killsLabel  = data.avgRealKills  !== null ? data.avgRealKills.toFixed(2)  : data.avgKills.toFixed(2)
   const damageLabel = data.avgRealDamage !== null ? data.avgRealDamage.toLocaleString() : data.avgDamage.toLocaleString()
   const isBotCorrected = data.avgRealKills !== null
-
   const maxKills = data.topWeapons.length > 0 ? data.topWeapons[0].kills : 1
+
+  const barColors = ['#7F77DD', '#A5A0F0', '#6B7280']
+
+  if (isMobile) {
+    return (
+      <div style={{
+        width: '100%', maxWidth: 480,
+        background: 'linear-gradient(135deg, #0D0B1A 0%, #140D2E 50%, #0D1B2A 100%)',
+        fontFamily: "'Segoe UI', 'Apple SD Gothic Neo', sans-serif",
+        borderRadius: 16, overflow: 'hidden', boxSizing: 'border-box',
+      }}>
+        {/* 헤더 바 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(127,119,221,0.15)', borderBottom: '1px solid rgba(127,119,221,0.3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img src="/logo.png" alt="PKGG" style={{ height: 18, objectFit: 'contain' }} />
+            <span style={{ color: '#A5A0F0', fontSize: 10, fontWeight: 700, letterSpacing: 2 }}>SEASON REPORT</span>
+          </div>
+          {data.currentSeason?.label && (
+            <span style={{ background: 'rgba(99,179,237,0.15)', border: '1px solid rgba(99,179,237,0.4)', color: '#63B3ED', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>
+              {data.currentSeason.label}
+            </span>
+          )}
+        </div>
+
+        {/* 프로필 */}
+        <div style={{ padding: '14px 16px 10px' }}>
+          <div style={{ color: 'white', fontSize: 22, fontWeight: 900, letterSpacing: -0.5, wordBreak: 'break-all' }}>{data.nickname}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+            <span style={{ background: 'rgba(127,119,221,0.25)', border: '1px solid rgba(127,119,221,0.5)', color: '#A5A0F0', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>
+              {tier.emoji} {tier.label}
+            </span>
+            <span style={{ color: '#F59E0B', fontSize: 13, fontWeight: 800 }}>{data.mmr.toLocaleString()} pts</span>
+            {data.playstyle && (
+              <span style={{ background: 'rgba(168,85,247,0.2)', border: '1px solid rgba(168,85,247,0.4)', color: '#C084FC', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>
+                {data.playstyle}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 스탯 3개 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, padding: '0 16px 10px' }}>
+          {[
+            { label: isBotCorrected ? '실킬 평균' : '평균 킬', value: killsLabel, sub: isBotCorrected ? '봇킬 제외' : null, color: '#A5A0F0' },
+            { label: isBotCorrected ? '실딜 평균' : '평균 딜', value: damageLabel, sub: isBotCorrected ? '봇딜 제외' : null, color: '#A5A0F0' },
+            { label: '승률', value: `${data.winRate}%`, sub: null, color: '#34D399' },
+          ].map(({ label, value, sub, color }) => (
+            <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 6px', textAlign: 'center' }}>
+              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, marginBottom: 3 }}>{label}</div>
+              <div style={{ color: 'white', fontSize: 17, fontWeight: 900 }}>{value}</div>
+              {sub && <div style={{ color, fontSize: 9, marginTop: 1 }}>{sub}</div>}
+            </div>
+          ))}
+        </div>
+
+        {/* 총 경기 + 최고 경기 */}
+        <div style={{ display: 'grid', gridTemplateColumns: data.bestMatch ? '1fr 1fr' : '1fr', gap: 8, padding: '0 16px 10px' }}>
+          <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>총 경기</span>
+            <span style={{ color: 'white', fontSize: 17, fontWeight: 800 }}>{data.totalGames || '-'}</span>
+          </div>
+          {data.bestMatch && (
+            <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10, padding: '8px 12px' }}>
+              <div style={{ color: '#F59E0B', fontSize: 9, fontWeight: 700, marginBottom: 4 }}>🏆 최고 경기</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ color: 'white', fontSize: 18, fontWeight: 900 }}>{data.bestMatch.realKills}</span>
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9 }}>킬</span>
+                <span style={{ color: data.bestMatch.placement === 1 ? '#F59E0B' : 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700, marginLeft: 2 }}>
+                  {data.bestMatch.placement === 1 ? '🍗 치킨' : `${data.bestMatch.placement}위`}
+                </span>
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, marginTop: 2 }}>{data.bestMatch.damage.toLocaleString()} 딜 · {data.bestMatch.mapName}</div>
+            </div>
+          )}
+        </div>
+
+        {/* 주요 무기 TOP 3 */}
+        <div style={{ padding: '0 16px 14px' }}>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>🔫 주요 무기 TOP 3</div>
+          {data.topWeapons.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {data.topWeapons.map((w, i) => {
+                const pct = Math.round((w.kills / maxKills) * 100)
+                return (
+                  <div key={w.weaponId} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {WEAP_IMG[w.weaponId]
+                      ? <img src={`/weapons/${WEAP_IMG[w.weaponId]}`} alt={w.name} style={{ width: 32, height: 18, objectFit: 'contain', filter: 'brightness(0.9)', flexShrink: 0 }} />
+                      : <span style={{ width: 32, fontSize: 13, textAlign: 'center' }}>🔫</span>
+                    }
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                        <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{w.name}</span>
+                        <span style={{ color: barColors[i], fontSize: 11, fontWeight: 800 }}>{w.kills}킬</span>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 3, height: 4, overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: barColors[i], borderRadius: 3 }} />
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11 }}>경기 분석 데이터가 없습니다</div>
+          )}
+        </div>
+
+        {/* 워터마크 */}
+        <div style={{ padding: '6px 16px', borderTop: '1px solid rgba(127,119,221,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: 'rgba(127,119,221,0.5)', fontSize: 9, fontWeight: 600, letterSpacing: 1 }}>pkgg.vercel.app</span>
+          <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 8 }}>PUBG Player Statistics</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -198,7 +322,6 @@ export default function ReportCard({ data }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {data.topWeapons.map((w, i) => {
                   const pct = Math.round((w.kills / maxKills) * 100)
-                  const barColors = ['#7F77DD', '#A5A0F0', '#6B7280']
                   return (
                     <div key={w.weaponId} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       {WEAP_IMG[w.weaponId] ? (

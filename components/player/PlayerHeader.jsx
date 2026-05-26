@@ -386,15 +386,15 @@ const PlayerHeader = ({
     <div className="mb-8 rounded-2xl overflow-hidden shadow-xl">
       {/* 상단 헤더 영역 - 다크 블루 배경 */}
       <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 px-4 py-4 sm:px-8 sm:py-6">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           {/* 플레이어 기본 정보 */}
-          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+          <div className="flex items-start gap-3 sm:gap-5 min-w-0 flex-1">
             {/* 아바타 */}
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-white shadow-lg flex-shrink-0">
               {(profile?.nickname || 'P').charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
-              {/* 닉네임 + DB 캐시 시간 */}
+            <div className="min-w-0 flex-1 flex flex-col gap-1">
+              {/* 1행: 닉네임 + 업데이트 시간 */}
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight truncate">
                   {profile?.nickname || '-'}
@@ -415,8 +415,8 @@ const PlayerHeader = ({
                   )
                 })()}
               </div>
-              {/* 플랫폼 배지 */}
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {/* 2행: 플랫폼 배지 */}
+              <div className="flex items-center">
                 {(() => {
                   const PLATFORM = {
                     steam:   { label: 'Steam',  icon: '🎮', cls: 'bg-[#1b2838]/80 border-[#2a475e] text-[#c7d5e0]' },
@@ -433,14 +433,17 @@ const PlayerHeader = ({
                   );
                 })()}
               </div>
-              {/* 클랜 + 플레이스타일 */}
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                {clanInfo && (
+              {/* 3행: 클랜 태그 + 레벨 */}
+              {clanInfo && (
+                <div className="flex items-center">
                   <span className="px-3 py-1 bg-blue-700/60 text-blue-200 border border-blue-600/50 rounded-full text-xs font-semibold backdrop-blur-sm">
                     [{clanInfo.tag || 'CLAN'}] {clanInfo.name || '클랜'}
                     {clanInfo.level ? ` Lv.${clanInfo.level}` : ''}
                   </span>
-                )}
+                </div>
+              )}
+              {/* 4행: 플레이스타일 뱃지 */}
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <Tooltip content={`${psResult.desc}\n\n💡 ${psResult.tip}`}>
                   <span className="flex items-center gap-1 cursor-help">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${majorInfo.bg} ${majorInfo.border} ${majorInfo.color}`}>
@@ -452,13 +455,32 @@ const PlayerHeader = ({
                   </span>
                 </Tooltip>
               </div>
+              {/* 5행: PKGG 점수 + 티어 (모바일 전용) */}
+              {(() => {
+                const tier = getMMRTier(displayMmr);
+                const tooltipText = `${t('ph.mmr_tooltip_full')}\n\n📌 ${mmrSource}`;
+                return (
+                  <div className="flex sm:hidden items-center gap-2 mt-0.5">
+                    <Tooltip content={tooltipText}>
+                      <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
+                        <span className="text-base leading-none">{tier.emoji}</span>
+                        <div className="flex flex-col leading-none">
+                          <span className={`text-xs font-black ${tier.textColor}`}>{displayMmr.toLocaleString()}</span>
+                          <span className={`text-[10px] font-semibold ${tier.textColor} opacity-70`}>{tier.label}</span>
+                        </div>
+                        <span className="text-xs text-gray-400 font-bold ml-0.5">?</span>
+                      </div>
+                    </Tooltip>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
-          {/* 우측 액션 버튼 — 2줄 */}
-          <div className="flex flex-col items-end gap-1.5">
-            {/* 1줄: 즐겨찾기 · 비교 · 카드 · 티어 */}
-            <div className="flex items-center gap-1.5">
+          {/* 우측 액션 영역 */}
+          <div className="flex flex-col gap-1.5 sm:items-end">
+            {/* 데스크탑 1줄: 즐겨찾기 · 비교 · 카드 · 티어 */}
+            <div className="hidden sm:flex items-center gap-1.5">
               {nickname && (
                 <Tooltip content={isFav ? t('ph.fav_remove') : t('ph.fav_add')}>
                   <button
@@ -476,7 +498,7 @@ const PlayerHeader = ({
                   <button
                     onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
                     className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
-                  >⚔️<span className="hidden sm:inline"> {t('ph.compare')}</span></button>
+                  >⚔️ {t('ph.compare')}</button>
                 </Tooltip>
               )}
               {nickname && (
@@ -484,7 +506,7 @@ const PlayerHeader = ({
                   <button
                     onClick={openReport}
                     className="px-2.5 py-1.5 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/25 hover:border-purple-400/60 hover:text-purple-200 text-sm font-bold transition-all select-none"
-                  >📊<span className="hidden sm:inline"> 리포트</span></button>
+                  >📊 리포트</button>
                 </Tooltip>
               )}
               {(() => {
@@ -504,10 +526,10 @@ const PlayerHeader = ({
                 );
               })()}
             </div>
-            {/* 2줄: 현재시즌 · 이벤트제외 · 최신화 */}
-            <div className="flex items-center gap-1.5">
+            {/* 데스크탑 2줄: 시즌 선택 · 최신화 */}
+            <div className="hidden sm:flex items-center gap-1.5">
               <select
-                className="hidden sm:block px-2.5 py-1.5 bg-blue-800/60 border border-blue-600/50 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-700/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 py-1.5 bg-blue-800/60 border border-blue-600/50 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-700/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 value={selectedSeasonId || 'current'}
                 onChange={e => onSeasonChange?.(e.target.value)}
                 disabled={seasonChanging}
@@ -523,7 +545,7 @@ const PlayerHeader = ({
                 )}
               </select>
               {seasonChanging && (
-                <div className="hidden sm:block w-3.5 h-3.5 animate-spin rounded-full border border-blue-300 border-t-transparent flex-shrink-0" />
+                <div className="w-3.5 h-3.5 animate-spin rounded-full border border-blue-300 border-t-transparent flex-shrink-0" />
               )}
               <button
                 onClick={onRefresh}
@@ -535,12 +557,54 @@ const PlayerHeader = ({
                 }`}
               >
                 {refreshing ? (
-                  <><div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent" /><span className="hidden sm:inline">{t('ph.refreshing')}</span></>
+                  <><div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent" /><span>{t('ph.refreshing')}</span></>
                 ) : cooldown > 0 ? `${cooldown}s` : (
-                  <><span>🔄</span><span className="hidden sm:inline">{t('ph.refresh')}</span></>
+                  <><span>🔄</span><span>{t('ph.refresh')}</span></>
                 )}
               </button>
             </div>
+            {/* 모바일 6행: 액션 버튼 4개 한 줄 배치 */}
+            {nickname && (
+              <div className="flex gap-1.5 sm:hidden w-full mt-1">
+                <Tooltip content={isFav ? t('ph.fav_remove') : t('ph.fav_add')}>
+                  <button
+                    onClick={toggleFavorite}
+                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl border text-[10px] font-bold transition-all select-none ${
+                      isFav
+                        ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300'
+                        : 'bg-white/5 border-white/20 text-gray-400'
+                    }`}
+                  ><span className="text-sm leading-none">{isFav ? '★' : '☆'}</span><span>즐겨찾기</span></button>
+                </Tooltip>
+                <Tooltip content={t('ph.compare_tooltip')}>
+                  <button
+                    onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl border border-white/20 bg-white/5 text-gray-300 text-[10px] font-bold transition-all select-none"
+                  ><span className="text-sm leading-none">⚔️</span><span>비교</span></button>
+                </Tooltip>
+                <Tooltip content="시즌 리포트 카드 보기">
+                  <button
+                    onClick={openReport}
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-300 text-[10px] font-bold transition-all select-none"
+                  ><span className="text-sm leading-none">📊</span><span>리포트</span></button>
+                </Tooltip>
+                <button
+                  onClick={onRefresh}
+                  disabled={refreshing || cooldown > 0}
+                  className={`w-12 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl text-[10px] font-bold transition-all duration-200 ${
+                    refreshing || cooldown > 0
+                      ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
+                      : 'bg-blue-500 text-white border border-blue-400/50'
+                  }`}
+                >
+                  {refreshing
+                    ? <div className="animate-spin rounded-full h-3.5 w-3.5 border border-white border-t-transparent" />
+                    : cooldown > 0
+                    ? <><span className="text-sm leading-none">🔄</span><span>{cooldown}s</span></>
+                    : <><span className="text-sm leading-none">🔄</span><span>갱신</span></>}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -550,7 +614,7 @@ const PlayerHeader = ({
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-gray-700 items-stretch">
 
           {/* ── 1. 시즌 성과 ── */}
-          <div className="p-4 sm:p-5 flex flex-col">
+          <div className="p-3 sm:p-5 flex flex-col">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1.5 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
@@ -691,7 +755,7 @@ const PlayerHeader = ({
           </div>
 
           {/* ── 2. 최근 N경기 ── */}
-          <div className="p-4 sm:p-5 flex flex-col">
+          <div className="p-3 sm:p-5 flex flex-col">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-cyan-500 rounded-full"></div>
@@ -728,7 +792,7 @@ const PlayerHeader = ({
                         : null
                       return <>
                         <div className="text-xs text-cyan-500 mb-1 font-medium">
-                          {correctedCount > 0 ? t('ph.real_avg_damage') : t('ph.avg_damage')}
+                          {correctedCount > 0 ? '최근 실딜' : t('ph.avg_damage')}
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-gray-100">
                           {avgRealDmg !== null ? avgRealDmg.toFixed(0) : recent20Stats.avgDamage.toFixed(0)}
@@ -752,7 +816,7 @@ const PlayerHeader = ({
                         : null
                       return <>
                         <div className="text-xs text-cyan-500 mb-1 font-medium">
-                          {correctedCount > 0 ? t('ph.real_avg_kills') : t('ph.avg_kills')}
+                          {correctedCount > 0 ? '최근 실킬' : t('ph.avg_kills')}
                         </div>
                         <div className="text-lg font-black text-gray-900 dark:text-gray-100">
                           {avgReal !== null ? avgReal.toFixed(1) : recent20Stats.avgKills.toFixed(1)}
@@ -861,7 +925,7 @@ const PlayerHeader = ({
           </div>
 
           {/* ── 3. 경쟁전 ── */}
-          <div className="p-4 sm:p-5 flex flex-col">
+          <div className="p-3 sm:p-5 flex flex-col">
             {/* 헤더 */}
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
