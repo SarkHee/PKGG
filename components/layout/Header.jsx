@@ -270,7 +270,7 @@ const handleSearchSubmit = async (e) => {
               </Link>
 
               {/* 데스크탑 네비게이션 — 4개 드롭다운 + 검색 */}
-              <nav className="hidden md:flex items-center gap-1">
+              <nav className="hidden lg:flex items-center gap-1">
                 <NavDropdown label={t('nav.group_analysis')}   links={analysisLinks}  isActive={isActive} t={t} openKey="analysis"  openMenu={openMenu} setOpenMenu={setOpenMenu} />
                 <NavDropdown label={t('nav.group_weapon')}     links={weaponLinks}    isActive={isActive} t={t} openKey="weapon"    openMenu={openMenu} setOpenMenu={setOpenMenu} />
                 <NavDropdown label={t('nav.group_community')}  links={communityLinks} isActive={isActive} t={t} openKey="community" openMenu={openMenu} setOpenMenu={setOpenMenu} />
@@ -311,7 +311,7 @@ const handleSearchSubmit = async (e) => {
             </div>
 
             {/* 오른쪽: 언어 + 로그인 */}
-            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+            <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
               {/* 로그인 / 유저 정보 */}
               {user === undefined ? null : user ? (
                 <div className="flex items-center gap-2">
@@ -447,7 +447,7 @@ const handleSearchSubmit = async (e) => {
 
             {/* 모바일 메뉴 버튼 */}
             <button
-              className="md:hidden p-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="lg:hidden p-2.5 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -462,7 +462,7 @@ const handleSearchSubmit = async (e) => {
 
         {/* 모바일 메뉴 */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <div className="lg:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
             {/* 빠른 닉네임 검색 (훈련 도구 페이지에서는 숨김) */}
             {!['/sensitivity-analyzer', '/sensitivity', '/aim-trainer', '/recoil-pattern', '/peek-trainer', '/pubg-survivors'].includes(router.pathname) && (
             <div className="px-4 pt-3 pb-2">
