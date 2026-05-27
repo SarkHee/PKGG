@@ -89,6 +89,41 @@ function getWeaponImg(weaponId) {
   return file ? `/weapons/${file}` : null
 }
 
+const VEHICLE_IMG_BASE = 'https://wstatic-prod.pubg.com/web/live/static/game-info/vehicles/images/viewer/'
+
+function getVehicleImg(weaponId) {
+  if (!weaponId) return null
+  const v = weaponId.toLowerCase()
+  if (v.includes('dirtbike'))                                           return VEHICLE_IMG_BASE + 'img-vehicles-dirtbike.webp'
+  if (v.includes('motorbike') || v.includes('sidecar'))                return VEHICLE_IMG_BASE + 'img-vehicles-motorbike.webp'
+  if (v.includes('snowmobile') || v.includes('snowbike'))              return VEHICLE_IMG_BASE + 'img-vehicles-snowmobile.webp'
+  if (v.includes('mountainbike') || v.includes('mountain_bike'))       return VEHICLE_IMG_BASE + 'img-vehicles-mountainbike.webp'
+  if (v.includes('scooter'))                                            return VEHICLE_IMG_BASE + 'img-vehicles-scooter.webp'
+  if (v.includes('brdm'))                                              return VEHICLE_IMG_BASE + 'img-vehicles-brdm.webp'
+  if (v.includes('uaz'))                                                return VEHICLE_IMG_BASE + 'img-vehicles-uaz.webp'
+  if (v.includes('dacia'))                                              return VEHICLE_IMG_BASE + 'img-vehicles-dacia.webp'
+  if (v.includes('mirado'))                                             return VEHICLE_IMG_BASE + 'img-vehicles-mirado.webp'
+  if (v.includes('rony'))                                               return VEHICLE_IMG_BASE + 'img-vehicles-rony.webp'
+  if (v.includes('minibus'))                                            return VEHICLE_IMG_BASE + 'img-vehicles-minibus.webp'
+  if (v.includes('pickup'))                                             return VEHICLE_IMG_BASE + 'img-vehicles-pickup_truck.webp'
+  if (v.includes('foodtruck') || v.includes('food_truck'))             return VEHICLE_IMG_BASE + 'img-vehicles-food_truck.webp'
+  if (v.includes('pillar'))                                             return VEHICLE_IMG_BASE + 'img-vehicles-pillar.webp'
+  if (v.includes('porter'))                                             return VEHICLE_IMG_BASE + 'img-vehicles-porter.webp'
+  if (v.includes('tuktuk') || v.includes('tukshai'))                   return VEHICLE_IMG_BASE + 'img-vehicles-tukshai.webp'
+  if (v.includes('ladaniva') || v.includes('zima'))                    return VEHICLE_IMG_BASE + 'img-vehicles-ladaniva.webp'
+  if (v.includes('aquarail') || v.includes('airboat'))                  return VEHICLE_IMG_BASE + 'img-vehicles-air_boat.webp'
+  if (v.includes('coupesuv') || v.includes('coupe_suv') || v.includes('blanc')) return VEHICLE_IMG_BASE + 'img-vehicles-coupe_suv.webp'
+  if (v.includes('couper') || v.includes('coupe_rb') || (v.includes('coupe') && v.includes('rb'))) return VEHICLE_IMG_BASE + 'img-vehicles-coupe_rb.webp'
+  if (v.includes('ponycoupe') || v.includes('pony'))                   return VEHICLE_IMG_BASE + 'img-vehicles-pony_coupe.webp'
+  if (v.includes('coupe'))                                              return VEHICLE_IMG_BASE + 'img-vehicles-coupe_rb.webp'
+  if (v.includes('quadbike') || v.includes('quad_bike'))               return VEHICLE_IMG_BASE + 'img-vehicles-atv.webp'
+  if (v.includes('buggy'))                                              return VEHICLE_IMG_BASE + 'img-vehicles-buggy.webp'
+  if (v.includes('picobus') || v.includes('pico_bus'))                 return VEHICLE_IMG_BASE + 'img-vehicles-pico_bus.webp'
+  // BP_ 접두어로 시작하는 미매핑 차량
+  if (v.startsWith('bp_') || v.includes('vehicle') || v.includes('van') || v.includes('truck')) return VEHICLE_IMG_BASE + 'img-vehicles-pickup_truck.webp'
+  return null
+}
+
 // 무기가 아닌 damageCauserName 필터
 function isValidWeapon(weaponId) {
   if (!weaponId || weaponId === 'None') return false
@@ -169,6 +204,7 @@ export default function MatchDetailLog({ match, playerNickname }) {
   const movePathCoords = Array.isArray(telemetry?.movePathCoords) && telemetry.movePathCoords.length > 1
     ? telemetry.movePathCoords
     : null
+  const vehicleLog = telemetry?.vehicleLog || []
 
   // 봇 분석 상태 계산
   const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000
@@ -226,7 +262,8 @@ export default function MatchDetailLog({ match, playerNickname }) {
           <div className="space-y-2 mt-2">
             {dbWeaponEntries.slice(0, 6).map(([weaponId, ws]) => {
               const displayName = getWeaponDisplayName(weaponId)
-              const imgSrc = getWeaponImg(weaponId)
+              const imgSrc = getWeaponImg(weaponId) || getVehicleImg(weaponId)
+              const isVehicleImg = !getWeaponImg(weaponId) && !!getVehicleImg(weaponId)
               const pct = Math.round((ws.damage / dbMaxDmg) * 100)
               return (
                 <div key={weaponId}>
@@ -236,7 +273,7 @@ export default function MatchDetailLog({ match, playerNickname }) {
                         <img
                           src={imgSrc}
                           alt={displayName}
-                          className="w-9 h-6 object-contain flex-shrink-0 drop-shadow-sm"
+                          className={`object-contain flex-shrink-0 drop-shadow-sm ${isVehicleImg ? 'w-14 h-9' : 'w-9 h-6'}`}
                           onError={(e) => { e.currentTarget.style.display = 'none' }}
                         />
                       ) : (
@@ -362,6 +399,49 @@ export default function MatchDetailLog({ match, playerNickname }) {
           </div>
         </div>
       </div>
+
+      {/* 탈것 섹션 */}
+      {vehicleLog.length > 0 && (
+        <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">탈것</span>
+          </div>
+          <div className="p-3 bg-white dark:bg-gray-900">
+            <div className="flex flex-wrap gap-2">
+              {vehicleLog.map((v, i) => (
+                <div key={i} className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 min-w-0">
+                  {v.img ? (
+                    <img
+                      src={v.img}
+                      alt={v.name}
+                      className="w-16 h-10 object-contain flex-shrink-0"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
+                  ) : (
+                    <span className="text-xl flex-shrink-0">🚗</span>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate">{v.name}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      {v.totalDistance > 0 && (
+                        <span className="text-[10px] text-blue-500 dark:text-blue-400 font-medium">
+                          {v.totalDistance >= 1000
+                            ? `${(v.totalDistance / 1000).toFixed(1)}km`
+                            : `${v.totalDistance}m`}
+                        </span>
+                      )}
+                      {v.rideCount > 0 && (
+                        <span className="text-[10px] text-gray-400">{v.rideCount}회 탑승</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

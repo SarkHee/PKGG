@@ -71,6 +71,41 @@ const MAP_MAX_ALIAS = {
   Chimera: 307200,    Paramo: 307200,
 }
 
+const VEHICLE_BASE = 'https://wstatic-prod.pubg.com/web/live/static/game-info/vehicles/images/viewer/'
+
+function getVehicleInfo(vehicleId) {
+  if (!vehicleId) return null
+  const v = vehicleId.toLowerCase()
+  if (v.includes('dirtbike'))                                          return { name: '더트 바이크',   img: 'img-vehicles-dirtbike.webp' }
+  if (v.includes('motorbike') || v.includes('sidecar'))               return { name: '오토바이',       img: 'img-vehicles-motorbike.webp' }
+  if (v.includes('snowmobile') || v.includes('snowbike'))             return { name: '스노우모빌',     img: 'img-vehicles-snowmobile.webp' }
+  if (v.includes('mountainbike') || v.includes('mountain_bike'))      return { name: '산악 자전거',    img: 'img-vehicles-mountainbike.webp' }
+  if (v.includes('scooter'))                                           return { name: '스쿠터',         img: 'img-vehicles-scooter.webp' }
+  if (v.includes('brdm'))                                             return { name: 'BRDM-2',         img: 'img-vehicles-brdm.webp' }
+  if (v.includes('uaz'))                                               return { name: 'UAZ',            img: 'img-vehicles-uaz.webp' }
+  if (v.includes('dacia'))                                             return { name: '다시아',         img: 'img-vehicles-dacia.webp' }
+  if (v.includes('mirado'))                                            return { name: '미라도',         img: 'img-vehicles-mirado.webp' }
+  if (v.includes('rony'))                                              return { name: '로니',           img: 'img-vehicles-rony.webp' }
+  if (v.includes('minibus'))                                           return { name: '미니버스',       img: 'img-vehicles-minibus.webp' }
+  if (v.includes('picobus') || v.includes('pico_bus') || (v.includes('pico') && v.includes('bus'))) return { name: '피코 버스', img: 'img-vehicles-pico_bus.webp' }
+  if (v.includes('pickup'))                                            return { name: '픽업 트럭',      img: 'img-vehicles-pickup_truck.webp' }
+  if (v.includes('foodtruck') || v.includes('food_truck'))            return { name: '푸드 트럭',      img: 'img-vehicles-food_truck.webp' }
+  if (v.includes('pillar'))                                            return { name: '필라 시큐리티',  img: 'img-vehicles-pillar.webp' }
+  if (v.includes('porter'))                                            return { name: '포터',           img: 'img-vehicles-porter.webp' }
+  if (v.includes('tuktuk') || v.includes('tukshai'))                  return { name: '툭샤이',         img: 'img-vehicles-tukshai.webp' }
+  if (v.includes('ladaniva') || v.includes('zima'))                   return { name: '지마',           img: 'img-vehicles-ladaniva.webp' }
+  if (v.includes('aquarail') || v.includes('airboat') || v.includes('air_boat')) return { name: '에어보트', img: 'img-vehicles-air_boat.webp' }
+  if (v.includes('coupesuv') || v.includes('coupe_suv') || v.includes('blanc'))  return { name: '블랑 (쿠페 SUV)', img: 'img-vehicles-coupe_suv.webp' }
+  if (v.includes('couper') || v.includes('coupe_rb') || (v.includes('coupe') && v.includes('rb')))  return { name: '쿠페 RB', img: 'img-vehicles-coupe_rb.webp' }
+  if (v.includes('ponycoupe') || v.includes('pony'))                  return { name: '포니 쿠페',      img: 'img-vehicles-pony_coupe.webp' }
+  if (v.includes('coupe'))                                             return { name: '쿠페',           img: 'img-vehicles-coupe_rb.webp' }
+  if (v.includes('quadbike') || v.includes('quad_bike'))              return { name: '쿼드 (ATV)',     img: 'img-vehicles-atv.webp' }
+  if (v.includes('buggy'))                                             return { name: '버기',           img: 'img-vehicles-buggy.webp' }
+  // 물 위 탈것
+  if (v.includes('pg117') || v.includes('boat') || v.includes('pontoon')) return { name: '보트',      img: null }
+  return null
+}
+
 function getMaxCoord(mapName) {
   if (!mapName) return 820000
   if (MAP_MAX[mapName]) return MAP_MAX[mapName]
@@ -142,10 +177,35 @@ function analyzeTelemetry(telemetryData, playerName, mapName) {
   const killLog = []
   const weaponStats = {}
   const positions = []
+  // vehicleKey(=img or name) → 집계 데이터
+  const vehicleMap = {}
 
   telemetryData.forEach((event) => {
     try {
-      if (event._T === 'LogPlayerKill' || event._T === 'LogPlayerKillV2') {
+      if (event._T === 'LogVehicleRide') {
+        const charName = (event.character?.name || '').toLowerCase()
+        if (charName === playerName) {
+          const vehicleId = event.vehicle?.vehicleId || ''
+          const info = getVehicleInfo(vehicleId)
+          if (info) {
+            const key = info.img || info.name
+            if (!vehicleMap[key]) vehicleMap[key] = { ...info, totalDistance: 0, rideCount: 0 }
+          }
+        }
+      } else if (event._T === 'LogVehicleLeave') {
+        const charName = (event.character?.name || '').toLowerCase()
+        if (charName === playerName) {
+          const vehicleId = event.vehicle?.vehicleId || ''
+          const rideDistance = event.rideDistance || 0
+          const info = getVehicleInfo(vehicleId)
+          if (info) {
+            const key = info.img || info.name
+            if (!vehicleMap[key]) vehicleMap[key] = { ...info, totalDistance: 0, rideCount: 0 }
+            vehicleMap[key].totalDistance += rideDistance
+            vehicleMap[key].rideCount += 1
+          }
+        }
+      } else if (event._T === 'LogPlayerKill' || event._T === 'LogPlayerKillV2') {
         const killerName = (event.killer?.name || event.finisher?.name || '').toLowerCase()
         if (killerName === playerName) {
           const primaryWeapon   = (event.damageCauserName && event.damageCauserName !== 'None') ? event.damageCauserName : null
@@ -245,7 +305,16 @@ function analyzeTelemetry(telemetryData, playerName, mapName) {
       }))
   }
 
-  return { killLog, weaponStats, movePath, movePathCoords }
+  const vehicleLog = Object.values(vehicleMap)
+    .sort((a, b) => b.totalDistance - a.totalDistance)
+    .map(v => ({
+      name:          v.name,
+      img:           v.img ? `${VEHICLE_BASE}${v.img}` : null,
+      totalDistance: Math.round(v.totalDistance),
+      rideCount:     v.rideCount,
+    }))
+
+  return { killLog, weaponStats, movePath, movePathCoords, vehicleLog }
 }
 
 export default async function handler(req, res) {

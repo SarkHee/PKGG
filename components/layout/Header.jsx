@@ -84,6 +84,39 @@ export default function Header() {
   const [searchLoading, setSearchLoading] = useState(false);
   const searchRef = useRef(null);
 
+  // 피드백 (버그·개선 제안)
+  const [feedbackOpen,    setFeedbackOpen]    = useState(false);
+  const [feedbackType,    setFeedbackType]    = useState('bug');
+  const [feedbackMsg,     setFeedbackMsg]     = useState('');
+  const [feedbackStatus,  setFeedbackStatus]  = useState('idle'); // idle | sending | done | error
+  const feedbackRef = useRef(null);
+
+  useEffect(() => {
+    if (!feedbackOpen) return;
+    const handler = (e) => { if (feedbackRef.current && !feedbackRef.current.contains(e.target)) setFeedbackOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [feedbackOpen]);
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (!feedbackMsg.trim() || feedbackStatus === 'sending') return;
+    setFeedbackStatus('sending');
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: feedbackType, message: feedbackMsg.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      setFeedbackStatus('done');
+      setTimeout(() => { setFeedbackStatus('idle'); setFeedbackMsg(''); setFeedbackOpen(false); }, 2000);
+    } catch {
+      setFeedbackStatus('error');
+      setTimeout(() => setFeedbackStatus('idle'), 3000);
+    }
+  };
+
   const router = useRouter();
   const { lang, t, switchLang } = useT();
   const { user } = useAuth() || {};
@@ -306,6 +339,56 @@ const handleSearchSubmit = async (e) => {
                 </button>
               )}
 
+              {/* 버그·개선 제안 버튼 */}
+              <div className="relative" ref={feedbackRef}>
+                <button
+                  onClick={() => setFeedbackOpen((v) => !v)}
+                  title="버그 신고 / 개선 제안"
+                  className="h-8 flex items-center gap-1 px-2.5 rounded-lg border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-xs font-medium transition-colors whitespace-nowrap"
+                >
+                  <span>💬</span>
+                  <span className="hidden sm:inline">버그·제안</span>
+                </button>
+                {feedbackOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-4 z-[999]">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-bold text-gray-800 dark:text-gray-100">피드백 보내기</span>
+                      <button onClick={() => setFeedbackOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">×</button>
+                    </div>
+                    {feedbackStatus === 'done' ? (
+                      <div className="text-center py-4 text-green-500 font-semibold text-sm">✓ 전송됐어요! 감사합니다.</div>
+                    ) : (
+                      <form onSubmit={handleFeedbackSubmit} className="flex flex-col gap-3">
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => setFeedbackType('bug')}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${feedbackType === 'bug' ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                            🐛 버그 신고
+                          </button>
+                          <button type="button" onClick={() => setFeedbackType('suggest')}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${feedbackType === 'suggest' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                            💡 개선 제안
+                          </button>
+                        </div>
+                        <textarea
+                          value={feedbackMsg}
+                          onChange={(e) => setFeedbackMsg(e.target.value)}
+                          placeholder={feedbackType === 'bug' ? '어떤 버그가 발생했나요? 페이지, 상황을 알려주세요.' : '어떤 기능이 있으면 좋을까요?'}
+                          rows={4}
+                          className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                        />
+                        {feedbackStatus === 'error' && (
+                          <p className="text-[11px] text-red-400 text-center">전송 실패. 잠시 후 다시 시도해주세요.</p>
+                        )}
+                        <button type="submit" disabled={!feedbackMsg.trim() || feedbackStatus === 'sending'}
+                          className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors">
+                          {feedbackStatus === 'sending' ? '전송 중...' : '보내기'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* 커피 후원 버튼 */}
               <button
                 onClick={() => setShowQR(true)}
@@ -496,30 +579,46 @@ const handleSearchSubmit = async (e) => {
                 </div>
               </div>
 
-              {/* 하단: 언어 + 테마 */}
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
-                <div className="flex gap-1.5 flex-wrap">
-                  {LANG_OPTIONS.map((option) => (
-                    <button
-                      key={option.code}
-                      onClick={() => { switchLang(option.code); setMobileMenuOpen(false); }}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
-                        lang === option.code
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      {option.flag} {option.label}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => { toggleTheme(); setMobileMenuOpen(false); }}
-                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all text-base"
-                  title={isDark ? '라이트 모드' : '다크 모드'}
+              {/* 하단: 후원 + 언어 + 테마 */}
+              <div className="pt-2 border-t border-gray-100 dark:border-gray-700 space-y-2">
+                {/* 후원 버튼 (모바일: 카카오페이 링크 직접 이동) */}
+                <a
+                  href="https://qr.kakaopay.com/Ej80WO41U"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-yellow-300/50 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700/40 text-yellow-700 dark:text-yellow-400 text-sm font-semibold transition-colors hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
                 >
-                  {isDark ? '☀️' : '🌙'}
-                </button>
+                  <span>☕</span>
+                  <span>커피 사주기</span>
+                  {donationCount !== null && (
+                    <span className="text-xs text-yellow-500 font-bold">({donationCount})</span>
+                  )}
+                </a>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex gap-1.5 flex-wrap">
+                    {LANG_OPTIONS.map((option) => (
+                      <button
+                        key={option.code}
+                        onClick={() => { switchLang(option.code); setMobileMenuOpen(false); }}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
+                          lang === option.code
+                            ? 'bg-blue-600 border-blue-600 text-white'
+                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {option.flag} {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => { toggleTheme(); setMobileMenuOpen(false); }}
+                    className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all text-base"
+                    title={isDark ? '라이트 모드' : '다크 모드'}
+                  >
+                    {isDark ? '☀️' : '🌙'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

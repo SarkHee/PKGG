@@ -98,8 +98,14 @@ export default function MatchListRow({
   const [teamDmg, setTeamDmg]               = useState(null)
   const [teamDmgLoading, setTeamDmgLoading] = useState(false)
 
+  const handleTeamDamageClick = (e) => {
+    e.stopPropagation()
+    setDetailTab('log')
+    if (!isOpen) onToggle()
+  }
+
   useEffect(() => {
-    if (!isOpen || !match?.matchId || !match?.isBotCorrected) return
+    if (!isOpen || !match?.matchId || !match?.hasTeamDamage) return
     if (teamDmg !== null) return
     setTeamDmgLoading(true)
     fetch(`/api/team-damage/${match.matchId}`)
@@ -107,7 +113,7 @@ export default function MatchListRow({
       .then((data) => setTeamDmg(data.rows ?? []))
       .catch(() => setTeamDmg([]))
       .finally(() => setTeamDmgLoading(false))
-  }, [isOpen, match?.matchId, match?.isBotCorrected])
+  }, [isOpen, match?.matchId, match?.hasTeamDamage])
 
   // 팀 피해 공격자 집계 맵 (닉네임 소문자 → 합산 데이터)
   const friendlyFireMap = {}
@@ -168,7 +174,7 @@ export default function MatchListRow({
       return { type: 'training', label: '훈련장', color: '#0891b2' };
     }
     if (mt === 'official') {
-      if (mode.includes('event') || mode.includes('arcade')) {
+      if (mode.includes('event') || mode.includes('arcade') || mode.includes('heistroyale') || mode.includes('clansolo') || mode.includes('clansquad') || map.includes('safehouse')) {
         return { type: 'event', label: '이벤트', color: '#f59e0b' };
       }
       if (mode.includes('tdm') || mode.includes('training') || map.includes('range_main') || map.includes('_training_')) {
@@ -181,7 +187,7 @@ export default function MatchListRow({
     if (mode.includes('ranked')) {
       return { type: 'ranked', label: '경쟁전', color: '#dc2626' };
     }
-    if (mode.includes('event') || mode.includes('arcade')) {
+    if (mode.includes('event') || mode.includes('arcade') || mode.includes('heistroyale') || mode.includes('clansolo') || mode.includes('clansquad') || map.includes('safehouse')) {
       return { type: 'event', label: '이벤트', color: '#f59e0b' };
     }
     if (mode.includes('tdm') || mode.includes('training') || map.includes('range_main') || map.includes('_training_')) {
@@ -267,7 +273,7 @@ export default function MatchListRow({
                 </div>
                 <div className="text-[9px] text-gray-400">총킬</div>
                 <div className="text-[9px] mt-0.5">
-                  <span className="text-cyan-500">실{match.realKills ?? 0}</span>
+                  <span className="text-cyan-500">실{Math.max(0, match.realKills ?? 0)}</span>
                   <span className="text-gray-400"> / 봇{match.botKills ?? 0}</span>
                 </div>
               </>
@@ -301,8 +307,22 @@ export default function MatchListRow({
           </div>
         </div>
 
-        {/* 4행: 펼치기 버튼 */}
-        <div className="flex justify-end mt-1">
+        {/* 4행: 팀피해 뱃지 + 펼치기 버튼 */}
+        <div className="flex items-center justify-between mt-1">
+          {match.hasTeamDamage === true ? (
+            <button
+              onClick={handleTeamDamageClick}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                match.teamDamageType === 'kill'
+                  ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-100'
+                  : match.teamDamageType === 'groggy'
+                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-100'
+                  : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700 text-orange-500 dark:text-orange-400 hover:bg-orange-100'
+              }`}
+            >
+              {match.teamDamageType === 'kill' ? '💀 팀킬' : match.teamDamageType === 'groggy' ? '⚠️ 팀기절' : '⚠️ 팀피해'}
+            </button>
+          ) : <div />}
           <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${isOpen ? 'bg-blue-100 text-blue-500' : 'text-gray-300'}`}>
             <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
@@ -410,6 +430,24 @@ export default function MatchListRow({
           ) : (
             <span className="inline-block px-2 py-0.5 text-gray-300 text-xs">-</span>
           )}
+        </div>
+
+        {/* 팀피해 뱃지 */}
+        <div className="w-16 flex-shrink-0 text-center">
+          {match.hasTeamDamage === true ? (
+            <button
+              onClick={handleTeamDamageClick}
+              className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                match.teamDamageType === 'kill'
+                  ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-500 dark:text-red-400 hover:bg-red-100'
+                  : match.teamDamageType === 'groggy'
+                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-100'
+                  : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700 text-orange-500 dark:text-orange-400 hover:bg-orange-100'
+              }`}
+            >
+              {match.teamDamageType === 'kill' ? '💀 팀킬' : match.teamDamageType === 'groggy' ? '⚠️ 팀기절' : '⚠️ 팀피해'}
+            </button>
+          ) : null}
         </div>
 
         {/* 팀원 */}
@@ -574,7 +612,7 @@ export default function MatchListRow({
                   <MatchDetailLog match={match} playerNickname={playerData?.profile?.nickname || ''} />
 
                   {/* 팀 내 피해 */}
-                  {match.isBotCorrected && (
+                  {match.hasTeamDamage && (
                     <div className="mt-3 rounded-xl border border-orange-200 dark:border-orange-800/40 overflow-hidden">
                       <div className="px-4 py-2.5 bg-orange-50 dark:bg-orange-900/20 border-b border-orange-200 dark:border-orange-800/40 flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-orange-400 rounded-full" />

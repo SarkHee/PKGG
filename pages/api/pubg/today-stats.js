@@ -10,7 +10,7 @@ const PUBG_BASE = 'https://api.pubg.com/shards'
 
 const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom', 'arcade'])
 const EVENT_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training']
-const EVENT_MAP_KEYWORDS  = ['_tdm_', '_training_', 'range_main', 'pillarcompound', 'boardwalk']
+const EVENT_MAP_KEYWORDS  = ['_tdm_', '_training_', 'range_main', 'pillarcompound', 'boardwalk', 'safehouse']
 
 function isEventMatch(matchType, gameMode, mapName) {
   if (EVENT_MATCH_TYPES.has(matchType?.toLowerCase())) return true

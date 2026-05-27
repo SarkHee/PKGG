@@ -173,83 +173,6 @@ function FloatingInquiryPanel() {
   )
 }
 
-function FloatingFeedback() {
-  const [open, setOpen] = useState(false)
-  const [type, setType] = useState('bug')
-  const [message, setMessage] = useState('')
-  const [status, setStatus] = useState('idle') // idle | sending | done | error
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!message.trim() || status === 'sending') return
-    setStatus('sending')
-    try {
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, message: message.trim() }),
-      })
-      if (!res.ok) throw new Error()
-      setStatus('done')
-      setTimeout(() => { setStatus('idle'); setMessage(''); setOpen(false) }, 2000)
-    } catch {
-      setStatus('error')
-      setTimeout(() => setStatus('idle'), 3000)
-    }
-  }
-
-  return (
-    <div className="fixed right-4 bottom-32 z-50 flex flex-col items-end gap-2">
-      {open && (
-        <div className="w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-bold text-gray-800 dark:text-gray-100">피드백 보내기</span>
-            <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">×</button>
-          </div>
-          {status === 'done' ? (
-            <div className="text-center py-4 text-green-500 font-semibold text-sm">✓ 전송됐어요! 감사합니다.</div>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setType('bug')}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${type === 'bug' ? 'bg-red-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-                  🐛 버그 신고
-                </button>
-                <button type="button" onClick={() => setType('suggest')}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${type === 'suggest' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-                  💡 개선 제안
-                </button>
-              </div>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={type === 'bug' ? '어떤 버그가 발생했나요? 페이지, 상황을 알려주세요.' : '어떤 기능이 있으면 좋을까요?'}
-                rows={4}
-                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-400 resize-none"
-              />
-              {status === 'error' && (
-                <p className="text-[11px] text-red-400 text-center">전송 실패. 잠시 후 다시 시도해주세요.</p>
-              )}
-              <button type="submit" disabled={!message.trim() || status === 'sending'}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors">
-                {status === 'sending' ? '전송 중...' : '보내기'}
-              </button>
-            </form>
-          )}
-        </div>
-      )}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        title="버그 신고 / 개선 제안"
-        className="flex items-center gap-1.5 bg-gray-800 dark:bg-gray-700 hover:bg-gray-700 dark:hover:bg-gray-600 text-white text-xs font-semibold px-3 py-2.5 rounded-full shadow-lg transition-colors border border-gray-600"
-      >
-        <span>💬</span>
-        <span>버그 · 개선 제안</span>
-      </button>
-    </div>
-  )
-}
-
 function FloatingFavorites() {
   const [favs, setFavs] = useState([]);
   const router = useRouter();
@@ -387,7 +310,6 @@ function MyApp({ Component, pageProps }) {
         {showFooter && <Footer />}
       </div>
       <FloatingFavorites />
-      <FloatingFeedback />
       <FloatingInquiryPanel />
       <SpeedInsights sampleRate={0.1} />
       <Analytics />

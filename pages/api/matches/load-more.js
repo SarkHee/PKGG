@@ -134,7 +134,7 @@ export default async function handler(req, res) {
 
     const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom'])
     const EVENT_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training', 'clansolo', 'clansquad', 'heistroyale']
-    const EVENT_MAP_KEYWORDS  = ['range_main', '_tdm_', '_training_', 'pillarcompound', 'boardwalk']
+    const EVENT_MAP_KEYWORDS  = ['range_main', '_tdm_', '_training_', 'pillarcompound', 'boardwalk', 'safehouse']
     const isEventOrPractice = (m) => {
       const mt  = (m.matchType || '').toLowerCase()
       const gm  = (m.mode     || '').toLowerCase()
@@ -159,6 +159,23 @@ export default async function handler(req, res) {
         m.botAssist      = row?.botAssist   ?? 0;
         m.realAssist     = row?.realAssist  ?? m.assists;
         m.weaponStats    = row?.weaponStats ?? {};
+
+        // 내 팀 기준 팀피해 여부 (다른 스쿼드 제외)
+        const myTeamNames = new Set(
+          (m.teammatesDetail || []).map(t => t.name?.toLowerCase()).filter(Boolean)
+        )
+        // 심각도: kill > groggy > damage 순
+        const relevantRows = result.teamDamageRows?.filter(r =>
+          (r.totalDamage > 0 || r.groggyCount > 0 || r.killCount > 0) && (
+            myTeamNames.has(r.attackerName?.toLowerCase()) ||
+            myTeamNames.has(r.victimName?.toLowerCase())
+          )
+        ) ?? []
+        if (relevantRows.some(r => r.killCount > 0))        m.teamDamageType = 'kill'
+        else if (relevantRows.some(r => r.groggyCount > 0)) m.teamDamageType = 'groggy'
+        else if (relevantRows.length > 0)                   m.teamDamageType = 'damage'
+        else                                                 m.teamDamageType = null
+        m.hasTeamDamage = m.teamDamageType !== null
 
         // 분석 성공한 경기만 upsert 대상에 추가
         if (result.isBotCorrected && m._accountId) {
@@ -287,8 +304,68 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── 2-3. 임시 필드 제거 ──────────────────────────────────────────────────
-    const matches = rawMatches.map(({ _matchData, _accountId, ...rest }) => rest);
+    // ── 2-3. 임시 필드 제거 전 teammate name 맵 보존 ─────────────────────────
+    const matchTeamNamesMap = Object.fromEntries(
+      rawMatches.map(m => [m.matchId, new Set(
+        (m.teammatesDetail || []).map(t => t.name?.toLowerCase()).filter(Boolean)
+      )])
+    )
+
+    const matches = rawMatches
+      .filter(m => !isEventOrPractice(m))
+      .map(({ _matchData, _accountId, ...rest }) => rest);
+
+    // ── 2-6. hasTeamDamage DB 보완 (분석 실패 경기 대상 — 내 팀 기준 필터) ──────
+    // hasTeamDamage가 false인 경기는 모두 DB 보완 조회 (Redis 캐시 히트 시 teamDamageRows:[] 반환되므로)
+    const uncheckedIds = matches
+      .filter(m => !m.hasTeamDamage)
+      .map(m => m.matchId)
+    if (uncheckedIds.length > 0) {
+      const allTeamNames = [...new Set(
+        uncheckedIds.flatMap(id => [...(matchTeamNamesMap[id] ?? [])])
+      )]
+      if (allTeamNames.length > 0) {
+        try {
+          const tdRows = await prisma.teamDamageStat.findMany({
+            where: {
+              matchId: { in: uncheckedIds },
+              AND: [
+                {
+                  OR: [
+                    { totalDamage: { gt: 0 } },
+                    { groggyCount: { gt: 0 } },
+                    { killCount:   { gt: 0 } },
+                  ],
+                },
+                {
+                  OR: [
+                    { attackerName: { in: allTeamNames, mode: 'insensitive' } },
+                    { victimName:   { in: allTeamNames, mode: 'insensitive' } },
+                  ],
+                },
+              ],
+            },
+            select: { matchId: true, attackerName: true, victimName: true, totalDamage: true, groggyCount: true, killCount: true },
+          })
+          // matchId별 심각도 집계
+          const matchSeverity = {}
+          for (const r of tdRows) {
+            const teamNames = matchTeamNamesMap[r.matchId]
+            if (!teamNames || (!teamNames.has(r.attackerName?.toLowerCase()) && !teamNames.has(r.victimName?.toLowerCase()))) continue
+            const cur = matchSeverity[r.matchId] ?? 'damage'
+            if (r.killCount > 0)        matchSeverity[r.matchId] = 'kill'
+            else if (r.groggyCount > 0 && cur !== 'kill') matchSeverity[r.matchId] = 'groggy'
+            else if (!matchSeverity[r.matchId])            matchSeverity[r.matchId] = 'damage'
+          }
+          for (const [matchId, severity] of Object.entries(matchSeverity)) {
+            const m = matches.find(x => x.matchId === matchId)
+            if (m) { m.hasTeamDamage = true; m.teamDamageType = severity }
+          }
+        } catch (e) {
+          console.warn('[load-more] teamDamageStat 보완 조회 실패:', e.message)
+        }
+      }
+    }
 
     // ── 3. teammate 클랜 정보 DB 조회 (추가 PUBG API 호출 없음) ──────────
     try {

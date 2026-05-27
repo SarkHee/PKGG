@@ -47,7 +47,6 @@ const styles = {
     position: 'relative',
     display: 'inline-block',
     cursor: 'help',
-    borderBottom: '1px dashed #555',
   },
   tooltip: {
     position: 'fixed',

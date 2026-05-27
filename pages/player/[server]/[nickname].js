@@ -27,20 +27,47 @@ const AICoachingCard        = dynamic(() => import('../../../components/player/A
 const PlayerPercentileCard  = dynamic(() => import('../../../components/player/PlayerPercentileCard'), { ssr: false, loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-xl" /> });
 
 // 반드시 export default 함수 바깥에 위치!
+function getDateLabel(timestamp) {
+  if (!timestamp) return null
+  const d = new Date(timestamp)
+  const now = new Date()
+  const matchDay = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const today    = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffDays = Math.round((today - matchDay) / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return '오늘'
+  if (diffDays === 1) return '1일 전'
+  if (diffDays === 2) return '2일 전'
+  if (diffDays === 3) return '3일 전'
+  return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })
+}
+
 function MatchList({ recentMatches, playerData }) {
   const [openIdx, setOpenIdx] = useState(null);
   return (
-    <div className="space-y-4">
-      {recentMatches.map((match, i) => (
-        <MatchListRow
-          key={match.matchId}
-          match={match}
-          isOpen={openIdx === i}
-          onToggle={() => setOpenIdx(openIdx === i ? null : i)}
-          prevMatch={i > 0 ? recentMatches[i - 1] : null}
-          playerData={playerData}
-        />
-      ))}
+    <div className="space-y-1.5">
+      {recentMatches.map((match, i) => {
+        const dateLabel     = getDateLabel(match.matchTimestamp)
+        const prevDateLabel = i > 0 ? getDateLabel(recentMatches[i - 1].matchTimestamp) : null
+        const showSep       = dateLabel !== prevDateLabel
+        return (
+          <div key={match.matchId}>
+            {showSep && dateLabel && (
+              <div className={`flex items-center gap-3 ${i === 0 ? 'pb-2' : 'py-2'} px-1`}>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 flex-shrink-0 px-1">{dateLabel}</span>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+              </div>
+            )}
+            <MatchListRow
+              match={match}
+              isOpen={openIdx === i}
+              onToggle={() => setOpenIdx(openIdx === i ? null : i)}
+              prevMatch={i > 0 ? recentMatches[i - 1] : null}
+              playerData={playerData}
+            />
+          </div>
+        )
+      })}
     </div>
   );
 }
@@ -908,13 +935,13 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
     setLoadingMore(true);
     try {
       const res = await fetch(
-        `/api/matches/load-more?nickname=${encodeURIComponent(nick)}&shard=${shard}&offset=${matchOffset}`
+        `/api/matches/load-more?nickname=${encodeURIComponent(nick)}&shard=${shard}&offset=${matchOffset}&limit=10`
       );
       const data = await res.json();
       if (data.matches?.length > 0) {
         setExtraMatches(prev => [...prev, ...data.matches]);
         setMatchOffset(prev => prev + data.matches.length);
-        if (data.matches.length < 5) setNoMoreMatches(true);
+        if (data.matches.length < 10) setNoMoreMatches(true);
       } else {
         setNoMoreMatches(true);
       }
@@ -1808,7 +1835,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
                           불러오는 중...
                         </>
                       ) : (
-                        <>경기 더 보기<span className="text-xs text-gray-400 ml-1">(+5경기)</span></>
+                        <>경기 더 보기<span className="text-xs text-gray-400 ml-1">(+10경기)</span></>
                       )}
                     </button>
                   </div>

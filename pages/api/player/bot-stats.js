@@ -20,7 +20,22 @@ export default async function handler(req, res) {
     }
 
     const agg = await prisma.playerMatch.aggregate({
-      where: { pubgAccountId: member.pubgPlayerId, shard, isBotCorrected: true },
+      where: {
+        pubgAccountId: member.pubgPlayerId,
+        shard,
+        isBotCorrected: true,
+        // 이벤트/연습 경기 제외 (오염된 봇 데이터 방지)
+        NOT: {
+          OR: [
+            { mapName: { contains: 'safehouse', mode: 'insensitive' } },
+            { mapName: { contains: 'range_main', mode: 'insensitive' } },
+            { mode:    { contains: 'heistroyale', mode: 'insensitive' } },
+            { mode:    { contains: 'clansolo',    mode: 'insensitive' } },
+            { mode:    { contains: 'clansquad',   mode: 'insensitive' } },
+            { mode:    { contains: 'training',    mode: 'insensitive' } },
+          ],
+        },
+      },
       _sum: { kills: true, botKills: true, damage: true, botDamage: true },
       _count: { matchId: true },
     })
@@ -31,9 +46,9 @@ export default async function handler(req, res) {
     const totalDmg    = agg._sum.damage    ?? 0
     const totalBotDmg = agg._sum.botDamage ?? 0
 
-    // 비율: 0~1 범위, 0으로 나누기 방어
-    const botKillRatio   = totalKills > 0 ? totalBotK   / totalKills : 0
-    const botDamageRatio = totalDmg   > 0 ? totalBotDmg / totalDmg   : 0
+    // 비율: botKills가 kills를 초과하는 오염 데이터 방어 + 0 나누기 방어
+    const botKillRatio   = totalKills > 0 ? Math.min(totalBotK   / totalKills, 0.95) : 0
+    const botDamageRatio = totalDmg   > 0 ? Math.min(totalBotDmg / totalDmg,   0.95) : 0
 
     return res.status(200).json({
       analyzedCount:  count,

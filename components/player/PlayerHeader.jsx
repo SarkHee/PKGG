@@ -390,90 +390,91 @@ const PlayerHeader = ({
           {/* 플레이어 기본 정보 */}
           <div className="flex items-start gap-3 sm:gap-5 min-w-0 flex-1">
             {/* 아바타 */}
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-white shadow-lg flex-shrink-0">
+            <div className="hidden sm:flex w-16 h-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl items-center justify-center text-2xl font-black text-white shadow-lg flex-shrink-0">
               {(profile?.nickname || 'P').charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0 flex-1 flex flex-col gap-1">
-              {/* 1행: 닉네임 + 업데이트 시간 */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight truncate">
+            <div className="min-w-0 w-full sm:w-auto sm:flex-1 flex flex-col gap-1.5">
+              {/* 1행: 닉네임 */}
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="text-lg sm:text-3xl font-black text-white tracking-tight truncate leading-tight">
                   {profile?.nickname || '-'}
                 </h1>
+                {/* 업데이트 시간 (데스크탑) */}
                 {timeAgo(profile?.lastCachedAt, t) && (() => {
                   const isLive = dataSource === 'pubg_api_refreshed' || dataSource === 'pubg_api'
-                  const isDb = dataSource === 'database' || dataSource === 'memory_cache'
                   return (
-                    <span suppressHydrationWarning className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${
-                      isLive
-                        ? 'bg-emerald-900/50 border-emerald-600/50 text-emerald-300'
-                        : isDb
-                        ? 'bg-gray-700/70 border-gray-600/50 text-gray-400'
-                        : 'bg-gray-700/70 border-gray-600/50 text-gray-400'
+                    <span suppressHydrationWarning className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border flex-shrink-0 ${
+                      isLive ? 'bg-emerald-900/50 border-emerald-600/50 text-emerald-300' : 'bg-gray-700/70 border-gray-600/50 text-gray-400'
                     }`}>
                       {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt, t)} {t('ph.update_label')}
                     </span>
                   )
                 })()}
               </div>
-              {/* 2행: 플랫폼 배지 */}
-              <div className="flex items-center">
+
+              {/* 2행: 업데이트시간(모바일) + 플랫폼 + 클랜 */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {/* 업데이트 시간 (모바일 전용) */}
+                {timeAgo(profile?.lastCachedAt, t) && (() => {
+                  const isLive = dataSource === 'pubg_api_refreshed' || dataSource === 'pubg_api'
+                  return (
+                    <span suppressHydrationWarning className={`sm:hidden inline-flex items-center gap-0.5 text-[10px] font-medium ${
+                      isLive ? 'text-emerald-400' : 'text-gray-500'
+                    }`}>
+                      {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt, t)}
+                    </span>
+                  )
+                })()}
+                {/* 플랫폼 */}
                 {(() => {
                   const PLATFORM = {
-                    steam:   { label: 'Steam',  icon: '🎮', cls: 'bg-[#1b2838]/80 border-[#2a475e] text-[#c7d5e0]' },
-                    kakao:   { label: 'Kakao PUBG', icon: '🟡', cls: 'bg-yellow-900/40 border-yellow-600/50 text-yellow-300' },
-                    psn:     { label: 'PlayStation', icon: '🎯', cls: 'bg-blue-900/60 border-blue-500/50 text-blue-300' },
-                    xbox:    { label: 'Xbox',   icon: '🟢', cls: 'bg-green-900/40 border-green-600/50 text-green-300' },
-                    console: { label: 'Console', icon: '🎯', cls: 'bg-gray-700/60 border-gray-500/50 text-gray-300' },
+                    steam:   { label: 'Steam',       icon: '🎮', cls: 'bg-[#1b2838]/80 border-[#2a475e] text-[#c7d5e0]' },
+                    kakao:   { label: 'Kakao',        icon: '🟡', cls: 'bg-yellow-900/40 border-yellow-600/50 text-yellow-300' },
+                    psn:     { label: 'PSN',          icon: '🎯', cls: 'bg-blue-900/60 border-blue-500/50 text-blue-300' },
+                    xbox:    { label: 'Xbox',         icon: '🟢', cls: 'bg-green-900/40 border-green-600/50 text-green-300' },
+                    console: { label: 'Console',      icon: '🎯', cls: 'bg-gray-700/60 border-gray-500/50 text-gray-300' },
                   };
                   const p = PLATFORM[shard] || PLATFORM.steam;
                   return (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${p.cls}`}>
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] font-semibold border ${p.cls}`}>
                       {p.icon} {p.label}
                     </span>
                   );
                 })()}
-              </div>
-              {/* 3행: 클랜 태그 + 레벨 */}
-              {clanInfo && (
-                <div className="flex items-center">
-                  <span className="px-3 py-1 bg-blue-700/60 text-blue-200 border border-blue-600/50 rounded-full text-xs font-semibold backdrop-blur-sm">
+                {/* 클랜 */}
+                {clanInfo && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-700/50 text-blue-200 border border-blue-600/40 rounded-lg text-[10px] font-semibold max-w-[120px] truncate">
                     [{clanInfo.tag || 'CLAN'}] {clanInfo.name || '클랜'}
                     {clanInfo.level ? ` Lv.${clanInfo.level}` : ''}
                   </span>
-                </div>
-              )}
-              {/* 4행: 플레이스타일 뱃지 */}
+                )}
+              </div>
+
+              {/* 3행: 플레이스타일 + MMR 티어 */}
               <div className="flex items-center gap-1.5 flex-wrap">
+                {/* 플레이스타일 */}
                 <Tooltip content={`${psResult.desc}\n\n💡 ${psResult.tip}`}>
                   <span className="flex items-center gap-1 cursor-help">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${majorInfo.bg} ${majorInfo.border} ${majorInfo.color}`}>
+                    <span className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold border ${majorInfo.bg} ${majorInfo.border} ${majorInfo.color}`}>
                       {majorInfo.icon} {majorInfo.label}
                     </span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold text-white ${psResult.bg}`}>
+                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold text-white ${psResult.bg}`}>
                       {psResult.label}
                     </span>
                   </span>
                 </Tooltip>
+                {/* MMR 티어 (모바일 전용) */}
+                {(() => {
+                  const tier = getMMRTier(displayMmr);
+                  return (
+                    <div className={`sm:hidden inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg border ${tier.bgColor} ${tier.borderColor}`}>
+                      <span className="text-sm leading-none">{tier.emoji}</span>
+                      <span className={`text-[10px] font-black ${tier.textColor}`}>{displayMmr.toLocaleString()}</span>
+                      <span className={`text-[9px] font-semibold ${tier.textColor} opacity-70`}>{tier.label}</span>
+                    </div>
+                  );
+                })()}
               </div>
-              {/* 5행: PKGG 점수 + 티어 (모바일 전용) */}
-              {(() => {
-                const tier = getMMRTier(displayMmr);
-                const tooltipText = `${t('ph.mmr_tooltip_full')}\n\n📌 ${mmrSource}`;
-                return (
-                  <div className="flex sm:hidden items-center gap-2 mt-0.5">
-                    <Tooltip content={tooltipText}>
-                      <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border cursor-help ${tier.bgColor} ${tier.borderColor} select-none`}>
-                        <span className="text-base leading-none">{tier.emoji}</span>
-                        <div className="flex flex-col leading-none">
-                          <span className={`text-xs font-black ${tier.textColor}`}>{displayMmr.toLocaleString()}</span>
-                          <span className={`text-[10px] font-semibold ${tier.textColor} opacity-70`}>{tier.label}</span>
-                        </div>
-                        <span className="text-xs text-gray-400 font-bold ml-0.5">?</span>
-                      </div>
-                    </Tooltip>
-                  </div>
-                );
-              })()}
             </div>
           </div>
 
@@ -563,50 +564,44 @@ const PlayerHeader = ({
                 )}
               </button>
             </div>
-            {/* 모바일 6행: 액션 버튼 4개 한 줄 배치 */}
-            {nickname && (
-              <div className="flex gap-1.5 sm:hidden w-full mt-1">
-                <Tooltip content={isFav ? t('ph.fav_remove') : t('ph.fav_add')}>
-                  <button
-                    onClick={toggleFavorite}
-                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl border text-[10px] font-bold transition-all select-none ${
-                      isFav
-                        ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300'
-                        : 'bg-white/5 border-white/20 text-gray-400'
-                    }`}
-                  ><span className="text-sm leading-none">{isFav ? '★' : '☆'}</span><span>즐겨찾기</span></button>
-                </Tooltip>
-                <Tooltip content={t('ph.compare_tooltip')}>
-                  <button
-                    onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl border border-white/20 bg-white/5 text-gray-300 text-[10px] font-bold transition-all select-none"
-                  ><span className="text-sm leading-none">⚔️</span><span>비교</span></button>
-                </Tooltip>
-                <Tooltip content="시즌 리포트 카드 보기">
-                  <button
-                    onClick={openReport}
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-300 text-[10px] font-bold transition-all select-none"
-                  ><span className="text-sm leading-none">📊</span><span>리포트</span></button>
-                </Tooltip>
-                <button
-                  onClick={onRefresh}
-                  disabled={refreshing || cooldown > 0}
-                  className={`w-12 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl text-[10px] font-bold transition-all duration-200 ${
-                    refreshing || cooldown > 0
-                      ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
-                      : 'bg-blue-500 text-white border border-blue-400/50'
-                  }`}
-                >
-                  {refreshing
-                    ? <div className="animate-spin rounded-full h-3.5 w-3.5 border border-white border-t-transparent" />
-                    : cooldown > 0
-                    ? <><span className="text-sm leading-none">🔄</span><span>{cooldown}s</span></>
-                    : <><span className="text-sm leading-none">🔄</span><span>갱신</span></>}
-                </button>
-              </div>
-            )}
           </div>
         </div>
+        {/* 모바일 액션 버튼 — 헤더 전체 너비 (Tooltip 제거: 모바일 hover 없음) */}
+        {nickname && (
+          <div className="grid grid-cols-4 gap-2 sm:hidden w-full mt-3">
+            <button
+              onClick={toggleFavorite}
+              className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl border text-[10px] font-bold transition-all select-none ${
+                isFav
+                  ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300'
+                  : 'bg-white/5 border-white/20 text-gray-400'
+              }`}
+            ><span className="text-sm leading-none">{isFav ? '★' : '☆'}</span><span>즐겨찾기</span></button>
+            <button
+              onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
+              className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 text-[10px] font-bold transition-all select-none"
+            ><span className="text-sm leading-none">⚔️</span><span>비교</span></button>
+            <button
+              onClick={openReport}
+              className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-300 text-[10px] font-bold transition-all select-none"
+            ><span className="text-sm leading-none">📊</span><span>리포트</span></button>
+            <button
+              onClick={onRefresh}
+              disabled={refreshing || cooldown > 0}
+              className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-bold transition-all duration-200 ${
+                refreshing || cooldown > 0
+                  ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
+                  : 'bg-blue-500 text-white border border-blue-400/50'
+              }`}
+            >
+              {refreshing
+                ? <div className="animate-spin rounded-full h-3.5 w-3.5 border border-white border-t-transparent" />
+                : cooldown > 0
+                ? <><span className="text-sm leading-none">🔄</span><span>{cooldown}s</span></>
+                : <><span className="text-sm leading-none">🔄</span><span>갱신</span></>}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 스탯 카드 영역 */}

@@ -144,7 +144,7 @@ export default async function handler(req, res) {
 
         const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom'])
         const EVENT_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training', 'clansolo', 'clansquad', 'heistroyale']
-        const EVENT_MAP_KEYWORDS  = ['range_main', '_tdm_', '_training_', 'pillarcompound', 'boardwalk']
+        const EVENT_MAP_KEYWORDS  = ['range_main', '_tdm_', '_training_', 'pillarcompound', 'boardwalk', 'safehouse']
         const isEventOrPractice = (m) => {
           const mt = (m.matchType || '').toLowerCase()
           const gm = (m.mode     || '').toLowerCase()
