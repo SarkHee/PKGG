@@ -14,7 +14,9 @@ export default async function handler(req, res) {
   if (!isAdmin) return res.status(401).json({ error: 'Unauthorized' })
 
   // 내부에서 telemetry-batch 호출 (CRON_SECRET 사용)
-  const baseUrl = process.env.NEXTAUTH_URL || `http://localhost:${process.env.PORT || 3000}`
+  const protocol = req.headers['x-forwarded-proto'] || 'http'
+  const host     = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000'
+  const baseUrl  = `${protocol}://${host}`
   try {
     const batchRes = await fetch(`${baseUrl}/api/cron/telemetry-batch`, {
       headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
