@@ -3057,7 +3057,7 @@ export async function getServerSideProps({ params, query }) {
       clanMembers: [],
       rankedStats: [],
       rankedSummary: pubgRankedSummary,
-      mmr: calcMMR(pubgSummaryFromStats),
+      mmr: pubgSummaryFromStats ? calcMMR(pubgSummaryFromStats) : (cached?.score || 1000),
     };
 
     // Step 6: 백그라운드 DB 저장 (upsert) + 매치 저장

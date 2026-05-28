@@ -54,7 +54,7 @@ export default async function handler(req, res) {
         prisma.forumPost.findMany({
           where,
           select: {
-            id: true, title: true, preview: true, author: true,
+            id: true, title: true, content: true, preview: true, author: true,
             categoryId: true, category: true, views: true, likes: true,
             isPinned: true, isLocked: true, createdAt: true, updatedAt: true,
             _count: { select: { replies: true, likedBy: true } },

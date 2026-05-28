@@ -73,6 +73,65 @@ function formatContent(content) {
   });
 }
 
+const MODE_LABELS    = { squad:'🏆 스쿼드', 'squad-fpp':'🏆 스쿼드 FPP', duo:'👥 듀오', 'duo-fpp':'👥 듀오 FPP', solo:'🎯 솔로' };
+const PLAYTIME_LABELS= { morning:'☀️ 오전', afternoon:'🌤️ 오후', evening:'🌙 저녁', midnight:'🌃 새벽', anytime:'⏰ 언제든' };
+const MIC_LABELS     = { required:'🎤 마이크 필수', preferred:'🎤 마이크 선호', not_required:'🔇 마이크 불필요' };
+
+function PartyContent({ content }) {
+  let p = null;
+  try { const d = JSON.parse(content); if (d?.__party) p = d; } catch {}
+  if (!p) return formatContent(content);
+
+  const mmrText = (p.mmrMin || p.mmrMax)
+    ? `MMR ${p.mmrMin || 0} ~ ${p.mmrMax || '무제한'}`
+    : null;
+
+  return (
+    <div className="space-y-4">
+      {/* 배지 행 */}
+      <div className="flex flex-wrap gap-2">
+        {p.mode && (
+          <span className="text-sm font-bold px-3 py-1.5 rounded-full bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+            {MODE_LABELS[p.mode] || p.mode}
+          </span>
+        )}
+        {p.server && (
+          <span className={`text-sm font-semibold px-3 py-1.5 rounded-full border ${p.server === 'steam' ? 'bg-blue-500/15 text-blue-500 border-blue-400/30' : 'bg-yellow-500/15 text-yellow-500 border-yellow-400/30'}`}>
+            {p.server === 'steam' ? '🎮 Steam' : '🟡 Kakao'}
+          </span>
+        )}
+        {p.slotsNeeded > 0 && (
+          <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30">
+            👥 {p.slotsNeeded}자리 모집
+          </span>
+        )}
+        {p.mic && (
+          <span className="text-sm px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+            {MIC_LABELS[p.mic] || p.mic}
+          </span>
+        )}
+        {p.playtime && (
+          <span className="text-sm px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+            {PLAYTIME_LABELS[p.playtime] || p.playtime}
+          </span>
+        )}
+        {mmrText && (
+          <span className="text-sm px-3 py-1.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-400/30">
+            📊 {mmrText}
+          </span>
+        )}
+      </div>
+
+      {/* 설명 */}
+      {p.description && (
+        <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{p.description}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PostDetail() {
   const router = useRouter();
   const { postId } = router.query;
@@ -290,7 +349,7 @@ export default function PostDetail() {
 
             {/* 본문 */}
             <div className="px-6 py-6 text-sm leading-7 min-h-[100px]">
-              {formatContent(post.content)}
+              <PartyContent content={post.content} />
             </div>
           </div>
 

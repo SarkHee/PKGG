@@ -626,7 +626,7 @@ const PlayerHeader = ({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-cyan-500">봇참여게임</span>
                     <span className="text-xs text-cyan-600 dark:text-cyan-400 font-semibold">
-                      {seasonStat?.rounds ?? '?'}경기 중 {botStats.analyzedCount}경기
+                      {botStats.analyzedCount}경기 분석 완료
                       {botStats.botKillRatio > 0 && (
                         <span className="text-gray-400 ml-1">
                           (봇킬 {(botStats.botKillRatio * 100).toFixed(0)}%)
@@ -817,7 +817,7 @@ const PlayerHeader = ({
                           {avgReal !== null ? avgReal.toFixed(1) : recent20Stats.avgKills.toFixed(1)}
                         </div>
                         {avgReal !== null && (
-                          <div className="text-[10px] text-gray-400 mt-0.5">(봇킬 포함 {recent20Stats.avgKills.toFixed(1)})</div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">봇킬 제외</div>
                         )}
                       </>
                     })()}
