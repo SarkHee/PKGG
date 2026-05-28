@@ -5,7 +5,7 @@ import prisma from '../../../utils/prisma.js'
 const ADMIN_EMAIL    = 'sssyck123@gmail.com'
 const PUBG_BASE      = 'https://api.pubg.com/shards'
 const MAX_MS         = 230000
-const BATCH_SIZE     = 100
+const BATCH_SIZE     = 50
 const CALL_DELAY_MS  = 700   // API rate limit 방지용 딜레이
 const RETRY_WAIT_MS  = 12000 // 429 발생 시 대기 시간
 
@@ -40,8 +40,9 @@ function calculateMMR({ avgDamage, avgKills, avgAssists, avgSurviveTime, winRate
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  try {
   const pw = req.headers['x-admin-token']
   const session = await getServerSession(req, res, authOptions)
   const isAdmin = (pw && pw === process.env.ADMIN_PASSWORD) || session?.user?.email === ADMIN_EMAIL
@@ -320,4 +321,8 @@ export default async function handler(req, res) {
     sampleException,
     elapsedSec: Math.round((Date.now() - startTime) / 1000),
   })
+  } catch (e) {
+    console.error('[seed-users] 치명적 오류:', e.message)
+    return res.status(500).json({ error: e.message || '서버 내부 오류' })
+  }
 }

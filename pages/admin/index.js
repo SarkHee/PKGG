@@ -69,7 +69,12 @@ export default function AdminDashboard() {
         method: 'POST',
         headers: { 'x-admin-token': password || '' },
       });
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = { error: `서버 오류 (${res.status} ${res.statusText}) — 타임아웃이거나 서버 내부 오류` };
+      }
       setSeedResult(data);
       // 완료 후 목록 새로고침
       const r2 = await fetch(`/api/admin/new-users?date=${newUsersDate}&page=${newUsersPage}&status=${newUsersStatus}`, { headers: { 'x-admin-token': adminPw() } });
