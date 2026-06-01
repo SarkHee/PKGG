@@ -55,14 +55,40 @@ const TIPS = [
   '소음기는 총소리뿐만 아니라 총구 화염도 줄여줘요',
 ]
 
-const WEAPONS = [
-  'M416 + UMP45',
-  'Beryl M762 + Mini-14',
-  'SCAR-L + SKS',
-  'AKM + S686',
-  'M249 + 카르98k',
-  'G36C + Vector',
-  'ACE32 + VSS',
+const AR_SMG = [
+  { name: 'M416',        type: 'AR',  desc: '부착물 5종 지원, 최고의 범용 AR' },
+  { name: 'AKM',         type: 'AR',  desc: '강력한 7.62mm 단발 데미지' },
+  { name: 'SCAR-L',      type: 'AR',  desc: '안정적인 반동의 밸런스형 AR' },
+  { name: 'Beryl M762',  type: 'AR',  desc: '높은 DPS의 근거리 최강 AR' },
+  { name: 'AUG A3',      type: 'AR',  desc: '낮은 수직 반동, 장거리까지 커버' },
+  { name: 'G36C',        type: 'AR',  desc: '다재다능한 5.56mm AR' },
+  { name: 'ACE32',       type: 'AR',  desc: '안정적인 5.56mm 완전자동 AR' },
+  { name: 'FAMAS',       type: 'AR',  desc: '900RPM 3점사로 폭발적인 근거리 딜' },
+  { name: 'Mk47 Mutant', type: 'AR',  desc: '반자동·2점사 전환 가능한 7.62mm AR' },
+  { name: 'UMP45',       type: 'SMG', desc: '부착물 풍부, 중거리까지 안정적인 SMG' },
+  { name: 'Vector',      type: 'SMG', desc: '1100RPM 근접전 최강의 SMG' },
+  { name: 'Tommy Gun',   type: 'SMG', desc: '50발 대용량 .45 ACP SMG' },
+  { name: 'MP5K',        type: 'SMG', desc: '빠른 핸들링의 9mm SMG' },
+  { name: 'JS9',         type: 'SMG', desc: '신형 9mm SMG, 빠른 연사력' },
+  { name: 'P90',         type: 'SMG', desc: '40발 탄창의 5.7mm 고연사 SMG' },
+]
+
+const SR_DMR_SGN = [
+  { name: 'Kar98k',    type: 'SR',    desc: '헬멧 미착용 적 1발 처치, 가장 대중적인 SR' },
+  { name: 'M24',       type: 'SR',    desc: '빠른 볼트 속도와 안정적인 7.62mm SR' },
+  { name: 'Win94',     type: 'SR',    desc: '레버액션 .45 ACP, 빠른 연사의 SR' },
+  { name: 'AWM',       type: 'SR',    desc: '레벨3 헬멧 관통, 에어드롭 최강의 SR' },
+  { name: 'Mini14',    type: 'DMR',   desc: '낮은 반동, 장거리 교전에 강한 DMR' },
+  { name: 'SKS',       type: 'DMR',   desc: '넉넉한 탄창과 안정적인 7.62mm DMR' },
+  { name: 'SLR',       type: 'DMR',   desc: '높은 단발 데미지의 7.62mm DMR' },
+  { name: 'Mk12',      type: 'DMR',   desc: '20발 탄창의 5.56mm DMR' },
+  { name: 'VSS',       type: 'DMR',   desc: '소음장치 내장, 은밀한 중거리 제압' },
+  { name: 'Dragunov',  type: 'DMR',   desc: '반동 개선된 7.62mm 반자동 DMR' },
+  { name: 'Mk14 EBR',  type: 'DMR',   desc: '에어드롭 전용, 자동 전환 가능 최강 DMR' },
+  { name: 'S686',      type: '샷건',  desc: '이중 총신 2발 순간 딜, 근접전 특화' },
+  { name: 'S12K',      type: '샷건',  desc: '반자동 샷건, 건물 진입 제압에 최적' },
+  { name: 'O12',       type: '샷건',  desc: '단일 피해량 100, 반자동 고데미지 샷건' },
+  { name: 'DBS',       type: '샷건',  desc: '14발 탄창, 에어드롭 전용 최강 샷건' },
 ]
 
 function getTodayIndex(arr) {
@@ -74,7 +100,8 @@ function getTodayIndex(arr) {
 function FortuneModal({ onClose }) {
   const fortune = FORTUNES[getTodayIndex(FORTUNES)]
   const tip     = TIPS[getTodayIndex(TIPS)]
-  const weapon  = WEAPONS[getTodayIndex(WEAPONS)]
+  const weapon1 = AR_SMG[getTodayIndex(AR_SMG)]
+  const weapon2 = SR_DMR_SGN[getTodayIndex(SR_DMR_SGN)]
 
   return (
     <div
@@ -123,8 +150,19 @@ function FortuneModal({ onClose }) {
 
           {/* 추천 무기 */}
           <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 16, padding: '14px 18px' }}>
-            <div style={{ color: '#FCD34D', fontSize: 10, fontWeight: 700, letterSpacing: 1, marginBottom: 7, textTransform: 'uppercase' }}>🎯 오늘의 추천 무기</div>
-            <div style={{ color: 'white', fontSize: 16, fontWeight: 900, letterSpacing: 0.5 }}>{weapon}</div>
+            <div style={{ color: '#FCD34D', fontSize: 10, fontWeight: 700, letterSpacing: 1, marginBottom: 10, textTransform: 'uppercase' }}>🎯 오늘의 추천 무기</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ background: 'rgba(147,197,253,0.08)', border: '1px solid rgba(147,197,253,0.2)', borderRadius: 10, padding: '10px 14px' }}>
+                <div style={{ color: '#93C5FD', fontSize: 9, fontWeight: 700, letterSpacing: 1, marginBottom: 5, textTransform: 'uppercase' }}>🔫 1번 무기 · {weapon1.type}</div>
+                <div style={{ color: 'white', fontSize: 17, fontWeight: 900, marginBottom: 3 }}>{weapon1.name}</div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, lineHeight: 1.4 }}>{weapon1.desc}</div>
+              </div>
+              <div style={{ background: 'rgba(134,239,172,0.08)', border: '1px solid rgba(134,239,172,0.2)', borderRadius: 10, padding: '10px 14px' }}>
+                <div style={{ color: '#86EFAC', fontSize: 9, fontWeight: 700, letterSpacing: 1, marginBottom: 5, textTransform: 'uppercase' }}>🎯 2번 무기 · {weapon2.type}</div>
+                <div style={{ color: 'white', fontSize: 17, fontWeight: 900, marginBottom: 3 }}>{weapon2.name}</div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, lineHeight: 1.4 }}>{weapon2.desc}</div>
+              </div>
+            </div>
           </div>
 
           <button
@@ -251,6 +289,24 @@ const SHARD_COLOR = {
   xbox: 'bg-green-800/40 text-green-300 border border-green-500/40',
   console: 'bg-blue-800/40 text-blue-300 border border-blue-500/40',
 }
+
+const WEAPON_DESC = {
+  'M416':       '부착물 5종을 모두 지원하는 5.56mm 올라운더 AR. 안정적인 반동과 범용성으로 가장 많이 선택되는 주력 소총.',
+  'AKM':        '높은 단발 데미지(48)를 자랑하는 7.62mm AR. 근거리 제압력이 뛰어나지만 반동 제어가 까다롭다.',
+  'SCAR-L':     '안정적인 반동 패턴을 가진 5.56mm AR. 초보자부터 상급자까지 고르게 사용하는 밸런스형 소총.',
+  'AUG A3':     '높은 안정성과 정확도를 자랑하는 에어드롭 전용 5.56mm AR. 수직 반동이 낮아 장거리 교전에도 강하다.',
+  'Beryl M762': '강력한 근거리 제압력을 가진 7.62mm AR. 높은 DPS(484)로 근접전에서 압도적이나 반동이 크다.',
+  'Kar98k':     '헬맷 미착용 적을 1발로 처치하는 볼트액션 7.62mm SR. 공중 보급 없이도 쓸 수 있는 최강의 SR.',
+  'UMP':        '넓은 부착물 지원과 뛰어난 기동성을 갖춘 .45 ACP SMG. 중근거리에서도 안정적으로 운용 가능.',
+  'Mini14':     '빠른 연사(330RPM)와 낮은 반동을 가진 5.56mm DMR. 장거리 교전에서 탄 소비 효율이 우수하다.',
+  'AWM':        'PUBG 최고 데미지(105)를 자랑하는 .300 Mag 볼트액션 SR. 에어드롭 전용으로 레벨3 헬맷도 관통한다.',
+  'M24':        'K98k보다 연사가 빠른 7.62mm 볼트액션 SR. 실력자들이 선호하는 오픈 필드 원거리 주력 저격총.',
+  'Groza':      '에어드롭 전용 7.62mm AR. 높은 DPS(564)와 빠른 연사력(750RPM)으로 근거리 교전 시 압도적.',
+  'VSS':        '소음장치 내장의 9mm DMR. 적에게 위치를 노출하지 않고 중거리를 제압하는 독특한 운용 스타일.',
+  'DP-28':      '47발 대용량 탄창을 가진 7.62mm LMG. 오버히팅 없이 지속 사격이 가능해 건물 진입 제압에 강하다.',
+  'Vector':     '가장 빠른 연사력(1100RPM)을 가진 .45 ACP SMG. 근거리 CQC에서 극강의 순간 딜을 선보인다.',
+  'Mk14 EBR':   '완전자동 전환이 가능한 7.62mm DMR. 단발로는 장거리, 자동으로는 근거리까지 커버하는 에어드롭 최강 무기.',
+};
 
 export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], mapRotation = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -885,17 +941,24 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                   <p className="text-xs text-gray-500 mb-4">PKGG 수집 데이터 기반 킬 비중 순위</p>
                   <ol className="space-y-3">
                     {weaponMeta.map((w, i) => (
-                      <li key={w.id} className="flex items-center gap-3">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                      <li key={w.id} className="flex items-start gap-3">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 mt-0.5 ${
                           i === 0 ? 'bg-yellow-500 text-black' :
                           i === 1 ? 'bg-gray-400 text-black' :
                           i === 2 ? 'bg-amber-700 text-white' :
                           'bg-white/10 text-gray-400'
                         }`}>{i + 1}</span>
-                        <span className="flex-1 text-sm font-semibold text-gray-200">{w.name}</span>
-                        <span className="text-xs text-blue-400 font-bold w-12 text-right">{w.pickRate}%</span>
-                        <div className="w-20 bg-white/10 rounded-full h-1.5 flex-shrink-0">
-                          <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, parseFloat(w.pickRate) * 4)}%` }} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-gray-200">{w.name}</span>
+                            <span className="text-xs text-blue-400 font-bold">{w.pickRate}%</span>
+                          </div>
+                          {WEAPON_DESC[w.name] && (
+                            <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{WEAPON_DESC[w.name]}</p>
+                          )}
+                          <div className="w-full bg-white/10 rounded-full h-1 mt-1.5">
+                            <div className="bg-blue-500 h-1 rounded-full" style={{ width: `${Math.min(100, parseFloat(w.pickRate) * 4)}%` }} />
+                          </div>
                         </div>
                       </li>
                     ))}
@@ -975,7 +1038,7 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                       <p className="text-sm font-bold text-gray-200">{map.name}</p>
                       <p className="text-[10px] text-gray-500 mt-0.5">{map.nameEn}</p>
                       <p className="text-[10px] text-blue-400 mt-0.5">{map.size}</p>
-                      <p className="text-[10px] text-gray-600 mt-1 leading-tight hidden sm:block">{map.desc}</p>
+                      <p className="text-[10px] text-gray-400 mt-1 leading-tight text-left">{map.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -1119,12 +1182,12 @@ export async function getServerSideProps() {
 
     // 맵 로테이션 (정적)
     const mapRotation = [
-      { name: '에란겔', nameEn: 'Erangel', size: '8×8km', desc: '클래식 초원 맵' },
-      { name: '미라마', nameEn: 'Miramar', size: '8×8km', desc: '광활한 사막 맵' },
-      { name: '산혹', nameEn: 'Sanhok', size: '4×4km', desc: '열대 밀림 소형 맵' },
-      { name: '태고', nameEn: 'Taego', size: '8×8km', desc: '한국 배경 맵' },
-      { name: '데스턴', nameEn: 'Deston', size: '8×8km', desc: '미래 도시 맵' },
-      { name: '론도', nameEn: 'Rondo', size: '8×8km', desc: '동아시아 산악 맵' },
+      { name: '에란겔', nameEn: 'Erangel', size: '8×8km', desc: '최초의 PUBG 클래식 맵. 넓은 초원과 군사기지·학교 등 다양한 지형이 공존해 전략적 선택지가 풍부하다.' },
+      { name: '미라마', nameEn: 'Miramar', size: '8×8km', desc: '광활한 사막과 험준한 절벽이 특징인 맵. 장거리 저격전과 차량 전투가 빈번하게 발생한다.' },
+      { name: '산혹', nameEn: 'Sanhok', size: '4×4km', desc: '열대 밀림의 소형 맵으로 교전 빈도가 매우 높다. 빠른 루팅과 근거리 전투 능력이 승패를 가른다.' },
+      { name: '태고', nameEn: 'Taego', size: '8×8km', desc: '한국을 배경으로 한 대형 맵. 자기소생 아이템이 적용되며 중거리 교전이 많은 전략적 맵이다.' },
+      { name: '데스턴', nameEn: 'Deston', size: '8×8km', desc: '미래 도시를 배경으로 한 맵. 고층 빌딩과 개방 지형이 공존해 입체적인 전투가 펼쳐진다.' },
+      { name: '론도', nameEn: 'Rondo', size: '8×8km', desc: '동아시아 산악 지형의 대형 맵. 고저차 큰 지형과 다양한 실내 전투 공간이 특징이다.' },
     ]
 
     return {

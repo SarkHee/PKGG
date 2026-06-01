@@ -725,9 +725,75 @@ export default function WeaponDamage() {
           {/* ── 2-컬럼 레이아웃: 무기 목록 + 상세 패널 ── */}
           <div className="flex flex-col lg:flex-row gap-6 items-start">
 
-            {/* LEFT: 무기 테이블 */}
+            {/* LEFT: 무기 목록 */}
             <div className="lg:flex-1 min-w-0">
-              <div className="bg-gray-900 rounded-2xl border border-gray-700/50 overflow-hidden">
+
+              {/* ── 모바일 카드 목록 (sm 미만) ── */}
+              <div className="sm:hidden space-y-2">
+                {filtered.length === 0 && (
+                  <div className="py-12 text-center text-gray-500">
+                    <div className="text-4xl mb-3">🔍</div>
+                    <p>검색 결과가 없습니다</p>
+                  </div>
+                )}
+                {filtered.map((w) => {
+                  const dpsVal = (w.boltAction || w.rpmUnknown) ? null : (w.dps ?? null);
+                  const dpsStr = dpsVal == null ? null : (Number.isInteger(dpsVal) ? dpsVal.toLocaleString() : dpsVal.toFixed(1));
+                  const badge  = TYPE_BADGE[w.type] || TYPE_BADGE.AR;
+                  const imgSrc = WEAPON_IMG[w.name];
+                  const isSelected = selectedWeapon?.name === w.name;
+                  return (
+                    <div
+                      key={w.name}
+                      onClick={() => setSelectedWeapon(isSelected ? null : w)}
+                      className={`rounded-xl border px-3 py-2.5 cursor-pointer transition-all ${
+                        isSelected ? 'bg-blue-950/50 border-blue-500/60' :
+                        w.deletePending ? 'bg-red-950/10 border-red-800/30' :
+                        w.changed ? 'bg-yellow-950/20 border-yellow-700/30' :
+                        'bg-gray-900 border-gray-700/50'
+                      }`}
+                    >
+                      {/* 1행: 이미지 + 이름 + 분류 */}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        {imgSrc && <img src={imgSrc} alt={w.name} className="w-10 h-6 object-contain opacity-85 flex-shrink-0" />}
+                        <span className={`font-bold text-sm flex-1 min-w-0 truncate ${w.deletePending ? 'text-gray-400 line-through decoration-red-500' : isSelected ? 'text-blue-300' : 'text-white'}`}>
+                          {w.name}
+                        </span>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {w.deletePending && <span className="text-red-400 text-xs">🗑️</span>}
+                          {w.changed && <span className="text-yellow-400 text-xs">⚡</span>}
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${badge.bg} ${badge.text} ${badge.border}`}>{w.type}</span>
+                        </div>
+                      </div>
+                      {/* 2행: 핵심 스탯 3개 */}
+                      <div className="grid grid-cols-3 gap-1 text-center">
+                        <div className="bg-gray-800/60 rounded-lg py-1.5">
+                          <div className="text-[10px] text-gray-500 mb-0.5">데미지</div>
+                          <div className="text-sm font-black text-white">{w.damage}{w.pelletDmg && <span className="text-[9px] text-gray-500 ml-0.5">/펠렛</span>}</div>
+                        </div>
+                        <div className="bg-gray-800/60 rounded-lg py-1.5">
+                          <div className="text-[10px] text-gray-500 mb-0.5">RPM</div>
+                          <div className="text-sm font-bold text-gray-300">
+                            {w.boltAction ? <span className="text-[10px] text-gray-500">볼트</span> : w.rpmUnknown ? '?' : w.rpm}
+                          </div>
+                        </div>
+                        <div className="bg-gray-800/60 rounded-lg py-1.5">
+                          <div className="text-[10px] text-gray-500 mb-0.5">DPS</div>
+                          <div className={`text-sm font-bold ${
+                            dpsVal == null ? 'text-gray-600' :
+                            dpsVal >= 600 ? 'text-red-400' :
+                            dpsVal >= 400 ? 'text-orange-400' :
+                            dpsVal >= 250 ? 'text-yellow-400' : 'text-green-400'
+                          }`}>{dpsStr ?? '—'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── 데스크탑 테이블 (sm 이상) ── */}
+              <div className="hidden sm:block bg-gray-900 rounded-2xl border border-gray-700/50 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
