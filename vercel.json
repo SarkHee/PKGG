@@ -7,6 +7,10 @@
   },
   "crons": [
     {
+      "path": "/api/cron/server-check",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/full-batch-update",
       "schedule": "0 3 * * *"
     },

@@ -8,6 +8,7 @@ const {
   ButtonStyle,
 } = require('discord.js')
 const { checkAndSendNews, addNewsChannel, removeNewsChannel, loadState } = require('./news-checker')
+const { checkServerStatus } = require('./server-checker')
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 const PKGG   = 'https://pkgg.vercel.app'
@@ -44,7 +45,7 @@ async function fetchJson(url) {
 }
 
 // ── 봇 준비 ──────────────────────────────────────────────────────────────
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`✅ ${client.user.tag} 온라인`)
 
   const interval = parseInt(process.env.NEWS_CHECK_INTERVAL) || 3_600_000  // 기본 1시간
@@ -61,6 +62,24 @@ client.once('ready', () => {
   }, interval)
 
   console.log(`📰 뉴스 체크 주기: ${interval / 60_000}분`)
+
+  // ── 서버 상태 모니터링 (3분 주기) ──────────────────────────────────────
+  const SERVER_CHECK_INTERVAL = 3 * 60 * 1000  // 3분
+
+  // 시작 후 15초 뒤 첫 체크 (뉴스체커 이후)
+  setTimeout(() => {
+    const { channelIds } = loadState()
+    checkServerStatus(client, DISCORD_COMPONENTS, channelIds)
+      .catch((e) => console.error('[서버체커] 초기 체크 실패:', e.message))
+  }, 15_000)
+
+  setInterval(() => {
+    const { channelIds } = loadState()
+    checkServerStatus(client, DISCORD_COMPONENTS, channelIds)
+      .catch((e) => console.error('[서버체커] 주기 체크 실패:', e.message))
+  }, SERVER_CHECK_INTERVAL)
+
+  console.log(`📡 서버 상태 체크 주기: ${SERVER_CHECK_INTERVAL / 60_000}분`)
 })
 
 // ── 슬래시 커맨드 ─────────────────────────────────────────────────────────
@@ -185,6 +204,44 @@ client.on('interactionCreate', async (interaction) => {
     } catch (err) {
       console.error('[클랜] 오류:', err.message)
       await interaction.editReply('❌ 클랜 조회 중 오류가 발생했습니다. 클랜명을 다시 확인해 주세요.')
+    }
+  }
+
+  // ────────────────────────────────────────────────
+  // /서버상태
+  // ────────────────────────────────────────────────
+  if (interaction.commandName === '서버상태') {
+    await interaction.deferReply()
+    try {
+      const data = await fetchJson(`${PKGG}/api/pubg/server-status`)
+      const STATUS_KO = {
+        online:      { icon: '🟢', label: '정상 운영',   color: 0x22c55e },
+        maintenance: { icon: '🔴', label: '점검 중',     color: 0xef4444 },
+        offline:     { icon: '⚫', label: '접속 불가',   color: 0x6b7280 },
+        degraded:    { icon: '🟡', label: '일부 불안정', color: 0xf59e0b },
+      }
+      const s   = STATUS_KO[data.status] || { icon: '⚪', label: '확인 중', color: 0x6b7280 }
+      const reg = data.regions || {}
+      const updatedAt = data.updatedAt
+        ? new Date(data.updatedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
+        : '—'
+
+      const embed = new EmbedBuilder()
+        .setTitle(`${s.icon} PUBG 서버 상태: ${s.label}`)
+        .setColor(s.color)
+        .setDescription(data.message || '')
+        .addFields(
+          { name: '🌏 아시아',  value: (STATUS_KO[reg.as]?.icon || '⚪') + ' ' + (STATUS_KO[reg.as]?.label || '—'), inline: true },
+          { name: '🌎 북미',    value: (STATUS_KO[reg.na]?.icon || '⚪') + ' ' + (STATUS_KO[reg.na]?.label || '—'), inline: true },
+          { name: '🌍 유럽',    value: (STATUS_KO[reg.eu]?.icon || '⚪') + ' ' + (STATUS_KO[reg.eu]?.label || '—'), inline: true },
+        )
+        .setFooter({ text: `마지막 확인: ${updatedAt} · 5분 주기 업데이트` })
+        .setURL(`${PKGG}/server-status`)
+
+      await interaction.editReply({ embeds: [embed] })
+    } catch (err) {
+      console.error('[서버상태] 오류:', err.message)
+      await interaction.editReply('❌ 서버 상태 조회 중 오류가 발생했습니다.')
     }
   }
 

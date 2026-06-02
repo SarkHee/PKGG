@@ -17,6 +17,10 @@ const commands = [
     ),
 
   new SlashCommandBuilder()
+    .setName('서버상태')
+    .setDescription('PUBG 서버 현재 상태를 확인합니다'),
+
+  new SlashCommandBuilder()
     .setName('뉴스채널')
     .setDescription('PUBG 공식 뉴스 자동 알림 채널 관리')
     .addSubcommand((sub) =>
@@ -55,7 +59,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN)
     console.log('슬래시 커맨드 등록 중...')
     await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: commands })
     console.log('✅ 슬래시 커맨드 등록 완료!')
-    console.log('  /전적, /클랜, /뉴스채널 (설정·해제·목록)')
+    console.log('  /전적, /클랜, /서버상태, /뉴스채널 (설정·해제·목록)')
   } catch (err) {
     console.error('오류:', err)
   }

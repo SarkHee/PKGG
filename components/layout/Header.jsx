@@ -213,6 +213,8 @@ const handleSearchSubmit = async (e) => {
   const isActive = (path) => router.pathname === path || router.pathname.startsWith(path + '/');
 
   const analysisLinks = [
+    { href: '/awards',         labelKey: 'nav.awards',         icon: '🎖️', highlight: true },
+    { href: '/server-status',  labelKey: 'nav.server_status',  icon: '📡' },
     { href: '/leaderboard',    labelKey: 'nav.leaderboard',    icon: '🏆', highlight: true },
     { href: '/compare',        labelKey: 'nav.compare',        icon: '⚔️' },
     { href: '/clan-analytics', labelKey: 'nav.clan_analytics', icon: '📊' },

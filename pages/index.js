@@ -10,6 +10,39 @@ import { useT } from '../utils/i18n';
 import { MAJOR, TYPES } from '../utils/playstyleClassifier';
 import { getMMRTier } from '../utils/mmrCalculator';
 
+// ── 서버 상태 뱃지 ────────────────────────────────────────────────────────
+const SERVER_STATUS_META = {
+  online:      { dot: 'bg-green-400 animate-pulse', text: 'text-green-400', label: '서버 정상' },
+  maintenance: { dot: 'bg-red-400',                 text: 'text-red-400',   label: '서버 점검 중' },
+  offline:     { dot: 'bg-red-500',                 text: 'text-red-400',   label: '서버 접속 불가' },
+  degraded:    { dot: 'bg-yellow-400 animate-pulse', text: 'text-yellow-400', label: '서버 불안정' },
+}
+
+function ServerStatusBadge() {
+  const [status, setStatus] = useState(null)
+
+  useEffect(() => {
+    fetch('/api/pubg/server-status')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setStatus(d.status) })
+      .catch(() => {})
+  }, [])
+
+  if (!status) return null
+  const m = SERVER_STATUS_META[status]
+  if (!m) return null
+
+  return (
+    <Link href="/server-status">
+      <span className="inline-flex items-center gap-1.5 mb-4 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer text-xs font-semibold">
+        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${m.dot}`} />
+        <span className={m.text}>{m.label}</span>
+      </span>
+    </Link>
+  )
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 const FAV_KEY      = 'pkgg_favorites';
 const SEARCH_KEY   = 'pkgg_recent_searches';
 const FORTUNE_KEY  = 'pkgg_fortune_date';
@@ -694,9 +727,12 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
             <p className="text-base sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-2">
               {t('home.subtitle')}
             </p>
-            <p className="text-xs text-yellow-400/70 mb-4 sm:mb-6">
+            <p className="text-xs text-yellow-400/70 mb-3 sm:mb-4">
               다음 시즌부터 봇 킬 제외 순수 실력 데이터 제공
             </p>
+
+            {/* 서버 상태 뱃지 */}
+            <ServerStatusBadge />
 
 {/* 검색 메시지 알림 */}
             {searchMessage && (

@@ -277,6 +277,11 @@ function MyApp({ Component, pageProps }) {
 
   // 관리자 페이지는 Footer 제외
   const showFooter = !pathname.startsWith('/admin');
+  const darkFooterPaths = ['/', '/weapon-damage', '/clan-analytics', '/awards', '/server-status', '/leaderboard']
+  const isDarkFooter = darkFooterPaths.includes(pathname)
+    || pathname.startsWith('/player/')
+    || pathname.startsWith('/clan/')
+    || pathname.startsWith('/weapon-test/')
 
   return (
     <SessionProvider session={pageProps.session}>
@@ -298,7 +303,7 @@ function MyApp({ Component, pageProps }) {
         <div className="flex-1">
           <Component key={router.pathname === '/player/[server]/[nickname]' ? router.asPath : router.pathname} {...pageProps} />
         </div>
-        {showFooter && <Footer />}
+        {showFooter && <Footer variant={isDarkFooter ? 'dark' : 'light'} />}
       </div>
       <FloatingFavorites />
       <FloatingInquiryPanel />

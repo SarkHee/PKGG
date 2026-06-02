@@ -17,6 +17,8 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 | 경로 | 설명 |
 |------|------|
 | `index.js` | 메인 홈 (오로라 CSS 그라디언트 배경) |
+| `awards.js` | 시즌 어워드 (`/awards`). 클랜/플레이어 탭. 경기당·시즌 전체 6카테고리씩. 금/은/동 뱃지. 1시간 Redis 캐시. `pages/api/awards/clans.js` + `players.js` |
+| `server-status.js` | PUBG 실시간 서버 상태 (`/server-status`). 아시아/북미/유럽 지역별 상태. 30초 자동 갱신. 변경 이력. `pages/api/pubg/server-status.js` + `server-history.js`. 크론: `pages/api/cron/server-check.js` (5분 주기, 변경 시 Discord 웹훅 전송) |
 | `compare.js` | 플레이어 비교 (`/compare?a=A&b=B&shard=steam`). 스탯 비교 바 + Chart.js 레이더 차트. 공유 URL 지원. |
 | `clans.js` | 공개 클랜 디렉토리 (`/clans`). MMR 랭킹 순, 지역·클랜명 필터, 페이지네이션 (20개씩). |
 | `player/[server]/[nickname].js` | 플레이어 상세 (무기, 시즌, 랭크 등) |

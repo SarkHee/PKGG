@@ -644,10 +644,7 @@ const PlayerHeader = ({
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
                     <div className="text-xs text-blue-400 mb-1 font-medium flex items-center justify-center gap-1">
-                      {estRealDamage != null ? (isEstimate ? '실딜 추정' : '실딜 평균') : t('ph.avg_damage')}
-                      {isEstimate && estRealDamage != null && (
-                        <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 px-1 rounded">추정</span>
-                      )}
+                      {estRealDamage != null ? '실딜' : t('ph.avg_damage')}
                     </div>
                     <div className="text-lg font-black text-gray-900 dark:text-gray-100">
                       {estRealDamage != null ? estRealDamage : seasonStat.avgDamage}
@@ -655,10 +652,7 @@ const PlayerHeader = ({
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-3 text-center">
                     <div className="text-xs text-blue-400 mb-1 font-medium flex items-center justify-center gap-1">
-                      {estRealKills != null ? (isEstimate ? '실킬 추정' : '실킬 평균') : t('ph.avg_kills')}
-                      {isEstimate && estRealKills != null && (
-                        <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-400 px-1 rounded">추정</span>
-                      )}
+                      {estRealKills != null ? '실킬' : t('ph.avg_kills')}
                     </div>
                     <div className="text-lg font-black text-gray-900 dark:text-gray-100">
                       {estRealKills != null ? estRealKills : seasonStat.avgKills}
