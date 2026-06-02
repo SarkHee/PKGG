@@ -334,6 +334,7 @@ export default function AdminDashboard() {
               { key: 'restricted',     label: '🚫 검색 제한' },
               { key: 'batch',          label: '⚙️ 배치 실행' },
               { key: 'newUsers',       label: '🆕 신규 유저' },
+              { key: 'streamers',      label: '📡 스트리머 관리' },
             ].map((t) => (
               <button
                 key={t.key}
@@ -903,8 +904,137 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* 스트리머 관리 탭 */}
+          {tab === 'streamers' && <StreamerAdminTab />}
+
         </div>
       </div>
     </>
   );
+}
+
+// ── 스트리머 관리 서브컴포넌트 ───────────────────────────────────────────────
+function StreamerAdminTab() {
+  const [streamers, setStreamers] = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [form, setForm] = useState({ nickname: '', shard: 'steam', chzzkChannelId: '', streamerName: '', profileImage: '' })
+  const [adding,  setAdding]  = useState(false)
+  const [addMsg,  setAddMsg]  = useState('')
+  const [deleting, setDeleting] = useState(null)
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/streamers')
+      const data = await res.json()
+      setStreamers(data.streamers || [])
+    } catch {}
+    finally { setLoading(false) }
+  }
+
+  useState(() => { load() }, [])
+
+  const handleAdd = async (e) => {
+    e.preventDefault()
+    if (!form.nickname || !form.chzzkChannelId || !form.streamerName) {
+      setAddMsg('❌ 닉네임, 채널ID, 스트리머명은 필수입니다.')
+      return
+    }
+    setAdding(true); setAddMsg('')
+    try {
+      const res = await fetch('/api/admin/streamers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok) { setAddMsg(`❌ ${data.error}`); return }
+      setAddMsg('✅ 추가됐습니다!')
+      setForm({ nickname: '', shard: 'steam', chzzkChannelId: '', streamerName: '', profileImage: '' })
+      load()
+    } catch { setAddMsg('❌ 오류가 발생했습니다.') }
+    finally { setAdding(false) }
+  }
+
+  const handleDelete = async (id, name) => {
+    if (!confirm(`${name} 을(를) 제거할까요?`)) return
+    setDeleting(id)
+    try {
+      await fetch('/api/admin/streamers', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      load()
+    } catch {}
+    finally { setDeleting(null) }
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold">📡 스트리머 관리</h1>
+
+      {/* 추가 폼 */}
+      <div className="bg-gray-800 rounded-2xl p-5">
+        <h2 className="text-sm font-bold text-gray-300 mb-4">스트리머 추가</h2>
+        <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input value={form.streamerName} onChange={(e) => setForm((f) => ({...f, streamerName: e.target.value}))}
+            placeholder="치지직 닉네임 *" className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input value={form.chzzkChannelId} onChange={(e) => setForm((f) => ({...f, chzzkChannelId: e.target.value.trim()}))}
+            placeholder="치지직 채널 ID * (URL 마지막 경로)" className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input value={form.nickname} onChange={(e) => setForm((f) => ({...f, nickname: e.target.value.trim()}))}
+            placeholder="배그 인게임 닉네임 * (PKGG 전적 링크용)" className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <select value={form.shard} onChange={(e) => setForm((f) => ({...f, shard: e.target.value}))}
+            className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white focus:outline-none">
+            <option value="steam">Steam</option>
+            <option value="kakao">카카오</option>
+          </select>
+          <input value={form.profileImage} onChange={(e) => setForm((f) => ({...f, profileImage: e.target.value.trim()}))}
+            placeholder="프로필 이미지 URL (선택)" className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white focus:outline-none sm:col-span-2" />
+          <div className="sm:col-span-2 flex items-center gap-3">
+            <button type="submit" disabled={adding}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors">
+              {adding ? '추가 중...' : '추가'}
+            </button>
+            {addMsg && <span className="text-sm">{addMsg}</span>}
+          </div>
+        </form>
+        <p className="text-xs text-gray-600 mt-2">
+          채널 ID: https://chzzk.naver.com/<strong>채널ID</strong> 에서 확인 (예: f48e2f6f4a47bb0cad85e9c6bcd22dc0)
+        </p>
+      </div>
+
+      {/* 목록 */}
+      <div className="bg-gray-800 rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold text-gray-300">등록된 스트리머 ({streamers.length}명)</h2>
+          <button onClick={load} className="text-xs text-blue-400 hover:text-blue-300">새로고침</button>
+        </div>
+        {loading ? (
+          <div className="text-center py-8 text-gray-500 text-sm">불러오는 중...</div>
+        ) : streamers.length === 0 ? (
+          <div className="text-center py-8 text-gray-600 text-sm">등록된 스트리머가 없습니다.</div>
+        ) : (
+          <div className="space-y-2">
+            {streamers.map((s) => (
+              <div key={s.id} className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-xl">
+                {s.profileImage && <img src={s.profileImage} alt={s.streamerName} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">{s.streamerName}</span>
+                    {s.isLive && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">LIVE</span>}
+                  </div>
+                  <span className="text-xs text-gray-500 truncate">{s.nickname} ({s.shard}) · {s.chzzkChannelId.slice(0,16)}...</span>
+                </div>
+                <button onClick={() => handleDelete(s.id, s.streamerName)} disabled={deleting === s.id}
+                  className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 flex-shrink-0 px-2 py-1">
+                  {deleting === s.id ? '...' : '제거'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }

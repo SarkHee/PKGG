@@ -532,3 +532,20 @@ model TeamDamageStat {
   @@index([matchId])
   @@map("team_damage_stats")
 }
+
+// 배그 치지직 스트리머 목록
+model StreamerList {
+  id             Int       @id @default(autoincrement())
+  nickname       String    // 배그 인게임 닉네임 (PKGG 전적 링크용)
+  shard          String    @default("steam") // steam | kakao
+  chzzkChannelId String    @unique
+  streamerName   String    // 치지직 표시명
+  profileImage   String?   // 치지직 프로필 이미지 URL
+  isLive         Boolean   @default(false)
+  viewerCount    Int       @default(0)
+  streamTitle    String?   // 현재 방송 제목
+  lastCheckedAt  DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@map("streamer_list")
+}

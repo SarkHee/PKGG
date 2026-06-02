@@ -230,6 +230,7 @@ const handleSearchSubmit = async (e) => {
   ];
 
   const communityLinks = [
+    { href: '/streamers',       labelKey: 'nav.streamers',       icon: '📡', highlight: true },
     { href: '/forum',           labelKey: 'nav.forum',           icon: '💬' },
     { href: '/party',           labelKey: 'nav.party',           icon: '👥' },
     { href: '/settings-share',  labelKey: 'nav.settings_share',  icon: '⚙️' },
