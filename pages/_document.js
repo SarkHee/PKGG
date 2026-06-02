@@ -4,6 +4,8 @@ export default function Document() {
   return (
     <Html lang="ko">
       <Head>
+        {/* Google AdSense */}
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7884456727026548" crossOrigin="anonymous" />
         {/* Google Analytics */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-1QZEW9N4S3" />
         <script dangerouslySetInnerHTML={{ __html: `

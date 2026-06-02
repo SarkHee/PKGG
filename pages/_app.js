@@ -288,15 +288,6 @@ function MyApp({ Component, pageProps }) {
           <div className="h-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-500 animate-[loading-bar_1s_ease-in-out_infinite]" style={{ width: '60%', animation: 'loading-bar 1.2s ease-in-out infinite' }} />
         </div>
       )}
-      {/* 쿠키 동의 후에만 AdSense 로드 */}
-      {cookieConsent === true && (
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7884456727026548"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
-      )}
 
       {/* 동의 미결정 상태일 때만 배너 표시 */}
       {cookieConsent === null && (
