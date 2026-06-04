@@ -120,8 +120,54 @@ function SkeletonCard() {
   )
 }
 
+const PAGE_SIZE = 40
+
+function Pagination({ page, totalPages, onChange }) {
+  if (totalPages <= 1) return null
+
+  const pages = []
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= page - 2 && i <= page + 2)) {
+      pages.push(i)
+    } else if (pages[pages.length - 1] !== '…') {
+      pages.push('…')
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-8 flex-wrap">
+      <button
+        onClick={() => onChange(page - 1)} disabled={page === 1}
+        className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm"
+      >←</button>
+
+      {pages.map((p, i) =>
+        p === '…' ? (
+          <span key={`e${i}`} className="w-9 h-9 flex items-center justify-center text-gray-600 text-sm">…</span>
+        ) : (
+          <button
+            key={p} onClick={() => onChange(p)}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${
+              p === page
+                ? 'bg-white text-gray-900 shadow'
+                : 'text-gray-400 hover:text-white hover:bg-gray-800'
+            }`}
+          >{p}</button>
+        )
+      )}
+
+      <button
+        onClick={() => onChange(page + 1)} disabled={page === totalPages}
+        className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm"
+      >→</button>
+    </div>
+  )
+}
+
 export default function StreamersPage() {
   const [tab,       setTab]       = useState('all')
+  const [page,      setPage]      = useState(1)
+  const [query,     setQuery]     = useState('')
   const [data,      setData]      = useState(null)
   const [loading,   setLoading]   = useState(true)
   const [countdown, setCountdown] = useState(300)
@@ -142,11 +188,26 @@ export default function StreamersPage() {
     return () => { clearInterval(iv); clearInterval(cd) }
   }, [])
 
-  // 탭별 필터
+  // 탭 변경 시 페이지·검색 초기화
+  const handleTabChange = (key) => { setTab(key); setPage(1); setQuery('') }
+
+  // 탭별 필터 + 검색
   const streamers = data?.streamers || []
-  const filtered = tab === 'all'   ? streamers
+  const q = query.trim().toLowerCase()
+  const tabFiltered = tab === 'all'   ? streamers
     : tab === 'drops'              ? streamers.filter((s) => s.hasDrops)
     : streamers.filter((s) => s.platform === tab)
+  const filtered = q
+    ? tabFiltered.filter((s) =>
+        s.streamerName?.toLowerCase().includes(q) ||
+        s.title?.toLowerCase().includes(q)
+      )
+    : tabFiltered
+
+  // 페이지네이션
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage   = Math.min(page, totalPages)
+  const paged      = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const counts = data?.counts || {}
   const updatedLabel = data?.updatedAt
@@ -215,8 +276,8 @@ export default function StreamersPage() {
 
         <div className="max-w-screen-xl mx-auto px-4 pb-20">
 
-          {/* 플랫폼 탭 */}
-          <div className="flex gap-2 mb-6 border-b border-gray-800 pb-4">
+          {/* 플랫폼 탭 + 검색 */}
+          <div className="flex items-center gap-2 mb-6 border-b border-gray-800 pb-4 flex-wrap">
             {TABS.map((t) => {
               const count = t.key === 'all'   ? streamers.length
                 : t.key === 'drops'           ? streamers.filter((s) => s.hasDrops).length
@@ -224,7 +285,7 @@ export default function StreamersPage() {
               return (
                 <button
                   key={t.key}
-                  onClick={() => setTab(t.key)}
+                  onClick={() => handleTabChange(t.key)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                     tab === t.key
                       ? 'bg-white/10 text-white border border-white/15'
@@ -251,11 +312,42 @@ export default function StreamersPage() {
 
             {/* 트위치 미설정 안내 */}
             {!loading && tab === 'twitch' && counts.twitch === 0 && (
-              <span className="ml-auto flex items-center text-xs text-gray-600">
+              <span className="flex items-center text-xs text-gray-600">
                 TWITCH_CLIENT_ID 설정 후 활성화
               </span>
             )}
+
+            {/* 검색창 */}
+            <div className="ml-auto relative flex items-center">
+              <svg className="absolute left-3 w-3.5 h-3.5 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+                placeholder="스트리머명·방송제목 검색"
+                className="pl-8 pr-8 py-2 bg-gray-900 border border-gray-700 rounded-xl text-xs text-white placeholder-gray-600 focus:outline-none focus:border-gray-500 w-44 sm:w-56 transition-all focus:w-64"
+              />
+              {query && (
+                <button
+                  onClick={() => { setQuery(''); setPage(1) }}
+                  className="absolute right-2.5 text-gray-500 hover:text-gray-300 text-sm leading-none"
+                >×</button>
+              )}
+            </div>
           </div>
+
+          {/* 범위 표시 */}
+          {!loading && filtered.length > 0 && (
+            <div className="flex items-center justify-between mb-3 text-xs text-gray-600">
+              <span>
+                {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)}
+                <span className="text-gray-700"> / 총 {filtered.length}명</span>
+              </span>
+              <span>{safePage} / {totalPages} 페이지</span>
+            </div>
+          )}
 
           {/* 그리드 */}
           {loading ? (
@@ -264,19 +356,33 @@ export default function StreamersPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-24 text-center">
-              <div className="text-5xl mb-4">😴</div>
+              <div className="text-5xl mb-4">{query ? '🔍' : '😴'}</div>
               <p className="text-gray-500 text-sm">
-                {tab === 'twitch'
-                  ? '트위치 설정이 필요합니다. TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET 환경변수를 추가해주세요.'
-                  : '현재 방송 중인 스트리머가 없습니다.'}
+                {query
+                  ? `"${query}" 검색 결과가 없습니다.`
+                  : tab === 'twitch'
+                    ? '트위치 설정이 필요합니다. TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET 환경변수를 추가해주세요.'
+                    : '현재 방송 중인 스트리머가 없습니다.'}
               </p>
+              {query && (
+                <button onClick={() => setQuery('')} className="mt-3 text-xs text-blue-500 hover:text-blue-400">
+                  검색 초기화
+                </button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {filtered.map((s, i) => (
-                <StreamerCard key={`${s.platform}-${s.streamerId}-${i}`} streamer={s} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {paged.map((s, i) => (
+                  <StreamerCard key={`${s.platform}-${s.streamerId}-${i}`} streamer={s} />
+                ))}
+              </div>
+              <Pagination
+                page={safePage}
+                totalPages={totalPages}
+                onChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+              />
+            </>
           )}
         </div>
       </main>

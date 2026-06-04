@@ -3,7 +3,7 @@
 
 import { redisGet, redisSet } from '../../../utils/redis.js'
 
-const CACHE_KEY = 'streamers:all:v5'
+const CACHE_KEY = 'streamers:all:v7'
 const CACHE_TTL = 300
 
 async function fetchPlatform(base, path) {
