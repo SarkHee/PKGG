@@ -180,7 +180,20 @@ const TYPE_BADGE = {
 // 레벨 0(없음) ~ 3까지 데미지 잔존 배율
 const ARMOR_MULT  = [1.0, 0.70, 0.60, 0.45]; // 방어구
 const HELMET_MULT = [1.0, 0.70, 0.60, 0.45]; // 헬멧
-const HEAD_MULT   = 2.1;                       // 헤드샷 기본 배율
+const HEAD_MULT   = 2.1;                       // 헤드샷 기본 배율 (SMG 기준 fallback)
+
+// 무기 타입별 부위 피해 배율
+const TYPE_MULT = {
+  AR:  { head: 2.35, body: 1.00, limb: 0.90 },
+  LMG: { head: 2.35, body: 1.05, limb: 0.90 },
+  DMR: { head: 2.35, body: 1.05, limb: 0.95 },
+  SR:  { head: 2.50, body: 1.30, limb: 0.90 },
+  SG:  { head: 1.50, body: 0.90, limb: 1.20 },
+  SMG: { head: 2.10, body: 1.05, limb: 1.30 },
+  PST: { head: 2.35, body: 1.00, limb: 1.05 },
+  CRS: { head: 1.50, body: 1.40, limb: 1.20 },
+  MEL: { head: 1.50, body: 1.00, limb: 1.20 },
+}
 const ARMOR_LABELS = ['없음', 'Lv.1', 'Lv.2', 'Lv.3'];
 
 function calcBodyDmg(base, armorLv)  { return Math.round(base * ARMOR_MULT[armorLv]); }
@@ -427,13 +440,91 @@ function WeaponDetailPanel({ weapon, armorLevel, helmetLevel, onArmorChange, onH
           <ArmorSelector label="🛡️ 방어구" value={armorLevel} onChange={onArmorChange} color="text-blue-400" showPct={false} />
           <ArmorSelector label="⛑️ 헬멧" value={helmetLevel} onChange={onHelmetChange} color="text-purple-400" showPct={false} />
         </div>
+
+        {/* 부위별 피해 배율 (선택된 무기 타입 기준) */}
+        {weapon && (() => {
+          const m = TYPE_MULT[weapon.type] || TYPE_MULT.AR
+          return (
+            <div className="mt-3 pt-3 border-t border-gray-700/40">
+              <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-2">부위별 피해 배율 ({weapon.type})</div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { label: '💀 헤드샷', val: m.head, color: 'text-red-400' },
+                  { label: '🛡 몸통',   val: m.body, color: m.body >= 1.1 ? 'text-orange-400' : 'text-gray-300' },
+                  { label: '💪 팔다리', val: m.limb, color: m.limb >= 1.1 ? 'text-orange-400' : 'text-gray-500' },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="bg-gray-800/60 rounded-xl px-2 py-2 text-center">
+                    <div className="text-[9px] text-gray-500 mb-1">{label}</div>
+                    <div className={`text-sm font-bold ${color}`}>×{val.toFixed(2)}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-700 mt-2">※ 방어구는 팔다리를 보호하지 않음</p>
+            </div>
+          )
+        })()}
       </div>
 
       {/* 마네킹 */}
-      <div className="px-5 py-5">
+      <div className="px-5 py-5 border-b border-gray-700/50">
         <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">피해 시뮬레이션</div>
         <Mannequin weapon={weapon} armorLevel={armorLevel} helmetLevel={helmetLevel} />
       </div>
+
+      {/* 세부 부위별 실제 데미지 */}
+      {weapon && (() => {
+        const m    = TYPE_MULT[weapon.type] || TYPE_MULT.AR
+        const base = weapon.pelletDmg ? Math.round(weapon.damage * 9 * 0.9) : weapon.damage
+        const ar   = ARMOR_MULT[armorLevel]
+        const hr   = HELMET_MULT[helmetLevel]
+
+        const zones = [
+          { zone: '머리',  dmg: Math.round(base * m.head * hr),        armor: '헬멧 적용' },
+          { zone: '목',    dmg: Math.round(base * 0.75),                armor: '방어구 없음' },
+          { zone: '가슴',  dmg: Math.round(base * m.body * 1.10 * ar), armor: '방어구 적용' },
+          { zone: '상체',  dmg: Math.round(base * m.body * 1.00 * ar), armor: '방어구 적용' },
+          { zone: '복부',  dmg: Math.round(base * m.body * 0.90 * ar), armor: '방어구 적용' },
+          { zone: '허리',  dmg: Math.round(base * m.body * 0.90 * ar), armor: '방어구 적용' },
+          { zone: '팔',    dmg: Math.round(base * m.limb * 0.60),       armor: '방어구 없음' },
+          { zone: '다리',  dmg: Math.round(base * m.limb * 0.60),       armor: '방어구 없음' },
+          { zone: '손·발', dmg: Math.round(base * m.limb * 0.50),       armor: '방어구 없음' },
+        ]
+        const maxDmg = Math.max(...zones.map(z => z.dmg))
+
+        const dmgColor = (dmg) => {
+          const stk = Math.ceil(100 / dmg)
+          return stk === 1 ? 'text-red-400' : stk === 2 ? 'text-orange-400' : stk <= 4 ? 'text-yellow-400' : 'text-gray-400'
+        }
+        const barColor = (dmg) => {
+          const stk = Math.ceil(100 / dmg)
+          return stk === 1 ? 'bg-red-500' : stk === 2 ? 'bg-orange-500' : stk <= 4 ? 'bg-yellow-500' : 'bg-gray-600'
+        }
+
+        return (
+          <div className="px-5 py-4 border-b border-gray-700/50">
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">세부 부위 피해량</div>
+            <div className="space-y-1.5">
+              {zones.map(({ zone, dmg, armor }) => (
+                <div key={zone} className="flex items-center gap-2">
+                  <span className="text-[11px] text-gray-400 w-9 flex-shrink-0">{zone}</span>
+                  <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${barColor(dmg)} rounded-full transition-all`}
+                      style={{ width: `${Math.round((dmg / maxDmg) * 100)}%` }}
+                    />
+                  </div>
+                  <span className={`text-xs font-bold ${dmgColor(dmg)} w-8 text-right flex-shrink-0`}>{dmg}</span>
+                  <span className="text-[9px] text-gray-700 w-14 flex-shrink-0">{armor}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 space-y-1 text-[10px] text-gray-700">
+              <p>• 방어구는 팔다리 부위를 보호하지 않습니다</p>
+              <p>• 목 부위는 기본 피해의 75%로 차감된 피해를 받습니다</p>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   );
 }
@@ -659,7 +750,7 @@ export default function WeaponDamage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white mb-1">🔫 무기 데미지 표</h1>
             <p className="text-gray-400 text-sm">기본 데미지 · 연사속도 · 탄창 · DPS 비교 (방어구 미착용 기준)</p>
-            <p className="text-xs text-gray-700 mt-1">데이터 검수 도움: 배그 카페 유저 <span className="text-gray-500">광원효과</span>님</p>
+            <p className="text-sm text-gray-600 mt-1">데이터 검수 도움: 배틀그라운드 공식 카페 - <a href="https://www.youtube.com/@1067mm" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white underline underline-offset-2 transition-colors">광원효과</a>님</p>
           </div>
 
           {/* 데이터 기준 뱃지 */}
