@@ -83,22 +83,22 @@ function StreamerCard({ streamer }) {
       </div>
 
       {/* 정보 */}
-      <div className="p-3 flex gap-2.5">
+      <div className="p-2.5 sm:p-3 flex gap-2">
         {/* 프로필 */}
-        <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-gray-700">
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden flex-shrink-0 border border-gray-700">
           {streamerImage ? (
             <img src={streamerImage} alt={streamerName} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gray-700 flex items-center justify-center text-base">🎮</div>
+            <div className="w-full h-full bg-gray-700 flex items-center justify-center text-sm">🎮</div>
           )}
         </div>
         {/* 텍스트 */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-white truncate">
+          <p className="text-[11px] sm:text-xs font-bold text-white truncate leading-tight">
             {streamerName}
-            {verified && <span className="ml-1 text-blue-400 text-[10px]">✓</span>}
+            {verified && <span className="ml-1 text-blue-400 text-[9px]">✓</span>}
           </p>
-          <p className="text-[11px] text-gray-500 truncate mt-0.5">{title}</p>
+          <p className="text-[10px] sm:text-[11px] text-gray-500 truncate mt-0.5 leading-tight">{title}</p>
         </div>
       </div>
     </a>
@@ -138,16 +138,16 @@ function Pagination({ page, totalPages, onChange }) {
     <div className="flex items-center justify-center gap-1 mt-8 flex-wrap">
       <button
         onClick={() => onChange(page - 1)} disabled={page === 1}
-        className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm"
+        className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >←</button>
 
       {pages.map((p, i) =>
         p === '…' ? (
-          <span key={`e${i}`} className="w-9 h-9 flex items-center justify-center text-gray-600 text-sm">…</span>
+          <span key={`e${i}`} className="w-10 h-10 flex items-center justify-center text-gray-600 text-sm">…</span>
         ) : (
           <button
             key={p} onClick={() => onChange(p)}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${
+            className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold transition-all ${
               p === page
                 ? 'bg-white text-gray-900 shadow'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800'
@@ -158,7 +158,7 @@ function Pagination({ page, totalPages, onChange }) {
 
       <button
         onClick={() => onChange(page + 1)} disabled={page === totalPages}
-        className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm"
+        className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
       >→</button>
     </div>
   )
@@ -231,31 +231,31 @@ export default function StreamersPage() {
         <div className="relative overflow-hidden">
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 40% at 50% 0%, rgba(239,68,68,0.1) 0%, transparent 60%)' }} />
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,1) 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-          <div className="relative max-w-screen-xl mx-auto px-4 pt-10 pb-6">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div className="relative max-w-screen-xl mx-auto px-4 pt-6 sm:pt-10 pb-4 sm:pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 sm:gap-3">
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-1.5">
                   <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   <span className="text-xs font-bold text-red-400 tracking-widest uppercase">Live Now</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white">
+                <h1 className="text-xl sm:text-3xl font-black text-white">
                   배그 라이브 스트리머
                 </h1>
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="text-gray-500 text-xs sm:text-sm mt-1">
                   치지직 · 트위치에서 지금 배틀그라운드 방송 중인 스트리머
                 </p>
               </div>
 
               {/* 통계 + 갱신 */}
-              <div className="flex flex-col items-start sm:items-end gap-1 text-xs">
+              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-1 text-xs">
                 {!loading && data && (
                   <div className="flex items-center gap-3 text-gray-400">
                     <span>🟢 치지직 {counts.chzzk ?? 0}명</span>
                     <span>🟣 트위치 {counts.twitch ?? 0}명</span>
                   </div>
                 )}
-                <div className="flex items-center gap-2 text-gray-600">
-                  {updatedLabel && <span>{updatedLabel} 기준</span>}
+                <div className="flex items-center gap-1.5 text-gray-600 flex-wrap justify-end">
+                  {updatedLabel && <span className="hidden sm:inline">{updatedLabel} 기준</span>}
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                     {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')} 후 갱신
@@ -274,10 +274,10 @@ export default function StreamersPage() {
           </div>
         </div>
 
-        <div className="max-w-screen-xl mx-auto px-4 pb-20">
+        <div className="max-w-screen-xl mx-auto px-3 sm:px-4 pb-20">
 
-          {/* 플랫폼 탭 + 검색 */}
-          <div className="flex items-center gap-2 mb-6 border-b border-gray-800 pb-4 flex-wrap">
+          {/* 플랫폼 탭 */}
+          <div className="flex items-center gap-1.5 sm:gap-2 pt-4 pb-3 border-b border-gray-800 overflow-x-auto scrollbar-none">
             {TABS.map((t) => {
               const count = t.key === 'all'   ? streamers.length
                 : t.key === 'drops'           ? streamers.filter((s) => s.hasDrops).length
@@ -286,14 +286,14 @@ export default function StreamersPage() {
                 <button
                   key={t.key}
                   onClick={() => handleTabChange(t.key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                     tab === t.key
                       ? 'bg-white/10 text-white border border-white/15'
                       : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/60'
                   }`}
                 >
                   {t.key !== 'all' && (
-                    <span className={`w-2 h-2 rounded-full ${
+                    <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0 ${
                       t.key === 'chzzk' ? 'bg-[#00DB72]' :
                       t.key === 'twitch' ? 'bg-[#9146FF]' : 'bg-[#1A6BFF]'
                     }`} />
@@ -312,38 +312,37 @@ export default function StreamersPage() {
 
             {/* 트위치 미설정 안내 */}
             {!loading && tab === 'twitch' && counts.twitch === 0 && (
-              <span className="flex items-center text-xs text-gray-600">
-                TWITCH_CLIENT_ID 설정 후 활성화
+              <span className="flex-shrink-0 flex items-center text-xs text-gray-600">
+                환경변수 미설정
               </span>
             )}
+          </div>
 
-            {/* 검색창 */}
-            <div className="ml-auto relative flex items-center">
-              <svg className="absolute left-3 w-3.5 h-3.5 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => { setQuery(e.target.value); setPage(1) }}
-                placeholder="스트리머명·방송제목 검색"
-                className="pl-8 pr-8 py-2 bg-gray-900 border border-gray-700 rounded-xl text-xs text-white placeholder-gray-600 focus:outline-none focus:border-gray-500 w-44 sm:w-56 transition-all focus:w-64"
-              />
-              {query && (
-                <button
-                  onClick={() => { setQuery(''); setPage(1) }}
-                  className="absolute right-2.5 text-gray-500 hover:text-gray-300 text-sm leading-none"
-                >×</button>
-              )}
-            </div>
+          {/* 검색창 */}
+          <div className="relative flex items-center mt-3 mb-4">
+            <svg className="absolute left-3 w-3.5 h-3.5 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+              placeholder="스트리머명·방송제목 검색"
+              className="w-full pl-8 pr-8 py-2.5 bg-gray-900 border border-gray-800 rounded-xl text-sm text-white placeholder-gray-600 focus:outline-none focus:border-gray-600"
+            />
+            {query && (
+              <button
+                onClick={() => { setQuery(''); setPage(1) }}
+                className="absolute right-3 text-gray-500 hover:text-gray-300 text-base leading-none"
+              >×</button>
+            )}
           </div>
 
           {/* 범위 표시 */}
           {!loading && filtered.length > 0 && (
             <div className="flex items-center justify-between mb-3 text-xs text-gray-600">
               <span>
-                {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)}
-                <span className="text-gray-700"> / 총 {filtered.length}명</span>
+                총 <span className="text-gray-400 font-bold">{filtered.length}명</span> 방송 중
               </span>
               <span>{safePage} / {totalPages} 페이지</span>
             </div>
@@ -351,7 +350,7 @@ export default function StreamersPage() {
 
           {/* 그리드 */}
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
               {Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : filtered.length === 0 ? (
@@ -372,7 +371,7 @@ export default function StreamersPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                 {paged.map((s, i) => (
                   <StreamerCard key={`${s.platform}-${s.streamerId}-${i}`} streamer={s} />
                 ))}

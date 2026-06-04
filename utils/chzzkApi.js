@@ -1,8 +1,59 @@
 // utils/chzzkApi.js
 // 치지직 공개 API 헬퍼 (인증 불필요 엔드포인트 사용)
 
-const BASE = 'https://api.chzzk.naver.com'
-const UA   = 'Mozilla/5.0 (compatible; PKGG/1.0)'
+const BASE      = 'https://api.chzzk.naver.com'
+const UA        = 'Mozilla/5.0 (compatible; PKGG/1.0)'
+const PAGE_SIZE = 50
+
+// PUBG 라이브 목록 조회 (all.js에서 직접 import용)
+export async function getPubgLives() {
+  const keywords = ['배틀그라운드', '배그']
+  const seen = new Set()
+  const all  = []
+
+  for (const keyword of keywords) {
+    try {
+      const res = await fetch(
+        `${BASE}/service/v1/search/lives?keyword=${encodeURIComponent(keyword)}&size=${PAGE_SIZE}`,
+        { headers: { 'User-Agent': UA } }
+      )
+      if (!res.ok) continue
+      const json = await res.json()
+      const items = json?.content?.data || []
+      for (const item of items) {
+        const live    = item.live
+        const channel = item.channel
+        if (!live || !channel) continue
+        if (live.liveCategory !== 'Player_Unknowns_Battle_Grounds') continue
+        if (seen.has(live.liveId)) continue
+        seen.add(live.liveId)
+        const customThumb  = live.defaultThumbnailImageUrl
+          ? live.defaultThumbnailImageUrl.replace(/\?.*$/, '')
+          : null
+        const profileImage = channel.channelImageUrl || null
+        all.push({
+          platform:        'chzzk',
+          streamerId:      channel.channelId,
+          streamerName:    channel.channelName,
+          streamerImage:   profileImage,
+          verified:        channel.verifiedMark || false,
+          title:           live.liveTitle,
+          viewers:         live.concurrentUserCount ?? 0,
+          thumbnail:       customThumb || profileImage,
+          hasCustomThumb:  !!customThumb,
+          hasDrops:        !!live.dropsCampaignNo,
+          dropsCampaignNo: live.dropsCampaignNo || null,
+          tags:            live.tags || [],
+          streamUrl:       `https://chzzk.naver.com/live/${channel.channelId}`,
+          channelUrl:      `https://chzzk.naver.com/${channel.channelId}`,
+          startedAt:       live.openDate,
+        })
+      }
+    } catch {}
+  }
+
+  return all.sort((a, b) => b.viewers - a.viewers)
+}
 
 async function withTimeout(promise, ms = 8000) {
   let timer
