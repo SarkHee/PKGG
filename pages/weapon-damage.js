@@ -1,5 +1,5 @@
 // pages/weapon-damage.js
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import Header from '../components/layout/Header';
 
@@ -195,15 +195,29 @@ function SortIcon({ col, sortCol, sortDir }) {
 }
 
 function Tooltip({ text, children }) {
+  const ref = useRef(null)
+  const [pos, setPos] = useState(null)
+
+  const show = useCallback(() => {
+    const r = ref.current?.getBoundingClientRect()
+    if (r) setPos({ x: r.left + r.width / 2, y: r.top })
+  }, [])
+  const hide = useCallback(() => setPos(null), [])
+
   return (
-    <span className="relative group/tip inline-flex items-center">
+    <span ref={ref} className="inline-flex items-center" onMouseEnter={show} onMouseLeave={hide}>
       {children}
-      <span className="pointer-events-none absolute bottom-full left-0 mb-2 w-80 max-w-xs px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-xs text-gray-200 leading-relaxed opacity-0 group-hover/tip:opacity-100 transition-opacity z-50 shadow-xl whitespace-normal text-left">
-        {text}
-        <span className="absolute top-full left-4 border-4 border-transparent border-t-gray-700" />
-      </span>
+      {pos && (
+        <span
+          className="fixed z-[9999] w-72 px-3 py-2 bg-gray-800 border border-gray-600 rounded-xl text-xs text-gray-200 leading-relaxed shadow-xl whitespace-normal text-left pointer-events-none"
+          style={{ left: pos.x, top: pos.y - 8, transform: 'translate(-50%, -100%)' }}
+        >
+          {text}
+          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-600" />
+        </span>
+      )}
     </span>
-  );
+  )
 }
 
 function ArmorSelector({ label, value, onChange, color, showPct = true }) {
@@ -259,7 +273,6 @@ function Mannequin({ weapon, armorLevel, helmetLevel }) {
     );
   }
 
-  // 펠렛 무기: 발당 총 피해량(9펠렛 × 90%)으로 계산
   const baseDmg = weapon.pelletDmg ? Math.round(weapon.damage * 9 * 0.9) : weapon.damage;
   const bodyDmg = Math.round(baseDmg * ARMOR_MULT[armorLevel]);
   const headDmg = Math.round(baseDmg * HEAD_MULT * HELMET_MULT[helmetLevel]);
@@ -646,6 +659,7 @@ export default function WeaponDamage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white mb-1">🔫 무기 데미지 표</h1>
             <p className="text-gray-400 text-sm">기본 데미지 · 연사속도 · 탄창 · DPS 비교 (방어구 미착용 기준)</p>
+            <p className="text-xs text-gray-700 mt-1">데이터 검수 도움: 배그 카페 유저 <span className="text-gray-500">광원효과</span>님</p>
           </div>
 
           {/* 데이터 기준 뱃지 */}
