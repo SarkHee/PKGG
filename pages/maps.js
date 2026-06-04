@@ -7,105 +7,61 @@ import { useT } from '../utils/i18n'
 
 const MAPS = [
   {
-    id: 'erangel',
-    nameEn: 'Erangel',
-    size: '8×8 km',
-    img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/590dba7.webp',
-    maxPlayers: 100,
-    tagKey: 'maps.tag.classic',
-    tagColor: 'bg-blue-500',
-    tagBorder: 'border-blue-500',
-    mapSize: 'large',
+    id: 'erangel', nameEn: 'Erangel', size: '8×8 km', kmSize: 8,
+    img: '/maps/erangel.jpg',
+    maxPlayers: 100, tagKey: 'maps.tag.classic',
+    tagColor: 'bg-blue-500', tagBorder: 'border-blue-500', mapSize: 'large',
   },
   {
-    id: 'miramar',
-    nameEn: 'Miramar',
-    size: '8×8 km',
-    img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/24a088e.webp',
-    maxPlayers: 100,
-    tagKey: 'maps.tag.desert',
-    tagColor: 'bg-yellow-500',
-    tagBorder: 'border-yellow-500',
-    mapSize: 'large',
+    id: 'miramar', nameEn: 'Miramar', size: '8×8 km', kmSize: 8,
+    img: '/maps/miramar.jpg',
+    maxPlayers: 100, tagKey: 'maps.tag.desert',
+    tagColor: 'bg-yellow-500', tagBorder: 'border-yellow-500', mapSize: 'large',
   },
   {
-    id: 'vikendi',
-    nameEn: 'Vikendi',
-    size: '6×6 km',
-    img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/d1080a6.webp',
-    maxPlayers: 100,
-    tagKey: 'maps.tag.snow',
-    tagColor: 'bg-cyan-400',
-    tagBorder: 'border-cyan-400',
-    mapSize: 'large',
+    id: 'vikendi', nameEn: 'Vikendi', size: '6×6 km', kmSize: 6,
+    img: '/maps/vikendi.jpg',
+    maxPlayers: 100, tagKey: 'maps.tag.snow',
+    tagColor: 'bg-cyan-400', tagBorder: 'border-cyan-400', mapSize: 'large',
   },
   {
-    id: 'taego',
-    nameEn: 'Taego',
-    size: '8×8 km',
-    img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/19581ee.webp',
-    maxPlayers: 100,
-    tagKey: 'maps.tag.korea',
-    tagColor: 'bg-red-500',
-    tagBorder: 'border-red-500',
-    mapSize: 'large',
+    id: 'taego', nameEn: 'Taego', size: '8×8 km', kmSize: 8,
+    img: '/maps/taego.jpg',
+    maxPlayers: 100, tagKey: 'maps.tag.korea',
+    tagColor: 'bg-red-500', tagBorder: 'border-red-500', mapSize: 'large',
   },
   {
-    id: 'deston',
-    nameEn: 'Deston',
-    size: '8×8 km',
-    img: 'https://wstatic-prod.pubg.com/web/live/main_7e1f0ba/img/e2bdf1e.webp',
-    maxPlayers: 100,
-    tagKey: 'maps.tag.future',
-    tagColor: 'bg-purple-500',
-    tagBorder: 'border-purple-500',
-    mapSize: 'large',
+    id: 'deston', nameEn: 'Deston', size: '8×8 km', kmSize: 8,
+    img: '/maps/deston.jpg',
+    maxPlayers: 100, tagKey: 'maps.tag.future',
+    tagColor: 'bg-purple-500', tagBorder: 'border-purple-500', mapSize: 'large',
   },
   {
-    id: 'rondo',
-    nameEn: 'Rondo',
-    size: '8×8 km',
+    id: 'rondo', nameEn: 'Rondo', size: '8×8 km', kmSize: 8,
     img: '/maps/rondo.jpg',
-    maxPlayers: 100,
-    tagKey: 'maps.tag.mountain',
-    tagColor: 'bg-emerald-500',
-    tagBorder: 'border-emerald-500',
-    mapSize: 'large',
+    maxPlayers: 100, tagKey: 'maps.tag.mountain',
+    tagColor: 'bg-emerald-500', tagBorder: 'border-emerald-500', mapSize: 'large',
   },
   {
-    id: 'sanhok',
-    nameEn: 'Sanhok',
-    size: '4×4 km',
-    img: '/maps/sanhok.webp',
-    maxPlayers: 64,
-    tagKey: 'maps.tag.jungle',
-    tagColor: 'bg-lime-500',
-    tagBorder: 'border-lime-500',
-    mapSize: 'small',
+    id: 'sanhok', nameEn: 'Sanhok', size: '4×4 km', kmSize: 4,
+    img: '/maps/sanhok.jpg',
+    maxPlayers: 64, tagKey: 'maps.tag.jungle',
+    tagColor: 'bg-lime-500', tagBorder: 'border-lime-500', mapSize: 'small',
   },
   {
-    id: 'paramo',
-    nameEn: 'Paramo',
-    size: '3×3 km',
-    img: '/maps/paramo.webp',
-    maxPlayers: 64,
-    tagKey: 'maps.tag.dynamic',
-    tagColor: 'bg-orange-500',
-    tagBorder: 'border-orange-500',
-    mapSize: 'small',
+    id: 'paramo', nameEn: 'Paramo', size: '3×3 km', kmSize: 3,
+    img: '/maps/paramo.jpg',
+    maxPlayers: 64, tagKey: 'maps.tag.dynamic',
+    tagColor: 'bg-orange-500', tagBorder: 'border-orange-500', mapSize: 'small',
   },
   {
-    id: 'karakin',
-    nameEn: 'Karakin',
-    size: '2×2 km',
-    img: '/maps/karakin.webp',
-    maxPlayers: 64,
-    tagKey: 'maps.tag.small_tag',
-    tagColor: 'bg-amber-600',
-    tagBorder: 'border-amber-600',
-    mapSize: 'small',
+    id: 'karakin', nameEn: 'Karakin', size: '2×2 km', kmSize: 2,
+    img: '/maps/karakin.jpg',
+    maxPlayers: 64, tagKey: 'maps.tag.small_tag',
+    tagColor: 'bg-amber-600', tagBorder: 'border-amber-600', mapSize: 'small',
   },
 ]
+
 
 const OVERLAY_TYPE_DEFS = [
   { key: 'fixed_vehicle', labelKey: 'maps.ot.fixed_vehicle', icon: '🚗', color: '#f59e0b' },
@@ -253,7 +209,7 @@ export default function MapsPage() {
 
   const resetTransform = () => setTransform({ scale: 1, x: 0, y: 0 })
 
-  // 편집 모드: 맵 클릭 → 미리보기 목록에 추가 (일괄 저장 전까지 DB 저장 안 함)
+  // 편집 모드: 맵 클릭 → 미리보기 목록에 추가
   const handleMapClick = (e) => {
     if (!editMode || saving) return
     if (e.target.closest('button')) return
@@ -264,7 +220,6 @@ export default function MapsPage() {
 
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = ((e.clientY - rect.top) / rect.height) * 100
-
     setPendingList((prev) => [...prev, { x, y }])
     setSaveError('')
   }

@@ -220,7 +220,8 @@ const handleSearchSubmit = async (e) => {
     { href: '/clan-analytics', labelKey: 'nav.clan_analytics', icon: '📊' },
     { href: '/clan-war',       labelKey: 'nav.clan_war',       icon: '🛡️' },
     { href: '/map-stats',      labelKey: 'nav.map_stats',      icon: '🗺️' },
-    { href: '/maps',           labelKey: 'nav.maps',           icon: '🗺️' },
+    { href: '/maps',            labelKey: 'nav.maps',            icon: '🗺️' },
+    { href: '/route-planner',  labelKey: 'nav.route_planner',  icon: '📍' },
   ];
 
   const weaponLinks = [

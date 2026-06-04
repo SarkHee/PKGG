@@ -10,7 +10,7 @@ const PLATFORM_META = {
 
 const TABS = [
   { key: 'all',    label: '전체' },
-  { key: 'drops',  label: '🎁 드랍스' },
+  { key: 'drops',  label: '🎁 드롭스' },
   { key: 'chzzk', label: '치지직' },
   { key: 'twitch', label: '트위치' },
 ]
@@ -73,7 +73,7 @@ function StreamerCard({ streamer }) {
         {/* 드롭스 뱃지 */}
         {hasDrops && (
           <div className="absolute top-2 right-2 flex items-center gap-1 bg-amber-500/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded backdrop-blur-sm">
-            🎁 드랍스
+            🎁 드롭스
           </div>
         )}
         {/* 플랫폼 뱃지 */}

@@ -506,3 +506,21 @@ export async function analyzeMatch(matchId, platform) {
     return { status: 'match_failed', rows: [], isBotCorrected: false, error: err }
   }
 }
+
+// 텔레메트리에서 낙하지점 추출
+export function extractLandingStats(telemetry, accountId) {
+  const results = []
+  for (const event of telemetry) {
+    if (event._T !== 'LogParachuteLanding') continue
+    const ch = event.character
+    if (!ch?.accountId || !ch?.location) continue
+    if (accountId && ch.accountId !== accountId) continue
+    results.push({
+      accountId: ch.accountId,
+      mapName:   event.common?.mapName || '',
+      locationX: ch.location.x,
+      locationY: ch.location.y,
+    })
+  }
+  return results
+}

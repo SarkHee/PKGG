@@ -368,23 +368,7 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
     setRecentSearches(loadRecentSearches());
     setMounted(true);
 
-    // 오늘 처음 방문 시 자동 팝업
-    const today = new Date().toISOString().slice(0, 10);
-    const last  = localStorage.getItem(FORTUNE_KEY);
-    if (last !== today) {
-      const timer = setTimeout(() => {
-        setCookieAnim('shaking');
-        setTimeout(() => {
-          setCookieAnim('cracking');
-          setTimeout(() => {
-            setCookieAnim('idle');
-            setShowFortune(true);
-            localStorage.setItem(FORTUNE_KEY, today);
-          }, 500);
-        }, 600);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
+    // 자동 팝업 제거 — 클릭해야만 열림
   }, []);
 
   const handleCookieClick = () => {

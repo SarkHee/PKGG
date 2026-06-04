@@ -549,3 +549,18 @@ model StreamerList {
 
   @@map("streamer_list")
 }
+
+// 플레이어 낙하지점 히트맵
+model PlayerLandingStat {
+  id          Int      @id @default(autoincrement())
+  accountId   String
+  mapName     String
+  locationX   Float
+  locationY   Float
+  matchId     String
+  createdAt   DateTime @default(now())
+
+  @@index([accountId, mapName])
+  @@index([matchId])
+  @@map("player_landing_stats")
+}
