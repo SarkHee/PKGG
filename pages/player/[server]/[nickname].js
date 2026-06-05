@@ -4,6 +4,9 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { calculateMMR } from '../../../utils/mmrCalculator';
 import { classifyPlaystyle } from '../../../utils/playstyleClassifier';
+import { useT } from '../../../utils/i18n';
+import { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache, invalidateCache } from '../../../utils/pubgApiCache';
+import { invalidatePlayerCache } from '../../../utils/redis';
 
 import Header from '../../../components/layout/Header';
 import PlayerHeader from '../../../components/player/PlayerHeader';
@@ -670,6 +673,7 @@ function setCachedPlayer(key, data) {
 }
 
 export default function PlayerPage({ playerData: ssrData, error, isBanned, dataSource }) {
+  const { t } = useT();
   const router = useRouter();
   const { server, nickname } = router.query;
   const cacheKey = `${server}_${nickname}`;
@@ -1328,9 +1332,9 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
       bestSquad:
         synergyTop.length > 0
           ? {
-              members: synergyTop.map((t) => t.name),
+              members: synergyTop.map((m) => m.name),
               avgWinRate: Math.round(
-                synergyTop.reduce((sum, t) => sum + t.winRate, 0) /
+                synergyTop.reduce((sum, m) => sum + m.winRate, 0) /
                   synergyTop.length
               ),
             }
@@ -1371,8 +1375,8 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
     const clanMatches = recentMatches.filter((match) => {
       // PUBG API 데이터에서 teammatesDetail 확인
       if (match.teammatesDetail && Array.isArray(match.teammatesDetail)) {
-        const teammateNames = match.teammatesDetail.map((t) =>
-          t.name.toLowerCase()
+        const teammateNames = match.teammatesDetail.map((tm) =>
+          tm.name.toLowerCase()
         );
         const hasCleanMates = teammateNames.some(
           (name) =>
@@ -1535,9 +1539,9 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
       bestSquad:
         synergyTop.length > 0
           ? {
-              members: synergyTop.map((t) => t.name),
+              members: synergyTop.map((m) => m.name),
               avgWinRate: Math.round(
-                synergyTop.reduce((sum, t) => sum + t.winRate, 0) /
+                synergyTop.reduce((sum, m) => sum + m.winRate, 0) /
                   synergyTop.length
               ),
             }
@@ -2179,7 +2183,7 @@ function derivePlayStyle(stats) {
 // 조회 순서: 1) PlayerCache → 2) ClanMember (하위 호환)
 async function getPlayerFromDB(nickname, server) {
   const { PrismaClient } = require('@prisma/client');
-  const { calculateMMR: calcMMR } = require('../../../utils/mmrCalculator');
+  const calcMMR = calculateMMR;
   const prisma = new PrismaClient();
   try {
     // 1순위: PlayerCache 테이블 조회 (모든 유저 포함)
@@ -2410,9 +2414,6 @@ async function getPlayerFromDB(nickname, server) {
 export async function getServerSideProps({ params, query }) {
   const { server, nickname } = params;
   const forceRefresh = query.force === '1';
-  const { calculateMMR: calcMMR } = require('../../../utils/mmrCalculator');
-  const { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache, invalidateCache } = require('../../../utils/pubgApiCache');
-  const { invalidatePlayerCache } = require('../../../utils/redis');
   const PUBG_BASE = 'https://api.pubg.com/shards';
   const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
