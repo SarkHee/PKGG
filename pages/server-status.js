@@ -2,20 +2,18 @@ import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import Header from '../components/layout/Header'
+import { useT } from '../utils/i18n'
 
 const STATUS_META = {
-  online:      { dot: 'bg-green-400',  glow: 'shadow-green-400/50', text: 'text-green-400',  label: '정상 운영',    desc: '서버가 정상적으로 운영되고 있습니다.',       icon: '🟢' },
-  maintenance: { dot: 'bg-red-400',    glow: 'shadow-red-400/50',   text: 'text-red-400',    label: '점검 중',      desc: '현재 서버 점검이 진행 중입니다.',           icon: '🔴' },
-  offline:     { dot: 'bg-red-500',    glow: 'shadow-red-500/50',   text: 'text-red-400',    label: '접속 불가',    desc: '서버에 접속할 수 없습니다.',               icon: '⚫' },
-  degraded:    { dot: 'bg-yellow-400', glow: 'shadow-yellow-400/50',text: 'text-yellow-400', label: '일부 불안정',  desc: '일부 서비스가 불안정한 상태입니다.',         icon: '🟡' },
-  unknown:     { dot: 'bg-gray-500',   glow: '',                    text: 'text-gray-400',   label: '확인 중',      desc: '서버 상태를 확인하고 있습니다.',            icon: '⚪' },
+  online:      { dot: 'bg-green-400',  glow: 'shadow-green-400/50', text: 'text-green-400',  key: 'online',       icon: '🟢' },
+  maintenance: { dot: 'bg-red-400',    glow: 'shadow-red-400/50',   text: 'text-red-400',    key: 'maintenance',  icon: '🔴' },
+  offline:     { dot: 'bg-red-500',    glow: 'shadow-red-500/50',   text: 'text-red-400',    key: 'offline',      icon: '⚫' },
+  degraded:    { dot: 'bg-yellow-400', glow: 'shadow-yellow-400/50',text: 'text-yellow-400', key: 'degraded',     icon: '🟡' },
+  unknown:     { dot: 'bg-gray-500',   glow: '',                    text: 'text-gray-400',   key: 'unknown',      icon: '⚪' },
 }
 
-const REGION_META = {
-  as: { name: '아시아',  flag: '🌏', shard: 'Steam' },
-  na: { name: '북미',    flag: '🌎', shard: 'PC-NA' },
-  eu: { name: '유럽',    flag: '🌍', shard: 'PC-EU' },
-}
+const REGION_KEYS = { as: '🌏', na: '🌎', eu: '🌍' }
+const REGION_SHARDS = { as: 'Steam', na: 'PC-NA', eu: 'PC-EU' }
 
 const REFRESH_INTERVAL = 30 // 초
 
@@ -27,28 +25,27 @@ function StatusDot({ status, size = 'md', animate = true }) {
   )
 }
 
-function RegionCard({ regionKey, status }) {
-  const rm = REGION_META[regionKey]
+function RegionCard({ regionKey, status, t }) {
   const sm = STATUS_META[status] || STATUS_META.unknown
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col items-center gap-3">
-      <span className="text-3xl">{rm.flag}</span>
+      <span className="text-3xl">{REGION_KEYS[regionKey]}</span>
       <div className="text-center">
-        <div className="font-bold text-white text-sm">{rm.name}</div>
-        <div className="text-[11px] text-gray-600 mt-0.5">{rm.shard}</div>
+        <div className="font-bold text-white text-sm">{t(`ss.region.${regionKey}`)}</div>
+        <div className="text-[11px] text-gray-600 mt-0.5">{REGION_SHARDS[regionKey]}</div>
       </div>
       <div className="flex items-center gap-2">
         <StatusDot status={status} size="md" />
-        <span className={`text-sm font-bold ${sm.text}`}>{sm.label}</span>
+        <span className={`text-sm font-bold ${sm.text}`}>{t(`ss.status.${sm.key}`)}</span>
       </div>
     </div>
   )
 }
 
-function HistoryRow({ entry, index }) {
+function HistoryRow({ entry, index, t }) {
   const fromMeta = STATUS_META[entry.from] || STATUS_META.unknown
   const toMeta   = STATUS_META[entry.to]   || STATUS_META.unknown
-  const time = new Date(entry.timestamp).toLocaleString('ko-KR', {
+  const time = new Date(entry.timestamp).toLocaleString(undefined, {
     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
   })
   const isDown = entry.to === 'maintenance' || entry.to === 'offline'
@@ -57,13 +54,13 @@ function HistoryRow({ entry, index }) {
       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isDown ? 'bg-red-400' : 'bg-green-400'}`} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-xs font-bold ${fromMeta.text}`}>{fromMeta.label}</span>
+          <span className={`text-xs font-bold ${fromMeta.text}`}>{t(`ss.status.${fromMeta.key}`)}</span>
           <span className="text-gray-600 text-xs">→</span>
-          <span className={`text-xs font-bold ${toMeta.text}`}>{toMeta.label}</span>
+          <span className={`text-xs font-bold ${toMeta.text}`}>{t(`ss.status.${toMeta.key}`)}</span>
         </div>
         {entry.regions && (
           <div className="text-[10px] text-gray-600 mt-0.5">
-            아시아: {STATUS_META[entry.regions.as]?.icon} · 북미: {STATUS_META[entry.regions.na]?.icon} · 유럽: {STATUS_META[entry.regions.eu]?.icon}
+            {t('ss.region.as')}: {STATUS_META[entry.regions.as]?.icon} · {t('ss.region.na')}: {STATUS_META[entry.regions.na]?.icon} · {t('ss.region.eu')}: {STATUS_META[entry.regions.eu]?.icon}
           </div>
         )}
       </div>
@@ -73,6 +70,7 @@ function HistoryRow({ entry, index }) {
 }
 
 export default function ServerStatusPage() {
+  const { t } = useT()
   const [data,      setData]      = useState(null)
   const [history,   setHistory]   = useState([])
   const [loading,   setLoading]   = useState(true)
@@ -116,16 +114,16 @@ export default function ServerStatusPage() {
   const sm = STATUS_META[data?.status] || STATUS_META.unknown
 
   const updatedAt = data?.updatedAt
-    ? new Date(data.updatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    ? new Date(data.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : null
 
   return (
     <>
       <Head>
-        <title>PUBG 서버 상태 | PKGG</title>
-        <meta name="description" content="배틀그라운드 실시간 서버 상태 확인. 아시아·북미·유럽 지역별 서버 운영 상태와 점검 이력을 제공합니다." />
-        <meta property="og:title" content="PUBG 서버 상태 | PKGG" />
-        <meta property="og:description" content="배틀그라운드 실시간 서버 상태 확인" />
+        <title>{t('ss.meta_title')}</title>
+        <meta name="description" content={t('ss.meta_desc')} />
+        <meta property="og:title" content={t('ss.meta_title')} />
+        <meta property="og:description" content={t('ss.meta_desc')} />
       </Head>
 
       <Header />
@@ -160,18 +158,18 @@ export default function ServerStatusPage() {
             )}
 
             <h1 className={`text-3xl font-black mb-2 ${loading ? 'text-gray-600' : sm.text}`}>
-              {loading ? '상태 확인 중...' : sm.label}
+              {loading ? t('ss.checking') : t(`ss.status.${sm.key}`)}
             </h1>
             <p className="text-gray-400 text-sm mb-4">
-              {loading ? '...' : sm.desc}
+              {loading ? '...' : t(`ss.status.desc.${sm.key}`)}
             </p>
 
             {/* 타임스탬프 & 카운트다운 */}
             <div className="flex items-center justify-center gap-4 text-xs text-gray-600">
-              {updatedAt && <span>마지막 확인: {updatedAt}</span>}
+              {updatedAt && <span>{t('ss.last_checked')} {updatedAt}</span>}
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                {countdown}초 후 갱신
+                {t('ss.refresh_in').replace('{n}', countdown)}
               </span>
             </div>
           </div>
@@ -182,7 +180,7 @@ export default function ServerStatusPage() {
           {/* 지역별 상태 */}
           <section>
             <h2 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-2">
-              <span>🌐</span> 지역별 서버 상태
+              <span>🌐</span> {t('ss.regions')}
             </h2>
             {loading ? (
               <div className="grid grid-cols-3 gap-4">
@@ -192,8 +190,8 @@ export default function ServerStatusPage() {
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-4">
-                {Object.keys(REGION_META).map((key) => (
-                  <RegionCard key={key} regionKey={key} status={data?.regions?.[key] || 'unknown'} />
+                {Object.keys(REGION_KEYS).map((key) => (
+                  <RegionCard key={key} regionKey={key} status={data?.regions?.[key] || 'unknown'} t={t} />
                 ))}
               </div>
             )}
@@ -205,13 +203,11 @@ export default function ServerStatusPage() {
               <div className="flex items-start gap-3">
                 <span className="text-2xl">⚠️</span>
                 <div>
-                  <div className="font-bold text-red-300 mb-1">서버 점검 안내</div>
-                  <p className="text-sm text-red-400/80">
-                    현재 PUBG 서버 점검 또는 장애가 감지됐습니다. 공식 PUBG 채널에서 자세한 내용을 확인해주세요.
-                  </p>
+                  <div className="font-bold text-red-300 mb-1">{t('ss.maintenance_notice')}</div>
+                  <p className="text-sm text-red-400/80">{t('ss.maintenance_desc')}</p>
                   <a href="https://www.pubg.com/ko/news" target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 mt-2 text-xs text-red-400 hover:text-red-300 underline">
-                    PUBG 공식 공지 확인 →
+                    {t('ss.official_notice')}
                   </a>
                 </div>
               </div>
@@ -221,16 +217,16 @@ export default function ServerStatusPage() {
           {/* 변경 이력 */}
           <section>
             <h2 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-2">
-              <span>📋</span> 최근 상태 변경 이력
+              <span>📋</span> {t('ss.history_title')}
             </h2>
             <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
               {history.length === 0 ? (
                 <div className="py-8 text-center text-gray-700 text-sm">
-                  {loading ? '불러오는 중...' : '최근 상태 변경 이력이 없습니다.\n서버가 안정적으로 운영 중이에요 🎉'}
+                  {loading ? t('ss.loading') : t('ss.history_empty')}
                 </div>
               ) : (
                 history.map((entry, i) => (
-                  <HistoryRow key={i} entry={entry} index={i} />
+                  <HistoryRow key={i} entry={entry} index={i} t={t} />
                 ))
               )}
             </div>
@@ -238,9 +234,9 @@ export default function ServerStatusPage() {
 
           {/* 안내 */}
           <section className="p-4 bg-gray-900/40 border border-gray-800 rounded-2xl text-xs text-gray-600 space-y-1">
-            <p className="font-bold text-gray-500 mb-2">📌 안내</p>
-            <p>• PUBG 공식 API (api.pubg.com) 응답 상태를 기반으로 체크합니다</p>
-            <p>• 5분마다 자동 갱신되며 상태 변경 시 디스코드 알림을 전송합니다</p>
+            <p className="font-bold text-gray-500 mb-2">{t('ss.info_title')}</p>
+            <p>• {t('ss.info_1')}</p>
+            <p>• {t('ss.info_2')}</p>
             <p>• 정확한 점검 정보는 <a href="https://www.pubg.com/ko/news" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">PUBG 공식 사이트</a>를 확인해주세요</p>
           </section>
         </div>

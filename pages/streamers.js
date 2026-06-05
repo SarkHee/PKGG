@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import Header from '../components/layout/Header'
+import { useT } from '../utils/i18n'
 
 const PLATFORM_META = {
   chzzk:  { label: '치지직', color: '#00DB72', bg: 'bg-[#00DB72]',        text: 'text-black',     icon: '/icons/chzzk.svg',  fallbackIcon: '🟢' },
@@ -8,12 +9,6 @@ const PLATFORM_META = {
   soop:   { label: '숲',     color: '#1A6BFF', bg: 'bg-[#1A6BFF]',        text: 'text-white',     icon: '/icons/soop.svg',   fallbackIcon: '🔵' },
 }
 
-const TABS = [
-  { key: 'all',    label: '전체' },
-  { key: 'drops',  label: '🎁 드롭스' },
-  { key: 'chzzk', label: '치지직' },
-  { key: 'twitch', label: '트위치' },
-]
 
 function fmtViewers(n) {
   if (n >= 10000) return `${(n / 10000).toFixed(1)}만`
@@ -165,6 +160,7 @@ function Pagination({ page, totalPages, onChange }) {
 }
 
 export default function StreamersPage() {
+  const { t } = useT()
   const [tab,       setTab]       = useState('all')
   const [page,      setPage]      = useState(1)
   const [query,     setQuery]     = useState('')
@@ -211,16 +207,23 @@ export default function StreamersPage() {
 
   const counts = data?.counts || {}
   const updatedLabel = data?.updatedAt
-    ? new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    ? new Date(data.updatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : null
+
+  const TABS = [
+    { key: 'all',    label: t('streamers.tab_all') },
+    { key: 'drops',  label: t('streamers.tab_drops') },
+    { key: 'chzzk',  label: t('streamers.tab_chzzk') },
+    { key: 'twitch', label: t('streamers.tab_twitch') },
+  ]
 
   return (
     <>
       <Head>
-        <title>배그 라이브 스트리머 | PKGG</title>
-        <meta name="description" content="치지직·트위치에서 지금 배틀그라운드 방송 중인 스트리머를 실시간으로 확인하세요." />
-        <meta property="og:title" content="배그 라이브 스트리머 | PKGG" />
-        <meta property="og:description" content="치지직·트위치 배그 라이브 스트리머 실시간 피드" />
+        <title>{t('streamers.title')} | PKGG</title>
+        <meta name="description" content={t('streamers.subtitle')} />
+        <meta property="og:title" content={`${t('streamers.title')} | PKGG`} />
+        <meta property="og:description" content={t('streamers.subtitle')} />
       </Head>
 
       <Header />
@@ -239,10 +242,10 @@ export default function StreamersPage() {
                   <span className="text-xs font-bold text-red-400 tracking-widest uppercase">Live Now</span>
                 </div>
                 <h1 className="text-xl sm:text-3xl font-black text-white">
-                  배그 라이브 스트리머
+                  {t('streamers.title')}
                 </h1>
                 <p className="text-gray-500 text-xs sm:text-sm mt-1">
-                  치지직 · 트위치에서 지금 배틀그라운드 방송 중인 스트리머
+                  {t('streamers.subtitle')}
                 </p>
               </div>
 
@@ -250,21 +253,21 @@ export default function StreamersPage() {
               <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-1 text-xs">
                 {!loading && data && (
                   <div className="flex items-center gap-3 text-gray-400">
-                    <span>🟢 치지직 {counts.chzzk ?? 0}명</span>
-                    <span>🟣 트위치 {counts.twitch ?? 0}명</span>
+                    <span>🟢 {t('streamers.tab_chzzk')} {counts.chzzk ?? 0}</span>
+                    <span>🟣 {t('streamers.tab_twitch')} {counts.twitch ?? 0}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1.5 text-gray-600 flex-wrap justify-end">
-                  {updatedLabel && <span className="hidden sm:inline">{updatedLabel} 기준</span>}
+                  {updatedLabel && <span className="hidden sm:inline">{updatedLabel} {t('streamers.based_on')}</span>}
                   <span className="flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')} 후 갱신
+                    {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')} {t('streamers.refresh_in')}
                   </span>
                   <button
                     onClick={fetchAll}
                     disabled={loading}
                     className="text-blue-500 hover:text-blue-400 disabled:opacity-40 transition-colors"
-                    title="지금 갱신"
+                    title={t('streamers.refresh_now')}
                   >
                     🔄
                   </button>
@@ -310,10 +313,9 @@ export default function StreamersPage() {
               )
             })}
 
-            {/* 트위치 미설정 안내 */}
             {!loading && tab === 'twitch' && counts.twitch === 0 && (
               <span className="flex-shrink-0 flex items-center text-xs text-gray-600">
-                환경변수 미설정
+                {t('streamers.env_missing')}
               </span>
             )}
           </div>
@@ -327,7 +329,7 @@ export default function StreamersPage() {
               type="text"
               value={query}
               onChange={(e) => { setQuery(e.target.value); setPage(1) }}
-              placeholder="스트리머명·방송제목 검색"
+              placeholder={t('streamers.search_ph')}
               className="w-full pl-8 pr-8 py-2.5 bg-gray-900 border border-gray-800 rounded-xl text-sm text-white placeholder-gray-600 focus:outline-none focus:border-gray-600"
             />
             {query && (
@@ -342,9 +344,9 @@ export default function StreamersPage() {
           {!loading && filtered.length > 0 && (
             <div className="flex items-center justify-between mb-3 text-xs text-gray-600">
               <span>
-                총 <span className="text-gray-400 font-bold">{filtered.length}명</span> 방송 중
+                <span className="text-gray-400 font-bold">{filtered.length}</span> {t('streamers.live_count').replace('{n}', '').trim() || 'live'}
               </span>
-              <span>{safePage} / {totalPages} 페이지</span>
+              <span>{t('streamers.page').replace('{cur}', safePage).replace('{total}', totalPages)}</span>
             </div>
           )}
 
@@ -358,14 +360,14 @@ export default function StreamersPage() {
               <div className="text-5xl mb-4">{query ? '🔍' : '😴'}</div>
               <p className="text-gray-500 text-sm">
                 {query
-                  ? `"${query}" 검색 결과가 없습니다.`
+                  ? t('streamers.no_result').replace('{q}', query)
                   : tab === 'twitch'
-                    ? '트위치 설정이 필요합니다. TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET 환경변수를 추가해주세요.'
-                    : '현재 방송 중인 스트리머가 없습니다.'}
+                    ? t('streamers.twitch_setup')
+                    : t('streamers.no_live')}
               </p>
               {query && (
                 <button onClick={() => setQuery('')} className="mt-3 text-xs text-blue-500 hover:text-blue-400">
-                  검색 초기화
+                  {t('streamers.clear_search')}
                 </button>
               )}
             </div>

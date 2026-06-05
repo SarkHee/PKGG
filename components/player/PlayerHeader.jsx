@@ -301,16 +301,20 @@ const PlayerHeader = ({
     <>
     {/* 최신화 로딩 오버레이 */}
     {refreshing && (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl px-8 py-7 flex flex-col items-center gap-4 shadow-2xl">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 backdrop-blur-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl px-8 py-7 flex flex-col items-center gap-4 shadow-2xl min-w-[260px]">
           <div className="relative w-14 h-14">
-            <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-blue-100 dark:border-blue-900" />
             <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
             <span className="absolute inset-0 flex items-center justify-center text-xl">🔄</span>
           </div>
           <div className="text-center">
-            <div className="text-sm font-bold text-gray-800 mb-0.5">{t('ph.refresh_overlay_title')}</div>
-            <div className="text-xs text-gray-400">{t('ph.refresh_overlay_desc')}</div>
+            <div className="text-sm font-bold text-gray-800 dark:text-white mb-1">{t('ph.refresh_overlay_title')}</div>
+            {refreshMsg ? (
+              <div className="text-xs text-blue-500 font-medium">{refreshMsg}</div>
+            ) : (
+              <div className="text-xs text-gray-400">{t('ph.refresh_overlay_desc')}</div>
+            )}
           </div>
           <div className="flex gap-1">
             {[0,1,2].map(i => (
@@ -402,11 +406,12 @@ const PlayerHeader = ({
                 {/* 업데이트 시간 (데스크탑) */}
                 {timeAgo(profile?.lastCachedAt, t) && (() => {
                   const isLive = dataSource === 'pubg_api_refreshed' || dataSource === 'pubg_api'
+                  const ago = timeAgo(profile.lastCachedAt, t)
                   return (
                     <span suppressHydrationWarning className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border flex-shrink-0 ${
                       isLive ? 'bg-emerald-900/50 border-emerald-600/50 text-emerald-300' : 'bg-gray-700/70 border-gray-600/50 text-gray-400'
-                    }`}>
-                      {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt, t)} {t('ph.update_label')}
+                    }`} title={profile.lastCachedAt ? new Date(profile.lastCachedAt).toLocaleString('ko-KR') : ''}>
+                      {isLive ? '✓' : '🕐'} {ago} {t('ph.update_label')}
                     </span>
                   )
                 })()}
@@ -421,7 +426,7 @@ const PlayerHeader = ({
                     <span suppressHydrationWarning className={`sm:hidden inline-flex items-center gap-0.5 text-[10px] font-medium ${
                       isLive ? 'text-emerald-400' : 'text-gray-500'
                     }`}>
-                      {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt, t)}
+                      {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt, t)} {t('ph.update_label')}
                     </span>
                   )
                 })()}

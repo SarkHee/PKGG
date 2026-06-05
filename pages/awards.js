@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import Header from '../components/layout/Header'
+import { useT } from '../utils/i18n'
 
 const ANIMATIONS = `
   @keyframes shimmer-sweep {
@@ -38,7 +39,7 @@ const ANIMATIONS = `
 `
 
 function cleanWeaponId(id) {
-  if (!id) return '알 수 없음'
+  if (!id) return id
   return id.replace(/^Weap/i, '').replace(/_C$/i, '').replace(/_/g, ' ')
 }
 
@@ -193,7 +194,7 @@ function PodiumSlot({ data, rank, formatValue, unit, linkable }) {
   )
 }
 
-function Podium({ entries, formatValue, unit, loading, linkable }) {
+function Podium({ entries, formatValue, unit, loading, linkable, loadingText }) {
   if (loading) {
     return (
       <div className="flex items-end justify-center gap-4 sm:gap-8 py-12 px-6">
@@ -211,7 +212,7 @@ function Podium({ entries, formatValue, unit, loading, linkable }) {
 
   const p = entries || []
   if (!p[0]) {
-    return <div className="py-24 text-center text-sm" style={{ color: '#374151' }}>데이터 집계 중이에요</div>
+    return <div className="py-24 text-center text-sm" style={{ color: '#374151' }}>{loadingText || '...'}</div>
   }
 
   const slots = [
@@ -229,25 +230,8 @@ function Podium({ entries, formatValue, unit, loading, linkable }) {
   )
 }
 
-const CLAN_CATS = [
-  { id: 'avgDamage',  icon: '🏆', label: '평균 딜량',   desc: '경기당 실딜 우선 · 30경기↑',      formatValue: (v) => v?.toFixed(1),      unit: '딜'  },
-  { id: 'avgKills',   icon: '💀', label: '평균 실킬',   desc: '경기당 봇킬 제외 · 30경기↑',      formatValue: (v) => v?.toFixed(2),      unit: '킬'  },
-  { id: 'winRate',    icon: '🛡️', label: '승률',        desc: '30경기↑ · 멤버 3명↑',            formatValue: (v) => v?.toFixed(1),      unit: '%'   },
-  { id: 'totalKills', icon: '🔥', label: '총 실킬',     desc: '시즌 전체 · 봇킬 제외',           formatValue: (v) => v?.toLocaleString(), unit: '킬'  },
-  { id: 'totalWins',  icon: '👑', label: '총 승리',     desc: '시즌 전체 1위 횟수',             formatValue: (v) => v?.toLocaleString(), unit: '회'  },
-  { id: 'growth',     icon: '📈', label: '성장왕',      desc: '시즌 초반 vs 최근 MMR 상승폭',    formatValue: (v) => v > 0 ? `+${v.toLocaleString()}` : v?.toLocaleString(), unit: 'MMR' },
-]
-
-const PLAYER_CATS = [
-  { id: 'avgKills',     icon: '💀', label: '평균 실킬',   desc: '경기당 봇킬 제외 · 20경기↑',   formatValue: (v) => v?.toFixed(2),      unit: '킬'  },
-  { id: 'avgDamage',   icon: '🏆', label: '평균 딜량',   desc: '경기당 봇킬 제외 · 20경기↑',   formatValue: (v) => v?.toFixed(1),      unit: '딜'  },
-  { id: 'winRate',      icon: '🛡️', label: '승률',        desc: '20경기 이상',                  formatValue: (v) => v?.toFixed(1),      unit: '%'   },
-  { id: 'totalKills',   icon: '🎯', label: '총 실킬',     desc: '시즌 전체 봇킬 제외',           formatValue: (v) => v?.toLocaleString(), unit: '킬'  },
-  { id: 'totalWins',    icon: '👑', label: '총 승리',     desc: '시즌 전체 1위 횟수',           formatValue: (v) => v?.toLocaleString(), unit: '회'  },
-  { id: 'weaponMaster', icon: '🔫', label: '무기 마스터', desc: '특정 무기 최다 킬',             formatValue: (v) => v?.toLocaleString(), unit: '킬'  },
-]
-
 export default function AwardsPage() {
+  const { t } = useT()
   const [tab,      setTab]      = useState('clan')
   const [clanCat,  setClanCat]  = useState('avgDamage')
   const [plrCat,   setPlrCat]   = useState('avgKills')
@@ -269,27 +253,46 @@ export default function AwardsPage() {
   }, [])
 
   const seasonLabel = clanData?.seasonStart
-    ? new Date(clanData.seasonStart).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
-    : '2026년 3월 12일'
+    ? new Date(clanData.seasonStart).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+    : '2026-03-12'
   const generatedAt = clanData?.generatedAt
-    ? new Date(clanData.generatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    ? new Date(clanData.generatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
     : null
 
+  const CLAN_CATS = [
+    { id: 'avgDamage',  icon: '🏆', label: t('aw.cat.avgDamage_label'), desc: t('aw.cat.avgDamage_desc') || '30경기↑', formatValue: (v) => v?.toFixed(1),      unit: t('aw.unit.dmg')  },
+    { id: 'avgKills',   icon: '💀', label: t('aw.cat.avgKills_label'),  desc: t('aw.cat.avgKills_desc')  || '30경기↑', formatValue: (v) => v?.toFixed(2),      unit: t('aw.unit.kill') },
+    { id: 'winRate',    icon: '🛡️', label: t('aw.cat.winRate_label'),   desc: t('aw.cat.winRate_desc')   || '',        formatValue: (v) => v?.toFixed(1),      unit: '%'               },
+    { id: 'totalKills', icon: '🔥', label: t('aw.cat.totalKills_label'),desc: t('aw.cat.totalKills_desc')|| '',        formatValue: (v) => v?.toLocaleString(), unit: t('aw.unit.kill') },
+    { id: 'totalWins',  icon: '👑', label: t('aw.cat.totalWins_label'), desc: t('aw.cat.totalWins_desc') || '',        formatValue: (v) => v?.toLocaleString(), unit: t('aw.unit.win')  },
+    { id: 'growth',     icon: '📈', label: t('aw.cat.growth_label'),    desc: t('aw.cat.growth_desc')    || '',        formatValue: (v) => v > 0 ? `+${v.toLocaleString()}` : v?.toLocaleString(), unit: 'MMR' },
+  ]
+  const PLAYER_CATS = [
+    { id: 'avgKills',     icon: '💀', label: t('aw.cat.avgKills_label'),    desc: t('aw.cat.avgKills_desc')    || '', formatValue: (v) => v?.toFixed(2),      unit: t('aw.unit.kill') },
+    { id: 'avgDamage',   icon: '🏆', label: t('aw.cat.avgDamage_label'),   desc: t('aw.cat.avgDamage_desc')   || '', formatValue: (v) => v?.toFixed(1),      unit: t('aw.unit.dmg')  },
+    { id: 'winRate',      icon: '🛡️', label: t('aw.cat.winRate_label'),     desc: t('aw.cat.winRate_desc')     || '', formatValue: (v) => v?.toFixed(1),      unit: '%'               },
+    { id: 'totalKills',   icon: '🎯', label: t('aw.cat.totalKills_label'),  desc: t('aw.cat.totalKills_desc')  || '', formatValue: (v) => v?.toLocaleString(), unit: t('aw.unit.kill') },
+    { id: 'totalWins',    icon: '👑', label: t('aw.cat.totalWins_label'),   desc: t('aw.cat.totalWins_desc')   || '', formatValue: (v) => v?.toLocaleString(), unit: t('aw.unit.win')  },
+    { id: 'weaponMaster', icon: '🔫', label: t('aw.cat.weapon_label'),      desc: t('aw.cat.weapon_desc')      || '', formatValue: (v) => v?.toLocaleString(), unit: t('aw.unit.kill') },
+  ]
+
+  const mu = t('aw.members_unit') || '명'
+  const mch = t('aw.matches') || '경기'
   const clanAwards = clanData ? {
-    avgDamage:  (clanData.avgDamage  || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}경기 · ${r.members}명` })),
-    avgKills:   (clanData.avgKills   || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}경기 · ${r.members}명` })),
-    winRate:    (clanData.winRate    || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}경기 · ${r.members}명` })),
-    totalKills: (clanData.totalKills || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}경기 분석` })),
-    totalWins:  (clanData.totalWins  || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}경기 중` })),
-    growth:     (clanData.growth     || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `멤버 ${r.members}명 기준` })),
+    avgDamage:  (clanData.avgDamage  || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}${mch} · ${r.members}${mu}` })),
+    avgKills:   (clanData.avgKills   || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}${mch} · ${r.members}${mu}` })),
+    winRate:    (clanData.winRate    || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}${mch} · ${r.members}${mu}` })),
+    totalKills: (clanData.totalKills || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}${mch}` })),
+    totalWins:  (clanData.totalWins  || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.matches?.toLocaleString()}${mch}` })),
+    growth:     (clanData.growth     || []).map((r) => ({ name: r.tag ? `[${r.tag}] ${r.name}` : r.name, value: r.value, sub: `${r.members}${mu}` })),
   } : {}
 
   const playerAwards = playerData ? {
-    avgKills:     (playerData.avgKills     || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}경기`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
-    avgDamage:    (playerData.avgDamage    || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}경기`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
-    winRate:      (playerData.winRate      || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}경기`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
-    totalKills:   (playerData.totalKills   || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}경기`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
-    totalWins:    (playerData.totalWins    || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}경기`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
+    avgKills:     (playerData.avgKills     || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}${mch}`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
+    avgDamage:    (playerData.avgDamage    || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}${mch}`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
+    winRate:      (playerData.winRate      || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}${mch}`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
+    totalKills:   (playerData.totalKills   || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}${mch}`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
+    totalWins:    (playerData.totalWins    || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: `${r.matches?.toLocaleString()}${mch}`, href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
     weaponMaster: (playerData.weaponMaster || []).map((r) => ({ name: r.nickname||'—', value: r.value, sub: cleanWeaponId(r.weaponName), href: r.nickname ? `/player/${r.shard||'steam'}/${encodeURIComponent(r.nickname)}` : null })),
   } : {}
 
@@ -304,8 +307,8 @@ export default function AwardsPage() {
     <>
       <style>{ANIMATIONS}</style>
       <Head>
-        <title>배그 시즌 어워드 | PKGG</title>
-        <meta name="description" content="이번 시즌 최고의 클랜과 플레이어를 확인하세요. PKGG 시즌 어워드." />
+        <title>{t('aw.meta_title')}</title>
+        <meta name="description" content={t('aw.meta_desc')} />
       </Head>
 
       <Header />
@@ -334,13 +337,13 @@ export default function AwardsPage() {
               fontSize: 'clamp(2rem, 5vw, 3.5rem)',
               textShadow: '0 0 60px rgba(251,191,36,0.2)',
             }}>
-              이번 시즌{' '}
+              {t('aw.hero_title')}{' '}
               <span style={{
                 background: 'linear-gradient(135deg, #fef08a 0%, #f59e0b 40%, #fef3c7 70%, #d97706 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}>
-                최고의 영웅들
+                {t('aw.hero_sub')}
               </span>
             </h1>
             <p style={{ color: '#4b5563', fontSize: 12 }}>
@@ -362,7 +365,7 @@ export default function AwardsPage() {
                 color: '#fff',
                 boxShadow: '0 4px 16px rgba(37,99,235,0.35)',
               } : { color: '#6b7280' }}>
-              🛡️ 클랜 어워드
+              {t('aw.tab_clan')}
             </button>
             <button onClick={() => setTab('player')}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
@@ -371,7 +374,7 @@ export default function AwardsPage() {
                 color: '#1c1917',
                 boxShadow: '0 4px 16px rgba(217,119,6,0.35)',
               } : { color: '#6b7280' }}>
-              🎯 플레이어 어워드
+              {t('aw.tab_player')}
             </button>
           </div>
 
@@ -433,18 +436,19 @@ export default function AwardsPage() {
               unit={activeCat.unit}
               loading={loading}
               linkable={!isClan}
+              loadingText={t('aw.loading')}
             />
           </div>
 
           {/* ── 집계 기준 ── */}
           <div className="mt-10 p-4 rounded-2xl" style={{ background: 'rgba(17,24,39,0.5)', border: '1px solid rgba(31,41,55,0.8)' }}>
-            <p className="text-xs font-bold mb-2" style={{ color: '#4b5563' }}>📌 집계 기준</p>
+            <p className="text-xs font-bold mb-2" style={{ color: '#4b5563' }}>{t('aw.criteria_title')}</p>
             <ul className="space-y-1" style={{ fontSize: 11, color: '#374151' }}>
-              <li>• 이벤트 / 훈련 / 연습장 경기 제외</li>
-              <li>• 클랜: 멤버 3명↑ + 시즌 30경기↑ 클랜만 집계 · 클랜 이름 클릭 비활성화</li>
-              <li>• 플레이어: 시즌 20경기↑ 분석 완료만 집계 · 닉네임 클릭 시 전적 이동</li>
-              <li>• 킬: 봇킬 분석 완료 경기는 실킬 사용, 미완료 경기는 총킬 사용</li>
-              <li>• 성장왕: 시즌 초반 1달 vs 최근 30일 PKGG 스냅샷 평균 비교</li>
+              <li>• {t('aw.criteria_1')}</li>
+              <li>• {t('aw.criteria_2')}</li>
+              <li>• {t('aw.criteria_3')}</li>
+              <li>• {t('aw.criteria_4')}</li>
+              <li>• {t('aw.criteria_5')}</li>
             </ul>
           </div>
         </div>

@@ -39,14 +39,12 @@ const TIER_DARK = {
   Silver:   { color: 'text-gray-300',   bg: 'bg-gray-400/10 border-gray-400/30'     },
   Bronze:   { color: 'text-amber-500',  bg: 'bg-amber-500/10 border-amber-500/30'   },
 };
-const TIER_DESC = {
-  Legend: '최상위 클랜', Master: '마스터 클랜', Diamond: '상위 클랜',
-  Platinum: '고수 클랜', Gold: '평균 이상', Silver: '평균 수준', Bronze: '성장 중',
-};
-function clanGrade(mmr) {
+function clanGrade(mmr, t) {
   const tier = getMMRTier(mmr);
   const s = TIER_DARK[tier.label] || TIER_DARK.Bronze;
-  return { grade: tier.emoji, label: tier.label, ...s, desc: `${tier.label} — ${TIER_DESC[tier.label] || ''}` };
+  const descKey = `cd.tier.${tier.label.toLowerCase()}`;
+  const desc = t ? t(descKey) : tier.label;
+  return { grade: tier.emoji, label: tier.label, ...s, desc: `${tier.label} — ${desc}` };
 }
 
 // ─── 소형 컴포넌트 ───────────────────────────────────────────────────────────
@@ -246,7 +244,7 @@ export default function ClanDetail() {
   }
 
   const { clan, ranking, members, stats, distribution, topPerformers, styleDistribution, strengths, weaknesses } = clanData;
-  const grade = stats?.avgMMR ? clanGrade(Number(stats.avgMMR)) : null;
+  const grade = stats?.avgMMR ? clanGrade(Number(stats.avgMMR), t) : null;
 
   // ── 접근 권한 계산 ───────────────────────────────────────────────────────────
   // 로그인 유저: 모든 클랜 전체 열람 가능
@@ -271,8 +269,8 @@ export default function ClanDetail() {
     { id: 'members', name: t('cd.tab_members'), icon: '👥' },
     { id: 'stats', name: t('cd.tab_stats'), icon: '📈' },
     { id: 'analysis', name: t('cd.tab_analysis'), icon: '🔍' },
-    { id: 'ranking', name: '랭킹', icon: '🏆' },
-    { id: 'custom', name: '커스텀', icon: '⚡' },
+    { id: 'ranking', name: t('cd.tab_ranking'), icon: '🏆' },
+    { id: 'custom',  name: t('cd.tab_custom'),  icon: '⚡' },
   ];
 
   const clanTitle = clan?.name ? `${clan.name} 배그 클랜 분석 | PKGG` : '배그 클랜 분석 | PKGG';
@@ -403,7 +401,7 @@ export default function ClanDetail() {
           <div className="bg-blue-950/60 border-b border-blue-800/50 px-4 py-3">
             <div className="max-w-6xl mx-auto flex items-center justify-between gap-3 flex-wrap">
               <div className="text-sm text-blue-300">
-                구글 로그인 후 클랜 상세 데이터를 전체 열람할 수 있습니다.
+                {t('cd.login_required')}
                 <span className="text-blue-400/70 text-xs ml-2">(로그인 후 마이페이지에서 PUBG 닉네임을 연동하세요)</span>
               </div>
               {!user && (
@@ -417,7 +415,7 @@ export default function ClanDetail() {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  구글 로그인
+                  {t('cd.login_btn')}
                 </button>
               )}
             </div>
@@ -573,8 +571,8 @@ export default function ClanDetail() {
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-950/70 backdrop-blur-sm rounded-xl">
                     <div className="text-center px-6">
                       <div className="text-2xl mb-2">🔒</div>
-                      <div className="text-sm font-semibold text-white mb-1">멤버 상세 데이터 잠금</div>
-                      <p className="text-xs text-gray-400 mb-2">구글 로그인 후 전체 열람 가능합니다</p>
+                      <div className="text-sm font-semibold text-white mb-1">{t('cd.locked_title')}</div>
+                      <p className="text-xs text-gray-400 mb-2">{t('cd.locked_desc')}</p>
                       <p className="text-xs text-gray-500 mb-3">콘솔 유저도 구글 계정으로 로그인하세요<br/>로그인 후 마이페이지에서 PUBG 닉네임 연동</p>
                       {!user && (
                         <button
@@ -587,7 +585,7 @@ export default function ClanDetail() {
                             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
                             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                           </svg>
-                          구글 로그인
+                          {t('cd.login_btn')}
                         </button>
                       )}
                     </div>
@@ -1032,8 +1030,8 @@ function ClanRankingTab({ data, loading }) {
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-wrap">
             <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">정렬:</span>
             {[
-              { key: 'mmr', label: 'MMR' }, { key: 'damage', label: '딜량' },
-              { key: 'kills', label: '킬' }, { key: 'winRate', label: '승률' }, { key: 'top10', label: 'Top10' },
+              { key: 'mmr', label: 'MMR' }, { key: 'damage', label: t('cd.stat.damage') },
+              { key: 'kills', label: t('cd.stat.kills') }, { key: 'winRate', label: t('cd.stat.winrate') }, { key: 'top10', label: 'Top10' },
             ].map(({ key, label }) => (
               <button key={key} onClick={() => setLbSort(key)}
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${lbSort === key ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
@@ -1057,9 +1055,9 @@ function ClanRankingTab({ data, loading }) {
                 {m.hasData ? (
                   <div className="grid grid-cols-4 gap-1">
                     {[
-                      { label: '딜량', val: m.avgDamage.toLocaleString(), cls: 'text-gray-300' },
-                      { label: '킬',   val: m.avgKills,                   cls: 'text-gray-300' },
-                      { label: '승률', val: `${m.winRate}%`,              cls: 'text-green-400' },
+                      { label: t('cd.stat.damage'), val: m.avgDamage.toLocaleString(), cls: 'text-gray-300' },
+                      { label: t('cd.stat.kills'),  val: m.avgKills,                   cls: 'text-gray-300' },
+                      { label: t('cd.stat.winrate'), val: `${m.winRate}%`, cls: 'text-green-400' },
                       { label: 'Top10',val: `${m.top10Rate}%`,            cls: 'text-purple-400' },
                     ].map(({ label, val, cls }) => (
                       <div key={label} className="text-center bg-gray-100 dark:bg-gray-700/40 rounded py-1">
@@ -1166,8 +1164,8 @@ function ClanRankingTab({ data, loading }) {
                     <div className="grid grid-cols-4 gap-1">
                       {[
                         { label: '게임', val: m.matches,                  cls: 'text-gray-400' },
-                        { label: '딜량', val: m.avgDamage.toLocaleString(), cls: 'text-orange-400' },
-                        { label: '킬',   val: m.avgKills,                  cls: 'text-red-400' },
+                        { label: t('cd.stat.damage'), val: m.avgDamage.toLocaleString(), cls: 'text-orange-400' },
+                        { label: t('cd.stat.kills'),  val: m.avgKills,                  cls: 'text-red-400' },
                         { label: '승',   val: `${m.wins}회`,               cls: 'text-green-400' },
                       ].map(({ label, val, cls }) => (
                         <div key={label} className="text-center bg-gray-100 dark:bg-gray-700/40 rounded py-1">

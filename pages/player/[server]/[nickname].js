@@ -1175,16 +1175,24 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
   };
 
   // 최신화 버튼 클릭 핸들러 - PUBG API에서 새로 불러와 DB 갱신
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     if (refreshing || cooldown > 0) return;
     setRefreshing(true);
-    setRefreshMsg('최신화 중...');
-    // ?force=1 쿼리 파라미터로 이동 → getServerSideProps에서 DB 캐시 무시하고 API 재호출
+    setRefreshMsg('캐시 초기화 중...');
+
     const { server: srv, nickname: nick } = router.query;
+
+    // 1단계: 클라이언트 인메모리 캐시 즉시 제거
+    const cKey = `${srv}_${nick}`;
+    try { localStorage.removeItem(`pkgg_player_${cKey}`); } catch {}
+
+    setRefreshMsg('PUBG API에서 최신 데이터 불러오는 중...');
+
+    // 2단계: ?force=1 로 이동 → 서버에서 Redis + 인메모리 캐시 무효화 후 API 재호출
     router.push(`/player/${srv}/${nick}?force=1`).finally(() => {
       setRefreshing(false);
       setRefreshMsg('');
-      setCooldown(30);
+      setCooldown(60); // 새로고침 후 60초 쿨다운
     });
   };
 
@@ -1588,11 +1596,11 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
   })()
 
   const SECTION_TABS = [
-    { key: 'overall',  label: '종합 전적',    icon: '📊' },
-    { key: 'analysis', label: '플레이어 분석', icon: '🔍' },
-    { key: 'weapons',  label: '무기 통계',     icon: '🔫' },
-    { key: 'team',     label: '팀 분석',       icon: '👥' },
-    { key: 'ai',       label: 'AI 코칭',       icon: '🤖' },
+    { key: 'overall',  label: t('player.tab.overall'),  icon: '📊' },
+    { key: 'analysis', label: t('player.tab.analysis'), icon: '🔍' },
+    { key: 'weapons',  label: t('player.tab.weapons'),  icon: '🔫' },
+    { key: 'team',     label: t('player.tab.team'),     icon: '👥' },
+    { key: 'ai',       label: t('player.tab.ai'),       icon: '🤖' },
   ]
 
   return (
@@ -1729,21 +1737,21 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
                   <div className="border-b border-gray-100 dark:border-gray-700 px-4 py-3 overflow-x-auto">
                     <div className="flex gap-1 min-w-max">
                       {[
-                        { label: '전체', key: '전체' },
-                        { label: '경쟁전', key: '경쟁전' },
-                        { label: '솔로', key: '솔로' },
-                        { label: '듀오', key: '듀오' },
-                        { label: '스쿼드', key: '스쿼드' },
-                        { label: '경쟁전 솔로', key: '경쟁전 솔로' },
-                        { label: '1인칭 솔로', key: '솔로 FPP' },
-                        { label: '3인칭 솔로', key: '솔로 TPP' },
-                        { label: '1인칭 듀오', key: '듀오 FPP' },
-                        { label: '3인칭 듀오', key: '듀오 TPP' },
-                        { label: '1인칭 스쿼드', key: '스쿼드 FPP' },
-                        { label: '3인칭 스쿼드', key: '스쿼드 TPP' },
-                        { label: '🍗 치킨', key: '치킨' },
-                        { label: '🎉 이벤트', key: '이벤트' },
-                        { label: '🤖 봇포함경기', key: '봇포함경기' },
+                        { label: t('player.filter.all'),         key: '전체' },
+                        { label: t('player.filter.ranked'),      key: '경쟁전' },
+                        { label: t('player.filter.solo'),        key: '솔로' },
+                        { label: t('player.filter.duo'),         key: '듀오' },
+                        { label: t('player.filter.squad'),       key: '스쿼드' },
+                        { label: t('player.filter.ranked_solo'), key: '경쟁전 솔로' },
+                        { label: t('player.filter.solo_fpp'),    key: '솔로 FPP' },
+                        { label: t('player.filter.solo_tpp'),    key: '솔로 TPP' },
+                        { label: t('player.filter.duo_fpp'),     key: '듀오 FPP' },
+                        { label: t('player.filter.duo_tpp'),     key: '듀오 TPP' },
+                        { label: t('player.filter.squad_fpp'),   key: '스쿼드 FPP' },
+                        { label: t('player.filter.squad_tpp'),   key: '스쿼드 TPP' },
+                        { label: t('player.filter.chicken'),     key: '치킨' },
+                        { label: t('player.filter.event'),       key: '이벤트' },
+                        { label: t('player.filter.bot'),         key: '봇포함경기' },
                       ].map(({ label, key }) => (
                         <button
                           key={key}
@@ -2403,11 +2411,18 @@ export async function getServerSideProps({ params, query }) {
   const { server, nickname } = params;
   const forceRefresh = query.force === '1';
   const { calculateMMR: calcMMR } = require('../../../utils/mmrCalculator');
-  const { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache } = require('../../../utils/pubgApiCache');
+  const { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache, invalidateCache } = require('../../../utils/pubgApiCache');
+  const { invalidatePlayerCache } = require('../../../utils/redis');
   const PUBG_BASE = 'https://api.pubg.com/shards';
   const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
-  // ── 1순위: 인메모리 닉네임 캐시 (5분, PUBG API + DB 완전 스킵) ──
+  // ── force=1: Redis + 인메모리 캐시 즉시 무효화 ──
+  if (forceRefresh) {
+    invalidatePlayerCache(server, nickname).catch(() => {});
+    invalidateCache(`${PUBG_BASE}/${server}/players?filter[playerNames]=${nickname}`);
+  }
+
+  // ── 1순위: 인메모리 닉네임 캐시 (30분, PUBG API + DB 완전 스킵) ──
   if (!forceRefresh) {
     const memCached = getPlayerDataCache(nickname, server);
     if (memCached) {

@@ -10,13 +10,14 @@ import { getMMRTier } from '../utils/mmrCalculator';
 import { toPng } from 'html-to-image';
 
 // 레이더 축 정의 — label, key, max(정규화기준), 실제값 포매터
-const RADAR_AXES = [
-  { label: '딜량',  key: 'avgDamage',      max: 600,  fmt: (v) => `${Math.round(v)}딜` },
-  { label: '킬',    key: 'avgKills',        max: 6,    fmt: (v) => `${(+v).toFixed(2)}킬` },
-  { label: '승률',  key: 'winRate',         max: 25,   fmt: (v) => `${(+v).toFixed(1)}%` },
-  { label: 'Top10', key: 'top10Rate',       max: 70,   fmt: (v) => `${(+v).toFixed(1)}%` },
-  { label: '생존',  key: 'avgSurviveTime',  max: 1800, fmt: (v) => `${Math.floor(v/60)}m` },
-  { label: '어시',  key: 'avgAssists',      max: 3,    fmt: (v) => `${(+v).toFixed(2)}` },
+// RADAR_AXES labels are computed inside component with t()
+const RADAR_AXES_KEYS = [
+  { tKey: 'cmp.stat.damage',  key: 'avgDamage',     max: 600,  fmt: (v) => Math.round(v) },
+  { tKey: 'cmp.stat.kills',   key: 'avgKills',       max: 6,    fmt: (v) => (+v).toFixed(2) },
+  { tKey: 'cmp.stat.winrate', key: 'winRate',        max: 25,   fmt: (v) => `${(+v).toFixed(1)}%` },
+  { tKey: 'Top10',            key: 'top10Rate',      max: 70,   fmt: (v) => `${(+v).toFixed(1)}%` },
+  { tKey: 'cmp.stat.survive', key: 'avgSurviveTime', max: 1800, fmt: (v) => `${Math.floor(v/60)}m` },
+  { tKey: 'cmp.stat.assists', key: 'avgAssists',     max: 3,    fmt: (v) => (+v).toFixed(2) },
 ];
 
 function normalize(val, max) {
@@ -497,12 +498,12 @@ function PlayerCard({ player, side }) {
       {stats.hasData ? (
         <div className="w-full grid grid-cols-3 gap-2 text-center">
           {[
-            { label: '평균딜', value: (stats.avgDamage || 0).toLocaleString() },
-            { label: '평균킬', value: (stats.avgKills  || 0).toFixed(2) },
-            { label: '승률',   value: (stats.winRate   || 0).toFixed(1) + '%' },
+            { label: t('cmp.stat.avg_damage'), value: (stats.avgDamage || 0).toLocaleString() },
+            { label: t('cmp.stat.avg_kills'),  value: (stats.avgKills  || 0).toFixed(2) },
+            { label: t('cmp.stat.winrate'),    value: (stats.winRate   || 0).toFixed(1) + '%' },
             { label: 'Top10',  value: (stats.top10Rate || 0).toFixed(1) + '%' },
-            { label: '생존',   value: `${surv}m${String(Math.round(survSec)).padStart(2,'0')}s` },
-            { label: '게임수', value: (stats.roundsPlayed || 0).toLocaleString() },
+            { label: t('cmp.stat.survive'),    value: `${surv}m${String(Math.round(survSec)).padStart(2,'0')}s` },
+            { label: t('cmp.stat.games'),      value: (stats.roundsPlayed || 0).toLocaleString() },
           ].map(({ label, value }) => (
             <div key={label} className="bg-gray-100 dark:bg-gray-800/60 rounded-lg py-2 px-1">
               <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
@@ -511,7 +512,7 @@ function PlayerCard({ player, side }) {
           ))}
         </div>
       ) : (
-        <div className="text-gray-500 text-sm text-center px-2">분석할 경기의 수가 부족합니다</div>
+        <div className="text-gray-500 text-sm text-center px-2">{t('cmp.no_data')}</div>
       )}
     </div>
   );
@@ -528,10 +529,10 @@ function BattleShareCard({ playerA, playerB, cardRef }) {
                : null;
 
   const stats = [
-    { label: '평균딜', dispA: Math.round(playerA.avgDamage || 0).toLocaleString(), dispB: Math.round(playerB.avgDamage || 0).toLocaleString(), rawA: playerA.avgDamage || 0, rawB: playerB.avgDamage || 0 },
-    { label: '평균킬', dispA: (playerA.avgKills ?? 0).toFixed(2), dispB: (playerB.avgKills ?? 0).toFixed(2), rawA: playerA.avgKills || 0, rawB: playerB.avgKills || 0 },
-    { label: '승률',   dispA: (playerA.winRate ?? 0).toFixed(1) + '%', dispB: (playerB.winRate ?? 0).toFixed(1) + '%', rawA: playerA.winRate || 0, rawB: playerB.winRate || 0 },
-    { label: 'Top10',  dispA: (playerA.top10Rate ?? 0).toFixed(1) + '%', dispB: (playerB.top10Rate ?? 0).toFixed(1) + '%', rawA: playerA.top10Rate || 0, rawB: playerB.top10Rate || 0 },
+    { label: t('cmp.stat.avg_damage'), dispA: Math.round(playerA.avgDamage || 0).toLocaleString(), dispB: Math.round(playerB.avgDamage || 0).toLocaleString(), rawA: playerA.avgDamage || 0, rawB: playerB.avgDamage || 0 },
+    { label: t('cmp.stat.avg_kills'),  dispA: (playerA.avgKills ?? 0).toFixed(2), dispB: (playerB.avgKills ?? 0).toFixed(2), rawA: playerA.avgKills || 0, rawB: playerB.avgKills || 0 },
+    { label: t('cmp.stat.winrate'),    dispA: (playerA.winRate ?? 0).toFixed(1) + '%', dispB: (playerB.winRate ?? 0).toFixed(1) + '%', rawA: playerA.winRate || 0, rawB: playerB.winRate || 0 },
+    { label: 'Top10',                  dispA: (playerA.top10Rate ?? 0).toFixed(1) + '%', dispB: (playerB.top10Rate ?? 0).toFixed(1) + '%', rawA: playerA.top10Rate || 0, rawB: playerB.top10Rate || 0 },
   ];
 
   const s = (obj) => obj; // inline style helper
@@ -798,6 +799,10 @@ function AiComparison({ playerA, playerB }) {
 export default function ComparePage() {
   const router       = useRouter();
   const { t }        = useT();
+  const RADAR_AXES = RADAR_AXES_KEYS.map(a => ({
+    ...a,
+    label: a.tKey.startsWith('cmp.') ? t(a.tKey) : a.tKey,
+  }));
   const [inputA, setInputA] = useState('');
   const [inputB, setInputB] = useState('');
   const [data, setData]     = useState(null);
@@ -886,9 +891,9 @@ export default function ComparePage() {
         <div className="bg-gray-100 dark:bg-gradient-to-b dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-transparent py-10 px-4">
           <div className="max-w-2xl mx-auto text-center mb-8">
             <h1 className="text-3xl font-bold mb-2">
-              ⚔️ 플레이어 비교
+              ⚔️ {t('cmp.title')}
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">두 플레이어의 이번 시즌 통계를 나란히 비교합니다 · 플랫폼 자동 감지</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">{t('cmp.enter_nicknames')}</p>
           </div>
 
           {/* ── 검색 폼 ── */}
@@ -918,7 +923,7 @@ export default function ComparePage() {
                 disabled={loading}
                 className="bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg transition-colors"
               >
-                {loading ? '조회 중…' : '비교하기'}
+                {loading ? t('cmp.comparing') : t('cmp.compare_btn')}
               </button>
             </div>
           </form>
@@ -938,7 +943,7 @@ export default function ComparePage() {
           {loading && (
             <div className="text-center py-20 text-gray-500 dark:text-gray-400">
               <div className="text-4xl mb-4 animate-pulse">⚔️</div>
-              <div>플레이어 데이터 불러오는 중…</div>
+              <div>{t('cmp.comparing')}</div>
             </div>
           )}
 
@@ -946,8 +951,7 @@ export default function ComparePage() {
           {!data && !loading && !error && (
             <div className="text-center py-20 text-gray-500 dark:text-gray-500">
               <div className="text-5xl mb-4">⚔️</div>
-              <div className="text-lg">비교할 두 플레이어 닉네임을 입력하세요</div>
-              <div className="text-sm mt-2">공유 URL로 바로 비교 결과를 전달할 수 있습니다</div>
+              <div className="text-lg">{t('cmp.enter_nicknames')}</div>
             </div>
           )}
 

@@ -14,7 +14,7 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 export default redis;
 
 export const REDIS_TTL = {
-  PLAYER:      60 * 10,   // 10분
+  PLAYER:      60 * 30,   // 30분
   AI_ANALYSIS: 60 * 60,   // 1시간
 };
 
@@ -42,4 +42,21 @@ export async function redisSet(key, value, ttlSeconds = REDIS_TTL.PLAYER) {
 /** 플레이어 캐시 키 규칙: player:{shard}:{nickname_lowercase} */
 export function playerCacheKey(shard, nickname) {
   return `player:${shard}:${nickname.toLowerCase()}`;
+}
+
+/** 플레이어 관련 Redis 캐시 전체 무효화 (새로고침 버튼 클릭 시 사용) */
+export async function invalidatePlayerCache(shard, nickname) {
+  if (!redis) return;
+  const nick = nickname.toLowerCase();
+  const keys = [
+    `player:${shard}:${nick}`,
+    `search:${shard}:${nick}`,
+    `ai-analysis:nick:${nick}:${shard}`,
+  ];
+  try {
+    await Promise.allSettled(keys.map(k => redis.del(k)));
+    console.log(`[Redis] 캐시 무효화: ${shard}:${nick}`);
+  } catch (e) {
+    console.warn('[Redis] 캐시 무효화 실패:', e.message);
+  }
 }
