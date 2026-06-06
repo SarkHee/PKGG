@@ -5,8 +5,6 @@ import dynamic from 'next/dynamic';
 import { calculateMMR } from '../../../utils/mmrCalculator';
 import { classifyPlaystyle } from '../../../utils/playstyleClassifier';
 import { useT } from '../../../utils/i18n';
-import { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache, invalidateCache } from '../../../utils/pubgApiCache';
-import { invalidatePlayerCache } from '../../../utils/redis';
 
 import Header from '../../../components/layout/Header';
 import PlayerHeader from '../../../components/player/PlayerHeader';
@@ -2414,6 +2412,8 @@ async function getPlayerFromDB(nickname, server) {
 export async function getServerSideProps({ params, query }) {
   const { server, nickname } = params;
   const forceRefresh = query.force === '1';
+  const { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache, invalidateCache } = await import('../../../utils/pubgApiCache');
+  const { invalidatePlayerCache } = await import('../../../utils/redis');
   const PUBG_BASE = 'https://api.pubg.com/shards';
   const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
