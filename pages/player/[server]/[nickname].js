@@ -2602,7 +2602,7 @@ export async function getServerSideProps({ params, query }) {
                     winRate:        parseFloat(((tw / tr) * 100).toFixed(1)),
                     top10Rate:      parseFloat(((tt / tr) * 100).toFixed(1)),
                   };
-                  const freshMMR = calcMMR(freshSummary);
+                  const freshMMR = calculateMMR(freshSummary);
                   // DB에 저장된 mmr보다 크면 보완 (경쟁전 포함 계산이 더 정확)
                   if (freshMMR > (cached.mmr || 0)) {
                     cached.mmr = freshMMR;
@@ -3073,7 +3073,7 @@ export async function getServerSideProps({ params, query }) {
       clanMembers: [],
       rankedStats: [],
       rankedSummary: pubgRankedSummary,
-      mmr: pubgSummaryFromStats ? calcMMR(pubgSummaryFromStats) : 1000,
+      mmr: pubgSummaryFromStats ? calculateMMR(pubgSummaryFromStats) : 1000,
     };
 
     // Step 6: 백그라운드 DB 저장 (upsert) + 매치 저장
@@ -3123,7 +3123,7 @@ export async function getServerSideProps({ params, query }) {
             winRate: m.winRate || 0,
             top10Rate: m.top10Rate || 0,
             style: m.style || '-',
-            mmr: calcMMR({ avgDamage: m.avgDamage, avgKills: m.avgKills, winRate: m.winRate, top10Rate: m.top10Rate }),
+            mmr: calculateMMR({ avgDamage: m.avgDamage, avgKills: m.avgKills, winRate: m.winRate, top10Rate: m.top10Rate }),
           }));
         }
         await prisma.$disconnect();
