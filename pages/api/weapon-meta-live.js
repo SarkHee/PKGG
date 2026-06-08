@@ -49,7 +49,7 @@ function normalizeId(raw) {
 
 function getPeriod(period) {
   const now = new Date()
-  if (period === 'season') return { start: null, prevStart: null, prevEnd: null }
+  if (period === 'season') return { start: new Date('2026-03-12'), prevStart: null, prevEnd: null }
   const days = period === 'month' ? 30 : 7
   const start     = new Date(now - days * 86400000)
   const prevStart = new Date(now - days * 2 * 86400000)
