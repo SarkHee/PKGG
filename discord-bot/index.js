@@ -35,6 +35,54 @@ function tierInfo(mmr) {
 
 function tierEmoji(mmr) { return tierInfo(mmr).emoji }
 
+// PUBG 경쟁전 티어 → 한국어 + 이모지
+const RANKED_TIER_KO = {
+  Bronze:   { label: '브론즈',   emoji: '🥉' },
+  Silver:   { label: '실버',     emoji: '🥈' },
+  Gold:     { label: '골드',     emoji: '🥇' },
+  Platinum: { label: '플래티넘', emoji: '💠' },
+  Diamond:  { label: '다이아',   emoji: '💎' },
+  Master:   { label: '마스터',   emoji: '👑' },
+}
+
+// 경쟁전 티어 정보 조회 (seasons → ranked stats 순서)
+async function fetchRankedInfo(shard, accountId) {
+  try {
+    const seasonData = await fetchJson(`${PKGG}/api/pubg/seasons?shard=${shard}`)
+    const seasonId = seasonData?.currentSeasonId
+    if (!seasonId) return null
+
+    const rankedData = await fetchJson(
+      `${PKGG}/api/pubg/stats/ranked/${shard}/${accountId}/${seasonId}`
+    )
+    const modeStats = rankedData?.data?.rankedGameModeStats || {}
+    // squad-fpp 우선, 없으면 squad
+    const mode = modeStats['squad-fpp'] || modeStats['squad'] || Object.values(modeStats)[0]
+    if (!mode || !mode.roundsPlayed) return null
+
+    const tier    = mode.currentTier?.tier    || ''
+    const subTier = mode.currentTier?.subTier || ''
+    const rp      = mode.currentRankPoint     || 0
+    const games   = mode.roundsPlayed         || 0
+    const wins    = mode.wins                 || 0
+    const kd      = games > 0
+      ? ((mode.kills || 0) / Math.max(1, games - wins)).toFixed(2)
+      : '0.00'
+
+    const info = RANKED_TIER_KO[tier]
+    if (!info) return null
+
+    return {
+      label:    `${info.emoji} ${info.label}${subTier && subTier !== 'I' && tier !== 'Master' ? ' ' + subTier : ''}`,
+      rp,
+      games,
+      kd,
+    }
+  } catch {
+    return null
+  }
+}
+
 async function fetchJson(url) {
   const res = await fetch(url)
   if (!res.ok) {
@@ -85,7 +133,8 @@ client.once('clientReady', () => {
 const SHARD_LABEL = { steam: '🎮 Steam', kakao: '🟡 카카오' }
 
 // 플레이어 결과 → Discord Embed + 버튼 빌드
-function buildPlayerReply(p) {
+// ranked: fetchRankedInfo() 결과 또는 null
+function buildPlayerReply(p, ranked) {
   const s          = p.stats
   const name       = p.nickname
   const shard      = p.shard || 'steam'
@@ -110,6 +159,11 @@ function buildPlayerReply(p) {
   const style    = STYLE_LABEL[s.style] || s.style || '정보 없음'
   const tier     = tierInfo(mmr)
 
+  // 경쟁전 티어 표시값
+  const rankedValue = ranked
+    ? `${ranked.label}  RP ${ranked.rp.toLocaleString()}  (${ranked.games}판 · KD ${ranked.kd})`
+    : '경쟁전 기록이 없습니다'
+
   const embed = new EmbedBuilder()
     .setTitle(`${shardLabel}  ${name}`)
     .setColor(shard === 'kakao' ? 0xf59e0b : 0x7f77dd)
@@ -121,6 +175,7 @@ function buildPlayerReply(p) {
       { name: '🏆 승률',         value: winRate != null ? `${winRate}%`  : '정보 없음', inline: true },
       { name: '📈 Top10 진입률', value: top10  != null ? `${top10}%`     : '정보 없음', inline: true },
       { name: '🎯 플레이스타일', value: style,                                          inline: true },
+      { name: '🏅 경쟁전 티어',  value: rankedValue,                                   inline: false },
     )
     .setFooter({ text: 'PKGG.vercel.app • PUBG 전적 조회', iconURL: `${PKGG}/logo.png` })
     .setTimestamp()
@@ -150,7 +205,8 @@ client.on('interactionCreate', async (interaction) => {
       if (!player) {
         return interaction.editReply({ content: `❌ **${nickname}** (${SHARD_LABEL[shard] || shard}) 플레이어를 찾을 수 없습니다.`, embeds: [], components: [] })
       }
-      const reply = buildPlayerReply(player)
+      const ranked = await fetchRankedInfo(shard, player.accountId)
+      const reply  = buildPlayerReply(player, ranked)
       return interaction.editReply(reply)
     } catch (err) {
       console.error('[플랫폼선택버튼] 오류:', err.message)
@@ -187,7 +243,8 @@ client.on('interactionCreate', async (interaction) => {
 
       // 결과 1개 → 바로 표시
       if (results.length === 1) {
-        const reply = buildPlayerReply(results[0])
+        const ranked = await fetchRankedInfo(results[0].shard, results[0].accountId)
+        const reply  = buildPlayerReply(results[0], ranked)
         return interaction.editReply(reply)
       }
 
