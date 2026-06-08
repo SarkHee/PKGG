@@ -2436,34 +2436,72 @@ export async function getServerSideProps({ params, query }) {
     if (!forceRefresh) {
       const cached = await getPlayerFromDB(nickname, server);
       if (cached?.__banned) {
-        // 이미 banned 상태지만 클랜 데이터가 남아있을 수 있으므로 정리
+        // PUBG API로 실제 정지 여부 재확인 — 일시적 오류로 잘못 마킹된 경우 복구
         const bannedNick = cached.__bannedNick || nickname
         const bannedPlayerId = cached.__bannedPlayerId || null
-        const cmWhere = bannedPlayerId
-          ? { pubgPlayerId: bannedPlayerId }
-          : { nickname: { equals: bannedNick, mode: 'insensitive' } }
+        let stillBanned = true
         try {
-          const members = await prisma.clanMember.findMany({ where: cmWhere, select: { clanId: true } })
-          const clanIds = [...new Set(members.map((m) => m.clanId).filter(Boolean))]
-          if (members.length > 0) {
-            await prisma.clanMember.deleteMany({ where: cmWhere })
-            await prisma.clan.updateMany({
-              where: { leader: { equals: bannedNick, mode: 'insensitive' } },
-              data: { leader: '' },
-            })
-            for (const clanId of clanIds) {
-              const count = await prisma.clanMember.count({ where: { clanId } })
-              await prisma.clan.update({
-                where: { id: clanId },
-                data: { memberCount: count, ...(count === 0 ? { avgScore: 0 } : {}) },
-              })
+          const verifyShards = server && server !== 'unknown'
+            ? [server, ...shards.filter(s => s !== server)]
+            : shards
+          for (const s of verifyShards) {
+            const vJson = await cachedPubgFetch(
+              `${PUBG_BASE}/${s}/players?filter[playerNames]=${encodeURIComponent(bannedNick)}`,
+              { ttl: 0, force: true } // 캐시 무시하고 실시간 확인
+            )
+            if (vJson.data?.length > 0) {
+              // PUBG API에서 찾힘 → 잘못된 ban 마킹, 해제
+              console.log(`[SSR] ⚠️ 잘못된 ban 감지, 해제: ${bannedNick} (${s})`)
+              if (bannedPlayerId) {
+                await prisma.playerCache.updateMany({
+                  where: { pubgPlayerId: bannedPlayerId },
+                  data: { isBanned: false, bannedAt: null, banCheckFailCount: 0 },
+                })
+              } else {
+                await prisma.playerCache.updateMany({
+                  where: { nickname: { equals: bannedNick, mode: 'insensitive' } },
+                  data: { isBanned: false, bannedAt: null, banCheckFailCount: 0 },
+                })
+              }
+              stillBanned = false
+              break
             }
-            console.log(`[SSR] 🧹 기존 정지 계정 클랜 잔여 데이터 정리: ${bannedNick}`)
           }
         } catch (e) {
-          console.warn('[SSR] 정지 계정 클랜 정리 실패:', e.message)
+          console.warn('[SSR] ban 재확인 실패:', e.message)
         }
-        return { props: { playerData: null, error: null, isBanned: true, dataSource: null } };
+
+        if (!stillBanned) {
+          // ban 해제됨 → 캐시 무효화 후 PUBG API 경로로 재처리
+          console.log(`[SSR] ban 해제 후 PUBG API 경로로 재진행: ${bannedNick}`)
+        } else {
+          // 실제 정지 계정 — 클랜 잔여 데이터 정리
+          const cmWhere = bannedPlayerId
+            ? { pubgPlayerId: bannedPlayerId }
+            : { nickname: { equals: bannedNick, mode: 'insensitive' } }
+          try {
+            const members = await prisma.clanMember.findMany({ where: cmWhere, select: { clanId: true } })
+            const clanIds = [...new Set(members.map((m) => m.clanId).filter(Boolean))]
+            if (members.length > 0) {
+              await prisma.clanMember.deleteMany({ where: cmWhere })
+              await prisma.clan.updateMany({
+                where: { leader: { equals: bannedNick, mode: 'insensitive' } },
+                data: { leader: '' },
+              })
+              for (const clanId of clanIds) {
+                const count = await prisma.clanMember.count({ where: { clanId } })
+                await prisma.clan.update({
+                  where: { id: clanId },
+                  data: { memberCount: count, ...(count === 0 ? { avgScore: 0 } : {}) },
+                })
+              }
+              console.log(`[SSR] 🧹 정지 계정 클랜 데이터 정리: ${bannedNick}`)
+            }
+          } catch (e) {
+            console.warn('[SSR] 정지 계정 클랜 정리 실패:', e.message)
+          }
+          return { props: { playerData: null, error: null, isBanned: true, dataSource: null } }
+        }
       }
       if (cached) {
         // DB에 저장된 shard가 URL의 server와 다르면 올바른 URL로 redirect

@@ -544,8 +544,19 @@ export default function ClanDetail() {
                         <div>
                           <div className={`text-xl font-bold ${grade.color}`}>{grade.desc}</div>
                           <div className="text-sm text-gray-400 mt-1">{t('cd.avg_mmr')} {stats.avgMMR} {t('cd.mmr_basis')}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            Legend≥2300 · Master≥2050 · Diamond≥1825 · Platinum≥1600 · Gold≥1375 · Silver≥1150
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {[
+                              { emoji: '🟠', label: '레전드', min: 2300, color: 'text-amber-400' },
+                              { emoji: '🟣', label: '마스터',  min: 2050, color: 'text-purple-400' },
+                              { emoji: '💎', label: '다이아',  min: 1825, color: 'text-sky-400' },
+                              { emoji: '🩵', label: '플래티넘', min: 1600, color: 'text-teal-400' },
+                              { emoji: '🟡', label: '골드',    min: 1375, color: 'text-yellow-400' },
+                              { emoji: '⚪', label: '실버',    min: 1150, color: 'text-gray-400' },
+                            ].map(({ emoji, label, min, color }) => (
+                              <span key={label} className={`text-[10px] font-semibold ${color}`}>
+                                {emoji}{label} {min}+
+                              </span>
+                            ))}
                           </div>
                         </div>
                       </div>
