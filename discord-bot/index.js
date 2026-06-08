@@ -76,11 +76,17 @@ async function fetchRankedInfo(shard, accountId) {
     // Master는 서브티어 없음, 나머지는 숫자 서브티어 표시 (1 제외)
     const subLabel = tier !== 'Master' && subTier && subTier !== '1' ? ` ${subTier}` : ''
 
+    // top10Ratio: 0~1 비율 → 백분율 변환
+    const top10Rate = mode.top10Ratio != null && mode.roundsPlayed > 0
+      ? parseFloat((mode.top10Ratio * 100).toFixed(1))
+      : null
+
     return {
       label: `${info.emoji} ${info.label}${subLabel}`,
       rp,
       games,
       kd,
+      top10Rate,
     }
   } catch {
     return null
@@ -159,7 +165,8 @@ function buildPlayerReply(p, ranked) {
   const damage   = s.avgDamage ?? null
   const kills    = s.avgKills  ?? null
   const winRate  = s.winRate   ?? null
-  const top10    = s.top10Rate ?? null
+  // 경쟁전 top10Rate 우선 사용 (일반 시즌만 하는 플레이어는 0이 될 수 있으므로)
+  const top10    = (ranked?.top10Rate != null ? ranked.top10Rate : null) ?? s.top10Rate ?? null
   const style    = STYLE_LABEL[s.style] || s.style || '정보 없음'
   const tier     = tierInfo(mmr)
 
