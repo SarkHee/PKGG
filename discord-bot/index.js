@@ -82,71 +82,128 @@ client.once('clientReady', () => {
   console.log(`📡 서버 상태 체크 주기: ${SERVER_CHECK_INTERVAL / 60_000}분`)
 })
 
+const SHARD_LABEL = { steam: '🎮 Steam', kakao: '🟡 카카오' }
+
+// 플레이어 결과 → Discord Embed + 버튼 빌드
+function buildPlayerReply(p) {
+  const s          = p.stats
+  const name       = p.nickname
+  const shard      = p.shard || 'steam'
+  const profileUrl = `${PKGG}/player/${shard}/${encodeURIComponent(name)}`
+  const shardLabel = SHARD_LABEL[shard] || shard
+
+  if (!s) {
+    return {
+      content:
+        `⚠️ **${name}** (${shardLabel}) 의 전적 데이터가 없습니다.\n` +
+        `PKGG 사이트에서 먼저 검색하면 데이터가 수집됩니다.\n🔗 ${profileUrl}`,
+      embeds: [],
+      components: [],
+    }
+  }
+
+  const mmr      = s.mmr       ?? null
+  const damage   = s.avgDamage ?? null
+  const kills    = s.avgKills  ?? null
+  const winRate  = s.winRate   ?? null
+  const top10    = s.top10Rate ?? null
+  const style    = STYLE_LABEL[s.style] || s.style || '정보 없음'
+  const tier     = tierInfo(mmr)
+
+  const embed = new EmbedBuilder()
+    .setTitle(`${shardLabel}  ${name}`)
+    .setColor(shard === 'kakao' ? 0xf59e0b : 0x7f77dd)
+    .setURL(profileUrl)
+    .addFields(
+      { name: '📊 PKGG 점수',    value: mmr    != null ? `${tier.emoji} ${mmr.toLocaleString()} (${tier.label})` : '정보 없음', inline: true },
+      { name: '💥 평균 딜량',    value: damage != null ? String(damage)  : '정보 없음', inline: true },
+      { name: '⚔️  평균 킬',     value: kills  != null ? String(kills)   : '정보 없음', inline: true },
+      { name: '🏆 승률',         value: winRate != null ? `${winRate}%`  : '정보 없음', inline: true },
+      { name: '📈 Top10 진입률', value: top10  != null ? `${top10}%`     : '정보 없음', inline: true },
+      { name: '🎯 플레이스타일', value: style,                                          inline: true },
+    )
+    .setFooter({ text: 'PKGG.vercel.app • PUBG 전적 조회', iconURL: `${PKGG}/logo.png` })
+    .setTimestamp()
+
+  if (p.clanName) {
+    embed.addFields({ name: '🛡️  클랜', value: `[${p.clanTag || p.clanName}] ${p.clanName}`, inline: false })
+  }
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setLabel('자세히 보기').setStyle(ButtonStyle.Link).setURL(profileUrl).setEmoji('🔍')
+  )
+  return { content: null, embeds: [embed], components: [row] }
+}
+
 // ── 슬래시 커맨드 ─────────────────────────────────────────────────────────
 client.on('interactionCreate', async (interaction) => {
+
+  // ── 플랫폼 선택 버튼 (ps|{shard}|{nickname}) ─────────────────────────
+  if (interaction.isButton() && interaction.customId.startsWith('ps|')) {
+    const parts    = interaction.customId.split('|')
+    const shard    = parts[1]
+    const nickname = parts.slice(2).join('|')
+    await interaction.deferUpdate()
+    try {
+      const data    = await fetchJson(`${PKGG}/api/pubg/search?nickname=${encodeURIComponent(nickname)}&shard=${shard}`)
+      const player  = data.results?.[0]
+      if (!player) {
+        return interaction.editReply({ content: `❌ **${nickname}** (${SHARD_LABEL[shard] || shard}) 플레이어를 찾을 수 없습니다.`, embeds: [], components: [] })
+      }
+      const reply = buildPlayerReply(player)
+      return interaction.editReply(reply)
+    } catch (err) {
+      console.error('[플랫폼선택버튼] 오류:', err.message)
+      return interaction.editReply({ content: '❌ 조회 중 오류가 발생했습니다.', embeds: [], components: [] })
+    }
+  }
+
   if (!interaction.isChatInputCommand()) return
 
   // ────────────────────────────────────────────────
-  // /전적 [닉네임]
+  // /전적 [닉네임] [플랫폼?]
   // ────────────────────────────────────────────────
   if (interaction.commandName === '전적') {
     const nickname = interaction.options.getString('닉네임')
+    const platform = interaction.options.getString('플랫폼') // null = 자동감지
     await interaction.deferReply()
 
     try {
-      const data = await fetchJson(
-        `${PKGG}/api/pubg/search?nickname=${encodeURIComponent(nickname)}&shard=steam`
-      )
+      let results = []
 
-      if (!data.results?.length) {
+      if (platform) {
+        // 플랫폼 직접 지정 → 해당 shard만 조회
+        const data = await fetchJson(`${PKGG}/api/pubg/search?nickname=${encodeURIComponent(nickname)}&shard=${platform}`)
+        results = data.results || []
+      } else {
+        // 자동감지 → shard 없이 한 번 호출 (API가 steam+kakao 병렬 처리)
+        const data = await fetchJson(`${PKGG}/api/pubg/search?nickname=${encodeURIComponent(nickname)}`)
+        results = data.results || []
+      }
+
+      if (!results.length) {
         return interaction.editReply(`❌ **${nickname}** 플레이어를 찾을 수 없습니다.\n닉네임을 정확히 입력해 주세요.`)
       }
 
-      const p          = data.results[0]
-      const s          = p.stats
-      const name       = p.nickname
-      const profileUrl = `${PKGG}/player/steam/${encodeURIComponent(name)}`
-
-      if (!s) {
-        return interaction.editReply(
-          `⚠️ **${name}** 의 전적 데이터가 없습니다.\n` +
-          `PKGG 사이트에서 먼저 검색하면 데이터가 수집됩니다.\n` +
-          `🔗 ${profileUrl}`
-        )
+      // 결과 1개 → 바로 표시
+      if (results.length === 1) {
+        const reply = buildPlayerReply(results[0])
+        return interaction.editReply(reply)
       }
 
-      const mmr      = s?.mmr         ?? null
-      const damage   = s?.avgDamage   ?? null
-      const kills    = s?.avgKills    ?? null
-      const winRate  = s?.winRate     ?? null
-      const top10    = s?.top10Rate   ?? null
-      const styleRaw = s?.style       ?? null
-      const style    = STYLE_LABEL[styleRaw] || styleRaw || '정보 없음'
-      const tier     = tierInfo(mmr)
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🎮 ${name}`)
-        .setColor(0x7f77dd)
-        .setURL(profileUrl)
-        .addFields(
-          { name: '📊 PKGG 점수',    value: mmr     != null ? `${tier.emoji} ${mmr.toLocaleString()} (${tier.label})` : '정보 없음', inline: true },
-          { name: '💥 평균 딜량',    value: damage   != null ? String(damage)    : '정보 없음',  inline: true },
-          { name: '⚔️  평균 킬',     value: kills    != null ? String(kills)     : '정보 없음',  inline: true },
-          { name: '🏆 승률',         value: winRate  != null ? `${winRate}%`     : '정보 없음',  inline: true },
-          { name: '📈 Top10 진입률', value: top10    != null ? `${top10}%`       : '정보 없음',  inline: true },
-          { name: '🎯 플레이스타일', value: style,                                               inline: true },
-        )
-        .setFooter({ text: 'PKGG.vercel.app • PUBG 전적 조회', iconURL: `${PKGG}/logo.png` })
-        .setTimestamp()
-
-      if (p.clanName) {
-        embed.addFields({ name: '🛡️  클랜', value: `[${p.clanTag || p.clanName}] ${p.clanName}`, inline: false })
-      }
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setLabel('자세히 보기').setStyle(ButtonStyle.Link).setURL(profileUrl).setEmoji('🔍')
+      // 결과 2개 이상 → 플랫폼 선택 버튼 표시
+      const buttons = results.map((r) =>
+        new ButtonBuilder()
+          .setCustomId(`ps|${r.shard}|${r.nickname}`)
+          .setLabel(`${SHARD_LABEL[r.shard] || r.shard}으로 보기`)
+          .setStyle(r.shard === 'kakao' ? ButtonStyle.Primary : ButtonStyle.Secondary)
       )
-      await interaction.editReply({ embeds: [embed], components: [row] })
+      const row = new ActionRowBuilder().addComponents(...buttons)
+      return interaction.editReply({
+        content: `⚠️ **${results[0].nickname}** 닉네임이 여러 플랫폼에 존재합니다.\n플랫폼을 선택해주세요:`,
+        components: [row],
+      })
+
     } catch (err) {
       console.error('[전적] 오류:', err.message)
       await interaction.editReply('❌ 전적 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')

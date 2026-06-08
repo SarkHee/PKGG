@@ -7,6 +7,16 @@ const commands = [
     .setDescription('PUBG 플레이어 전적을 조회합니다')
     .addStringOption((opt) =>
       opt.setName('닉네임').setDescription('조회할 플레이어 닉네임').setRequired(true)
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName('플랫폼')
+        .setDescription('플랫폼 직접 지정 (미입력 시 자동감지)')
+        .setRequired(false)
+        .addChoices(
+          { name: '🎮 Steam', value: 'steam' },
+          { name: '🟡 카카오', value: 'kakao' },
+        )
     ),
 
   new SlashCommandBuilder()
