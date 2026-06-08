@@ -76,10 +76,15 @@ async function fetchRankedInfo(shard, accountId) {
     // Master는 서브티어 없음, 나머지는 숫자 서브티어 표시 (1 제외)
     const subLabel = tier !== 'Master' && subTier && subTier !== '1' ? ` ${subTier}` : ''
 
-    // top10Ratio: 0~1 비율 → 백분율 변환
-    const top10Rate = mode.top10Ratio != null && mode.roundsPlayed > 0
-      ? parseFloat((mode.top10Ratio * 100).toFixed(1))
-      : null
+    // top10Ratio, winRatio: 0~1 비율 → 백분율 변환
+    const top10Rate = mode.top10Ratio != null
+      ? parseFloat((mode.top10Ratio * 100).toFixed(1)) : null
+    const avgDamage = games > 0
+      ? Math.round((mode.damageDealt || 0) / games) : null
+    const avgKills  = games > 0
+      ? parseFloat(((mode.kills || 0) / games).toFixed(2)) : null
+    const winRate   = mode.winRatio != null
+      ? parseFloat((mode.winRatio * 100).toFixed(1)) : null
 
     return {
       label: `${info.emoji} ${info.label}${subLabel}`,
@@ -87,6 +92,9 @@ async function fetchRankedInfo(shard, accountId) {
       games,
       kd,
       top10Rate,
+      avgDamage,
+      avgKills,
+      winRate,
     }
   } catch {
     return null
@@ -161,12 +169,26 @@ function buildPlayerReply(p, ranked) {
     }
   }
 
-  const mmr      = s.mmr       ?? null
-  const damage   = s.avgDamage ?? null
-  const kills    = s.avgKills  ?? null
-  const winRate  = s.winRate   ?? null
-  // 경쟁전 top10Rate 우선 사용 (일반 시즌만 하는 플레이어는 0이 될 수 있으므로)
-  const top10    = (ranked?.top10Rate != null ? ranked.top10Rate : null) ?? s.top10Rate ?? null
+  // 일반 시즌 판수 + 경쟁전 판수로 가중 평균 계산
+  const normalGames = s.roundsPlayed || 0
+  const rankedGames = ranked?.games  || 0
+  const totalGames  = normalGames + rankedGames
+
+  function weighted(normalVal, rankedVal) {
+    const n = normalVal ?? 0
+    const r = rankedVal ?? 0
+    if (totalGames === 0) return null
+    if (normalGames === 0) return rankedVal ?? null
+    if (rankedGames === 0) return normalVal ?? null
+    return parseFloat(((n * normalGames + r * rankedGames) / totalGames).toFixed(1))
+  }
+
+  const damage  = weighted(s.avgDamage, ranked?.avgDamage)
+  const kills   = weighted(s.avgKills,  ranked?.avgKills)
+  const winRate = weighted(s.winRate,   ranked?.winRate)
+  const top10   = weighted(s.top10Rate, ranked?.top10Rate)
+
+  const mmr = s.mmr ?? null
   const style    = STYLE_LABEL[s.style] || s.style || '정보 없음'
   const tier     = tierInfo(mmr)
 

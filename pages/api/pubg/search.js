@@ -145,8 +145,9 @@ function buildStats(row) {
       winRate:        row.winRate         || 0,
       top10Rate:      row.top10Rate       || 0,
     }),
-    style:       row.style || null,
-    lastUpdated: row.lastUpdated,
+    style:        row.style || null,
+    lastUpdated:  row.lastUpdated,
+    roundsPlayed: row.roundsPlayed || 0,
   }
 }
 
@@ -290,7 +291,7 @@ export default async function handler(req, res) {
         select: {
           id: true, pubgPlayerId: true, pubgShardId: true,
           avgDamage: true, avgKills: true, avgAssists: true, avgSurviveTime: true,
-          winRate: true, top10Rate: true, style: true, lastUpdated: true,
+          winRate: true, top10Rate: true, style: true, lastUpdated: true, roundsPlayed: true,
         },
       })
 
