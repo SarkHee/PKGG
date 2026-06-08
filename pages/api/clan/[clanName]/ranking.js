@@ -23,6 +23,52 @@ export default async function handler(req, res) {
 
     const memberIds = members.map((m) => m.id);
     const nicknames = members.map((m) => m.nickname);
+    const playerIds = members.map((m) => m.pubgPlayerId).filter(Boolean);
+
+    // ── 봇 비율 배치 조회 ────────────────────────────────────────────
+    const botMap = {};
+    if (playerIds.length > 0) {
+      const botRows = await prisma.playerMatch.groupBy({
+        by: ['pubgAccountId'],
+        where: {
+          pubgAccountId: { in: playerIds },
+          isBotCorrected: true,
+          NOT: {
+            OR: [
+              { mapName: { contains: 'safehouse',   mode: 'insensitive' } },
+              { mapName: { contains: 'range_main',  mode: 'insensitive' } },
+              { mode:    { contains: 'heistroyale', mode: 'insensitive' } },
+              { mode:    { contains: 'clansolo',    mode: 'insensitive' } },
+              { mode:    { contains: 'clansquad',   mode: 'insensitive' } },
+              { mode:    { contains: 'training',    mode: 'insensitive' } },
+            ],
+          },
+        },
+        _sum: { kills: true, botKills: true, damage: true, botDamage: true },
+      });
+      for (const row of botRows) {
+        const tk = row._sum.kills    ?? 0, bk = row._sum.botKills  ?? 0;
+        const td = row._sum.damage   ?? 0, bd = row._sum.botDamage ?? 0;
+        botMap[row.pubgAccountId] = {
+          botKillRatio:   tk > 0 ? Math.min(bk / tk, 0.95) : 0,
+          botDamageRatio: td > 0 ? Math.min(bd / td, 0.95) : 0,
+        };
+      }
+    }
+
+    function calcMMRWithBot(m) {
+      const bot = m.pubgPlayerId ? (botMap[m.pubgPlayerId] || {}) : {};
+      const kr = bot.botKillRatio   ?? 0;
+      const dr = bot.botDamageRatio ?? 0;
+      return calculateMMR({
+        avgDamage:      dr > 0 ? Math.max(0, (m.avgDamage || 0) * (1 - dr)) : (m.avgDamage || 0),
+        avgKills:       kr > 0 ? Math.max(0, (m.avgKills  || 0) * (1 - kr)) : (m.avgKills  || 0),
+        winRate:        m.winRate,
+        top10Rate:      m.top10Rate,
+        avgSurviveTime: m.avgSurviveTime,
+        avgAssists:     m.avgAssists,
+      });
+    }
 
     // ── 이번 주 MVP (최근 7일 PlayerMatch) ──────────────────────────────
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -97,17 +143,23 @@ export default async function handler(req, res) {
         const older = snaps.find((s) => new Date(s.capturedAt) <= sevenDaysAgo);
         if (!older) return null;
 
+        const playerId = m.pubgPlayerId;
+        const bot = playerId ? (botMap[playerId] || {}) : {};
+        const kr = bot.botKillRatio   ?? 0;
+        const dr = bot.botDamageRatio ?? 0;
+        const applyBot = (val, ratio) => ratio > 0 ? Math.max(0, val * (1 - ratio)) : val;
+
         const latestMmr = calculateMMR({
-          avgDamage: latest.avgDamage,
-          avgKills: latest.avgKills,
+          avgDamage: applyBot(latest.avgDamage, dr),
+          avgKills:  applyBot(latest.avgKills,  kr),
           winRate: latest.winRate,
           top10Rate: latest.top10Rate,
           avgSurviveTime: latest.avgSurviveTime,
           avgAssists: latest.avgAssists,
         });
         const olderMmr = calculateMMR({
-          avgDamage: older.avgDamage,
-          avgKills: older.avgKills,
+          avgDamage: applyBot(older.avgDamage, dr),
+          avgKills:  applyBot(older.avgKills,  kr),
           winRate: older.winRate,
           top10Rate: older.top10Rate,
           avgSurviveTime: older.avgSurviveTime,
@@ -137,7 +189,7 @@ export default async function handler(req, res) {
         id: m.id,
         nickname: m.nickname,
         server: m.pubgShardId || 'steam',
-        mmr: calculateMMR(m),
+        mmr: calcMMRWithBot(m),
         score: m.score,
         avgDamage: Math.round(m.avgDamage || 0),
         avgKills: Number(m.avgKills || 0).toFixed(2),

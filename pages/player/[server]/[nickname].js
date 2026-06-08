@@ -2466,6 +2466,18 @@ export async function getServerSideProps({ params, query }) {
         return { props: { playerData: null, error: null, isBanned: true, dataSource: null } };
       }
       if (cached) {
+        // DB에 저장된 shard가 URL의 server와 다르면 올바른 URL로 redirect
+        const cachedShard = cached.profile?.shardId;
+        if (cachedShard && cachedShard !== server) {
+          console.log(`[SSR] DB shard 불일치: URL=${server} → DB=${cachedShard}, redirect`);
+          return {
+            redirect: {
+              destination: `/player/${cachedShard}/${encodeURIComponent(nickname)}`,
+              permanent: false,
+            },
+          };
+        }
+
         console.log(`[SSR] DB 캐시 HIT: ${nickname}`);
 
         // PUBG API에서 시즌 통계 + 경쟁전 랭크 보완
@@ -2646,6 +2658,18 @@ export async function getServerSideProps({ params, query }) {
       } catch (e) {
         if (e.code !== 'NOT_FOUND') console.warn(`${shard} 샤드 오류:`, e.message);
       }
+    }
+
+    // 실제 shard가 URL의 server와 다를 때 → 올바른 URL로 redirect
+    // (DB에 잘못 저장된 shard, 또는 검색에서 잘못된 플랫폼으로 진입한 경우)
+    if (pubgPlayer && pubgShard !== server) {
+      console.log(`[SSR] shard 불일치: URL=${server} → 실제=${pubgShard}, redirect`);
+      return {
+        redirect: {
+          destination: `/player/${pubgShard}/${encodeURIComponent(nickname)}`,
+          permanent: false,
+        },
+      };
     }
 
     if (!pubgPlayer) {

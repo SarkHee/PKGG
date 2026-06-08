@@ -352,6 +352,7 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
   const [isSearching, setIsSearching]       = useState(false);
   const [navigating, setNavigating]         = useState(false);
   const [searchCard, setSearchCard]         = useState(null);
+  const [platformResults, setPlatformResults] = useState(null); // 복수 플랫폼 선택용
   const [mounted, setMounted]               = useState(false);
 
   // 포춘쿠키 상태
@@ -427,20 +428,25 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
     if (!name) return;
     setSearchMessage('');
     setSearchCard(null);
+    setPlatformResults(null);
     setShowDropdown(false);
     setIsSearching(true);
     try {
       const res = await fetch(`/api/pubg/search?nickname=${encodeURIComponent(name)}`);
       const data = await res.json();
-      const r = data?.results?.[0];
+      const results = data?.results || [];
       if (data?.retry) {
         setSearchMessage('서버 연결 중입니다. 잠시 후 다시 시도해주세요.');
-      } else if (!r) {
+      } else if (results.length === 0) {
         setSearchMessage(`"${name}" 플레이어를 찾을 수 없습니다.`);
-      } else {
+      } else if (results.length === 1) {
+        const r = results[0];
         saveRecentSearch(r.nickname, r.shard);
         setNavigating(true);
         router.push(`/player/${r.shard}/${encodeURIComponent(r.nickname)}`);
+      } else {
+        // 동일 닉네임이 여러 플랫폼에 존재 → 선택 UI 표시
+        setPlatformResults(results);
       }
     } catch {
       setSearchMessage('검색 중 오류가 발생했습니다.');
@@ -740,7 +746,7 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                     type="text"
                     placeholder="닉네임 입력 (최초 검색 유저는 대소문자 구분 필요)"
                     value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setSearchCard(null); if (!e.target.value) setShowDropdown(true); }}
+                    onChange={(e) => { setSearchTerm(e.target.value); setSearchCard(null); setPlatformResults(null); if (!e.target.value) setShowDropdown(true); }}
                     onFocus={() => setShowDropdown(true)}
                     onKeyDown={handleKeyPress}
                     className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
@@ -788,6 +794,58 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                   </div>
                 )}
               </div>
+              {/* 플랫폼 선택 UI — 동일 닉네임이 여러 플랫폼에 존재할 때 */}
+              {platformResults && (
+                <div className="mt-3 border-t border-white/10 pt-3">
+                  <p className="text-xs text-yellow-400 font-semibold text-center mb-2">
+                    ⚠️ 동일한 닉네임이 여러 플랫폼에 있어요. 플랫폼을 선택해주세요.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {platformResults.map((r) => {
+                      const tier = r.stats?.mmr ? getMMRTier(r.stats.mmr) : null;
+                      return (
+                        <button
+                          key={r.shard}
+                          onClick={() => {
+                            setPlatformResults(null);
+                            saveRecentSearch(r.nickname, r.shard);
+                            setRecentSearches(loadRecentSearches());
+                            setNavigating(true);
+                            router.push(`/player/${r.shard}/${encodeURIComponent(r.nickname)}`);
+                          }}
+                          className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/40 transition-all text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${SHARD_COLOR[r.shard] || 'bg-gray-700 text-gray-300 border border-gray-600'}`}>
+                              {SHARD_LABEL[r.shard] || r.shard}
+                            </span>
+                            <span className="text-sm font-semibold text-white">{r.nickname}</span>
+                            {tier && r.stats?.mmr && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${tier.bgColor} ${tier.borderColor} ${tier.textColor}`}>
+                                {r.stats.mmr.toLocaleString()} PK
+                              </span>
+                            )}
+                          </div>
+                          {r.stats && (
+                            <div className="flex items-center gap-3 text-[11px] text-gray-400">
+                              <span>딜 <span className="text-blue-300 font-bold">{Math.round(r.stats.avgDamage || 0)}</span></span>
+                              <span>킬 <span className="text-cyan-300 font-bold">{(r.stats.avgKills || 0).toFixed(1)}</span></span>
+                            </div>
+                          )}
+                          <span className="text-gray-600 group-hover:text-blue-400 text-sm transition-colors">→</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={() => setPlatformResults(null)}
+                    className="mt-2 w-full text-xs text-gray-600 hover:text-gray-400 py-1 transition-colors"
+                  >
+                    닫기
+                  </button>
+                </div>
+              )}
+
               {/* 뱃지 */}
               <div className="flex flex-wrap justify-center gap-2 mt-3">
                 {[t('home.badge1'), t('home.badge2'), t('home.badge3')].map((badge, bi) => (

@@ -156,6 +156,9 @@ export default function ClanDetail() {
   const [allSquads, setAllSquads] = useState(null); // { squads: [...], unassigned: [...] }
   const [rankingData, setRankingData] = useState(null);
   const [rankingLoading, setRankingLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshMsg, setRefreshMsg] = useState(null);
+  const [myPubgNick, setMyPubgNick] = useState(null);
 
   // i18n 유틸
   const fmtTime = (sec) => {
@@ -193,6 +196,39 @@ export default function ClanDetail() {
       }
     })();
   }, [clanName]);
+
+  // 로그인 유저의 PUBG 닉네임 조회 (클랜장 여부 판단용)
+  useEffect(() => {
+    if (!user) return;
+    fetch('/api/user/me')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const accs = d?.user?.pubgAccounts || [];
+        const mainId = d?.user?.mainAccountId;
+        const main = accs.find(a => a.id === mainId) || accs[0];
+        if (main?.nickname) setMyPubgNick(main.nickname);
+      })
+      .catch(() => {});
+  }, [user]);
+
+  const handleManualRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setRefreshMsg(null);
+    try {
+      const r = await fetch(`/api/clan/${encodeURIComponent(clanName)}/manual-refresh`, { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || '갱신 실패');
+      setRefreshMsg({ ok: true, text: `✅ ${d.updatedMembers}명 업데이트 완료 (실패 ${d.errorMembers}명)` });
+      // 클랜 데이터 새로고침
+      const res = await fetch(`/api/clan/${encodeURIComponent(clanName)}`);
+      if (res.ok) setClanData(await res.json());
+    } catch (e) {
+      setRefreshMsg({ ok: false, text: `❌ ${e.message}` });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // 랭킹 탭 진입 시 데이터 로드
   useEffect(() => {
@@ -250,6 +286,20 @@ export default function ClanDetail() {
   // 로그인 유저: 모든 클랜 전체 열람 가능
   // 비로그인: blur 처리
   const canViewFull = !!user;
+  const isLeader = !!myPubgNick && !!clan.leader &&
+    myPubgNick.toLowerCase() === clan.leader.toLowerCase();
+  const canRefresh = isLeader || user?.isAdmin;
+
+  // 쿨타임: lastSynced 기준 7일
+  const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+  const lastSynced = clan.updatedAt ? new Date(clan.updatedAt) : null;
+  const cooldownRemaining = lastSynced ? Math.max(0, COOLDOWN_MS - (Date.now() - lastSynced.getTime())) : 0;
+  const isCoolingDown = cooldownRemaining > 0;
+  const cooldownDays  = Math.floor(cooldownRemaining / 86400000);
+  const cooldownHours = Math.floor((cooldownRemaining % 86400000) / 3600000);
+  const cooldownLabel = cooldownDays > 0
+    ? `${cooldownDays}일 ${cooldownHours}시간 후 가능`
+    : `${cooldownHours}시간 후 가능`;
   const regFlag = regionFlags[clan.region] ?? '❓';
   const regColor = regionColors[clan.region] ?? 'bg-gray-600';
   const regLabel = clan.region ? t('region.' + clan.region) : t('region.UNKNOWN');
@@ -353,6 +403,34 @@ export default function ClanDetail() {
                     </>
                   )}
                 </div>
+
+                {/* 클랜장 전용 수동 갱신 버튼 */}
+                {canRefresh && (
+                  <div className="mt-2 flex items-center gap-3 flex-wrap">
+                    <button
+                      onClick={handleManualRefresh}
+                      disabled={isRefreshing || isCoolingDown}
+                      title={isCoolingDown ? cooldownLabel : '클랜 멤버 스탯을 즉시 갱신합니다'}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white transition-colors"
+                    >
+                      {isRefreshing ? (
+                        <>
+                          <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                          갱신 중...
+                        </>
+                      ) : isCoolingDown ? (
+                        <>⏳ {cooldownLabel}</>
+                      ) : (
+                        <>🔄 멤버 스탯 최신화</>
+                      )}
+                    </button>
+                    {refreshMsg && (
+                      <span className={`text-xs font-medium ${refreshMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
+                        {refreshMsg.text}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 핵심 지표 빠른 요약 */}
@@ -595,10 +673,12 @@ export default function ClanDetail() {
               <div className="sm:hidden space-y-2">
                 {sortedMembers.map((member, i) => {
                   const s = member.stats;
+                  const isLeaderMember = clan.leader && member.playerName.toLowerCase() === clan.leader.toLowerCase();
+                  const isInactive = !member.lastActiveAt || (Date.now() - new Date(member.lastActiveAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
                   return (
                     <div key={member.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <span className={`font-black text-sm flex-shrink-0 ${getRankColor(i)}`}>
                             {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
                           </span>
@@ -606,6 +686,12 @@ export default function ClanDetail() {
                             className="font-semibold text-sm text-gray-800 dark:text-white hover:text-blue-400 transition-colors truncate">
                             {member.playerName}
                           </Link>
+                          {isLeaderMember && (
+                            <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-400/20 text-yellow-400 border border-yellow-400/30">👑 클랜장</span>
+                          )}
+                          {isInactive && (
+                            <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-400 border border-gray-500/30">💤 장기미접속</span>
+                          )}
                         </div>
                         <span className="font-black text-blue-400 text-sm flex-shrink-0">{member.mmr || '—'} <span className="text-[10px] text-gray-500">MMR</span></span>
                       </div>
@@ -656,6 +742,8 @@ export default function ClanDetail() {
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                       {sortedMembers.map((member, i) => {
                         const s = member.stats;
+                        const isLeaderMember = clan.leader && member.playerName.toLowerCase() === clan.leader.toLowerCase();
+                        const isInactive = !member.lastActiveAt || (Date.now() - new Date(member.lastActiveAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
                         return (
                           <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                             <td className="px-4 py-3">
@@ -664,10 +752,18 @@ export default function ClanDetail() {
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              <Link href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}
-                                className="font-semibold text-gray-800 dark:text-white hover:text-blue-400 transition-colors">
-                                {member.playerName}
-                              </Link>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <Link href={`/player/${encodeURIComponent(member.server || 'steam')}/${encodeURIComponent(member.playerName)}`}
+                                  className="font-semibold text-gray-800 dark:text-white hover:text-blue-400 transition-colors">
+                                  {member.playerName}
+                                </Link>
+                                {isLeaderMember && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-400/20 text-yellow-400 border border-yellow-400/30 whitespace-nowrap">👑 클랜장</span>
+                                )}
+                                {isInactive && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-400 border border-gray-500/30 whitespace-nowrap">💤 장기미접속</span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-3 text-right font-black text-blue-400">{member.mmr || '—'}</td>
                             <td className="px-4 py-3 text-right text-orange-400 font-semibold">{s?.avgDamage ?? '—'}</td>
@@ -962,6 +1058,7 @@ export default function ClanDetail() {
 // ─── 클랜 내부 랭킹 탭 컴포넌트 ─────────────────────────────────────────────
 
 function ClanRankingTab({ data, loading }) {
+  const { t } = useT();
   const [lbSort, setLbSort] = useState('mmr');
   const [lbTab, setLbTab] = useState('leaderboard'); // 'leaderboard' | 'weekly' | 'growth'
 

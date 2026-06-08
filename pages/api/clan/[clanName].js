@@ -19,16 +19,35 @@ function dedupMembers(memberList) {
   return Array.from(seen.values());
 }
 
-function calcMMR(m) {
+// botMap: pubgPlayerId -> { botKillRatio, botDamageRatio }
+function calcMMR(m, botMap = {}) {
+  const bot = m.pubgPlayerId ? (botMap[m.pubgPlayerId] || {}) : {};
+  const killRatio   = bot.botKillRatio   ?? 0;
+  const damageRatio = bot.botDamageRatio ?? 0;
+  const avgKills  = killRatio   > 0 ? Math.max(0, (m.avgKills  || 0) * (1 - killRatio))   : (m.avgKills  || 0);
+  const avgDamage = damageRatio > 0 ? Math.max(0, (m.avgDamage || 0) * (1 - damageRatio)) : (m.avgDamage || 0);
   return calculateMMR({
-    avgDamage:      m.avgDamage,
-    avgKills:       m.avgKills,
+    avgDamage,
+    avgKills,
     winRate:        m.winRate,
     top10Rate:      m.top10Rate,
     avgSurviveTime: m.avgSurviveTime,
     avgAssists:     m.avgAssists,
   });
 }
+
+const BOT_EXCLUDE_FILTER = {
+  NOT: {
+    OR: [
+      { mapName: { contains: 'safehouse',   mode: 'insensitive' } },
+      { mapName: { contains: 'range_main',  mode: 'insensitive' } },
+      { mode:    { contains: 'heistroyale', mode: 'insensitive' } },
+      { mode:    { contains: 'clansolo',    mode: 'insensitive' } },
+      { mode:    { contains: 'clansquad',   mode: 'insensitive' } },
+      { mode:    { contains: 'training',    mode: 'insensitive' } },
+    ],
+  },
+};
 
 export default async function handler(req, res) {
   const { clanName } = req.query;
@@ -56,6 +75,31 @@ export default async function handler(req, res) {
     const uniqueMembers = dedupMembers(confirmedMembers);
     const activeMembers = uniqueMembers.filter((m) => m.score > 0);
 
+    // ── 봇 비율 배치 조회 (멤버 전체) ────────────────────────────────
+    const playerIds = uniqueMembers.map(m => m.pubgPlayerId).filter(Boolean);
+    const botMap = {};
+    if (playerIds.length > 0) {
+      const botRows = await prisma.playerMatch.groupBy({
+        by: ['pubgAccountId'],
+        where: {
+          pubgAccountId: { in: playerIds },
+          isBotCorrected: true,
+          ...BOT_EXCLUDE_FILTER,
+        },
+        _sum: { kills: true, botKills: true, damage: true, botDamage: true },
+      });
+      for (const row of botRows) {
+        const totalKills = row._sum.kills   ?? 0;
+        const totalBotK  = row._sum.botKills ?? 0;
+        const totalDmg   = row._sum.damage   ?? 0;
+        const totalBotDmg = row._sum.botDamage ?? 0;
+        botMap[row.pubgAccountId] = {
+          botKillRatio:   totalKills > 0 ? Math.min(totalBotK   / totalKills, 0.95) : 0,
+          botDamageRatio: totalDmg   > 0 ? Math.min(totalBotDmg / totalDmg,   0.95) : 0,
+        };
+      }
+    }
+
     // ── 전체 클랜 순위 계산 ──────────────────────────────────────────
     const allClans = await prisma.clan.findMany({ include: { members: true } });
 
@@ -79,7 +123,7 @@ export default async function handler(req, res) {
       const avg = (key) =>
         activeMembers.reduce((s, m) => s + (Number(m[key]) || 0), 0) / activeMembers.length;
 
-      const avgMMR = Math.round(activeMembers.reduce((s, m) => s + calcMMR(m), 0) / activeMembers.length);
+      const avgMMR = Math.round(activeMembers.reduce((s, m) => s + calcMMR(m, botMap), 0) / activeMembers.length);
 
       stats = {
         avgMMR,
@@ -100,7 +144,7 @@ export default async function handler(req, res) {
       playerName: m.nickname,
       server: m.pubgShardId || 'steam',
       lastActiveAt: m.lastUpdated,
-      mmr: calcMMR(m),
+      mmr: calcMMR(m, botMap),
       stats: m.score > 0
         ? {
             score: m.score,
@@ -115,7 +159,7 @@ export default async function handler(req, res) {
     }));
 
     // ── 분포 데이터 ───────────────────────────────────────────────────
-    const mmrValues = activeMembers.map(calcMMR);
+    const mmrValues = activeMembers.map(m => calcMMR(m, botMap));
     // 티어 기준 = mmrCalculator.js getMMRTier 와 동일하게 유지
     const distribution = {
       expert:       mmrValues.filter((v) => v >= 1900).length,              // S (Master)
@@ -129,7 +173,7 @@ export default async function handler(req, res) {
       [...activeMembers].sort((a, b) => (fn ? fn(b) - fn(a) : (b[key] || 0) - (a[key] || 0)));
 
     const topPerformers = {
-      byMMR: sorted(null, calcMMR).slice(0, 3).map((m) => ({ name: m.nickname, value: calcMMR(m), server: m.pubgShardId || 'steam' })),
+      byMMR: sorted(null, (m) => calcMMR(m, botMap)).slice(0, 3).map((m) => ({ name: m.nickname, value: calcMMR(m, botMap), server: m.pubgShardId || 'steam' })),
       byDamage: sorted('avgDamage').slice(0, 3).map((m) => ({ name: m.nickname, value: Math.round(m.avgDamage), server: m.pubgShardId || 'steam' })),
       byKills: sorted('avgKills').slice(0, 3).map((m) => ({ name: m.nickname, value: Number(m.avgKills).toFixed(1), server: m.pubgShardId || 'steam' })),
       byWinRate: sorted('winRate').slice(0, 3).map((m) => ({ name: m.nickname, value: `${Number(m.winRate).toFixed(1)}%`, server: m.pubgShardId || 'steam' })),
@@ -210,6 +254,7 @@ export default async function handler(req, res) {
         apiMemberCount: clan.pubgMemberCount || clan.memberCount,
         region: clan.region,
         updatedAt: clan.lastSynced,
+        leader: clan.leader || null,
         playStyle,
       },
       ranking: { overall: clanRank },

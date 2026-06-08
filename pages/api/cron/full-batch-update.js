@@ -2,29 +2,40 @@
 // 매일 12:00 KST (03:00 UTC) — 전체 클랜 멤버 스탯 PUBG API 갱신 + 스냅샷 저장
 //
 // 타임아웃 안전 장치: Vercel Pro 300s 기준, 250s 이내에 처리 중단
-// 미완료 클랜은 다음 실행 때 이어서 처리됨 (lastUpdated 기준 정렬)
+// 미완료 클랜은 다음 실행 때 이어서 처리됨 (lastSynced 기준 정렬)
 
 import prisma from '../../../utils/prisma.js';
 import { calculateMMR } from '../../../utils/mmrCalculator.js';
 import { cachedPubgFetch, TTL } from '../../../utils/pubgApiCache.js';
 import { fetchClanMembersBatch } from '../../../utils/pubgBatchApi.js';
 
-const MAX_MS    = 250_000; // 250초 (Vercel Pro 300s 기준 안전 마진)
+const MAX_MS        = 250_000;
 const DEFAULT_SHARD = 'steam';
+const ACTIVE_DAYS   = 30; // 최근 N일 내 업데이트된 멤버만 처리 (버그2)
+const ALL_MODES     = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
 
 export default async function handler(req, res) {
-  // Vercel Cron 인증
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const startTime = Date.now();
-  const log = { total: 0, updatedClans: 0, updatedMembers: 0, errors: 0, timedOut: false };
+
+  // [버그3] 에러 카운터 분리
+  const log = {
+    total: 0,
+    updatedClans: 0,
+    updatedMembers: 0,
+    skippedInactive: 0,
+    clanErrors: 0,   // 클랜 레벨 에러 (API 실패 등)
+    memberErrors: 0, // 멤버 레벨 에러 (data.error)
+    apiErrors: 0,    // PUBG API 에러 (상세)
+    timedOut: false,
+  };
 
   console.log('⏰ [FullBatch] 시작:', new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }));
 
   try {
-    // 샤드별 현재 시즌 캐시
     const seasonCache = {};
     async function getSeasonForShard(shard) {
       if (seasonCache[shard]) return seasonCache[shard];
@@ -37,7 +48,62 @@ export default async function handler(req, res) {
       return season;
     }
 
-    // 클랜 목록 — lastSynced 오래된 순으로 처리 (공평하게 순환)
+    // [버그1] 개별 플레이어 시즌 통계 fallback
+    async function fetchPlayerSeasonStatsDirect(shard, playerId, seasonId) {
+      const url = `https://api.pubg.com/shards/${shard}/players/${playerId}/seasons/${seasonId}`;
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${process.env.PUBG_API_KEY}`,
+          Accept: 'application/vnd.api+json',
+        },
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        console.error(`[FullBatch] 개별 시즌 통계 실패 playerId=${playerId} status=${res.status} body=${body.slice(0, 200)}`);
+        log.apiErrors++;
+        return null;
+      }
+      return await res.json();
+    }
+
+    // 멤버 데이터에서 일반전 6모드 합산
+    function sumNormalStats(seasonStats) {
+      let totalRounds = 0, totalDamage = 0, totalKills = 0;
+      let totalSurvival = 0, totalWins = 0, totalTop10s = 0, totalAssists = 0;
+      for (const mode of ALL_MODES) {
+        const stats = seasonStats?.[mode]?.attributes?.gameModeStats?.[mode];
+        if (!stats?.roundsPlayed) continue;
+        totalRounds   += stats.roundsPlayed;
+        totalDamage   += stats.damageDealt  || 0;
+        totalKills    += stats.kills        || 0;
+        totalAssists  += stats.assists      || 0;
+        totalSurvival += stats.timeSurvived || 0;
+        totalWins     += stats.wins         || 0;
+        totalTop10s   += stats.top10s       || 0;
+      }
+      return { totalRounds, totalDamage, totalKills, totalAssists, totalSurvival, totalWins, totalTop10s };
+    }
+
+    // 개별 플레이어 API 응답(단일 객체)에서 합산
+    function sumNormalStatsDirect(directData) {
+      const gms = directData?.data?.attributes?.gameModeStats || {};
+      let totalRounds = 0, totalDamage = 0, totalKills = 0;
+      let totalSurvival = 0, totalWins = 0, totalTop10s = 0, totalAssists = 0;
+      for (const mode of ALL_MODES) {
+        const stats = gms[mode];
+        if (!stats?.roundsPlayed) continue;
+        totalRounds   += stats.roundsPlayed;
+        totalDamage   += stats.damageDealt  || 0;
+        totalKills    += stats.kills        || 0;
+        totalAssists  += stats.assists      || 0;
+        totalSurvival += stats.timeSurvived || 0;
+        totalWins     += stats.wins         || 0;
+        totalTop10s   += stats.top10s       || 0;
+      }
+      return { totalRounds, totalDamage, totalKills, totalAssists, totalSurvival, totalWins, totalTop10s };
+    }
+
+    // 클랜 목록 — lastSynced 오래된 순으로 처리
     const clans = await prisma.clan.findMany({
       where: { NOT: { name: '무소속' } },
       include: { members: true },
@@ -46,21 +112,42 @@ export default async function handler(req, res) {
 
     log.total = clans.length;
 
+    // [버그2] 활성 기준 날짜 (30일)
+    const activeThreshold = new Date(Date.now() - ACTIVE_DAYS * 24 * 60 * 60 * 1000);
+
     for (const clan of clans) {
-      // 타임아웃 체크
       if (Date.now() - startTime > MAX_MS) {
         log.timedOut = true;
         console.warn(`⚠️ [FullBatch] 타임아웃 도달, ${log.updatedClans}/${clans.length} 클랜 완료`);
         break;
       }
 
-      const members = clan.pubgClanId
+      const allMembers = clan.pubgClanId
         ? clan.members.filter(m => m.pubgClanId === clan.pubgClanId)
         : clan.members;
 
-      if (members.length === 0) continue;
+      if (allMembers.length === 0) continue;
 
-      // 멤버별 shard 그룹핑 (kakao/steam 혼재 가능)
+      // [버그2] 최근 30일 내 업데이트된 활성 멤버만 처리
+      const members = allMembers.filter(m => {
+        if (!m.lastUpdated) return true; // 한 번도 업데이트 안 된 멤버는 포함
+        return new Date(m.lastUpdated) >= activeThreshold;
+      });
+
+      const skipped = allMembers.length - members.length;
+      if (skipped > 0) {
+        log.skippedInactive += skipped;
+        console.log(`[FullBatch] ${clan.name}: ${skipped}명 비활성 제외, ${members.length}명 처리 대상`);
+      }
+
+      if (members.length === 0) {
+        // 멤버 없어도 lastSynced 갱신
+        await prisma.clan.update({ where: { id: clan.id }, data: { lastSynced: new Date() } }).catch(() => {});
+        log.updatedClans++;
+        continue;
+      }
+
+      // 멤버별 shard 그룹핑
       const shardGroups = {};
       for (const m of members) {
         const shard = m.pubgShardId || DEFAULT_SHARD;
@@ -72,42 +159,82 @@ export default async function handler(req, res) {
         const allMemberData = {};
         for (const [shard, shardMembers] of Object.entries(shardGroups)) {
           const currentSeason = await getSeasonForShard(shard);
-          if (!currentSeason) { console.warn(`[FullBatch] ${shard} 시즌 없음`); continue; }
+          if (!currentSeason) {
+            console.warn(`[FullBatch] ${shard} 시즌 없음`);
+            continue;
+          }
           const memberNames = shardMembers.map(m => m.nickname);
-          // PUBG API 배치 조회
-          const memberData = await fetchClanMembersBatch(shard, memberNames, currentSeason.id);
-          Object.assign(allMemberData, memberData);
-        }
-        const memberData = allMemberData;
-        const memberNames = members.map(m => m.nickname);
 
-        for (const [nickname, data] of Object.entries(memberData)) {
-          if (data.error) { log.errors++; continue; }
-
-          const member = members.find(m => m.nickname.toLowerCase() === nickname.toLowerCase());
-          if (!member) continue;
-
-          // 일반전 6모드 합산 (이벤트 제외)
-          const ALL_MODES = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
-          let totalRounds = 0, totalDamage = 0, totalKills = 0;
-          let totalSurvival = 0, totalWins = 0, totalTop10s = 0, totalAssists = 0;
-
-          for (const mode of ALL_MODES) {
-            const stats = data.seasonStats?.[mode]?.attributes?.gameModeStats?.[mode];
-            if (!stats || !stats.roundsPlayed) continue;
-            totalRounds   += stats.roundsPlayed;
-            totalDamage   += stats.damageDealt  || 0;
-            totalKills    += stats.kills        || 0;
-            totalAssists  += stats.assists      || 0;
-            totalSurvival += stats.timeSurvived || 0;
-            totalWins     += stats.wins         || 0;
-            totalTop10s   += stats.top10s       || 0;
+          // 배치 조회 시도
+          let memberData = {};
+          try {
+            memberData = await fetchClanMembersBatch(shard, memberNames, currentSeason.id);
+          } catch (batchErr) {
+            // [버그1] 배치 자체가 throw한 경우 — 상세 로그
+            console.error(`[FullBatch] 배치 조회 실패 shard=${shard} clan=${clan.name}:`, batchErr.message);
+            log.apiErrors++;
           }
 
-          // 경쟁전 합산 — PKGG점수를 플레이어 페이지와 동일하게 맞추기 위해 ranked도 포함
+          // [버그1] 배치 결과에서 data.error인 멤버 → 개별 API fallback
+          for (const shardMember of shardMembers) {
+            const nick = shardMember.nickname;
+            const d = memberData[nick] || memberData[nick.toLowerCase()];
+
+            if (!d || d.error) {
+              if (d?.error) {
+                console.warn(`[FullBatch] 배치 멤버 에러 nick=${nick}: ${d.error}`);
+                log.memberErrors++;
+              } else {
+                console.warn(`[FullBatch] 배치 결과 없음 nick=${nick}, fallback 시도`);
+              }
+
+              // [버그1] 개별 플레이어 ID 조회 후 직접 시즌 통계 호출
+              if (shardMember.pubgPlayerId) {
+                const directData = await fetchPlayerSeasonStatsDirect(shard, shardMember.pubgPlayerId, currentSeason.id);
+                if (directData) {
+                  memberData[nick] = { basicInfo: null, seasonStatsDirect: directData };
+                  console.log(`[FullBatch] fallback 성공 nick=${nick}`);
+                } else {
+                  memberData[nick] = { error: 'fallback_failed' };
+                }
+              } else {
+                console.warn(`[FullBatch] pubgPlayerId 없음 nick=${nick}, 스킵`);
+                memberData[nick] = { error: 'no_player_id' };
+              }
+            }
+          }
+
+          Object.assign(allMemberData, memberData);
+        }
+
+        const memberNames = members.map(m => m.nickname);
+
+        for (const member of members) {
+          const nick = member.nickname;
+          const data = allMemberData[nick] || allMemberData[nick.toLowerCase()];
+
+          if (!data || data.error) {
+            // [버그3] 멤버 에러 카운터
+            if (data?.error !== 'no_player_id') log.memberErrors++;
+            console.warn(`[FullBatch] 멤버 스킵 nick=${nick} reason=${data?.error || 'no_data'}`);
+            continue;
+          }
+
+          // 일반전 합산 — 배치 결과 또는 직접 API 결과 분기
+          let totals;
+          if (data.seasonStatsDirect) {
+            totals = sumNormalStatsDirect(data.seasonStatsDirect);
+          } else {
+            totals = sumNormalStats(data.seasonStats);
+          }
+
+          let { totalRounds, totalDamage, totalKills, totalAssists, totalSurvival, totalWins, totalTop10s } = totals;
+
+          // 경쟁전 합산
+          const shard = member.pubgShardId || DEFAULT_SHARD;
+          const currentSeason = seasonCache[shard];
           if (member.pubgPlayerId && currentSeason) {
             try {
-              const shard = member.pubgShardId || DEFAULT_SHARD;
               const rankedData = await cachedPubgFetch(
                 `https://api.pubg.com/shards/${shard}/players/${member.pubgPlayerId}/seasons/${currentSeason.id}/ranked`,
                 { ttl: TTL.PLAYER }
@@ -123,7 +250,9 @@ export default async function handler(req, res) {
                 totalWins     += rm.wins         || 0;
                 totalTop10s   += rm.top10s       || 0;
               }
-            } catch (_) { /* ranked 데이터 없으면 일반전만으로 계산 */ }
+            } catch (rankedErr) {
+              console.warn(`[FullBatch] ranked 조회 실패 nick=${nick}:`, rankedErr.message);
+            }
           }
 
           let avgDamage = 0, avgKills = 0, avgAssists = 0;
@@ -138,14 +267,20 @@ export default async function handler(req, res) {
           }
 
           const hasData = avgDamage > 0 || avgKills > 0 || winRate > 0;
-          const score   = calculateMMR({ avgDamage, avgKills, avgAssists, avgSurviveTime, winRate, top10Rate });
+          if (!hasData) {
+            console.warn(`[FullBatch] hasData=false nick=${nick} totalRounds=${totalRounds} — 배치 통계 비어있음`);
+            continue;
+          }
 
-          // 배치는 일반전만 조회 → 경쟁전 위주 유저는 기존 저장값이 더 정확할 수 있음
-          // 새 스탯이 기존보다 30% 이상 낮으면 덮어쓰지 않음 (경쟁전 위주 상위유저 보호)
-          const existingScore = calculateMMR({ avgDamage: member.avgDamage || 0, avgKills: member.avgKills || 0, winRate: member.winRate || 0, top10Rate: member.top10Rate || 0 });
-          const shouldUpdate  = hasData && (score >= existingScore * 0.7 || !member.avgDamage);
+          const score = calculateMMR({ avgDamage, avgKills, avgAssists, avgSurviveTime, winRate, top10Rate });
+          const existingScore = calculateMMR({
+            avgDamage:  member.avgDamage  || 0,
+            avgKills:   member.avgKills   || 0,
+            winRate:    member.winRate    || 0,
+            top10Rate:  member.top10Rate  || 0,
+          });
+          const shouldUpdate = score >= existingScore * 0.7 || !member.avgDamage;
 
-          // ClanMember 업데이트
           await prisma.clanMember.update({
             where: { id: member.id },
             data: {
@@ -162,62 +297,64 @@ export default async function handler(req, res) {
             },
           });
 
-          // 성장 추적 스냅샷 저장
-          if (hasData) {
-            await prisma.playerStatSnapshot.create({
-              data: {
-                nickname,
-                pubgShardId: member.pubgShardId || DEFAULT_SHARD,
-                score,
-                avgDamage:      Math.round(avgDamage),
-                avgKills:       parseFloat(avgKills.toFixed(2)),
-                avgAssists:     parseFloat(avgAssists.toFixed(2)),
-                avgSurviveTime: Math.round(avgSurviveTime),
-                winRate:        parseFloat(winRate.toFixed(1)),
-                top10Rate:      parseFloat(top10Rate.toFixed(1)),
-              },
-            }).catch(e => console.warn(`${nickname} 스냅샷 저장 실패:`, e.message));
+          await prisma.playerStatSnapshot.create({
+            data: {
+              nickname: nick,
+              pubgShardId: member.pubgShardId || DEFAULT_SHARD,
+              score,
+              avgDamage:      Math.round(avgDamage),
+              avgKills:       parseFloat(avgKills.toFixed(2)),
+              avgAssists:     parseFloat(avgAssists.toFixed(2)),
+              avgSurviveTime: Math.round(avgSurviveTime),
+              winRate:        parseFloat(winRate.toFixed(1)),
+              top10Rate:      parseFloat(top10Rate.toFixed(1)),
+            },
+          }).catch(e => console.warn(`[FullBatch] 스냅샷 저장 실패 nick=${nick}:`, e.message));
 
-            log.updatedMembers++;
-          }
+          log.updatedMembers++;
+          console.log(`  ✔ ${nick} MMR=${score} avg딜=${Math.round(avgDamage)} shouldUpdate=${shouldUpdate}`);
         }
 
-        // 클랜 동기화 시각 갱신
         await prisma.clan.update({
           where: { id: clan.id },
-          data: { lastSynced: new Date(), memberCount: members.length },
+          data: { lastSynced: new Date(), memberCount: allMembers.length },
         });
 
         log.updatedClans++;
-        console.log(`✅ [FullBatch] ${clan.name} 완료 (${memberNames.length}명)`);
+        console.log(`✅ [FullBatch] ${clan.name} 완료 (처리 ${members.length}명 / 전체 ${allMembers.length}명)`);
 
       } catch (clanErr) {
-        console.error(`❌ [FullBatch] ${clan.name} 실패:`, clanErr.message);
-        log.errors++;
+        // [버그3] 클랜 레벨 에러
+        console.error(`❌ [FullBatch] ${clan.name} 클랜 실패:`, clanErr.message);
+        log.clanErrors++;
       }
     }
 
-    // 실행 로그 저장
+    const details = {
+      durationMs:      Date.now() - startTime,
+      totalClans:      log.total,
+      updatedClans:    log.updatedClans,
+      updatedMembers:  log.updatedMembers,
+      skippedInactive: log.skippedInactive,
+      clanErrors:      log.clanErrors,
+      memberErrors:    log.memberErrors,
+      apiErrors:       log.apiErrors,
+      timedOut:        log.timedOut,
+    };
+
     await prisma.rankingUpdateLog.create({
       data: {
         updateType:   'cron_full_batch',
         updatedCount: log.updatedMembers,
         updateTime:   new Date(),
         status:       log.timedOut ? 'partial' : 'success',
-        details: JSON.stringify({
-          durationMs:     Date.now() - startTime,
-          totalClans:     log.total,
-          updatedClans:   log.updatedClans,
-          updatedMembers: log.updatedMembers,
-          errors:         log.errors,
-          timedOut:       log.timedOut,
-        }),
+        details:      JSON.stringify(details),
       },
     }).catch(() => {});
 
-    console.log(`🏁 [FullBatch] 완료: ${log.updatedClans}클랜 / ${log.updatedMembers}명 / ${Date.now() - startTime}ms`);
+    console.log(`🏁 [FullBatch] 완료: ${log.updatedClans}클랜 / ${log.updatedMembers}명 / clanErr=${log.clanErrors} memberErr=${log.memberErrors} apiErr=${log.apiErrors} / ${Date.now() - startTime}ms`);
 
-    return res.status(200).json({ success: true, ...log, durationMs: Date.now() - startTime });
+    return res.status(200).json({ success: true, ...details });
 
   } catch (error) {
     console.error('❌ [FullBatch] 전체 실패:', error.message);
