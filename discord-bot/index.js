@@ -49,19 +49,20 @@ const RANKED_TIER_KO = {
 async function fetchRankedInfo(shard, accountId) {
   try {
     const seasonData = await fetchJson(`${PKGG}/api/pubg/seasons?shard=${shard}`)
-    const seasonId = seasonData?.currentSeasonId
+    // 응답 구조: { seasons: [{ id, isCurrentSeason, label }, ...] }
+    const seasonId = seasonData?.seasons?.find(s => s.isCurrentSeason)?.id
     if (!seasonId) return null
 
     const rankedData = await fetchJson(
       `${PKGG}/api/pubg/stats/ranked/${shard}/${accountId}/${seasonId}`
     )
     const modeStats = rankedData?.data?.rankedGameModeStats || {}
-    // squad-fpp 우선, 없으면 squad
+    // squad-fpp 우선, 없으면 squad, 없으면 첫 번째 모드
     const mode = modeStats['squad-fpp'] || modeStats['squad'] || Object.values(modeStats)[0]
     if (!mode || !mode.roundsPlayed) return null
 
     const tier    = mode.currentTier?.tier    || ''
-    const subTier = mode.currentTier?.subTier || ''
+    const subTier = mode.currentTier?.subTier || ''  // "1"~"5" 숫자 문자열
     const rp      = mode.currentRankPoint     || 0
     const games   = mode.roundsPlayed         || 0
     const wins    = mode.wins                 || 0
@@ -72,8 +73,11 @@ async function fetchRankedInfo(shard, accountId) {
     const info = RANKED_TIER_KO[tier]
     if (!info) return null
 
+    // Master는 서브티어 없음, 나머지는 숫자 서브티어 표시 (1 제외)
+    const subLabel = tier !== 'Master' && subTier && subTier !== '1' ? ` ${subTier}` : ''
+
     return {
-      label:    `${info.emoji} ${info.label}${subTier && subTier !== 'I' && tier !== 'Master' ? ' ' + subTier : ''}`,
+      label: `${info.emoji} ${info.label}${subLabel}`,
       rp,
       games,
       kd,
