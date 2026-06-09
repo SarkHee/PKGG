@@ -85,10 +85,16 @@ async function findPlayerByName(name, pubgBase) {
     return secondary
   }
 
+  // 크로스플레이 오감지 보정:
+  // 카카오 유저를 steam 샤드로 검색하면 shardId:'steam'으로 잘못 반환됨.
+  // 같은 accountId가 steam·kakao 양쪽에서 감지되면 kakao가 정확한 샤드.
+  // (반대로 steam 유저는 kakao 검색 시 shardId:'steam' → actualShard≠shard 필터로 제외됨)
   const byAccountId = new Map()
   for (const entry of found) {
     const existing = byAccountId.get(entry.accountId)
-    if (!existing || entry.matchCount > existing.matchCount) {
+    if (!existing) {
+      byAccountId.set(entry.accountId, entry)
+    } else if (entry.shard === 'kakao' && existing.shard === 'steam') {
       byAccountId.set(entry.accountId, entry)
     }
   }
