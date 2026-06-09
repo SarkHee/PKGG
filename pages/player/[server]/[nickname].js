@@ -2365,7 +2365,7 @@ async function getPlayerFromDB(nickname, server) {
       profile: {
         nickname: member.nickname,
         playerId: member.pubgPlayerId,
-        shardId: member.pubgShardId || server,
+        shardId: cached?.pubgShardId || member.pubgShardId || server,
         lastUpdated: member.lastUpdated.toISOString(),
         lastCachedAt: member.lastUpdated ? member.lastUpdated.toISOString() : null,
         clan: member.clan
@@ -2414,6 +2414,8 @@ export async function getServerSideProps({ params, query }) {
   const forceRefresh = query.force === '1';
   const { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache, invalidateCache } = await import('../../../utils/pubgApiCache');
   const { invalidatePlayerCache } = await import('../../../utils/redis');
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
   const PUBG_BASE = 'https://api.pubg.com/shards';
   const shards = ['steam', 'kakao', 'psn', 'xbox'];
 
@@ -2578,6 +2580,63 @@ export async function getServerSideProps({ params, query }) {
                     assists: s.assists || 0,
                   };
                 }
+                // DB캐시 경로: 시즌 통계 비어있으면 반대 샤드로 재시도
+                // 경쟁전 전용 플레이어는 gameModeStats가 비어있으므로 ranked도 같이 확인
+                const currentShardHasNoData =
+                  Object.keys(transformedModes).length === 0 &&
+                  (rankedResult.status !== 'fulfilled' ||
+                    !Object.values(rankedResult.value.data?.attributes?.rankedGameModeStats || {}).some(m => (m.roundsPlayed || 0) > 0))
+
+                if (currentShardHasNoData && (playerShard === 'steam' || playerShard === 'kakao')) {
+                  const altShard = playerShard === 'steam' ? 'kakao' : 'steam'
+                  console.log(`[DB캐시] 시즌+경쟁전 데이터 없음 (${playerShard}) → ${altShard} 재시도`)
+                  try {
+                    const [altStats, altRanked] = await Promise.allSettled([
+                      cachedPubgFetch(
+                        `${PUBG_BASE}/${altShard}/players/${cached.profile.playerId}/seasons/${currentSeason.id}`,
+                        { ttl: TTL.PLAYER, force: true }
+                      ),
+                      cachedPubgFetch(
+                        `${PUBG_BASE}/${altShard}/players/${cached.profile.playerId}/seasons/${currentSeason.id}/ranked`,
+                        { ttl: TTL.PLAYER, force: true }
+                      ),
+                    ])
+                    const altNormalModes = altStats.status === 'fulfilled'
+                      ? altStats.value.data?.attributes?.gameModeStats || {} : {}
+                    const altRankedModes = altRanked.status === 'fulfilled'
+                      ? altRanked.value.data?.attributes?.rankedGameModeStats || {} : {}
+                    const hasData =
+                      Object.values(altNormalModes).some(s => (s.roundsPlayed || 0) > 0) ||
+                      Object.values(altRankedModes).some(m => (m.roundsPlayed || 0) > 0)
+                    if (hasData) {
+                      console.log(`[DB캐시] ✅ ${altShard}에 데이터 있음 → DB 업데이트 후 redirect`)
+                      try {
+                        const [pc, cm] = await Promise.all([
+                          prisma.playerCache.updateMany({
+                            where: { pubgPlayerId: cached.profile.playerId },
+                            data: { pubgShardId: altShard },
+                          }),
+                          prisma.clanMember.updateMany({
+                            where: { pubgPlayerId: cached.profile.playerId },
+                            data: { pubgShardId: altShard },
+                          }),
+                        ])
+                        console.log(`[DB캐시] DB shard 업데이트: playerCache=${pc.count}건, clanMember=${cm.count}건 → ${altShard}`)
+                      } catch (dbErr) {
+                        console.error(`[DB캐시] DB shard 업데이트 실패:`, dbErr.message)
+                      }
+                      return {
+                        redirect: {
+                          destination: `/player/${altShard}/${encodeURIComponent(nickname)}`,
+                          permanent: false,
+                        },
+                      }
+                    }
+                  } catch (altErr) {
+                    console.warn(`[DB캐시] ${altShard} 재시도 실패:`, altErr.message)
+                  }
+                }
+
                 if (Object.keys(transformedModes).length > 0) {
                   cached.seasonStats = { [currentSeason.id]: transformedModes };
                   console.log(`[DB캐시] 시즌 통계 보완: ${Object.keys(transformedModes).join(', ')}`);
@@ -2591,6 +2650,7 @@ export async function getServerSideProps({ params, query }) {
                 if (modeData && modeData.roundsPlayed > 0) {
                   const r = modeData.roundsPlayed;
                   const deaths = Math.max(1, r - (modeData.wins || 0));
+                  const _t10r = typeof modeData.top10Ratio === 'number' ? modeData.top10Ratio : (modeData.top10s || 0) / r;
                   cached.rankedSummary = {
                     mode: 'squad-fpp',
                     tier: modeData.currentTier?.tier || 'Unranked',
@@ -2605,8 +2665,8 @@ export async function getServerSideProps({ params, query }) {
                     kda: parseFloat((((modeData.kills || 0) + (modeData.assists || 0)) / deaths).toFixed(2)),
                     avgDamage: r > 0 ? Math.round((modeData.damageDealt || 0) / r) : 0,
                     winRate: parseFloat(((modeData.wins || 0) / r * 100).toFixed(1)),
-                    top10Rate: parseFloat(((modeData.top10s || 0) / r * 100).toFixed(1)),
-                    top10Ratio: (modeData.top10s || 0) / r,
+                    top10Rate: parseFloat((_t10r * 100).toFixed(1)),
+                    top10Ratio: _t10r,
                     kills: modeData.kills || 0,
                     deaths,
                     assists: modeData.assists || 0,
@@ -2842,6 +2902,63 @@ export async function getServerSideProps({ params, query }) {
               mostAssists: 0,
             };
           }
+          // 시즌 통계가 비어있으면 → 반대 샤드로 재시도 (카카오↔스팀 오감지 자동 교정)
+          // 경쟁전 전용 플레이어는 gameModeStats가 비어있으므로 ranked도 같이 확인
+          const currentShardHasNoData =
+            Object.keys(transformedModes).length === 0 &&
+            (rankedResult.status !== 'fulfilled' ||
+              !Object.values(rankedResult.value.data?.attributes?.rankedGameModeStats || {}).some(m => (m.roundsPlayed || 0) > 0))
+
+          if (currentShardHasNoData && (pubgShard === 'steam' || pubgShard === 'kakao')) {
+            const altShard = pubgShard === 'steam' ? 'kakao' : 'steam'
+            console.log(`[SSR] 시즌+경쟁전 데이터 없음 (${pubgShard}) → ${altShard} 재시도`)
+            try {
+              const [altStats, altRanked] = await Promise.allSettled([
+                cachedPubgFetch(
+                  `${PUBG_BASE}/${altShard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}`,
+                  { ttl: TTL.PLAYER, force: true }
+                ),
+                cachedPubgFetch(
+                  `${PUBG_BASE}/${altShard}/players/${pubgPlayer.id}/seasons/${currentSeason.id}/ranked`,
+                  { ttl: TTL.PLAYER, force: true }
+                ),
+              ])
+              const altNormalModes = altStats.status === 'fulfilled'
+                ? altStats.value.data?.attributes?.gameModeStats || {} : {}
+              const altRankedModes = altRanked.status === 'fulfilled'
+                ? altRanked.value.data?.attributes?.rankedGameModeStats || {} : {}
+              const hasData =
+                Object.values(altNormalModes).some(s => (s.roundsPlayed || 0) > 0) ||
+                Object.values(altRankedModes).some(m => (m.roundsPlayed || 0) > 0)
+              if (hasData) {
+                console.log(`[SSR] ✅ ${altShard}에 데이터 있음 → DB 업데이트 후 redirect`)
+                try {
+                  const [pc, cm] = await Promise.all([
+                    prisma.playerCache.updateMany({
+                      where: { pubgPlayerId: pubgPlayer.id },
+                      data: { pubgShardId: altShard },
+                    }),
+                    prisma.clanMember.updateMany({
+                      where: { pubgPlayerId: pubgPlayer.id },
+                      data: { pubgShardId: altShard },
+                    }),
+                  ])
+                  console.log(`[SSR] DB shard 업데이트: playerCache=${pc.count}건, clanMember=${cm.count}건 → ${altShard}`)
+                } catch (dbErr) {
+                  console.error(`[SSR] DB shard 업데이트 실패:`, dbErr.message)
+                }
+                return {
+                  redirect: {
+                    destination: `/player/${altShard}/${encodeURIComponent(nickname)}`,
+                    permanent: false,
+                  },
+                }
+              }
+            } catch (altErr) {
+              console.warn(`[SSR] ${altShard} 재시도 실패:`, altErr.message)
+            }
+          }
+
           if (Object.keys(transformedModes).length > 0) {
             pubgSeasonStats = { [currentSeason.id]: transformedModes };
             currentSeasonModes = transformedModes;
@@ -2935,6 +3052,7 @@ export async function getServerSideProps({ params, query }) {
           if (modeData && modeData.roundsPlayed > 0) {
             const r = modeData.roundsPlayed;
             const deaths = Math.max(1, r - (modeData.wins || 0));
+            const _t10r = typeof modeData.top10Ratio === 'number' ? modeData.top10Ratio : (modeData.top10s || 0) / r;
 
             // PUBG /ranked 엔드포인트는 headshotKills를 제공하지 않음
             // gameModeStats의 ranked-* 모드에서 헤드샷 데이터 보완
@@ -2963,8 +3081,8 @@ export async function getServerSideProps({ params, query }) {
               kda: parseFloat((((modeData.kills || 0) + (modeData.assists || 0)) / deaths).toFixed(2)),
               avgDamage: r > 0 ? Math.round((modeData.damageDealt || 0) / r) : 0,
               winRate: parseFloat(((modeData.wins || 0) / r * 100).toFixed(1)),
-              top10Rate: parseFloat(((modeData.top10s || 0) / r * 100).toFixed(1)),
-              top10Ratio: (modeData.top10s || 0) / r,
+              top10Rate: parseFloat((_t10r * 100).toFixed(1)),
+              top10Ratio: _t10r,
               avgRank: 0,
               kills: modeData.kills || 0,
               deaths,
@@ -3153,8 +3271,6 @@ export async function getServerSideProps({ params, query }) {
     // 클랜 멤버 DB에서 조회 (클랜 소속인 경우)
     if (pubgClan) {
       try {
-        const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
         const clanRow = await prisma.clan.findFirst({ where: { pubgClanId: pubgClan.id } });
         if (clanRow) {
           const rawMembers = await prisma.clanMember.findMany({
