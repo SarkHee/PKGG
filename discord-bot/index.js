@@ -169,31 +169,22 @@ function buildPlayerReply(p, ranked) {
     }
   }
 
-  // 일반 시즌 판수 + 경쟁전 판수로 가중 평균 계산
-  const normalGames = s.roundsPlayed || 0
-  const rankedGames = ranked?.games  || 0
-  const totalGames  = normalGames + rankedGames
+  const mmr   = s.mmr ?? null
+  const style = STYLE_LABEL[s.style] || s.style || '정보 없음'
+  const tier  = tierInfo(mmr)
 
-  function weighted(normalVal, rankedVal) {
-    const n = normalVal ?? 0
-    const r = rankedVal ?? 0
-    if (totalGames === 0) return null
-    if (normalGames === 0) return rankedVal ?? null
-    if (rankedGames === 0) return normalVal ?? null
-    return parseFloat(((n * normalGames + r * rankedGames) / totalGames).toFixed(1))
-  }
+  // 일반게임 스탯
+  const nDamage  = s.avgDamage != null ? String(Math.round(s.avgDamage)) : '정보 없음'
+  const nKills   = s.avgKills  != null ? String(s.avgKills)              : '정보 없음'
+  const nWinRate = s.winRate   != null ? `${s.winRate}%`                 : '정보 없음'
+  const nTop10   = s.top10Rate != null ? `${s.top10Rate}%`               : '정보 없음'
 
-  const damage  = weighted(s.avgDamage, ranked?.avgDamage)
-  const kills   = weighted(s.avgKills,  ranked?.avgKills)
-  const winRate = weighted(s.winRate,   ranked?.winRate)
-  const top10   = weighted(s.top10Rate, ranked?.top10Rate)
-
-  const mmr = s.mmr ?? null
-  const style    = STYLE_LABEL[s.style] || s.style || '정보 없음'
-  const tier     = tierInfo(mmr)
-
-  // 경쟁전 티어 표시값
-  const rankedValue = ranked
+  // 경쟁전 스탯 (ranked 없으면 미표시)
+  const rDamage  = ranked?.avgDamage  != null ? String(ranked.avgDamage)       : '기록 없음'
+  const rKills   = ranked?.avgKills   != null ? String(ranked.avgKills)        : '기록 없음'
+  const rWinRate = ranked?.winRate    != null ? `${ranked.winRate}%`           : '기록 없음'
+  const rTop10   = ranked?.top10Rate  != null ? `${ranked.top10Rate}%`         : '기록 없음'
+  const rTier    = ranked
     ? `${ranked.label}  RP ${ranked.rp.toLocaleString()}  (${ranked.games}판 · KD ${ranked.kd})`
     : '경쟁전 기록이 없습니다'
 
@@ -202,13 +193,26 @@ function buildPlayerReply(p, ranked) {
     .setColor(shard === 'kakao' ? 0xf59e0b : 0x7f77dd)
     .setURL(profileUrl)
     .addFields(
-      { name: '📊 PKGG 점수',    value: mmr    != null ? `${tier.emoji} ${mmr.toLocaleString()} (${tier.label})` : '정보 없음', inline: true },
-      { name: '💥 평균 딜량',    value: damage != null ? String(damage)  : '정보 없음', inline: true },
-      { name: '⚔️  평균 킬',     value: kills  != null ? String(kills)   : '정보 없음', inline: true },
-      { name: '🏆 승률',         value: winRate != null ? `${winRate}%`  : '정보 없음', inline: true },
-      { name: '📈 Top10 진입률', value: top10  != null ? `${top10}%`     : '정보 없음', inline: true },
-      { name: '🎯 플레이스타일', value: style,                                          inline: true },
-      { name: '🏅 경쟁전 티어',  value: rankedValue,                                   inline: false },
+      { name: '📊 PKGG 점수',    value: mmr != null ? `${tier.emoji} ${mmr.toLocaleString()} (${tier.label})` : '정보 없음', inline: true },
+      { name: '🎯 플레이스타일', value: style, inline: true },
+      { name: '​',           value: '​', inline: true },
+      // 일반게임
+      { name: '🎮 일반게임',     value: '───────────', inline: false },
+      { name: '💥 평균 딜량',    value: nDamage,  inline: true },
+      { name: '⚔️  평균 킬',     value: nKills,   inline: true },
+      { name: '🏆 승률',         value: nWinRate, inline: true },
+      { name: '📈 Top10',        value: nTop10,   inline: true },
+      { name: '​',           value: '​', inline: true },
+      { name: '​',           value: '​', inline: true },
+      // 경쟁전
+      { name: '🏅 경쟁전',       value: '───────────', inline: false },
+      { name: '💎 티어',          value: rTier,    inline: false },
+      { name: '💥 평균 딜량',    value: rDamage,  inline: true },
+      { name: '⚔️  평균 킬',     value: rKills,   inline: true },
+      { name: '🏆 승률',         value: rWinRate, inline: true },
+      { name: '📈 Top10',        value: rTop10,   inline: true },
+      { name: '​',           value: '​', inline: true },
+      { name: '​',           value: '​', inline: true },
     )
     .setFooter({ text: 'PKGG.vercel.app • PUBG 전적 조회', iconURL: `${PKGG}/logo.png` })
     .setTimestamp()
