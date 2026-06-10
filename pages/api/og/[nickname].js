@@ -42,7 +42,7 @@ export default async function handler(req) {
   const damage      = d?.avgRealDamage != null ? Math.round(d.avgRealDamage).toLocaleString() : (d?.avgDamage != null ? Math.round(d.avgDamage).toLocaleString() : '-')
   const winRate     = d?.winRate != null ? `${d.winRate}%` : '-'
   const mmr         = d?.mmr ? Number(d.mmr).toLocaleString() : '-'
-  const season      = d?.currentSeason?.label || 'Season 41'
+  const season      = d?.currentSeason?.label || 'Season 42'
   const topWeapons  = d?.topWeapons || []
   const maxKills    = topWeapons[0]?.kills || 1
   const isCorrected = d?.avgRealKills != null

@@ -1,6 +1,7 @@
 // pages/api/weapon-meta-live.js
 // 실제 텔레메트리 기반 무기 메타 집계 API
 import prisma from '../../utils/prisma.js'
+import { getSeasonStart } from '../../utils/seasonStart.js'
 
 // 제외 패턴 - 차량/캐릭터/환경/투척류/근접무기
 const EXCLUDE = [
@@ -47,9 +48,12 @@ function normalizeId(raw) {
   return NORMALIZE[id] ?? id
 }
 
-function getPeriod(period) {
+async function getPeriod(period) {
   const now = new Date()
-  if (period === 'season') return { start: new Date('2026-03-12'), prevStart: null, prevEnd: null }
+  if (period === 'season') {
+    const { start } = await getSeasonStart()
+    return { start, prevStart: null, prevEnd: null }
+  }
   const days = period === 'month' ? 30 : 7
   const start     = new Date(now - days * 86400000)
   const prevStart = new Date(now - days * 2 * 86400000)
@@ -75,7 +79,7 @@ function aggregate(rows) {
 export default async function handler(req, res) {
   try {
     const { period = 'week', shard = 'all' } = req.query
-    const { start, prevStart, prevEnd } = getPeriod(period)
+    const { start, prevStart, prevEnd } = await getPeriod(period)
     const shardFilter = shard !== 'all' ? { shard } : {}
 
     const [curRows, prevRows] = await Promise.all([

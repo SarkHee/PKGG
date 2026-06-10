@@ -1,7 +1,7 @@
 import prisma from '../../../utils/prisma.js'
 import { redisGet, redisSet } from '../../../utils/redis.js'
+import { getSeasonStart } from '../../../utils/seasonStart.js'
 
-const SEASON_START = new Date('2026-03-12T00:00:00Z')
 const CACHE_KEY = 'awards:players:v2'
 const CACHE_TTL = 3600
 
@@ -18,6 +18,7 @@ export default async function handler(req, res) {
   if (cached) return res.status(200).json(cached)
 
   try {
+    const { start: SEASON_START } = await getSeasonStart()
     const [avgKillsRaw, avgDamageRaw, winRateRaw, totalKillsRaw, totalWinsRaw, weaponMasterRaw] = await Promise.all([
       // 경기당 평균 실킬
       prisma.$queryRaw`

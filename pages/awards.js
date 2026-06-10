@@ -254,7 +254,7 @@ export default function AwardsPage() {
 
   const seasonLabel = clanData?.seasonStart
     ? new Date(clanData.seasonStart).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
-    : '2026-03-12'
+    : '2026-06-18'
   const generatedAt = clanData?.generatedAt
     ? new Date(clanData.generatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
     : null

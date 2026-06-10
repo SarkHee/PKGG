@@ -6,6 +6,7 @@ import { calculateMMR, getMMRTier } from '../../../utils/mmrCalculator'
 import { classifyPlaystyle } from '../../../utils/playstyleClassifier'
 import { getMapName } from '../../../utils/mapUtils'
 import { redisGet } from '../../../utils/redis.js'
+import { getSeasonStart } from '../../../utils/seasonStart.js'
 
 function seasonLabel(id) {
   if (!id) return ''
@@ -152,8 +153,7 @@ export default async function handler(req, res) {
       .filter(ms => NORMAL_MODES.has(ms.mode))
       .reduce((s, ms) => s + (ms.matches || 0), 0)
 
-    // 시즌 교체 시 아래 두 날짜 업데이트 (예상 종료일: 2026-06-10)
-    const SEASON_START = new Date('2026-03-12T00:00:00Z')
+    const { start: SEASON_START } = await getSeasonStart()
     const seasonFilter = { createdAt: { gte: SEASON_START } }
 
     let avgRealKills = null, avgRealDamage = null, analyzedCount = 0, bestMatch = null

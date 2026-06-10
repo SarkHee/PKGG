@@ -1,7 +1,7 @@
 import prisma from '../../../utils/prisma.js'
 import { redisGet, redisSet } from '../../../utils/redis.js'
+import { getSeasonStart } from '../../../utils/seasonStart.js'
 
-const SEASON_START = new Date('2026-03-12T00:00:00Z')
 const CACHE_KEY = 'awards:clans:v3'
 const CACHE_TTL = 3600
 
@@ -12,6 +12,7 @@ export default async function handler(req, res) {
   if (cached) return res.status(200).json(cached)
 
   try {
+    const { start: SEASON_START } = await getSeasonStart()
     const EARLY_END = new Date(SEASON_START.getTime() + 31 * 24 * 60 * 60 * 1000)
     const RECENT_START = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
