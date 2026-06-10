@@ -1,7 +1,7 @@
 // 시즌 종료 카운트다운 위젯
 // 매 시즌마다 SEASON_NO와 END_DATE를 수동 업데이트 (약 2개월 주기)
 const SEASON_NO = 41
-const END_DATE  = '2026-06-10'   // ← 다음 시즌 때 여기만 수정
+const END_DATE  = '2026-06-18'   // ← 다음 시즌 때 여기만 수정
 
 function calcDaysLeft() {
   const end  = new Date(END_DATE + 'T00:00:00+09:00') // KST 기준
