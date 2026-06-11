@@ -8,9 +8,9 @@ const MAP_INFO = {
   Tiger_Main:      { name: '태이고', img: '/maps/taego.jpg' },
   Kiki_Main:       { name: '데스턴', img: '/maps/deston.jpg' },
   Neon_Main:       { name: '론도',   img: '/maps/rondo.jpg' },
-  Savage_Main:     { name: '사녹',   img: '/maps/sanhok.webp' },
-  Summerland_Main: { name: '카라킨', img: '/maps/karakin.webp' },
-  Chimera_Main:    { name: '파라모', img: '/maps/paramo.webp' },
+  Savage_Main:     { name: '사녹',   img: '/maps/sanhok.jpg' },
+  Summerland_Main: { name: '카라킨', img: '/maps/karakin.jpg' },
+  Chimera_Main:    { name: '파라모', img: '/maps/paramo.jpg' },
   Heaven_Main:     { name: '헤이븐', img: null },
   Range_Main:      { name: '훈련장', img: null },
   // 영문명 하위 호환
@@ -20,9 +20,9 @@ const MAP_INFO = {
   Taego:    { name: '태이고', img: '/maps/taego.jpg' },
   Deston:   { name: '데스턴', img: '/maps/deston.jpg' },
   Rondo:    { name: '론도',   img: '/maps/rondo.jpg' },
-  Sanhok:   { name: '사녹',   img: '/maps/sanhok.webp' },
-  Karakin:  { name: '카라킨', img: '/maps/karakin.webp' },
-  Paramo:   { name: '파라모', img: '/maps/paramo.webp' },
+  Sanhok:   { name: '사녹',   img: '/maps/sanhok.jpg' },
+  Karakin:  { name: '카라킨', img: '/maps/karakin.jpg' },
+  Paramo:   { name: '파라모', img: '/maps/paramo.jpg' },
 }
 
 export function getMapInfo(rawName) {

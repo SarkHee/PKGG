@@ -4,6 +4,11 @@ const nextConfig = {
   images: {
     domains: ['lh3.googleusercontent.com', 'wstatic-prod.pubg.com', 'wstatic-prod-boc.krafton.com'],
   },
+  async rewrites() {
+    return [
+      { source: '/ads.txt', destination: '/api/ads-txt' },
+    ]
+  },
   async headers() {
     return [
       {
