@@ -670,7 +670,7 @@ function setCachedPlayer(key, data) {
   } catch {}
 }
 
-export default function PlayerPage({ playerData: ssrData, error, isBanned, dataSource }) {
+export default function PlayerPage({ playerData: ssrData, error, isBanned, renamedTo, dataSource }) {
   const { t } = useT();
   const router = useRouter();
   const { server, nickname } = router.query;
@@ -828,6 +828,50 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
 
   // isBanned / error 체크는 pageLoading/playerData 체크보다 먼저 와야 함
   // (isBanned=true일 때 playerData=null이므로 !playerData 조건에 걸려 스켈레톤만 보임)
+  if (renamedTo) {
+    return (
+      <>
+        <Header />
+        <div className="container mx-auto p-6 min-h-screen">
+          <div className="max-w-2xl mx-auto mt-20">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-amber-300 dark:border-amber-700 shadow-lg text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">✏️</span>
+                </div>
+                <h1 className="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-2">
+                  닉네임이 변경됐어요
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mb-1">
+                  <span className="font-mono text-gray-500 line-through">{nickname}</span>
+                  {' → '}
+                  <span className="font-bold text-gray-900 dark:text-white">{renamedTo}</span>
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                  이 닉네임은 더 이상 사용되지 않습니다.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={() => router.push(`/player/${server || 'steam'}/${encodeURIComponent(renamedTo)}`)}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                >
+                  {renamedTo} 페이지로 이동
+                </button>
+                <button
+                  onClick={() => router.push('/')}
+                  className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  메인으로
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   if (isBanned) {
     return (
       <>
@@ -840,10 +884,10 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, dataS
                   <span className="text-4xl">⚠️</span>
                 </div>
                 <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 mb-2">
-                  정지된 계정입니다
+                  조회할 수 없는 계정입니다
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                  이 플레이어는 PUBG 서비스 이용이 제한된 계정입니다.
+                  정지됐거나 삭제된 계정일 수 있습니다.
                 </p>
               </div>
               <button
@@ -2587,7 +2631,10 @@ export async function getServerSideProps({ params, query }) {
                   (rankedResult.status !== 'fulfilled' ||
                     !Object.values(rankedResult.value.data?.attributes?.rankedGameModeStats || {}).some(m => (m.roundsPlayed || 0) > 0))
 
-                if (currentShardHasNoData && (playerShard === 'steam' || playerShard === 'kakao')) {
+                // avgDamage > 0 이면 이미 올바른 샤드에서 데이터를 쌓은 유저
+                // → 이번 시즌을 아직 안 했을 뿐이므로 샤드 교정 불필요
+                const hasHistoricalData = (cached.avgDamage || 0) > 0
+                if (currentShardHasNoData && !hasHistoricalData && (playerShard === 'steam' || playerShard === 'kakao')) {
                   const altShard = playerShard === 'steam' ? 'kakao' : 'steam'
                   console.log(`[DB캐시] 시즌+경쟁전 데이터 없음 (${playerShard}) → ${altShard} 재시도`)
                   try {
@@ -2605,11 +2652,12 @@ export async function getServerSideProps({ params, query }) {
                       ? altStats.value.data?.attributes?.gameModeStats || {} : {}
                     const altRankedModes = altRanked.status === 'fulfilled'
                       ? altRanked.value.data?.attributes?.rankedGameModeStats || {} : {}
-                    const hasData =
-                      Object.values(altNormalModes).some(s => (s.roundsPlayed || 0) > 0) ||
-                      Object.values(altRankedModes).some(m => (m.roundsPlayed || 0) > 0)
+                    // 최소 3판(일반) 또는 1판(경쟁전) 이상이어야 교정 — 1판만으로 redirect하면 동명이인 오감지 위험
+                    const altNormalTotal = Object.values(altNormalModes).reduce((s, m) => s + (m.roundsPlayed || 0), 0)
+                    const altRankedTotal = Object.values(altRankedModes).reduce((s, m) => s + (m.roundsPlayed || 0), 0)
+                    const hasData = altNormalTotal >= 3 || altRankedTotal >= 1
                     if (hasData) {
-                      console.log(`[DB캐시] ✅ ${altShard}에 데이터 있음 → DB 업데이트 후 redirect`)
+                      console.log(`[DB캐시] ✅ ${altShard}에 데이터 있음 (일반${altNormalTotal}판/경쟁${altRankedTotal}판) → DB 업데이트 후 redirect`)
                       try {
                         const [pc, cm] = await Promise.all([
                           prisma.playerCache.updateMany({
@@ -2771,50 +2819,80 @@ export async function getServerSideProps({ params, query }) {
     }
 
     if (!pubgPlayer) {
-      // DB에 등록된 유저인지 확인 → 있으면 정지 계정으로 처리
+      // DB에 등록된 유저인지 확인 → 닉변 감지 후 정지 여부 판단
       try {
         const dbRecord = await prisma.playerCache.findFirst({
           where: { nickname: { equals: nickname, mode: 'insensitive' } },
           select: { id: true, pubgPlayerId: true, pubgShardId: true, banCheckFailCount: true },
         })
         if (dbRecord) {
-          // DB에는 있지만 PUBG API 404 → 정지 계정으로 판정
+          // 1단계: accountId로 현재 닉네임 역조회 (닉변 감지)
+          if (dbRecord.pubgPlayerId) {
+            const lookupShard = dbRecord.pubgShardId || server || 'steam'
+            try {
+              const playerRes = await cachedPubgFetch(
+                `${PUBG_BASE}/${lookupShard}/players/${dbRecord.pubgPlayerId}`,
+                { ttl: TTL.PLAYER, force: true }
+              )
+              const currentNick = playerRes?.data?.attributes?.name
+              if (currentNick && currentNick.toLowerCase() !== nickname.toLowerCase()) {
+                console.log(`[SSR] ✏️ 닉변 감지: ${nickname} → ${currentNick}`)
+                // DB 닉네임 업데이트 (isBanned 초기화)
+                await prisma.playerCache.update({
+                  where: { id: dbRecord.id },
+                  data: { nickname: currentNick, isBanned: false, banCheckFailCount: 0 },
+                }).catch(() => {})
+                return { props: { playerData: null, error: null, isBanned: false, renamedTo: currentNick, dataSource: null } }
+              }
+            } catch (e) {
+              console.warn('[SSR] accountId 닉네임 역조회 실패:', e.message)
+            }
+          }
+
+          // 2단계: 닉변 아님 → banCheckFailCount 증가, 3회 이상이어야 정지 처리
           const newCount = (dbRecord.banCheckFailCount ?? 0) + 1
+          const shouldBan = newCount >= 3
           await prisma.playerCache.update({
             where: { id: dbRecord.id },
-            data: { banCheckFailCount: newCount, isBanned: true, bannedAt: new Date() },
+            data: { banCheckFailCount: newCount, ...(shouldBan ? { isBanned: true, bannedAt: new Date() } : {}) },
           })
-          console.warn(`[SSR] 🚫 정지 계정 감지 (페이지 방문): ${nickname}`)
-          // 클랜 관련 데이터 정리 (ClanMember 삭제 + memberCount 재계산 + 리더 초기화)
-          try {
-            const cmWhere = dbRecord.pubgPlayerId
-              ? { pubgPlayerId: dbRecord.pubgPlayerId }
-              : { nickname: { equals: nickname, mode: 'insensitive' } }
-            const members = await prisma.clanMember.findMany({ where: cmWhere, select: { clanId: true } })
-            const clanIds = [...new Set(members.map((m) => m.clanId).filter(Boolean))]
-            await prisma.clanMember.deleteMany({ where: cmWhere })
-            await prisma.clan.updateMany({
-              where: { leader: { equals: nickname, mode: 'insensitive' } },
-              data: { leader: '' },
-            })
-            for (const clanId of clanIds) {
-              const count = await prisma.clanMember.count({ where: { clanId } })
-              await prisma.clan.update({
-                where: { id: clanId },
-                data: { memberCount: count, ...(count === 0 ? { avgScore: 0 } : {}) },
+
+          if (shouldBan) {
+            console.warn(`[SSR] 🚫 정지 계정 판정 (${newCount}회 연속 실패): ${nickname}`)
+            try {
+              const cmWhere = dbRecord.pubgPlayerId
+                ? { pubgPlayerId: dbRecord.pubgPlayerId }
+                : { nickname: { equals: nickname, mode: 'insensitive' } }
+              const members = await prisma.clanMember.findMany({ where: cmWhere, select: { clanId: true } })
+              const clanIds = [...new Set(members.map((m) => m.clanId).filter(Boolean))]
+              await prisma.clanMember.deleteMany({ where: cmWhere })
+              await prisma.clan.updateMany({
+                where: { leader: { equals: nickname, mode: 'insensitive' } },
+                data: { leader: '' },
               })
+              for (const clanId of clanIds) {
+                const count = await prisma.clanMember.count({ where: { clanId } })
+                await prisma.clan.update({
+                  where: { id: clanId },
+                  data: { memberCount: count, ...(count === 0 ? { avgScore: 0 } : {}) },
+                })
+              }
+              console.log(`[SSR] 🧹 정지 계정 클랜 데이터 정리: ${nickname}`)
+            } catch (cleanErr) {
+              console.warn('[SSR] 클랜 정리 실패:', cleanErr.message)
             }
-            console.log(`[SSR] 🧹 정지 계정 클랜 데이터 정리: ${nickname}`)
-          } catch (cleanErr) {
-            console.warn('[SSR] 클랜 정리 실패:', cleanErr.message)
+            return { props: { playerData: null, error: null, isBanned: true, renamedTo: null, dataSource: null } }
           }
-          return { props: { playerData: null, error: null, isBanned: true, dataSource: null } }
+
+          // 3회 미만: 닉변 또는 일시적 오류 가능성 → 조회 불가 안내
+          console.warn(`[SSR] ⚠️ 닉변/임시오류 가능성 (${newCount}/3회 실패): ${nickname}`)
+          return { props: { playerData: null, error: null, isBanned: true, renamedTo: null, dataSource: null } }
         }
       } catch (dbErr) {
         console.warn('[SSR] 정지 여부 DB 확인 실패:', dbErr.message)
       }
       // DB에도 없으면 완전히 미등록 유저
-      return { props: { playerData: null, error: '등록되지 않은 유저입니다', isBanned: false, dataSource: null } }
+      return { props: { playerData: null, error: '등록되지 않은 유저입니다', isBanned: false, renamedTo: null, dataSource: null } }
     }
 
     // Step 2: 클랜 + 시즌 목록 병렬 조회 (캐시 + 중복제거 적용)
@@ -2927,11 +3005,12 @@ export async function getServerSideProps({ params, query }) {
                 ? altStats.value.data?.attributes?.gameModeStats || {} : {}
               const altRankedModes = altRanked.status === 'fulfilled'
                 ? altRanked.value.data?.attributes?.rankedGameModeStats || {} : {}
-              const hasData =
-                Object.values(altNormalModes).some(s => (s.roundsPlayed || 0) > 0) ||
-                Object.values(altRankedModes).some(m => (m.roundsPlayed || 0) > 0)
+              // 최소 3판(일반) 또는 1판(경쟁전) 이상이어야 교정 — 1판만으로 redirect하면 동명이인 오감지 위험
+              const altNormalTotal = Object.values(altNormalModes).reduce((s, m) => s + (m.roundsPlayed || 0), 0)
+              const altRankedTotal = Object.values(altRankedModes).reduce((s, m) => s + (m.roundsPlayed || 0), 0)
+              const hasData = altNormalTotal >= 3 || altRankedTotal >= 1
               if (hasData) {
-                console.log(`[SSR] ✅ ${altShard}에 데이터 있음 → DB 업데이트 후 redirect`)
+                console.log(`[SSR] ✅ ${altShard}에 데이터 있음 (일반${altNormalTotal}판/경쟁${altRankedTotal}판) → DB 업데이트 후 redirect`)
                 try {
                   const [pc, cm] = await Promise.all([
                     prisma.playerCache.updateMany({

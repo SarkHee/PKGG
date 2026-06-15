@@ -57,7 +57,6 @@ export default function ContactPage() {
       <Head>
         <title>문의 | PKGG</title>
         <meta name="description" content="PKGG에 버그 제보, 기능 제안, 기타 문의를 보내주세요." />
-        <meta name="robots" content="noindex" />
       </Head>
       <Header />
 

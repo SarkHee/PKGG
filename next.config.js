@@ -9,6 +9,11 @@ const nextConfig = {
       { source: '/ads.txt', destination: '/api/ads-txt' },
     ]
   },
+  async redirects() {
+    return [
+      { source: '/weapon-meta', destination: '/weapon-meta-live', permanent: true },
+    ]
+  },
   async headers() {
     return [
       {

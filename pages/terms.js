@@ -111,7 +111,6 @@ export default function TermsPage() {
       <Head>
         <title>이용약관 | PKGG</title>
         <meta name="description" content="PKGG 이용약관 — 서비스 이용 조건, 커뮤니티 규칙, 면책 조항" />
-        <meta name="robots" content="noindex" />
       </Head>
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

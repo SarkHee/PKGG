@@ -162,7 +162,6 @@ export default function PrivacyPage() {
       <Head>
         <title>개인정보처리방침 | PKGG</title>
         <meta name="description" content="PKGG 개인정보처리방침 — 수집 정보, 쿠키, 광고, 이용자 권리 안내" />
-        <meta name="robots" content="noindex" />
       </Head>
 
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
