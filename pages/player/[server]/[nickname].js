@@ -2552,6 +2552,8 @@ export async function getServerSideProps({ params, query }) {
       if (cached) {
         // DB에 저장된 shard가 URL의 server와 다르면 올바른 URL로 redirect
         const cachedShard = cached.profile?.shardId;
+        const cachedPlayerId = cached.profile?.playerId;
+
         if (cachedShard && cachedShard !== server) {
           console.log(`[SSR] DB shard 불일치: URL=${server} → DB=${cachedShard}, redirect`);
           return {
@@ -2631,10 +2633,10 @@ export async function getServerSideProps({ params, query }) {
                   (rankedResult.status !== 'fulfilled' ||
                     !Object.values(rankedResult.value.data?.attributes?.rankedGameModeStats || {}).some(m => (m.roundsPlayed || 0) > 0))
 
-                // avgDamage > 0 이면 이미 올바른 샤드에서 데이터를 쌓은 유저
-                // → 이번 시즌을 아직 안 했을 뿐이므로 샤드 교정 불필요
-                const hasHistoricalData = (cached.avgDamage || 0) > 0
-                if (currentShardHasNoData && !hasHistoricalData && (playerShard === 'steam' || playerShard === 'kakao')) {
+                // pubgPlayerId 있는 유저는 무조건 샤드 교정 스킵
+                // (정지·닉변·비활성 유저 전부 포함 — 한 번이라도 DB에 등록된 유저는 교정 대상 아님)
+                const isKnownPlayer = !!cached.profile?.playerId
+                if (currentShardHasNoData && !isKnownPlayer && (playerShard === 'steam' || playerShard === 'kakao')) {
                   const altShard = playerShard === 'steam' ? 'kakao' : 'steam'
                   console.log(`[DB캐시] 시즌+경쟁전 데이터 없음 (${playerShard}) → ${altShard} 재시도`)
                   try {
@@ -2987,7 +2989,21 @@ export async function getServerSideProps({ params, query }) {
             (rankedResult.status !== 'fulfilled' ||
               !Object.values(rankedResult.value.data?.attributes?.rankedGameModeStats || {}).some(m => (m.roundsPlayed || 0) > 0))
 
-          if (currentShardHasNoData && (pubgShard === 'steam' || pubgShard === 'kakao')) {
+          // SSR 경로: pubgPlayerId로 DB에 기록이 있는 유저는 샤드 교정 스킵
+          // (DB MISS여도 playerId 기준으로 확인 — 정지·닉변·비활성 유저 보호)
+          let ssrIsKnownPlayer = false
+          if (currentShardHasNoData && pubgPlayer?.id) {
+            const dbCheck = await prisma.playerCache.findFirst({
+              where: { pubgPlayerId: pubgPlayer.id },
+              select: { id: true },
+            }).catch(() => null)
+            if (dbCheck) {
+              ssrIsKnownPlayer = true
+              console.log(`[SSR] 샤드 교정 스킵: DB에 등록된 유저 (playerId=${pubgPlayer.id})`)
+            }
+          }
+
+          if (currentShardHasNoData && !ssrIsKnownPlayer && (pubgShard === 'steam' || pubgShard === 'kakao')) {
             const altShard = pubgShard === 'steam' ? 'kakao' : 'steam'
             console.log(`[SSR] 시즌+경쟁전 데이터 없음 (${pubgShard}) → ${altShard} 재시도`)
             try {
