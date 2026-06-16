@@ -60,19 +60,31 @@ async function getPeriod(period) {
   return { start, prevStart, prevEnd: start }
 }
 
-function aggregate(rows) {
+// DB에서 groupBy로 집계 — 전체 행 전송 없이 weaponId별 합산만 반환
+async function aggregateFromDB(where) {
+  const rows = await prisma.player_weapon_stats.groupBy({
+    by: ['weaponId'],
+    where,
+    _sum: { kills: true, damage: true, pickup_count: true },
+  })
+
   const map = {}
   let totalKills = 0, totalPickups = 0
+
   for (const r of rows) {
     if (isExcluded(r.weaponId)) continue
     const key = normalizeId(r.weaponId)
+    const kills   = r._sum.kills         || 0
+    const damage  = r._sum.damage        || 0
+    const pickups = r._sum.pickup_count  || 0
     if (!map[key]) map[key] = { kills: 0, damage: 0, pickups: 0 }
-    map[key].kills   += Number(r.kills)         || 0
-    map[key].damage  += Number(r.damage)        || 0
-    map[key].pickups += Number(r.pickup_count)  || 0
-    totalKills   += Number(r.kills)        || 0
-    totalPickups += Number(r.pickup_count) || 0
+    map[key].kills   += kills
+    map[key].damage  += damage
+    map[key].pickups += pickups
+    totalKills   += kills
+    totalPickups += pickups
   }
+
   return { map, totalKills, totalPickups }
 }
 
@@ -82,25 +94,17 @@ export default async function handler(req, res) {
     const { start, prevStart, prevEnd } = await getPeriod(period)
     const shardFilter = shard !== 'all' ? { shard } : {}
 
-    const [curRows, prevRows] = await Promise.all([
-      prisma.player_weapon_stats.findMany({
-        where: {
-          match_id: { not: '' },
-          ...shardFilter,
-          ...(start ? { savedAt: { gte: start } } : {}),
-        },
-        select: { weaponId: true, kills: true, damage: true, pickup_count: true },
-      }),
-      prevStart
-        ? prisma.player_weapon_stats.findMany({
-            where: { match_id: { not: '' }, ...shardFilter, savedAt: { gte: prevStart, lt: prevEnd } },
-            select: { weaponId: true, kills: true },
-          })
-        : Promise.resolve([]),
-    ])
+    const baseWhere = {
+      match_id: { not: '' },
+      ...shardFilter,
+    }
 
-    const cur  = aggregate(curRows)
-    const prev = aggregate(prevRows)
+    const [cur, prev] = await Promise.all([
+      aggregateFromDB({ ...baseWhere, ...(start ? { savedAt: { gte: start } } : {}) }),
+      prevStart
+        ? aggregateFromDB({ ...baseWhere, savedAt: { gte: prevStart, lt: prevEnd } })
+        : Promise.resolve({ map: {}, totalKills: 0, totalPickups: 0 }),
+    ])
 
     // 이전 기간 킬 기준 순위
     const prevRanks = {}
