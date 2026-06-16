@@ -2487,31 +2487,34 @@ export async function getServerSideProps({ params, query }) {
         const bannedPlayerId = cached.__bannedPlayerId || null
         let stillBanned = true
         try {
-          const verifyShards = server && server !== 'unknown'
-            ? [server, ...shards.filter(s => s !== server)]
-            : shards
-          for (const s of verifyShards) {
-            const vJson = await cachedPubgFetch(
-              `${PUBG_BASE}/${s}/players?filter[playerNames]=${encodeURIComponent(bannedNick)}`,
-              { ttl: 0, force: true } // 캐시 무시하고 실시간 확인
-            )
-            if (vJson.data?.length > 0) {
-              // PUBG API에서 찾힘 → 잘못된 ban 마킹, 해제
-              console.log(`[SSR] ⚠️ 잘못된 ban 감지, 해제: ${bannedNick} (${s})`)
-              if (bannedPlayerId) {
-                await prisma.playerCache.updateMany({
-                  where: { pubgPlayerId: bannedPlayerId },
-                  data: { isBanned: false, bannedAt: null, banCheckFailCount: 0 },
-                })
-              } else {
-                await prisma.playerCache.updateMany({
-                  where: { nickname: { equals: bannedNick, mode: 'insensitive' } },
-                  data: { isBanned: false, bannedAt: null, banCheckFailCount: 0 },
-                })
-              }
-              stillBanned = false
-              break
+          // PUBG API가 정지 유저도 200으로 반환하므로, 우리 DB 경기 기록으로 판단
+          // 최근 30일 내 실제 경기가 DB에 있으면 → 잘못된 ban, 해제
+          const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+          const recentInDB = bannedPlayerId
+            ? await prisma.playerMatch.count({
+                where: {
+                  pubgAccountId: bannedPlayerId,
+                  playedAt: { gte: since30d },
+                },
+              }).catch(() => 0)
+            : 0
+
+          if (recentInDB > 0) {
+            console.log(`[SSR] ⚠️ 잘못된 ban 감지, 해제: ${bannedNick} (최근 30일 경기 ${recentInDB}건)`)
+            if (bannedPlayerId) {
+              await prisma.playerCache.updateMany({
+                where: { pubgPlayerId: bannedPlayerId },
+                data: { isBanned: false, bannedAt: null, banCheckFailCount: 0 },
+              })
+            } else {
+              await prisma.playerCache.updateMany({
+                where: { nickname: { equals: bannedNick, mode: 'insensitive' } },
+                data: { isBanned: false, bannedAt: null, banCheckFailCount: 0 },
+              })
             }
+            stillBanned = false
+          } else {
+            console.log(`[SSR] 정지 확인: ${bannedNick} (최근 30일 DB 경기 없음)`)
           }
         } catch (e) {
           console.warn('[SSR] ban 재확인 실패:', e.message)
@@ -2555,13 +2558,20 @@ export async function getServerSideProps({ params, query }) {
         const cachedPlayerId = cached.profile?.playerId;
 
         if (cachedShard && cachedShard !== server) {
-          console.log(`[SSR] DB shard 불일치: URL=${server} → DB=${cachedShard}, redirect`);
-          return {
-            redirect: {
-              destination: `/player/${cachedShard}/${encodeURIComponent(nickname)}`,
-              permanent: false,
-            },
-          };
+          // PUBG 크로스플레이 API 특성상 kakao 유저를 steam 샤드에서도 찾을 수 있음
+          // → DB 샤드 기반 redirect는 신뢰할 수 없음, URL 샤드를 그대로 사용
+          // → DB 샤드가 URL 샤드와 다르면 DB를 URL 샤드로 조용히 교정만 함
+          console.log(`[SSR] DB shard(${cachedShard}) ≠ URL shard(${server}) → URL 샤드 유지, DB 교정`)
+          if (cachedPlayerId) {
+            prisma.playerCache.updateMany({
+              where: { pubgPlayerId: cachedPlayerId },
+              data: { pubgShardId: server },
+            }).catch(() => {})
+            prisma.clanMember.updateMany({
+              where: { pubgPlayerId: cachedPlayerId },
+              data: { pubgShardId: server },
+            }).catch(() => {})
+          }
         }
 
         console.log(`[SSR] DB 캐시 HIT: ${nickname}`);
@@ -2805,6 +2815,27 @@ export async function getServerSideProps({ params, query }) {
         }
       } catch (e) {
         if (e.code !== 'NOT_FOUND') console.warn(`${shard} 샤드 오류:`, e.message);
+      }
+    }
+
+    // 정지 유저 자동 감지: PUBG API에 계정은 존재하나 최근 경기 0건
+    // PUBG는 정지 유저에게 404 대신 200을 반환하므로 matchCount로 감지
+    if (pubgPlayer) {
+      const matchCount = pubgPlayer.relationships?.matches?.data?.length ?? 0
+      if (matchCount === 0) {
+        const prevRecord = await prisma.playerCache.findFirst({
+          where: { pubgPlayerId: pubgPlayer.id },
+          select: { avgDamage: true, roundsPlayed: true },
+        }).catch(() => null)
+        // 이전 활동 기록 있는데 경기 0건 → 정지 확정
+        if (prevRecord && ((prevRecord.avgDamage || 0) > 0 || (prevRecord.roundsPlayed || 0) > 0)) {
+          console.log(`[SSR] 정지 자동 감지: ${nickname} (matchCount=0, 이전활동 있음)`)
+          await prisma.playerCache.updateMany({
+            where: { pubgPlayerId: pubgPlayer.id },
+            data: { isBanned: true, banCheckFailCount: 3 },
+          }).catch(() => {})
+          return { props: { playerData: null, error: null, isBanned: true, renamedTo: null, dataSource: null } }
+        }
       }
     }
 

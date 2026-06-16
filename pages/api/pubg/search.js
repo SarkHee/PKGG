@@ -257,12 +257,9 @@ export default async function handler(req, res) {
         const apiFound = await findPlayerByName(correctName, PUBG_BASE)
         if (apiFound.length > 0) {
           found = apiFound
-          for (const p of apiFound) {
-            const dbEntry = dbRows.find(u => u.pubgPlayerId === p.accountId)
-            if (dbEntry && dbEntry.pubgShardId !== p.shard) {
-              savePlayerCache(p.accountId, p.nickname, p.shard)
-            }
-          }
+          // pubgPlayerId 있는 기존 유저는 PUBG 크로스플레이 API 결과로 shard 덮어쓰지 않음
+          // → DB shard가 더 신뢰도 높음 (season API 기반으로 확정된 값)
+          // → 아래 line 306-308에서 DB shard 우선 처리
         } else {
           // PUBG API 실패 → DB 데이터 fallback
           const byId = new Map()
