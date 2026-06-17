@@ -3,6 +3,7 @@
 
 import prisma from '../../../utils/prisma.js'
 import { cachedPubgFetch, TTL } from '../../../utils/pubgApiCache.js'
+import { getSeasonStart } from '../../../utils/seasonStart.js'
 
 const PUBG_BASE = 'https://api.pubg.com/shards'
 
@@ -60,12 +61,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ matches: [] })
     }
 
+    const { start: SEASON_START } = await getSeasonStart()
+
     const rows = await prisma.playerMatch.findMany({
       where: {
         pubgAccountId: member.pubgPlayerId,
         shard,
         isBotCorrected: true,
         botKills: { gt: 0 },
+        createdAt: { gte: SEASON_START },
       },
       orderBy: { createdAt: 'desc' },
       select: {

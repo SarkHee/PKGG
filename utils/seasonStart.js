@@ -5,7 +5,7 @@
 import { redisGet, redisSet } from './redis.js'
 
 // 알려진 시즌 시작일 (Redis 초기화 등 폴백용)
-const SEASON_STARTS = {
+export const SEASON_STARTS = {
   41: '2026-03-12T00:00:00Z',
   42: '2026-06-18T00:00:00Z',
 }
@@ -18,6 +18,17 @@ const REDIS_TTL = 86400 * 100  // 100일
 let _cache = null
 let _cacheAt = 0
 const MEM_TTL = 60 * 60 * 1000
+
+// PUBG API 시즌 전환 지연 보정: 이미 시작된 더 최신 시즌이 있으면 해당 시즌 ID 반환
+export function getEffectiveSeasonId(apiCurrentId) {
+  const now = Date.now()
+  const latest = Math.max(...Object.keys(SEASON_STARTS).map(Number))
+  const apiNum = parseInt(apiCurrentId?.match(/-(\d+)$/)?.[1] || '0', 10)
+  if (latest > apiNum && new Date(SEASON_STARTS[latest]).getTime() <= now) {
+    return `division.bro.official.pc-2018-${latest}`
+  }
+  return apiCurrentId
+}
 
 export async function getSeasonStart() {
   if (_cache && Date.now() - _cacheAt < MEM_TTL) return _cache
@@ -37,26 +48,36 @@ export async function getSeasonStart() {
     if (!res.ok) throw new Error(`PUBG API ${res.status}`)
 
     const json = await res.json()
-    const current = json.data?.find(s => s.attributes?.isCurrentSeason)
+    let current = json.data?.find(s => s.attributes?.isCurrentSeason)
     if (!current) throw new Error('현재 시즌 없음')
 
-    const num = parseInt(current.id.match(/-(\d+)$/)?.[1] || '0')
+    let num = parseInt(current.id.match(/-(\d+)$/)?.[1] || '0')
 
-    if (current.id !== cachedId) {
+    // PUBG API 시즌 전환 지연 보정: SEASON_STARTS에 이미 시작된 더 최신 시즌이 있으면 우선 사용
+    const now = Date.now()
+    const latestKnown = Math.max(...Object.keys(SEASON_STARTS).map(Number))
+    if (latestKnown > num && SEASON_STARTS[latestKnown] && new Date(SEASON_STARTS[latestKnown]).getTime() <= now) {
+      console.log(`[season] API 지연 보정: ${num} → ${latestKnown} (이미 시작된 시즌)`)
+      num = latestKnown
+      current = { id: `division.bro.official.pc-2018-${latestKnown}` }
+    }
+
+    const seasonId = `division.bro.official.pc-2018-${num}`
+    if (seasonId !== cachedId) {
       // 시즌 변경 감지 → Redis 업데이트
       const startIso = SEASON_STARTS[num] || new Date().toISOString()
       await Promise.all([
-        redisSet(KEY_ID, current.id, REDIS_TTL),
+        redisSet(KEY_ID, seasonId, REDIS_TTL),
         redisSet(KEY_START, startIso, REDIS_TTL),
       ])
-      console.log(`[season] 시즌 변경: ${cachedId ?? '없음'} → ${current.id} (시작: ${startIso})`)
-      const result = { id: current.id, num, start: new Date(startIso) }
+      console.log(`[season] 시즌 변경: ${cachedId ?? '없음'} → ${seasonId} (시작: ${startIso})`)
+      const result = { id: seasonId, num, start: new Date(startIso) }
       _cache = result; _cacheAt = Date.now()
       return result
     }
 
     const startIso = cachedStart || SEASON_STARTS[num] || new Date().toISOString()
-    const result = { id: current.id, num, start: new Date(startIso) }
+    const result = { id: seasonId, num, start: new Date(startIso) }
     _cache = result; _cacheAt = Date.now()
     return result
 

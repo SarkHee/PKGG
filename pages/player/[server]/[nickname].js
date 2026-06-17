@@ -10,7 +10,6 @@ import Header from '../../../components/layout/Header';
 import PlayerHeader from '../../../components/player/PlayerHeader';
 import MatchListRow from '../../../components/match/MatchListRow';
 import AdUnit from '../../../components/AdUnit';
-import SeasonCountdown from '../../../components/SeasonCountdown';
 
 // 무거운 컴포넌트 lazy load → 초기 JS 번들 분리, LCP 차단 제거
 const PlayerDashboard       = dynamic(() => import('../../../components/player/PlayerDashboard'), { ssr: false });
@@ -1699,11 +1698,6 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, renam
           </div>
         )}
 
-        {/* 시즌 카운트다운 */}
-        <div className="mb-4">
-          <SeasonCountdown />
-        </div>
-
         {/* 새로운 플레이어 헤더 */}
         <PlayerHeader
           profile={profile}
@@ -2458,6 +2452,7 @@ export async function getServerSideProps({ params, query }) {
   const forceRefresh = query.force === '1';
   const { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache, invalidateCache } = await import('../../../utils/pubgApiCache');
   const { invalidatePlayerCache } = await import('../../../utils/redis');
+  const { getEffectiveSeasonId } = await import('../../../utils/seasonStart');
   const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
   const PUBG_BASE = 'https://api.pubg.com/shards';
@@ -2473,7 +2468,15 @@ export async function getServerSideProps({ params, query }) {
   if (!forceRefresh) {
     const memCached = getPlayerDataCache(nickname, server);
     if (memCached) {
-      return { props: { playerData: memCached, error: null, dataSource: 'memory_cache' } };
+      // 캐시된 시즌 ID가 현재 시즌과 다르면(시즌 교체) 캐시 무시 → 재조회
+      const { getEffectiveSeasonId: _effId } = await import('../../../utils/seasonStart');
+      const cachedSeasonId = memCached.currentSeasonId || '';
+      const effectiveId    = _effId(cachedSeasonId);
+      if (effectiveId === cachedSeasonId) {
+        return { props: { playerData: memCached, error: null, dataSource: 'memory_cache' } };
+      }
+      console.log(`[SSR] 메모리캐시 시즌 불일치 (${cachedSeasonId} → ${effectiveId}), 재조회`);
+      invalidateCache(`${PUBG_BASE}/${server}/players?filter[playerNames]=${nickname}`);
     }
   }
 
@@ -2585,7 +2588,15 @@ export async function getServerSideProps({ params, query }) {
               { ttl: TTL.SEASON, force: false }
             );
             const seasons = seasonsData.data || [];
-            const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
+            let currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
+            // PUBG API 전환 지연 보정: 이미 시작된 더 최신 시즌이 있으면 교체
+            if (currentSeason) {
+              const effectiveId = getEffectiveSeasonId(currentSeason.id)
+              if (effectiveId !== currentSeason.id) {
+                console.log(`[SSR-cache] 시즌 보정: ${currentSeason.id} → ${effectiveId}`)
+                currentSeason = { ...currentSeason, id: effectiveId }
+              }
+            }
 
             // availableSeasons 빌드 (드롭다운용) — 현재 시즌 번호 기반으로 이전 4시즌 생성
             if (currentSeason) {
@@ -2697,9 +2708,12 @@ export async function getServerSideProps({ params, query }) {
                   }
                 }
 
+                // 경기 없어도 항상 seasonStats를 새 시즌 ID로 교체 (db_cache 제거)
+                cached.seasonStats = { [currentSeason.id]: transformedModes };
                 if (Object.keys(transformedModes).length > 0) {
-                  cached.seasonStats = { [currentSeason.id]: transformedModes };
                   console.log(`[DB캐시] 시즌 통계 보완: ${Object.keys(transformedModes).join(', ')}`);
+                } else {
+                  console.log(`[DB캐시] 시즌 ${currentSeason.id} 경기 없음 → 빈 상태 표시`);
                 }
               }
 
@@ -2958,7 +2972,15 @@ export async function getServerSideProps({ params, query }) {
     let availableSeasons = [];
     if (seasonResult.status === 'fulfilled') {
       const seasons = seasonResult.value.data || []; // cachedPubgFetch: json.data = 배열
-      const currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
+      let currentSeason = seasons.find(s => s.attributes?.isCurrentSeason);
+      // PUBG API 전환 지연 보정: 이미 시작된 더 최신 시즌이 있으면 교체
+      if (currentSeason) {
+        const effectiveId = getEffectiveSeasonId(currentSeason.id)
+        if (effectiveId !== currentSeason.id) {
+          console.log(`[SSR] 시즌 보정: ${currentSeason.id} → ${effectiveId}`)
+          currentSeason = { ...currentSeason, id: effectiveId }
+        }
+      }
       // 현재 시즌 번호에서 이전 4시즌 생성 (ID 패턴: division.bro.official.pc-2018-N)
       if (currentSeason) {
         const curNum = parseInt(currentSeason.id.match(/-(\d+)$/)?.[1] || '0', 10);
@@ -3085,9 +3107,10 @@ export async function getServerSideProps({ params, query }) {
             }
           }
 
+          // 경기 없어도 항상 새 시즌 ID로 설정 (이전 db_cache 방지)
+          pubgSeasonStats = { [currentSeason.id]: transformedModes };
+          currentSeasonModes = transformedModes;
           if (Object.keys(transformedModes).length > 0) {
-            pubgSeasonStats = { [currentSeason.id]: transformedModes };
-            currentSeasonModes = transformedModes;
             console.log(`✅ 시즌 통계 모드: ${Object.keys(transformedModes).join(', ')}`);
 
             // modeDistribution 계산
@@ -3104,6 +3127,8 @@ export async function getServerSideProps({ params, query }) {
               normal: Math.round((normalGames / totalForDist) * 100),
               event: Math.round((eventGames / totalForDist) * 100),
             };
+          } else {
+            console.log(`[SSR] 시즌 ${currentSeason.id} 경기 없음 → 빈 상태 표시`);
           }
 
           // summary 계산 — transformedModes 존재 여부와 무관하게 항상 실행

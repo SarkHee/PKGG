@@ -2,6 +2,7 @@
 // 봇킬/봇딜 비율 계산 → 전체 시즌 평균에 적용하기 위한 보정 계수 반환
 
 import prisma from '../../../utils/prisma.js'
+import { getSeasonStart } from '../../../utils/seasonStart.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end()
@@ -19,11 +20,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ analyzedCount: 0, botKillRatio: 0, botDamageRatio: 0 })
     }
 
+    const { start: SEASON_START } = await getSeasonStart()
+
     const agg = await prisma.playerMatch.aggregate({
       where: {
         pubgAccountId: member.pubgPlayerId,
         shard,
         isBotCorrected: true,
+        createdAt: { gte: SEASON_START },
         // 이벤트/연습 경기 제외 (오염된 봇 데이터 방지)
         NOT: {
           OR: [
