@@ -133,9 +133,13 @@ function TypeBadge({ type }) {
   )
 }
 
+// 알려진 시즌 목록 (seasonStart.js의 SEASON_STARTS와 동기화)
+const KNOWN_SEASONS = [41, 42]
+
 export default function WeaponMetaLivePage() {
   const { t } = useT()
   const [period,  setPeriod]  = useState('week')
+  const [season,  setSeason]  = useState(null)   // null=기간모드, 숫자=시즌모드
   const [shard,   setShard]   = useState('all')
   const [typeTab, setTypeTab] = useState('all')
   const [data,    setData]    = useState(null)
@@ -154,14 +158,26 @@ export default function WeaponMetaLivePage() {
   ]
   const TYPES = TYPE_KEYS.map(k => ({ key: k, label: k === 'all' ? t('wml.type.all') : k }))
 
+  function selectPeriod(key) {
+    setSeason(null)
+    setPeriod(key)
+  }
+
+  function selectSeason(num) {
+    setSeason(num)
+  }
+
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/weapon-meta-live?period=${period}&shard=${shard}`)
+    const url = season
+      ? `/api/weapon-meta-live?season=${season}&shard=${shard}`
+      : `/api/weapon-meta-live?period=${period}&shard=${shard}`
+    fetch(url)
       .then(r => r.json())
       .then(d => setData(d))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [period, shard])
+  }, [period, season, shard])
 
   const weapons = (data?.weapons || []).map(w => ({
     ...w,
@@ -205,37 +221,75 @@ export default function WeaponMetaLivePage() {
                       · 총 {meta.totalKills.toLocaleString()}{t('wml.kills_suffix')}
                     </span>
                   )}
+                  {!loading && season && (
+                    <span className="ml-1 text-indigo-500 font-semibold">
+                      · 시즌 {season} 기준
+                    </span>
+                  )}
                 </p>
               </div>
 
-              {/* 기간 + 플랫폼 탭 */}
-              <div className="flex flex-wrap gap-2 self-start sm:self-auto">
-                <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
-                  {PERIODS.map(p => (
-                    <button
-                      key={p.key}
-                      onClick={() => setPeriod(p.key)}
-                      className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                        period === p.key
-                          ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                      }`}
-                    >{p.label}</button>
-                  ))}
+              {/* 기간 + 시즌 + 플랫폼 탭 */}
+              <div className="flex flex-col gap-2 self-start sm:self-auto">
+                <div className="flex flex-wrap gap-2">
+                  {/* 기간 탭 */}
+                  <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+                    {PERIODS.map(p => (
+                      <button
+                        key={p.key}
+                        onClick={() => selectPeriod(p.key)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                          !season && period === p.key
+                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                        }`}
+                      >{p.label}</button>
+                    ))}
+                  </div>
+
+                  {/* 시즌별 탭 */}
+                  <div className="flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-700/40 rounded-lg p-0.5">
+                    <span className="text-[10px] font-bold text-indigo-400 px-1.5">시즌</span>
+                    {KNOWN_SEASONS.map(num => (
+                      <button
+                        key={num}
+                        onClick={() => selectSeason(num)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                          season === num
+                            ? 'bg-indigo-500 text-white shadow-sm'
+                            : 'text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-200'
+                        }`}
+                      >S{num}</button>
+                    ))}
+                  </div>
+
+                  {/* 플랫폼 탭 */}
+                  <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+                    {SHARDS.map(s => (
+                      <button
+                        key={s.key}
+                        onClick={() => setShard(s.key)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                          shard === s.key
+                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                        }`}
+                      >{s.label}</button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
-                  {SHARDS.map(s => (
+
+                {/* 활성 필터 표시 */}
+                {season && (
+                  <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    시즌 {season} 데이터 조회 중
                     <button
-                      key={s.key}
-                      onClick={() => setShard(s.key)}
-                      className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                        shard === s.key
-                          ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                      }`}
-                    >{s.label}</button>
-                  ))}
-                </div>
+                      onClick={() => selectPeriod('week')}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 underline"
+                    >기간으로 전환</button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

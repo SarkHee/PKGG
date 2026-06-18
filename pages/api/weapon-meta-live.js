@@ -1,7 +1,7 @@
 // pages/api/weapon-meta-live.js
 // 실제 텔레메트리 기반 무기 메타 집계 API
 import prisma from '../../utils/prisma.js'
-import { getSeasonStart } from '../../utils/seasonStart.js'
+import { getSeasonStart, SEASON_STARTS } from '../../utils/seasonStart.js'
 
 // 제외 패턴 - 차량/캐릭터/환경/투척류/근접무기
 const EXCLUDE = [
@@ -48,16 +48,40 @@ function normalizeId(raw) {
   return NORMALIZE[id] ?? id
 }
 
-async function getPeriod(period) {
+async function getPeriod(period, seasonParam) {
   const now = new Date()
+
+  // 특정 시즌 필터 (season=41, season=42 ...)
+  if (seasonParam) {
+    const num = parseInt(seasonParam, 10)
+    const starts = Object.keys(SEASON_STARTS).map(Number).sort((a, b) => a - b)
+    const idx = starts.indexOf(num)
+    if (idx === -1) throw new Error(`알 수 없는 시즌: ${seasonParam}`)
+
+    const start = new Date(SEASON_STARTS[num])
+    // 다음 시즌이 있으면 그 시작일이 이번 시즌 종료일
+    const end = idx < starts.length - 1 ? new Date(SEASON_STARTS[starts[idx + 1]]) : null
+
+    // 이전 시즌 (트렌드 비교용)
+    let prevStart = null, prevEnd = null
+    if (idx > 0) {
+      const prevNum = starts[idx - 1]
+      prevStart = new Date(SEASON_STARTS[prevNum])
+      prevEnd   = start
+    }
+
+    return { start, end, prevStart, prevEnd }
+  }
+
+  // 기존 기간 필터
   if (period === 'season') {
     const { start } = await getSeasonStart()
-    return { start, prevStart: null, prevEnd: null }
+    return { start, end: null, prevStart: null, prevEnd: null }
   }
   const days = period === 'month' ? 30 : 7
   const start     = new Date(now - days * 86400000)
   const prevStart = new Date(now - days * 2 * 86400000)
-  return { start, prevStart, prevEnd: start }
+  return { start, end: null, prevStart, prevEnd: start }
 }
 
 // DB에서 groupBy로 집계 — 전체 행 전송 없이 weaponId별 합산만 반환
@@ -90,8 +114,8 @@ async function aggregateFromDB(where) {
 
 export default async function handler(req, res) {
   try {
-    const { period = 'week', shard = 'all' } = req.query
-    const { start, prevStart, prevEnd } = await getPeriod(period)
+    const { period = 'week', shard = 'all', season = '' } = req.query
+    const { start, end, prevStart, prevEnd } = await getPeriod(period, season || null)
     const shardFilter = shard !== 'all' ? { shard } : {}
 
     const baseWhere = {
@@ -99,8 +123,13 @@ export default async function handler(req, res) {
       ...shardFilter,
     }
 
+    // 현재 기간 날짜 필터 (end는 시즌 종료일이 있을 때만)
+    const curDateFilter = {}
+    if (start) curDateFilter.gte = start
+    if (end)   curDateFilter.lt  = end
+
     const [cur, prev] = await Promise.all([
-      aggregateFromDB({ ...baseWhere, ...(start ? { savedAt: { gte: start } } : {}) }),
+      aggregateFromDB({ ...baseWhere, ...(start ? { savedAt: curDateFilter } : {}) }),
       prevStart
         ? aggregateFromDB({ ...baseWhere, savedAt: { gte: prevStart, lt: prevEnd } })
         : Promise.resolve({ map: {}, totalKills: 0, totalPickups: 0 }),
@@ -134,7 +163,12 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=3600')
     return res.status(200).json({
       weapons,
-      meta: { totalKills: cur.totalKills, totalPickups: cur.totalPickups, period },
+      meta: {
+        totalKills:   cur.totalKills,
+        totalPickups: cur.totalPickups,
+        period:       season ? `season:${season}` : period,
+        season:       season ? parseInt(season, 10) : null,
+      },
     })
   } catch (e) {
     console.error('[weapon-meta-live]', e.message)

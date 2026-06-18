@@ -59,6 +59,34 @@ export default function AdminDashboard() {
   const [seedResult,      setSeedResult]      = useState(null);
   const [newUsersStatus,  setNewUsersStatus]  = useState('all'); // all | unset | noSeason | normal | banned
   const [cronLog,         setCronLog]         = useState(null);
+  const [unbanLoading,    setUnbanLoading]    = useState(null); // 처리 중인 닉네임
+
+  const unbanPlayer = async (nickname) => {
+    if (!confirm(`${nickname}의 정지를 해제하시겠습니까?`)) return
+    setUnbanLoading(nickname)
+    try {
+      const res = await fetch('/api/admin/unban-player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': password || '' },
+        body: JSON.stringify({ nickname }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        alert(`${nickname} ban 해제 완료`)
+        // 목록 새로고침
+        const r = await fetch(`/api/admin/new-users?date=${newUsersDate}&page=${newUsersPage}&status=${newUsersStatus}`, { headers: { 'x-admin-token': adminPw() } })
+        const d = await r.json()
+        setNewUsers(d.users || [])
+        setNewUsersTotal(d.total || 0)
+      } else {
+        alert(`오류: ${data.error}`)
+      }
+    } catch (e) {
+      alert(`오류: ${e.message}`)
+    } finally {
+      setUnbanLoading(null)
+    }
+  }
 
   const runSeedUsers = async (type = 'all') => {
     if (seedRunning) return;
@@ -863,7 +891,16 @@ export default function AdminDashboard() {
                             </td>
                             <td className="py-2 px-3 text-center">
                               {u.isBanned
-                                ? <span className="text-xs text-red-400 bg-red-900/30 px-2 py-0.5 rounded-full">정지</span>
+                                ? <span className="flex items-center gap-1.5 justify-center">
+                                    <span className="text-xs text-red-400 bg-red-900/30 px-2 py-0.5 rounded-full">정지</span>
+                                    <button
+                                      onClick={() => unbanPlayer(u.nickname)}
+                                      disabled={unbanLoading === u.nickname}
+                                      className="text-[10px] text-gray-400 hover:text-green-400 border border-gray-700 hover:border-green-600 px-1.5 py-0.5 rounded transition-colors disabled:opacity-40"
+                                    >
+                                      {unbanLoading === u.nickname ? '...' : '해제'}
+                                    </button>
+                                  </span>
                                 : u.avgDamage === -1
                                   ? <span className="text-xs text-yellow-500 bg-yellow-900/20 px-2 py-0.5 rounded-full">시즌없음</span>
                                   : u.avgDamage === 0

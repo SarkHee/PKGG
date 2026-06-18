@@ -2832,26 +2832,10 @@ export async function getServerSideProps({ params, query }) {
       }
     }
 
-    // 정지 유저 자동 감지: PUBG API에 계정은 존재하나 최근 경기 0건
-    // PUBG는 정지 유저에게 404 대신 200을 반환하므로 matchCount로 감지
-    if (pubgPlayer) {
-      const matchCount = pubgPlayer.relationships?.matches?.data?.length ?? 0
-      if (matchCount === 0) {
-        const prevRecord = await prisma.playerCache.findFirst({
-          where: { pubgPlayerId: pubgPlayer.id },
-          select: { avgDamage: true, roundsPlayed: true },
-        }).catch(() => null)
-        // 이전 활동 기록 있는데 경기 0건 → 정지 확정
-        if (prevRecord && ((prevRecord.avgDamage || 0) > 0 || (prevRecord.roundsPlayed || 0) > 0)) {
-          console.log(`[SSR] 정지 자동 감지: ${nickname} (matchCount=0, 이전활동 있음)`)
-          await prisma.playerCache.updateMany({
-            where: { pubgPlayerId: pubgPlayer.id },
-            data: { isBanned: true, banCheckFailCount: 3 },
-          }).catch(() => {})
-          return { props: { playerData: null, error: null, isBanned: true, renamedTo: null, dataSource: null } }
-        }
-      }
-    }
+    // matchCount 기반 ban 감지 제거:
+    // PUBG Players API의 matches = 최근 14일 경기 ID만 반환
+    // → 미플레이·시즌 전환 직후·API 인덱싱 지연 등으로 matchCount=0이 빈번히 발생 → 오감지 위험
+    // 정지 감지는 아래 banCheckFailCount 누적 방식(3회 연속 미발견)으로만 처리
 
     // 실제 shard가 URL의 server와 다를 때 → 올바른 URL로 redirect
     // (DB에 잘못 저장된 shard, 또는 검색에서 잘못된 플랫폼으로 진입한 경우)
@@ -2931,9 +2915,9 @@ export async function getServerSideProps({ params, query }) {
             return { props: { playerData: null, error: null, isBanned: true, renamedTo: null, dataSource: null } }
           }
 
-          // 3회 미만: 닉변 또는 일시적 오류 가능성 → 조회 불가 안내
+          // 3회 미만: 닉변 또는 일시적 오류 → 정지 처리 보류, 오류 안내만
           console.warn(`[SSR] ⚠️ 닉변/임시오류 가능성 (${newCount}/3회 실패): ${nickname}`)
-          return { props: { playerData: null, error: null, isBanned: true, renamedTo: null, dataSource: null } }
+          return { props: { playerData: null, error: '일시적으로 조회할 수 없습니다. 잠시 후 다시 시도해주세요.', isBanned: false, renamedTo: null, dataSource: null } }
         }
       } catch (dbErr) {
         console.warn('[SSR] 정지 여부 DB 확인 실패:', dbErr.message)
