@@ -257,9 +257,16 @@ export default async function handler(req, res) {
         const apiFound = await findPlayerByName(correctName, PUBG_BASE)
         if (apiFound.length > 0) {
           found = apiFound
-          // pubgPlayerId 있는 기존 유저는 PUBG 크로스플레이 API 결과로 shard 덮어쓰지 않음
-          // → DB shard가 더 신뢰도 높음 (season API 기반으로 확정된 값)
-          // → 아래 line 306-308에서 DB shard 우선 처리
+          // API shard와 DB shard가 다르면 DB + Redis 교정 (잘못 저장된 shard 수정)
+          for (const p of apiFound) {
+            const dbMatch = dbRows.find(r => r.pubgPlayerId === p.accountId)
+            if (dbMatch && dbMatch.pubgShardId !== p.shard) {
+              console.log(`[search] shard 교정: ${p.nickname} ${dbMatch.pubgShardId} → ${p.shard}`)
+              savePlayerCache(p.accountId, p.nickname, p.shard)
+              // 이전 shard의 Redis 캐시를 빈 결과로 덮어써 무효화
+              redisSet(searchCacheKey(dbMatch.pubgShardId, p.nickname), { results: [] }, 60).catch(() => {})
+            }
+          }
         } else {
           // PUBG API 실패 → DB 데이터 fallback
           const byId = new Map()
@@ -298,11 +305,9 @@ export default async function handler(req, res) {
         },
       })
 
-      // PUBG 플레이어 검색 API는 cross-play로 인해 shardId가 부정확함
-      // → DB에 accountId 일치 레코드가 있으면 DB shard 우선 (seed가 시즌 API 404로 정확히 감지)
-      const shard = (cache?.pubgPlayerId === accountId && cache.pubgShardId)
-        ? cache.pubgShardId
-        : apiShard
+      // findPlayerByName이 cross-play 보정 로직 포함 → API shard 신뢰
+      // (kakao 유저가 steam으로 잘못 나오는 경우를 dedup 로직이 이미 처리)
+      const shard = apiShard
 
       // accountId 백필만 수행 — shard는 덮어쓰지 않음
       if (cache?.id && !cache.pubgPlayerId) {
