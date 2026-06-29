@@ -95,6 +95,9 @@ export default async function handler(req, res) {
           continue;
         }
 
+        // PUBG API 응답의 실제 shard 사용 (클랜 shard가 다를 수 있음)
+        const actualShard = data.basicInfo?.attributes?.shardId || shard
+
         const existingMembers = membersByNickname.get(nickname.toLowerCase()) || [];
 
         let member;
@@ -128,7 +131,7 @@ export default async function handler(req, res) {
               nickname: nickname,
               clanId: clan.id,
               pubgPlayerId: data.basicInfo?.id || null,
-              pubgShardId: shard,
+              pubgShardId: actualShard,
               score: 0,
               style: '-',
               avgDamage: 0,
@@ -188,7 +191,11 @@ export default async function handler(req, res) {
           where: { id: member.id },
           data: {
             ...(data.basicInfo?.id && !member.pubgPlayerId
-              ? { pubgPlayerId: data.basicInfo.id, pubgShardId: shard }
+              ? { pubgPlayerId: data.basicInfo.id, pubgShardId: actualShard }
+              : {}),
+            // 기존 pubgShardId가 실제 shard와 다르면 교정
+            ...(member.pubgShardId && member.pubgShardId !== actualShard
+              ? { pubgShardId: actualShard }
               : {}),
             ...(hasData && shouldUpdate ? {
               avgDamage:      Math.round(avgDamage),
@@ -203,12 +210,20 @@ export default async function handler(req, res) {
           },
         });
 
+        // PlayerCache shard 교정 (클랜 shard ≠ 실제 shard인 경우)
+        if (data.basicInfo?.id && actualShard !== shard) {
+          prisma.playerCache.updateMany({
+            where: { pubgPlayerId: data.basicInfo.id, pubgShardId: { not: actualShard } },
+            data: { pubgShardId: actualShard },
+          }).catch((e) => console.warn(`${nickname} PlayerCache shard 교정 실패(무시):`, e.message))
+        }
+
         // 성장 추적 스냅샷 저장 (hasData일 때만)
         if (hasData) {
           await prisma.playerStatSnapshot.create({
             data: {
               nickname,
-              pubgShardId: shard,
+              pubgShardId: actualShard,
               score,
               avgDamage:      Math.round(avgDamage),
               avgKills:       parseFloat(avgKills.toFixed(2)),
