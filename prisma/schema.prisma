@@ -255,6 +255,7 @@ model PlayerCache {
   banCheckFailCount Int       @default(0)
 
   @@unique([nickname, pubgShardId])
+  @@index([pubgPlayerId, avgDamage, isBanned, lastUpdated(sort: Desc)], name: "idx_player_cache_recent")
   @@map("player_cache")
 }
 
