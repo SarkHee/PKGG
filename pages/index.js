@@ -341,7 +341,7 @@ const WEAPON_DESC = {
   'Mk14 EBR':   '완전자동 전환이 가능한 7.62mm DMR. 단발로는 장거리, 자동으로는 근거리까지 커버하는 에어드롭 최강 무기.',
 };
 
-export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], mapRotation = [] }) {
+export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], mapRotation = [], recentPlayers = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMajor, setActiveMajor] = useState('OFFENSIVE');
   const [activeType, setActiveType]   = useState(null);
@@ -804,14 +804,14 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                     {platformResults.map((r) => {
                       const tier = r.stats?.mmr ? getMMRTier(r.stats.mmr) : null;
                       return (
-                        <button
+                        <Link
                           key={r.shard}
+                          href={`/player/${r.shard}/${encodeURIComponent(r.nickname)}`}
                           onClick={() => {
                             setPlatformResults(null);
                             saveRecentSearch(r.nickname, r.shard);
                             setRecentSearches(loadRecentSearches());
                             setNavigating(true);
-                            router.push(`/player/${r.shard}/${encodeURIComponent(r.nickname)}`);
                           }}
                           className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/40 transition-all text-left group"
                         >
@@ -833,7 +833,7 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                             </div>
                           )}
                           <span className="text-gray-600 group-hover:text-blue-400 text-sm transition-colors">→</span>
-                        </button>
+                        </Link>
                       );
                     })}
                   </div>
@@ -1060,20 +1060,22 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                         ? clan.name
                         : clan.name.slice(0, 2) + '*'.repeat(clan.name.length - 2)
                       return (
-                        <li key={clan.name} className="flex items-center gap-3">
-                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
-                            i === 0 ? 'bg-yellow-500 text-black' :
-                            i === 1 ? 'bg-gray-400 text-black' :
-                            i === 2 ? 'bg-amber-700 text-white' :
-                            'bg-white/10 text-gray-400'
-                          }`}>{i + 1}</span>
-                          <span className="flex-1 text-sm font-semibold text-gray-200 truncate">
-                            {clan.pubgClanTag ? `[${clan.pubgClanTag}] ` : ''}{masked}
-                          </span>
-                          <span className="text-xs text-blue-400/70 flex-shrink-0">
-                            {clan.shard === 'kakao' ? '카카오' : 'Steam'}
-                          </span>
-                          <span className="text-xs text-yellow-400 font-bold flex-shrink-0">{clan.avgScore?.toLocaleString()} PK</span>
+                        <li key={clan.name}>
+                          <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                              i === 0 ? 'bg-yellow-500 text-black' :
+                              i === 1 ? 'bg-gray-400 text-black' :
+                              i === 2 ? 'bg-amber-700 text-white' :
+                              'bg-white/10 text-gray-400'
+                            }`}>{i + 1}</span>
+                            <span className="flex-1 text-sm font-semibold text-gray-200 truncate">
+                              {clan.pubgClanTag ? `[${clan.pubgClanTag}] ` : ''}{masked}
+                            </span>
+                            <span className="text-xs text-blue-400/70 flex-shrink-0">
+                              {clan.shard === 'kakao' ? '카카오' : 'Steam'}
+                            </span>
+                            <span className="text-xs text-yellow-400 font-bold flex-shrink-0">{clan.avgScore?.toLocaleString()} PK</span>
+                          </Link>
                         </li>
                       )
                     })}
@@ -1118,6 +1120,29 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                       <p className="text-[10px] text-blue-400 mt-0.5">{map.size}</p>
                       <p className="text-[10px] text-gray-400 mt-1 leading-tight text-left">{map.desc}</p>
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 6. 최근 분석된 플레이어 — SSR 링크로 구글 크롤링 유도 */}
+            {recentPlayers.length > 0 && (
+              <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-5 mt-5">
+                <h2 className="text-sm font-bold text-white mb-1">👤 최근 분석된 플레이어</h2>
+                <p className="text-xs text-gray-500 mb-4">최근 PKGG에서 조회된 플레이어</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {recentPlayers.map((p) => (
+                    <Link
+                      key={`${p.pubgShardId}-${p.nickname}`}
+                      href={`/player/${p.pubgShardId}/${encodeURIComponent(p.nickname)}`}
+                      className="flex flex-col px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-blue-500/30 transition-all group"
+                    >
+                      <span className="text-xs font-semibold text-gray-200 truncate group-hover:text-blue-400 transition-colors">{p.nickname}</span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-gray-500">{Math.round(p.avgDamage || 0)} 딜</span>
+                        <span className="text-[10px] text-gray-500">{(p.avgKills || 0).toFixed(1)} 킬</span>
+                      </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -1212,7 +1237,7 @@ export async function getServerSideProps() {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
 
-    const [weaponRows, topClans] = await Promise.all([
+    const [weaponRows, topClans, recentPlayers] = await Promise.all([
       // 1. 무기 메타: 최근 30일 groupBy weaponId
       prisma.player_weapon_stats.groupBy({
         by: ['weaponId'],
@@ -1228,6 +1253,18 @@ export async function getServerSideProps() {
         orderBy: { avgScore: 'desc' },
         take: 5,
         select: { name: true, avgScore: true, memberCount: true, pubgClanTag: true, region: true, shard: true },
+      }),
+
+      // 3. 최근 분석된 플레이어 20명 (SSR 링크 → 구글 크롤링 유도)
+      prisma.playerCache.findMany({
+        where: {
+          pubgPlayerId: { not: null },
+          avgDamage: { gt: 0 },
+          isBanned: { not: true },
+        },
+        orderBy: { lastUpdated: 'desc' },
+        take: 20,
+        select: { nickname: true, pubgShardId: true, avgDamage: true, avgKills: true },
       }),
     ])
 
@@ -1272,6 +1309,7 @@ export async function getServerSideProps() {
       props: {
         weaponMeta,
         topClans: JSON.parse(JSON.stringify(topClans)),
+        recentPlayers: JSON.parse(JSON.stringify(recentPlayers)),
         patchNotes,
         mapRotation,
       },
@@ -1279,7 +1317,7 @@ export async function getServerSideProps() {
   } catch (e) {
     console.error('[index SSR] 데이터 로드 실패:', e.message)
     return {
-      props: { weaponMeta: [], topClans: [], patchNotes: [], mapRotation: [] },
+      props: { weaponMeta: [], topClans: [], patchNotes: [], mapRotation: [], recentPlayers: [] },
     }
   } finally {
     await prisma.$disconnect()
