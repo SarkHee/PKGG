@@ -2490,20 +2490,22 @@ export async function getServerSideProps({ params, query }) {
         const bannedPlayerId = cached.__bannedPlayerId || null
         let stillBanned = true
         try {
-          // PUBG API가 정지 유저도 200으로 반환하므로, 우리 DB 경기 기록으로 판단
-          // 최근 30일 내 실제 경기가 DB에 있으면 → 잘못된 ban, 해제
-          const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-          const recentInDB = bannedPlayerId
-            ? await prisma.playerMatch.count({
-                where: {
-                  pubgAccountId: bannedPlayerId,
-                  playedAt: { gte: since30d },
-                },
-              }).catch(() => 0)
-            : 0
+          // 1순위: PUBG API banType 직접 확인 (가장 정확)
+          const playerShard = server || 'steam'
+          let apiInnocent = false
+          try {
+            const searchUrl = `${PUBG_BASE}/${playerShard}/players?filter[playerNames]=${encodeURIComponent(bannedNick)}`
+            const apiData = await cachedPubgFetch(searchUrl, { ttl: 60, force: true })
+            const apiPlayer = apiData?.data?.[0]
+            if (apiPlayer?.attributes?.banType === 'Innocent') {
+              apiInnocent = true
+              console.log(`[SSR] PUBG API banType=Innocent → ban 해제: ${bannedNick}`)
+            }
+          } catch (apiErr) {
+            console.warn('[SSR] ban PUBG API 확인 실패 (DB 폴백):', apiErr.message)
+          }
 
-          if (recentInDB > 0) {
-            console.log(`[SSR] ⚠️ 잘못된 ban 감지, 해제: ${bannedNick} (최근 30일 경기 ${recentInDB}건)`)
+          if (apiInnocent) {
             if (bannedPlayerId) {
               await prisma.playerCache.updateMany({
                 where: { pubgPlayerId: bannedPlayerId },
@@ -2517,7 +2519,34 @@ export async function getServerSideProps({ params, query }) {
             }
             stillBanned = false
           } else {
-            console.log(`[SSR] 정지 확인: ${bannedNick} (최근 30일 DB 경기 없음)`)
+            // 2순위: DB 최근 경기 기록으로 폴백 (PUBG API 실패 시)
+            const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            const recentInDB = bannedPlayerId
+              ? await prisma.playerMatch.count({
+                  where: {
+                    pubgAccountId: bannedPlayerId,
+                    playedAt: { gte: since30d },
+                  },
+                }).catch(() => 0)
+              : 0
+
+            if (recentInDB > 0) {
+              console.log(`[SSR] ⚠️ 잘못된 ban 감지, 해제: ${bannedNick} (최근 30일 경기 ${recentInDB}건)`)
+              if (bannedPlayerId) {
+                await prisma.playerCache.updateMany({
+                  where: { pubgPlayerId: bannedPlayerId },
+                  data: { isBanned: false, bannedAt: null, banCheckFailCount: 0 },
+                })
+              } else {
+                await prisma.playerCache.updateMany({
+                  where: { nickname: { equals: bannedNick, mode: 'insensitive' } },
+                  data: { isBanned: false, bannedAt: null, banCheckFailCount: 0 },
+                })
+              }
+              stillBanned = false
+            } else {
+              console.log(`[SSR] 정지 확인: ${bannedNick} (PUBG API 비정상 + DB 경기 없음)`)
+            }
           }
         } catch (e) {
           console.warn('[SSR] ban 재확인 실패:', e.message)
