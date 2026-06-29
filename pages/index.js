@@ -9,6 +9,15 @@ import AdUnit from '../components/AdUnit';
 import { useT } from '../utils/i18n';
 import { MAJOR, TYPES } from '../utils/playstyleClassifier';
 import { getMMRTier } from '../utils/mmrCalculator';
+import prisma from '../utils/prisma.js';
+import { redisGet, redisSet } from '../utils/redis.js';
+
+// weaponMeta 인메모리 캐시 (Redis MISS 시 fallback, 1시간 TTL)
+let _weaponMetaCache = null;
+let _weaponMetaCacheAt = 0;
+const WEAPON_META_MEM_TTL = 60 * 60 * 1000;
+const WEAPON_META_REDIS_KEY = 'home:weapon_meta';
+const WEAPON_META_REDIS_TTL = 3600;
 
 // ── 서버 상태 뱃지 ────────────────────────────────────────────────────────
 const SERVER_STATUS_META = {
@@ -1231,23 +1240,61 @@ function normalizeWeaponId(raw) {
 }
 
 export async function getServerSideProps() {
-  const { PrismaClient } = require('@prisma/client')
-  const prisma = new PrismaClient()
-
   try {
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
+    // ── weaponMeta: Redis → 인메모리 → DB 순으로 조회 ─────────────────────
+    let weaponMeta = null
+    const now = Date.now()
 
-    const [weaponRows, topClans, recentPlayers] = await Promise.all([
-      // 1. 무기 메타: 최근 30일 groupBy weaponId
-      prisma.player_weapon_stats.groupBy({
+    // 1단계: Redis 확인
+    try {
+      const redisHit = await redisGet(WEAPON_META_REDIS_KEY)
+      if (redisHit) weaponMeta = redisHit
+    } catch (_) {}
+
+    // 2단계: 인메모리 캐시 확인
+    if (!weaponMeta && _weaponMetaCache && now - _weaponMetaCacheAt < WEAPON_META_MEM_TTL) {
+      weaponMeta = _weaponMetaCache
+    }
+
+    // 3단계: 둘 다 MISS → DB 쿼리 후 캐시 저장
+    if (!weaponMeta) {
+      const thirtyDaysAgo = new Date(now - 30 * 86400000)
+      const weaponRows = await prisma.player_weapon_stats.groupBy({
         by: ['weaponId'],
         _sum: { kills: true, pickup_count: true },
         where: { match_id: { not: '' }, savedAt: { gte: thirtyDaysAgo } },
         orderBy: { _sum: { kills: 'desc' } },
         take: 120,
-      }),
+      })
 
-      // 2. 클랜 랭킹 TOP 5
+      const weaponMap = {}
+      let totalKills = 0
+      for (const r of weaponRows) {
+        if (EXCLUDE_PATTERNS.some((p) => p.test(r.weaponId))) continue
+        const id = normalizeWeaponId(r.weaponId)
+        if (!weaponMap[id]) weaponMap[id] = { kills: 0 }
+        weaponMap[id].kills += Number(r._sum.kills) || 0
+        totalKills += Number(r._sum.kills) || 0
+      }
+      weaponMeta = Object.entries(weaponMap)
+        .sort(([, a], [, b]) => b.kills - a.kills)
+        .slice(0, 5)
+        .map(([id, v]) => ({
+          id,
+          name: WEAPON_DISPLAY[id] || id,
+          kills: v.kills,
+          pickRate: totalKills > 0 ? ((v.kills / totalKills) * 100).toFixed(1) : '0',
+        }))
+
+      // Redis + 인메모리 동시 저장
+      redisSet(WEAPON_META_REDIS_KEY, weaponMeta, WEAPON_META_REDIS_TTL).catch(() => {})
+      _weaponMetaCache = weaponMeta
+      _weaponMetaCacheAt = now
+    }
+
+    // ── topClans, recentPlayers: 매 요청마다 조회 (가벼운 쿼리) ───────────
+    const [topClans, recentPlayers] = await Promise.all([
+      // 클랜 랭킹 TOP 5
       prisma.clan.findMany({
         where: { avgScore: { gt: 0 }, memberCount: { gt: 0 } },
         orderBy: { avgScore: 'desc' },
@@ -1255,7 +1302,7 @@ export async function getServerSideProps() {
         select: { name: true, avgScore: true, memberCount: true, pubgClanTag: true, region: true, shard: true },
       }),
 
-      // 3. 최근 분석된 플레이어 20명 (SSR 링크 → 구글 크롤링 유도)
+      // 최근 분석된 플레이어 20명 (SSR 링크 → 구글 크롤링 유도)
       prisma.playerCache.findMany({
         where: {
           pubgPlayerId: { not: null },
@@ -1267,26 +1314,6 @@ export async function getServerSideProps() {
         select: { nickname: true, pubgShardId: true, avgDamage: true, avgKills: true },
       }),
     ])
-
-    // 무기 집계 (제외·정규화 적용)
-    const weaponMap = {}
-    let totalKills = 0
-    for (const r of weaponRows) {
-      if (EXCLUDE_PATTERNS.some((p) => p.test(r.weaponId))) continue
-      const id = normalizeWeaponId(r.weaponId)
-      if (!weaponMap[id]) weaponMap[id] = { kills: 0 }
-      weaponMap[id].kills += Number(r._sum.kills) || 0
-      totalKills += Number(r._sum.kills) || 0
-    }
-    const weaponMeta = Object.entries(weaponMap)
-      .sort(([, a], [, b]) => b.kills - a.kills)
-      .slice(0, 5)
-      .map(([id, v]) => ({
-        id,
-        name: WEAPON_DISPLAY[id] || id,
-        kills: v.kills,
-        pickRate: totalKills > 0 ? ((v.kills / totalKills) * 100).toFixed(1) : '0',
-      }))
 
     // 패치노트 (정적)
     const patchNotes = [
@@ -1319,7 +1346,5 @@ export async function getServerSideProps() {
     return {
       props: { weaponMeta: [], topClans: [], patchNotes: [], mapRotation: [], recentPlayers: [] },
     }
-  } finally {
-    await prisma.$disconnect()
   }
 }
