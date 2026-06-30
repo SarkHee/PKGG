@@ -87,14 +87,17 @@ async function findPlayerByName(name, pubgBase) {
 
   // 크로스플레이로 인해 동일 계정이 steam·kakao 양쪽 검색에서 모두 반환될 수 있음.
   // PUBG API shardId가 검색한 샤드와 일치하는 값을 반환해 필터로 구별 불가.
-  // 카카오 PUBG는 사실상 사장돼 대부분 유저가 steam → steam 우선.
+  // matchCount(최근 매치 수)가 더 많은 shard를 실제 플랫폼으로 판단.
+  // 둘 다 0이거나 동일하면 steam 기본값 유지(대부분 steam 유저이므로).
   const byAccountId = new Map()
   for (const entry of found) {
     const existing = byAccountId.get(entry.accountId)
     if (!existing) {
       byAccountId.set(entry.accountId, entry)
-    } else if (entry.shard === 'steam' && existing.shard === 'kakao') {
-      byAccountId.set(entry.accountId, entry) // steam 우선
+    } else if (entry.matchCount > existing.matchCount) {
+      byAccountId.set(entry.accountId, entry) // 매치 수 많은 shard 우선
+    } else if (entry.matchCount === existing.matchCount && entry.shard === 'steam') {
+      byAccountId.set(entry.accountId, entry) // 동률이면 steam 기본값
     }
   }
   return [...byAccountId.values()]
