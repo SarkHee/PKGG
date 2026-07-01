@@ -43,28 +43,27 @@ function NavDropdown({ label, links, isActive, t, openKey, openMenu, setOpenMenu
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {isOpen && (
-        <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[160px]">
-          {links.map((link) => (
-            <Link key={link.href} href={link.href} passHref>
-              <span
-                onClick={() => setOpenMenu(null)}
-                className={`relative flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer transition-colors ${
-                  isActive(link.href)
-                    ? 'bg-blue-50 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-400'
-                    : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/60'
-                }`}
-              >
-                <span>{link.icon}</span>
-                {t(link.labelKey)}
-                {link.highlight && !isActive(link.href) && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-red-500 rounded-full" />
-                )}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
+      {/* SSR HTML에 항상 링크가 존재하도록 조건부 마운트 대신 hidden 클래스로 토글 (구글 크롤링 대응) */}
+      <div className={`absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[160px] ${isOpen ? '' : 'hidden'}`}>
+        {links.map((link) => (
+          <Link key={link.href} href={link.href} passHref>
+            <span
+              onClick={() => setOpenMenu(null)}
+              className={`relative flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer transition-colors ${
+                isActive(link.href)
+                  ? 'bg-blue-50 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-400'
+                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/60'
+              }`}
+            >
+              <span>{link.icon}</span>
+              {t(link.labelKey)}
+              {link.highlight && !isActive(link.href) && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-red-500 rounded-full" />
+              )}
+            </span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
@@ -464,9 +463,8 @@ const handleSearchSubmit = async (e) => {
           </div>
         </div>
 
-        {/* 모바일 메뉴 */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+        {/* 모바일 메뉴 — SSR HTML에 항상 링크가 존재하도록 조건부 마운트 대신 hidden 클래스로 토글 (구글 크롤링 대응) */}
+        <div className={`lg:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 ${mobileMenuOpen ? '' : 'hidden'}`}>
             {/* 빠른 닉네임 검색 (훈련 도구 페이지에서는 숨김) */}
             {!['/sensitivity-analyzer', '/sensitivity', '/aim-trainer', '/recoil-pattern', '/peek-trainer', '/pubg-survivors'].includes(router.pathname) && (
             <div className="px-4 pt-3 pb-2">
@@ -626,7 +624,6 @@ const handleSearchSubmit = async (e) => {
               </div>
             </div>
           </div>
-        )}
       </header>
 
       {/* 카카오페이 후원 팝업 */}
