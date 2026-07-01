@@ -4,14 +4,14 @@ import Head from 'next/head';
 import Header from '../components/layout/Header';
 
 // ─── 최신 패치 기준 정보 ─────────────────────────────────
-const LATEST_PATCH = 'Update 41.1';
-const LATEST_PATCH_DATE = '2026.04 PC 적용';
+const LATEST_PATCH = 'Update 42.1';
+const LATEST_PATCH_DATE = '2026.06 PC 적용';
 const DATA_SOURCE = '공식 패치노트 기반';
 
 // ─── 무기 데이터 ────────────────────────────────────────
-// changed: true       → 최신 패치(41.1)에서 변경된 항목 (노란 강조)
+// changed: true       → 최신 패치(42.1)에서 변경된 항목 (노란 강조)
 // historyNote         → 이전 패치에서의 변경 이력 (ℹ 툴팁으로 표시)
-// deletePending: true → Update 42.1(2026년 6월) 삭제 예정 (🗑️ 표시)
+// Update 42.1: QBU, Mosin-Nagant, PP-19 Bizon, DP-28, R45, P1911 삭제 완료 (배열에서 제거)
 // dps: 사전 계산된 실전 DPS (null = 미표기)
 // boltAction: true → RPM "볼트액션", DPS "—" 표시
 // rpmUnknown: true → RPM "?", DPS "—" 표시
@@ -19,6 +19,8 @@ const DATA_SOURCE = '공식 패치노트 기반';
 // dps2: 2단계 연사력 기준 DPS (MG3)
 // pelletDmg: true → damage는 펠렛당 피해량 (SGN, O12 제외)
 // burstDps: true → DPS가 연속 2발 합산값 (S686, Sawed-Off)
+// headMult: 무기별 실측 헤드샷 배율 (없으면 HEAD_MULT=2.1 공통값 사용) — 현재 Dragunov만 2.8
+// headshotNote → 헤드샷 원콤 조건 등 특이사항 (Mannequin 컴포넌트에 표시)
 const WEAPON_DATA = [
   // ── 돌격소총 (AR) ──
   { name: 'Mk47 Mutant', type: 'AR', damage: 49, rpm: 800,  dps: 637,   magBase: 20, magExt: 30,  modes: 'Semi / 2점사', caliber: '7.62mm', dataFrom: 'Update 28.1' },
@@ -37,13 +39,12 @@ const WEAPON_DATA = [
 
   // ── 지정사수소총 (DMR) ──
   { name: 'Mk14 EBR', type: 'DMR', damage: 54, rpm: 400, dps: 340.2,  magBase: 10, magExt: 20, modes: 'Semi / 완전자동', caliber: '7.62mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~33% 감소' },
-  { name: 'Dragunov', type: 'DMR', damage: 53, rpm: 180, dps: 166.95, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 41.1', changed: true, changeNote: '수직 반동 20% 감소, 수평 반동 15% 감소', historyNote: 'U37.1: 피해량 ~12% 감소 (발사속도 조정 제외)' },
-  { name: 'SLR',      type: 'DMR', damage: 49, rpm: 330, dps: 257.25, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 40.1', changed: true, changeNote: '수평 반동 약 4% 추가 감소', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수직·수평 반동 각 5% 감소' },
+  { name: 'Dragunov', type: 'DMR', damage: 53, rpm: 180, dps: 166.95, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 41.1', changeNote: '수직 반동 20% 감소, 수평 반동 15% 감소', historyNote: 'U37.1: 피해량 ~12% 감소 (발사속도 조정 제외)', headMult: 2.8, headshotNote: '원콤 가능: 노뚝(148.4), 1레벨 헬멧(103.88)' },
+  { name: 'SLR',      type: 'DMR', damage: 49, rpm: 330, dps: 257.25, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 42.1', changed: true, changeNote: '수평 반동 10% 감소, 탄속 840→870m/s', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수직·수평 반동 각 5% 감소 · U42.1: 수평 반동 10% 감소, 탄속 840→870m/s' },
   { name: 'SKS',      type: 'DMR', damage: 47, rpm: 330, dps: 246.75, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수평 반동 10% 감소' },
   { name: 'VSS',      type: 'DMR', damage: 45, rpm: 700, dps: 519.75, magBase: 10, magExt: 20, modes: 'Semi / 완전자동', caliber: '9mm',    dataFrom: 'Update 36.1', historyNote: 'U36.1: 피해량 43→45 버프 (U37.1 DMR 너프 제외) · U39.1: 수직 반동 10%, 수평 반동 5% 증가' },
   { name: 'Mk12',     type: 'DMR', damage: 43, rpm: 330, dps: 225.75, magBase: 20, magExt: 30, modes: '반자동',          caliber: '5.56mm', dataFrom: 'Update 40.1', changed: true, changeNote: '피해량 44→43, 수평 반동 8% 증가', historyNote: 'U34.1: 신규 추가 · U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
   { name: 'Mini14',   type: 'DMR', damage: 42, rpm: 330, dps: 220.5,  magBase: 20, magExt: 30, modes: '반자동',          caliber: '5.56mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
-  { name: 'QBU',      type: 'DMR', damage: 42, rpm: 330, dps: 220.5,  magBase: 10, magExt: 20, modes: '반자동',          caliber: '5.56mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
 
   // ── 저격소총 (SR) ──
   // 볼트액션 SR: 연사력 공식 자료 없음 — DPS 미표기
@@ -51,14 +52,12 @@ const WEAPON_DATA = [
   { name: 'AWM',          type: 'SR', damage: 105, rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '.300 Mag', dataFrom: 'Update 28.1', boltAction: true },
   { name: 'Crossbow',     type: 'SR', damage: 105, rpm: null,  dps: null,  magBase: 1, magExt: null, modes: '단발',     caliber: '볼트',     dataFrom: 'Update 28.1', boltAction: true },
   { name: 'Kar98k',       type: 'SR', damage: 79,  rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '7.62mm',   dataFrom: 'Update 28.1', boltAction: true },
-  { name: 'Mosin-Nagant', type: 'SR', damage: 79,  rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '7.62mm',   dataFrom: 'Update 28.1', boltAction: true, deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'M24',          type: 'SR', damage: 75,  rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '7.62mm',   dataFrom: 'Update 28.1', boltAction: true },
   { name: 'Win94',        type: 'SR', damage: 66,  rpm: 100,   dps: 171.6, magBase: 8, magExt: null, modes: '레버액션', caliber: '.45 ACP',  dataFrom: 'Update 28.1' },
 
   // ── 기관단총 (SMG) ──
   { name: 'UMP',        type: 'SMG', damage: 42, rpm: 670,  dps: 485.1, magBase: 25, magExt: 35,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1' },
   { name: 'Tommy Gun',  type: 'SMG', damage: 40, rpm: 750,  dps: 504,   magBase: 30, magExt: 50,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1' },
-  { name: 'PP-19 Bizon',type: 'SMG', damage: 38, rpm: 700,  dps: 438.9, magBase: 53, magExt: null, modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'P90',        type: 'SMG', damage: 35, rpm: 1000, dps: 560,   magBase: 40, magExt: 50,  modes: '완전자동', caliber: '5.7mm',   dataFrom: 'Update 28.1' },
   { name: 'MP5K',       type: 'SMG', damage: 32, rpm: 900,  dps: 504,   magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 38.1', historyNote: 'U38.1: 피해량 34→32 너프' },
   { name: 'JS9',        type: 'SMG', damage: 32, rpm: 900,  dps: 504,   magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 41.1' },
@@ -67,7 +66,6 @@ const WEAPON_DATA = [
   { name: 'Micro UZI',  type: 'SMG', damage: 26, rpm: 1250, dps: 546,   magBase: 25, magExt: 35,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1' },
 
   // ── 경기관총 (LMG) ──
-  { name: 'DP-28', type: 'LMG', damage: 52, rpm: 550,  dps: 491.4, magBase: 47, magExt: null, modes: '완전자동',           caliber: '7.62mm', dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'MG3',   type: 'LMG', damage: 44.1, rpm: 660,  dps: 485.1, rpm2: 990, dps2: 727.65, magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능' },
   { name: 'M249',  type: 'LMG', damage: 41, rpm: 800,  dps: 559.65,magBase: 75, magExt: 100,  modes: '완전자동',           caliber: '5.56mm', dataFrom: 'Update 28.1' },
 
@@ -82,10 +80,8 @@ const WEAPON_DATA = [
   { name: 'Sawed-Off',type: 'SGN', damage: 21,  rpm: 240, dps: 378, magBase: 2,  magExt: null, modes: '이중 총신', caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true, burstDps: true },
 
   // ── 권총 (PST) ──
-  { name: 'R45',          type: 'PST', damage: 65, rpm: 250,  dps: 260,  magBase: 6,  magExt: null, modes: '단발',     caliber: '.45 ACP',  dataFrom: 'Update 28.1', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'R1895',        type: 'PST', damage: 64, rpm: 300,  dps: 320,  magBase: 7,  magExt: null, modes: '단발',     caliber: '7.62mm',   dataFrom: 'Update 28.1' },
   { name: 'Desert Eagle', type: 'PST', damage: 62, rpm: null, dps: null,  magBase: 7,  magExt: null, modes: '단발',     caliber: '.357 Mag', dataFrom: 'Update 28.1', rpmUnknown: true },
-  { name: 'P1911',        type: 'PST', damage: 41, rpm: null, dps: null,  magBase: 7,  magExt: 13,  modes: '단발',     caliber: '.45 ACP',  dataFrom: 'Update 28.1', rpmUnknown: true, rpmNote: '400~600RPM 추정', deletePending: true, deletePendingNote: 'Update 42.1(2026년 6월)에서 삭제 예정' },
   { name: 'P92',          type: 'PST', damage: 34, rpm: 600,  dps: 340,  magBase: 15, magExt: 20,  modes: '단발',     caliber: '9mm',      dataFrom: 'Update 28.1' },
   { name: 'P18C',         type: 'PST', damage: 23, rpm: 1100, dps: 414,  magBase: 17, magExt: 25,  modes: '완전자동', caliber: '9mm',      dataFrom: 'Update 28.1' },
   { name: 'Skorpion',     type: 'PST', damage: 22, rpm: 850,  dps: 308,  magBase: 20, magExt: 35,  modes: '완전자동', caliber: '.32 ACP',  dataFrom: 'Update 28.1' },
@@ -115,19 +111,16 @@ const WEAPON_IMG = {
   'VSS':         '/weapons/Item_Weapon_VSS_C.png',
   'Mk12':        '/weapons/Item_Weapon_Mk12_C.png',
   'Mini14':      '/weapons/Item_Weapon_Mini14_C.png',
-  'QBU':         '/weapons/Item_Weapon_QBU88_C.png',
   // SR
   'Lynx AMR':    '/weapons/Item_Weapon_L6_C.png',
   'AWM':         '/weapons/Item_Weapon_AWM_C.png',
   'Crossbow':    '/weapons/Item_Weapon_Crossbow_C.png',
   'Kar98k':      '/weapons/Item_Weapon_Kar98k_C.png',
-  'Mosin-Nagant':'/weapons/Item_Weapon_Mosin_C.png',
   'M24':         '/weapons/Item_Weapon_M24_C.png',
   'Win94':       '/weapons/Item_Weapon_Win1894_C.png',
   // SMG
   'UMP':         '/weapons/Item_Weapon_UMP_C.png',
   'Tommy Gun':   '/weapons/Item_Weapon_Thompson_C.png',
-  'PP-19 Bizon': '/weapons/Item_Weapon_BizonPP19_C.png',
   'P90':         '/weapons/Item_Weapon_P90_C.png',
   'MP5K':        '/weapons/Item_Weapon_MP5K_C.png',
   'JS9':         '/weapons/Item_Weapon_JS9_C.png',
@@ -135,7 +128,6 @@ const WEAPON_IMG = {
   'MP9':         '/weapons/Item_Weapon_MP9_C.png',
   'Micro UZI':   '/weapons/Item_Weapon_UZI_C.png',
   // LMG
-  'DP-28':       '/weapons/Item_Weapon_DP28_C.png',
   'MG3':         '/weapons/Item_Weapon_MG3_C.png',
   'M249':        '/weapons/Item_Weapon_M249_C.png',
   // SGN
@@ -146,10 +138,8 @@ const WEAPON_IMG = {
   'S1897':       '/weapons/Item_Weapon_S1897_C.png',
   'Sawed-Off':   '/weapons/Item_Weapon_Sawnoff_C.png',
   // PST
-  'R45':          '/weapons/Item_Weapon_Rhino_C.png',
   'R1895':        '/weapons/Item_Weapon_NagantM1895_C.png',
   'Desert Eagle': '/weapons/Item_Weapon_DesertEagle_C.png',
-  'P1911':        '/weapons/Item_Weapon_M1911_C.png',
   'P92':          '/weapons/Item_Weapon_M9_C.png',
   'P18C':         '/weapons/Item_Weapon_G18_C.png',
   'Skorpion':     '/weapons/Item_Weapon_Skorpion_C.png',
@@ -197,7 +187,8 @@ const TYPE_MULT = {
 const ARMOR_LABELS = ['없음', 'Lv.1', 'Lv.2', 'Lv.3'];
 
 function calcBodyDmg(base, armorLv)  { return Math.round(base * ARMOR_MULT[armorLv]); }
-function calcHeadDmg(base, helmLv)   { return Math.round(base * HEAD_MULT * HELMET_MULT[helmLv]); }
+// headMult가 있으면(무기별 실측 헤드샷 배율) 우선 사용, 없으면 전체 공통 HEAD_MULT
+function calcHeadDmg(base, helmLv, headMult = HEAD_MULT) { return Math.round(base * headMult * HELMET_MULT[helmLv]); }
 function calcSTK(hp, dmg)            { return dmg <= 0 ? '∞' : Math.ceil(hp / dmg); }
 const LIMB_MULT = 0.65;
 function calcLimbDmg(base, armorLv)  { return Math.round(base * LIMB_MULT * ARMOR_MULT[armorLv]); }
@@ -288,7 +279,8 @@ function Mannequin({ weapon, armorLevel, helmetLevel }) {
 
   const baseDmg = weapon.pelletDmg ? Math.round(weapon.damage * 9 * 0.9) : weapon.damage;
   const bodyDmg = Math.round(baseDmg * ARMOR_MULT[armorLevel]);
-  const headDmg = Math.round(baseDmg * HEAD_MULT * HELMET_MULT[helmetLevel]);
+  // headMult가 있으면(무기별 실측 헤드샷 배율) 우선 사용, 없으면 전체 공통 HEAD_MULT
+  const headDmg = Math.round(baseDmg * (weapon.headMult ?? HEAD_MULT) * HELMET_MULT[helmetLevel]);
   const limbDmg = Math.round(baseDmg * LIMB_MULT * ARMOR_MULT[armorLevel]);
   const bodySTK = calcSTK(100, bodyDmg);
   const headSTK = calcSTK(100, headDmg);
@@ -339,6 +331,11 @@ function Mannequin({ weapon, armorLevel, helmetLevel }) {
             <span className={`text-xs ${stkColor(stk)} w-12 text-right flex-shrink-0`}>{stk}발 킬</span>
           </div>
         ))}
+        {weapon.headshotNote && (
+          <div className="text-[10px] text-red-400 font-medium px-1 pt-0.5">
+            💀 {weapon.headshotNote}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-3 text-[10px] text-gray-600">
@@ -441,15 +438,16 @@ function WeaponDetailPanel({ weapon, armorLevel, helmetLevel, onArmorChange, onH
           <ArmorSelector label="⛑️ 헬멧" value={helmetLevel} onChange={onHelmetChange} color="text-purple-400" showPct={false} />
         </div>
 
-        {/* 부위별 피해 배율 (선택된 무기 타입 기준) */}
+        {/* 부위별 피해 배율 (선택된 무기 타입 기준, 헤드샷은 무기별 headMult 우선) */}
         {weapon && (() => {
           const m = TYPE_MULT[weapon.type] || TYPE_MULT.AR
+          const headVal = weapon.headMult ?? m.head
           return (
             <div className="mt-3 pt-3 border-t border-gray-700/40">
               <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-2">부위별 피해 배율 ({weapon.type})</div>
               <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { label: '💀 헤드샷', val: m.head, color: 'text-red-400' },
+                  { label: '💀 헤드샷', val: headVal, color: 'text-red-400' },
                   { label: '🛡 몸통',   val: m.body, color: m.body >= 1.1 ? 'text-orange-400' : 'text-gray-300' },
                   { label: '💪 팔다리', val: m.limb, color: m.limb >= 1.1 ? 'text-orange-400' : 'text-gray-500' },
                 ].map(({ label, val, color }) => (
@@ -473,13 +471,14 @@ function WeaponDetailPanel({ weapon, armorLevel, helmetLevel, onArmorChange, onH
 
       {/* 세부 부위별 실제 데미지 */}
       {weapon && (() => {
-        const m    = TYPE_MULT[weapon.type] || TYPE_MULT.AR
+        const m       = TYPE_MULT[weapon.type] || TYPE_MULT.AR
+        const headVal = weapon.headMult ?? m.head
         const base = weapon.pelletDmg ? Math.round(weapon.damage * 9 * 0.9) : weapon.damage
         const ar   = ARMOR_MULT[armorLevel]
         const hr   = HELMET_MULT[helmetLevel]
 
         const zones = [
-          { zone: '머리',  dmg: Math.round(base * m.head * hr),        armor: '헬멧 적용' },
+          { zone: '머리',  dmg: Math.round(base * headVal * hr),        armor: '헬멧 적용' },
           { zone: '목',    dmg: Math.round(base * 0.75),                armor: '방어구 없음' },
           { zone: '가슴',  dmg: Math.round(base * m.body * 1.10 * ar), armor: '방어구 적용' },
           { zone: '상체',  dmg: Math.round(base * m.body * 1.00 * ar), armor: '방어구 적용' },
@@ -532,9 +531,28 @@ function WeaponDetailPanel({ weapon, armorLevel, helmetLevel, onArmorChange, onH
 // ─── 패치 노트 이력 ──────────────────────────────────────
 const PATCH_NOTES = [
   {
+    version: 'Update 42.1',
+    date: '2026.06',
+    isLatest: true,
+    sections: [
+      {
+        title: '무기 밸런스',
+        items: [
+          { weapon: 'SLR', changes: ['수평 반동 10% 감소', '탄속 840 → 870m/s'] },
+        ],
+      },
+      {
+        title: '총기 삭제',
+        items: [
+          { weapon: '삭제 완료 6종', changes: ['QBU (DMR)', '모신 나강 (SR)', 'PP-19 Bizon (SMG)', 'DP-28 (LMG)', 'R45 (PST)', 'P1911 (PST)'] },
+        ],
+      },
+    ],
+  },
+  {
     version: 'Update 41.1',
     date: '2026.04',
-    isLatest: true,
+    isLatest: false,
     sections: [
       {
         title: '신규 부착물',
@@ -770,9 +788,11 @@ export default function WeaponDamage() {
                 ⚡ 이번 패치 변경 {changedCount}건
               </span>
             )}
-            <span className="px-3 py-1.5 bg-red-950/50 border border-red-800/50 rounded-full text-xs text-red-400 font-semibold">
-              🗑️ 삭제 예정 {deletePendingCount}종 (42.1 · 2026년 6월)
-            </span>
+            {deletePendingCount > 0 && (
+              <span className="px-3 py-1.5 bg-red-950/50 border border-red-800/50 rounded-full text-xs text-red-400 font-semibold">
+                🗑️ 삭제 예정 {deletePendingCount}종
+              </span>
+            )}
           </div>
 
           {/* 검색 + 비교 모드 버튼 */}
@@ -1096,7 +1116,7 @@ export default function WeaponDamage() {
             const maxRpm = Math.max(...compareWeapons.map((w) => w.rpm ?? 0));
             const maxDps = Math.max(...compareWeapons.map((w) => w.dps ?? 0));
             const maxBody = Math.max(...compareWeapons.map((w) => calcBodyDmg(w.damage, armorLevel)));
-            const maxHead = Math.max(...compareWeapons.map((w) => calcHeadDmg(w.damage, helmetLevel)));
+            const maxHead = Math.max(...compareWeapons.map((w) => calcHeadDmg(w.damage, helmetLevel, w.headMult)));
 
             const COLORS = ['text-emerald-400', 'text-blue-400', 'text-purple-400'];
             const BAR_COLORS = ['bg-emerald-500', 'bg-blue-500', 'bg-purple-500'];
@@ -1157,7 +1177,7 @@ export default function WeaponDamage() {
                   </div>
                   <div>
                     <StatRow label={`몸통 데미지 (방어구 ${ARMOR_LABELS[armorLevel]})`} values={compareWeapons.map((w) => calcBodyDmg(w.damage, armorLevel))} maxV={maxBody} />
-                    <StatRow label={`헤드 데미지 (헬멧 ${ARMOR_LABELS[helmetLevel]})`} values={compareWeapons.map((w) => calcHeadDmg(w.damage, helmetLevel))} maxV={maxHead} />
+                    <StatRow label={`헤드 데미지 (헬멧 ${ARMOR_LABELS[helmetLevel]})`} values={compareWeapons.map((w) => calcHeadDmg(w.damage, helmetLevel, w.headMult))} maxV={maxHead} />
                     <div className="mb-3">
                       <div className="text-xs text-gray-500 mb-1.5 font-semibold">몸통 킬샷 수</div>
                       {compareWeapons.map((w, i) => {
