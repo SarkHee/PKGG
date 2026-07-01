@@ -13,9 +13,8 @@ const STATUS_KO = {
 
 async function getServerStatus() {
   try {
-    const base = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000'
+    const base = process.env.PKGG_BASE_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
     const res = await fetch(`${base}/api/pubg/server-status?_fresh=1`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return res.json()

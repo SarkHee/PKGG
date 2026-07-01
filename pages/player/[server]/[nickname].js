@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import { calculateMMR } from '../../../utils/mmrCalculator';
-import { classifyPlaystyle } from '../../../utils/playstyleClassifier';
+import { calculateMMR, getMMRTier } from '../../../utils/mmrCalculator';
+import { classifyPlaystyle, TYPES } from '../../../utils/playstyleClassifier';
 import { useT } from '../../../utils/i18n';
 
 import Header from '../../../components/layout/Header';
@@ -1664,7 +1664,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, renam
         <div className="max-w-screen-xl mx-auto px-4 py-6">
         <Head>
           <title>{`${profile?.nickname || '플레이어'} 배그 전적 | PKGG`}</title>
-          <meta name="description" content={`${profile?.nickname || '플레이어'}의 배틀그라운드 전적, PKGG 점수, 플레이스타일 분석`} />
+          <meta name="description" content={ssrData?.metaDescription || `${profile?.nickname || '플레이어'}의 배틀그라운드 전적, PKGG 점수, 플레이스타일 분석`} />
           <meta property="og:type" content="profile" />
           <meta property="og:url" content={`https://pkgg.vercel.app/player/${router.query.server}/${profile?.nickname}`} />
           <meta property="og:title" content={`${profile?.nickname || '플레이어'} 배그 전적 | PKGG`} />
@@ -1718,6 +1718,14 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, renam
           onSeasonChange={handleSeasonSelect}
           seasonChanging={seasonChanging}
         />
+
+        {/* PKGG 분석 요약 — SSR 정적 SEO 텍스트 (클라이언트 재생성 없음) */}
+        {ssrData?.seoText && (
+          <div className="mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3">
+            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">PKGG 분석 요약</div>
+            <p className="text-sm text-gray-400">{ssrData.seoText}</p>
+          </div>
+        )}
 
         {/* 광고 1 */}
         <AdUnit slot="2646189375" format="auto" className="mb-4" />
@@ -2213,6 +2221,90 @@ function derivePlayStyle(stats) {
   else playstyle = '밸런스';
 
   return { playstyle, realPlayStyle };
+}
+
+// SEO 텍스트 + meta description 생성 (SSR 전용 — HTML에 정적으로 포함, 클라이언트 재생성 없음)
+// playerData.summary의 기존 필드(avgDamage/avgKills/...)를 그대로 playstyleClassifier에 전달
+async function buildSeoData(playerData, prisma) {
+  const empty = { seoText: null, metaDescription: null };
+  try {
+    const { profile, summary, mmr } = playerData || {};
+    if (!summary) return empty;
+
+    const avgDamage = summary.avgDamage || 0;
+    const avgKills  = summary.avgKills  || 0;
+    if (avgDamage === 0 && avgKills === 0) return empty; // 데이터 부족/신규 유저
+
+    // headshotKillRatio는 경로에 따라 0~1 소수 또는 0~100 퍼센트로 저장됨 (PlaystyleCard와 동일 정규화)
+    const headshotRate = summary.headshotKillRatio != null
+      ? parseFloat(summary.headshotKillRatio) * (parseFloat(summary.headshotKillRatio) > 1 ? 1 : 100)
+      : 0;
+
+    const ps = classifyPlaystyle({
+      avgDamage,
+      avgKills,
+      avgAssists:     summary.avgAssists     || 0,
+      avgSurviveTime: summary.avgSurviveTime || 0,
+      winRate:        summary.winRate        || 0,
+      top10Rate:      summary.top10Rate      || 0,
+      headshotRate,
+    });
+    if (!ps || ps === TYPES.UNKNOWN) return empty;
+
+    // 봇 킬 제외 순수 K/D — 텔레메트리 분석된 경기(PlayerMatch.isBotCorrected) 기준 보정
+    let botKillRatio = 0;
+    try {
+      if (profile?.playerId) {
+        const agg = await prisma.playerMatch.aggregate({
+          where: {
+            pubgAccountId: profile.playerId,
+            shard: profile.shardId || 'steam',
+            isBotCorrected: true,
+          },
+          _sum: { kills: true, botKills: true },
+          _count: { matchId: true },
+        });
+        const totalKills = agg._sum.kills    ?? 0;
+        const totalBotK  = agg._sum.botKills ?? 0;
+        if (agg._count.matchId > 0 && totalKills > 0) {
+          botKillRatio = Math.min(totalBotK / totalKills, 0.95);
+        }
+      }
+    } catch (e) {
+      console.warn('[SEO] 봇킬 보정 조회 실패:', e.message);
+    }
+
+    const realAvgKills = avgKills * (1 - botKillRatio);
+    const deathRate = Math.max(0.01, 1 - (summary.winRate || 0) / 100);
+    const realKD = parseFloat((realAvgKills / deathRate).toFixed(2));
+
+    const tier = getMMRTier(mmr || 0).label;
+    const nickname = profile?.nickname || '이 플레이어';
+
+    // desc가 짧으면(30자 이하) 그대로 "…인 플레이어입니다"로 자연스럽게 연결,
+    // 길어서 잘라야 하면 "…인 플레이어입니다"를 붙이지 않고 "유형입니다"로 대체
+    // (잘린 문장 뒤에 서술어를 이어붙이면 어색해지는 것을 방지)
+    // TYPES.desc 실측 길이 23~40자 — 30자를 기준으로 절반가량이 자연 연결됨
+    const DESC_MAX_LEN = 30;
+    const isDescShort = ps.desc && ps.desc.length <= DESC_MAX_LEN;
+    // desc가 이미 "…플레이어"로 끝나는 경우 "인 플레이어입니다"를 붙이면
+    // "…플레이어인 플레이어입니다"로 중복되므로 "…플레이어입니다"로 마무리
+    const descEndsWithPlayer = ps.desc && ps.desc.endsWith('플레이어');
+    const secondClause = isDescShort
+      ? descEndsWithPlayer
+        ? `${ps.label} — ${ps.desc}입니다.`
+        : `${ps.label} — ${ps.desc}인 플레이어입니다.`
+      : `${ps.label} 유형입니다.`;
+
+    const seoText = `${nickname}는 봇을 제외하고도 K/D ${realKD}을 유지하는 실력파입니다. 평균 딜량 ${Math.round(avgDamage)}로 꾸준히 교전에 기여하며, Top10 진입률 ${(summary.top10Rate || 0).toFixed(1)}%의 ${secondClause} PKGG 점수 ${Math.round(mmr || 0)}점(${tier}).`;
+
+    const metaDescription = `${nickname} 배그 전적 | 봇킬 제외 K/D ${realKD}, 평균 딜량 ${Math.round(avgDamage)}, ${ps.label} | PKGG`;
+
+    return { seoText, metaDescription };
+  } catch (e) {
+    console.warn('[SEO] seoData 생성 실패:', e.message);
+    return empty;
+  }
 }
 
 // DB에서 플레이어 캐시 데이터 조회 (최근 2시간 이내만 유효)
@@ -2832,6 +2924,10 @@ export async function getServerSideProps({ params, query }) {
           }
         }
 
+        const { seoText: dbSeoText, metaDescription: dbMetaDescription } = await buildSeoData(cached, prisma);
+        cached.seoText = dbSeoText;
+        cached.metaDescription = dbMetaDescription;
+
         setPlayerDataCache(nickname, cached.profile?.shardId || server, cached);
         return { props: { playerData: cached, error: null, dataSource: 'database' } };
       }
@@ -3431,6 +3527,11 @@ export async function getServerSideProps({ params, query }) {
     // DB에 저장된 미분석 매치 봇킬 분석 (기존 데이터 처리, 최대 3경기)
     analyzePendingMatchesBackground(pubgPlayer.id, pubgPlayer.attributes.name, pubgShard)
       .catch(e => console.warn('미분석 매치 백그라운드 분석 실패:', e.message));
+
+    // SEO 텍스트 + meta description 생성 (prisma 연결이 살아있는 시점에 수행)
+    const { seoText, metaDescription } = await buildSeoData(playerData, prisma);
+    playerData.seoText = seoText;
+    playerData.metaDescription = metaDescription;
 
     // 클랜 멤버 DB에서 조회 (클랜 소속인 경우)
     if (pubgClan) {
