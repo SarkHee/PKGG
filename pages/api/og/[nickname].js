@@ -22,9 +22,8 @@ export default async function handler(req) {
   const shard    = url.searchParams.get('shard') || 'steam'
   if (!nickname) return new Response('nickname 필요', { status: 400 })
 
-  const base = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000'
+  const base = process.env.PKGG_BASE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
   let d = null
   try {
@@ -33,7 +32,9 @@ export default async function handler(req) {
       { headers: { 'User-Agent': 'og-generator' } }
     )
     if (res.ok) d = await res.json()
-  } catch {}
+  } catch (e) {
+    console.error('[og] report fetch 실패:', e.message)
+  }
 
   const tierLabel   = d?.tier?.label  || ''
   const tierEmoji   = d?.tier?.emoji  || ''
