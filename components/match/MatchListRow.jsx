@@ -134,9 +134,9 @@ export default function MatchListRow({
   function getFriendlyFireBadge(name) {
     const ff = friendlyFireMap[name?.toLowerCase()]
     if (!ff) return null
-    if (ff.killCount >= 1)                      return { label: '아군킬잡이', cls: 'bg-red-100 text-red-600 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700' }
-    if (ff.groggyCount >= 1)                    return { label: '아군킬잡이', cls: 'bg-orange-100 text-orange-600 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700' }
-    if (ff.totalDamage >= 100)                  return { label: '아군킬잡이', cls: 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' }
+    if (ff.killCount >= 1)                      return { label: '팀킬', cls: 'bg-red-100 text-red-600 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700' }
+    if (ff.groggyCount >= 1)                    return { label: '아군 기절', cls: 'bg-orange-100 text-orange-600 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700' }
+    if (ff.totalDamage >= 100)                  return { label: '아군 딜', cls: 'bg-yellow-100 text-yellow-600 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700' }
     return null
   }
   const prevScore = prevMatch?.avgMmr;

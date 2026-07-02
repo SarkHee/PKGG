@@ -468,6 +468,14 @@ const PlayerHeader = ({
                     </span>
                   </span>
                 </Tooltip>
+                {/* 상습 팀킬러 — 분석된 경기 중 5% 이상에서 아군 킬 발생 */}
+                {botStats?.isTeamKiller && (
+                  <Tooltip content={`분석된 ${botStats.analyzedCount}경기 중 ${botStats.teamKillMatchCount}경기(${(botStats.teamKillRate * 100).toFixed(1)}%)에서 아군 킬이 발생했습니다.`}>
+                    <span className="px-1.5 py-0.5 rounded-lg text-[10px] font-bold border bg-red-100 text-red-600 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700 cursor-help">
+                      ⚠️ 상습 팀킬러
+                    </span>
+                  </Tooltip>
+                )}
                 {/* MMR 티어 (모바일 전용) */}
                 {(() => {
                   const tier = getMMRTier(displayMmr);

@@ -22,27 +22,35 @@ export default async function handler(req, res) {
 
     const { start: SEASON_START } = await getSeasonStart()
 
-    const agg = await prisma.playerMatch.aggregate({
-      where: {
-        pubgAccountId: member.pubgPlayerId,
-        shard,
-        isBotCorrected: true,
-        createdAt: { gte: SEASON_START },
-        // 이벤트/연습 경기 제외 (오염된 봇 데이터 방지)
-        NOT: {
-          OR: [
-            { mapName: { contains: 'safehouse', mode: 'insensitive' } },
-            { mapName: { contains: 'range_main', mode: 'insensitive' } },
-            { mode:    { contains: 'heistroyale', mode: 'insensitive' } },
-            { mode:    { contains: 'clansolo',    mode: 'insensitive' } },
-            { mode:    { contains: 'clansquad',   mode: 'insensitive' } },
-            { mode:    { contains: 'training',    mode: 'insensitive' } },
-          ],
-        },
+    // 분석된 경기(봇킬 보정 완료) 공통 필터 — 이벤트/연습 경기 제외 (오염된 봇 데이터 방지)
+    const analyzedMatchWhere = {
+      pubgAccountId: member.pubgPlayerId,
+      shard,
+      isBotCorrected: true,
+      createdAt: { gte: SEASON_START },
+      NOT: {
+        OR: [
+          { mapName: { contains: 'safehouse', mode: 'insensitive' } },
+          { mapName: { contains: 'range_main', mode: 'insensitive' } },
+          { mode:    { contains: 'heistroyale', mode: 'insensitive' } },
+          { mode:    { contains: 'clansolo',    mode: 'insensitive' } },
+          { mode:    { contains: 'clansquad',   mode: 'insensitive' } },
+          { mode:    { contains: 'training',    mode: 'insensitive' } },
+        ],
       },
-      _sum: { kills: true, botKills: true, damage: true, botDamage: true },
-      _count: { matchId: true },
-    })
+    }
+
+    const [agg, analyzedMatches] = await Promise.all([
+      prisma.playerMatch.aggregate({
+        where: analyzedMatchWhere,
+        _sum: { kills: true, botKills: true, damage: true, botDamage: true },
+        _count: { matchId: true },
+      }),
+      prisma.playerMatch.findMany({
+        where: analyzedMatchWhere,
+        select: { matchId: true },
+      }),
+    ])
 
     const count       = agg._count.matchId
     const totalKills  = agg._sum.kills     ?? 0
@@ -54,10 +62,31 @@ export default async function handler(req, res) {
     const botKillRatio   = totalKills > 0 ? Math.min(totalBotK   / totalKills, 0.95) : 0
     const botDamageRatio = totalDmg   > 0 ? Math.min(totalBotDmg / totalDmg,   0.95) : 0
 
+    // 팀킬(아군 킬) 비율 — 분석된 경기 중 내가 공격자로서 아군을 킬 낸 경기 수 / 전체 분석 경기 수
+    const analyzedMatchIds = analyzedMatches.map((m) => m.matchId)
+    let teamKillMatchCount = 0
+    if (analyzedMatchIds.length > 0) {
+      const teamKillMatches = await prisma.teamDamageStat.findMany({
+        where: {
+          attackerAccountId: member.pubgPlayerId,
+          matchId: { in: analyzedMatchIds },
+          killCount: { gte: 1 },
+        },
+        select: { matchId: true },
+        distinct: ['matchId'],
+      })
+      teamKillMatchCount = teamKillMatches.length
+    }
+    const teamKillRate = count > 0 ? teamKillMatchCount / count : 0
+    const isTeamKiller = count >= 20 && teamKillRate >= 0.05
+
     return res.status(200).json({
       analyzedCount:  count,
       botKillRatio:   parseFloat(botKillRatio.toFixed(4)),
       botDamageRatio: parseFloat(botDamageRatio.toFixed(4)),
+      teamKillMatchCount,
+      teamKillRate: parseFloat(teamKillRate.toFixed(4)),
+      isTeamKiller,
     })
   } catch (e) {
     console.error('[bot-stats]', e.message)
