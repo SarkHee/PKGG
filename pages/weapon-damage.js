@@ -21,70 +21,71 @@ const DATA_SOURCE = '공식 패치노트 기반';
 // burstDps: true → DPS가 연속 2발 합산값 (S686, Sawed-Off)
 // headMult: 무기별 실측 헤드샷 배율 (없으면 HEAD_MULT=2.1 공통값 사용) — 현재 Dragunov만 2.8
 // headshotNote → 헤드샷 원콤 조건 등 특이사항 (Mannequin 컴포넌트에 표시)
+// bulletSpeed: 탄속 (m/s). null = 데이터 미제공 → 테이블·시뮬레이션 모두 '-' 표시
 const WEAPON_DATA = [
   // ── 돌격소총 (AR) ──
-  { name: 'Mk47 Mutant', type: 'AR', damage: 49, rpm: 800,  dps: 637,   magBase: 20, magExt: 30,  modes: 'Semi / 2점사', caliber: '7.62mm', dataFrom: 'Update 28.1' },
-  { name: 'AKM',         type: 'AR', damage: 48, rpm: 600,  dps: 480,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '7.62mm', dataFrom: 'Update 28.1' },
-  { name: 'Groza',       type: 'AR', damage: 47, rpm: 750,  dps: 564,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '7.62mm', dataFrom: 'Update 28.1' },
-  { name: 'Beryl M762',  type: 'AR', damage: 44, rpm: 700,  dps: 484,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '7.62mm', dataFrom: 'Update 28.1' },
-  { name: 'M16A4',       type: 'AR', damage: 43, rpm: 800,  dps: 559,   magBase: 30, magExt: 40,  modes: '단발 / 3점사',  caliber: '5.56mm', dataFrom: 'Update 28.1' },
-  { name: 'ACE32',       type: 'AR', damage: 43, rpm: 680,  dps: 473,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1' },
-  { name: 'QBZ',         type: 'AR', damage: 42, rpm: 650,  dps: 420,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1' },
-  { name: 'SCAR-L',      type: 'AR', damage: 42, rpm: 650,  dps: 420,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1' },
-  { name: 'AUG A3',      type: 'AR', damage: 40, rpm: 720,  dps: 480,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 36.1', historyNote: 'U36.1: 피해량 41→40 너프 · U39.1: 수평 반동 4% 증가' },
-  { name: 'G36C',        type: 'AR', damage: 41, rpm: 700,  dps: 451,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1' },
-  { name: 'K2',          type: 'AR', damage: 41, rpm: 700,  dps: 451,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 32.1' },
-  { name: 'M416',        type: 'AR', damage: 40, rpm: 700,  dps: 440,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1', historyNote: 'U39.1: 수평 반동 5% 감소' },
-  { name: 'FAMAS',       type: 'AR', damage: 39, rpm: 900,  dps: 585,   magBase: 25, magExt: 30,  modes: '3점사',         caliber: '5.56mm', dataFrom: 'Update 28.1' },
+  { name: 'Mk47 Mutant', type: 'AR', damage: 49, rpm: 800,  dps: 637,   magBase: 20, magExt: 30,  modes: 'Semi / 2점사', caliber: '7.62mm', dataFrom: 'Update 28.1', bulletSpeed: null },
+  { name: 'AKM',         type: 'AR', damage: 48, rpm: 600,  dps: 480,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '7.62mm', dataFrom: 'Update 28.1', bulletSpeed: 715 },
+  { name: 'Groza',       type: 'AR', damage: 47, rpm: 750,  dps: 564,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '7.62mm', dataFrom: 'Update 28.1', bulletSpeed: 715 },
+  { name: 'Beryl M762',  type: 'AR', damage: 44, rpm: 700,  dps: 484,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '7.62mm', dataFrom: 'Update 28.1', bulletSpeed: 740 },
+  { name: 'M16A4',       type: 'AR', damage: 43, rpm: 800,  dps: 559,   magBase: 30, magExt: 40,  modes: '단발 / 3점사',  caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 910 },
+  { name: 'ACE32',       type: 'AR', damage: 43, rpm: 680,  dps: 473,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 720 },
+  { name: 'QBZ',         type: 'AR', damage: 42, rpm: 650,  dps: 420,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 930 },
+  { name: 'SCAR-L',      type: 'AR', damage: 42, rpm: 650,  dps: 420,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 870 },
+  { name: 'AUG A3',      type: 'AR', damage: 40, rpm: 720,  dps: 480,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 36.1', historyNote: 'U36.1: 피해량 41→40 너프 · U39.1: 수평 반동 4% 증가', bulletSpeed: 890 },
+  { name: 'G36C',        type: 'AR', damage: 41, rpm: 700,  dps: 451,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 870 },
+  { name: 'K2',          type: 'AR', damage: 41, rpm: 700,  dps: 451,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 32.1', bulletSpeed: 880 },
+  { name: 'M416',        type: 'AR', damage: 40, rpm: 700,  dps: 440,   magBase: 30, magExt: 40,  modes: '완전자동',      caliber: '5.56mm', dataFrom: 'Update 28.1', historyNote: 'U39.1: 수평 반동 5% 감소', bulletSpeed: 880 },
+  { name: 'FAMAS',       type: 'AR', damage: 39, rpm: 900,  dps: 585,   magBase: 25, magExt: 30,  modes: '3점사',         caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 925 },
 
   // ── 지정사수소총 (DMR) ──
-  { name: 'Mk14 EBR', type: 'DMR', damage: 54, rpm: 400, dps: 340.2,  magBase: 10, magExt: 20, modes: 'Semi / 완전자동', caliber: '7.62mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~33% 감소' },
-  { name: 'Dragunov', type: 'DMR', damage: 53, rpm: 180, dps: 166.95, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 41.1', changeNote: '수직 반동 20% 감소, 수평 반동 15% 감소', historyNote: 'U37.1: 피해량 ~12% 감소 (발사속도 조정 제외)', headMult: 2.8, headshotNote: '원콤 가능: 노뚝(148.4), 1레벨 헬멧(103.88)' },
-  { name: 'SLR',      type: 'DMR', damage: 49, rpm: 330, dps: 257.25, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 42.1', changed: true, changeNote: '수평 반동 10% 감소, 탄속 840→870m/s', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수직·수평 반동 각 5% 감소 · U42.1: 수평 반동 10% 감소, 탄속 840→870m/s' },
-  { name: 'SKS',      type: 'DMR', damage: 47, rpm: 330, dps: 246.75, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수평 반동 10% 감소' },
-  { name: 'VSS',      type: 'DMR', damage: 45, rpm: 700, dps: 519.75, magBase: 10, magExt: 20, modes: 'Semi / 완전자동', caliber: '9mm',    dataFrom: 'Update 36.1', historyNote: 'U36.1: 피해량 43→45 버프 (U37.1 DMR 너프 제외) · U39.1: 수직 반동 10%, 수평 반동 5% 증가' },
-  { name: 'Mk12',     type: 'DMR', damage: 43, rpm: 330, dps: 225.75, magBase: 20, magExt: 30, modes: '반자동',          caliber: '5.56mm', dataFrom: 'Update 40.1', changed: true, changeNote: '피해량 44→43, 수평 반동 8% 증가', historyNote: 'U34.1: 신규 추가 · U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
-  { name: 'Mini14',   type: 'DMR', damage: 42, rpm: 330, dps: 220.5,  magBase: 20, magExt: 30, modes: '반자동',          caliber: '5.56mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소' },
+  { name: 'Mk14 EBR', type: 'DMR', damage: 54, rpm: 400, dps: 340.2,  magBase: 10, magExt: 20, modes: 'Semi / 완전자동', caliber: '7.62mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~33% 감소', bulletSpeed: 853 },
+  { name: 'Dragunov', type: 'DMR', damage: 53, rpm: 180, dps: 166.95, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 41.1', changeNote: '수직 반동 20% 감소, 수평 반동 15% 감소', historyNote: 'U37.1: 피해량 ~12% 감소 (발사속도 조정 제외)', headMult: 2.8, headshotNote: '원콤 가능: 노뚝(148.4), 1레벨 헬멧(103.88)', bulletSpeed: 830 },
+  { name: 'SLR',      type: 'DMR', damage: 49, rpm: 330, dps: 257.25, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 42.1', changed: true, changeNote: '수평 반동 10% 감소, 탄속 840→870m/s', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수직·수평 반동 각 5% 감소 · U42.1: 수평 반동 10% 감소, 탄속 840→870m/s', bulletSpeed: 870 },
+  { name: 'SKS',      type: 'DMR', damage: 47, rpm: 330, dps: 246.75, magBase: 10, magExt: 20, modes: '반자동',          caliber: '7.62mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소 · U39.1: 수평 반동 10% 감소', bulletSpeed: 800 },
+  { name: 'VSS',      type: 'DMR', damage: 45, rpm: 700, dps: 519.75, magBase: 10, magExt: 20, modes: 'Semi / 완전자동', caliber: '9mm',    dataFrom: 'Update 36.1', historyNote: 'U36.1: 피해량 43→45 버프 (U37.1 DMR 너프 제외) · U39.1: 수직 반동 10%, 수평 반동 5% 증가', bulletSpeed: 430 },
+  { name: 'Mk12',     type: 'DMR', damage: 43, rpm: 330, dps: 225.75, magBase: 20, magExt: 30, modes: '반자동',          caliber: '5.56mm', dataFrom: 'Update 40.1', changed: true, changeNote: '피해량 44→43, 수평 반동 8% 증가', historyNote: 'U34.1: 신규 추가 · U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소', bulletSpeed: 900 },
+  { name: 'Mini14',   type: 'DMR', damage: 42, rpm: 330, dps: 220.5,  magBase: 20, magExt: 30, modes: '반자동',          caliber: '5.56mm', dataFrom: 'Update 37.1', historyNote: 'U37.1: 피해량 ~12% 감소, 발사 속도 ~45% 감소', bulletSpeed: 990 },
 
   // ── 저격소총 (SR) ──
   // 볼트액션 SR: 연사력 공식 자료 없음 — DPS 미표기
-  { name: 'Lynx AMR',     type: 'SR', damage: 118, rpm: 86,   dps: 306.8, magBase: 5, magExt: null, modes: '볼트액션', caliber: '.50 BMG',  dataFrom: 'Update 28.1' },
-  { name: 'AWM',          type: 'SR', damage: 105, rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '.300 Mag', dataFrom: 'Update 28.1', boltAction: true },
-  { name: 'Crossbow',     type: 'SR', damage: 105, rpm: null,  dps: null,  magBase: 1, magExt: null, modes: '단발',     caliber: '볼트',     dataFrom: 'Update 28.1', boltAction: true },
-  { name: 'Kar98k',       type: 'SR', damage: 79,  rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '7.62mm',   dataFrom: 'Update 28.1', boltAction: true },
-  { name: 'M24',          type: 'SR', damage: 75,  rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '7.62mm',   dataFrom: 'Update 28.1', boltAction: true },
-  { name: 'Win94',        type: 'SR', damage: 66,  rpm: 100,   dps: 171.6, magBase: 8, magExt: null, modes: '레버액션', caliber: '.45 ACP',  dataFrom: 'Update 28.1' },
+  { name: 'Lynx AMR',     type: 'SR', damage: 118, rpm: 86,   dps: 306.8, magBase: 5, magExt: null, modes: '볼트액션', caliber: '.50 BMG',  dataFrom: 'Update 28.1', bulletSpeed: 1200 },
+  { name: 'AWM',          type: 'SR', damage: 105, rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '.300 Mag', dataFrom: 'Update 28.1', boltAction: true, bulletSpeed: 990 },
+  { name: 'Crossbow',     type: 'SR', damage: 105, rpm: null,  dps: null,  magBase: 1, magExt: null, modes: '단발',     caliber: '볼트',     dataFrom: 'Update 28.1', boltAction: true, bulletSpeed: 180 },
+  { name: 'Kar98k',       type: 'SR', damage: 79,  rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '7.62mm',   dataFrom: 'Update 28.1', boltAction: true, bulletSpeed: 785 },
+  { name: 'M24',          type: 'SR', damage: 75,  rpm: null,  dps: null,  magBase: 5, magExt: null, modes: '볼트액션', caliber: '7.62mm',   dataFrom: 'Update 28.1', boltAction: true, bulletSpeed: 815 },
+  { name: 'Win94',        type: 'SR', damage: 66,  rpm: 100,   dps: 171.6, magBase: 8, magExt: null, modes: '레버액션', caliber: '.45 ACP',  dataFrom: 'Update 28.1', bulletSpeed: 760 },
 
   // ── 기관단총 (SMG) ──
-  { name: 'UMP',        type: 'SMG', damage: 42, rpm: 670,  dps: 485.1, magBase: 25, magExt: 35,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1' },
-  { name: 'Tommy Gun',  type: 'SMG', damage: 40, rpm: 750,  dps: 504,   magBase: 30, magExt: 50,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1' },
-  { name: 'P90',        type: 'SMG', damage: 35, rpm: 1000, dps: 560,   magBase: 40, magExt: 50,  modes: '완전자동', caliber: '5.7mm',   dataFrom: 'Update 28.1' },
-  { name: 'MP5K',       type: 'SMG', damage: 32, rpm: 900,  dps: 504,   magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 38.1', historyNote: 'U38.1: 피해량 34→32 너프' },
-  { name: 'JS9',        type: 'SMG', damage: 32, rpm: 900,  dps: 504,   magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 41.1' },
-  { name: 'Vector',     type: 'SMG', damage: 31, rpm: 1100, dps: 585.9, magBase: 13, magExt: 33,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1' },
-  { name: 'MP9',        type: 'SMG', damage: 31, rpm: 1000, dps: 520.8, magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1' },
-  { name: 'Micro UZI',  type: 'SMG', damage: 26, rpm: 1250, dps: 546,   magBase: 25, magExt: 35,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1' },
+  { name: 'UMP',        type: 'SMG', damage: 42, rpm: 670,  dps: 485.1, magBase: 25, magExt: 35,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1', bulletSpeed: 360 },
+  { name: 'Tommy Gun',  type: 'SMG', damage: 40, rpm: 750,  dps: 504,   magBase: 30, magExt: 50,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1', bulletSpeed: 280 },
+  { name: 'P90',        type: 'SMG', damage: 35, rpm: 1000, dps: 560,   magBase: 40, magExt: 50,  modes: '완전자동', caliber: '5.7mm',   dataFrom: 'Update 28.1', bulletSpeed: 715 },
+  { name: 'MP5K',       type: 'SMG', damage: 32, rpm: 900,  dps: 504,   magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 38.1', historyNote: 'U38.1: 피해량 34→32 너프', bulletSpeed: 380 },
+  { name: 'JS9',        type: 'SMG', damage: 32, rpm: 900,  dps: 504,   magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 41.1', bulletSpeed: 400 },
+  { name: 'Vector',     type: 'SMG', damage: 31, rpm: 1100, dps: 585.9, magBase: 13, magExt: 33,  modes: '완전자동', caliber: '.45 ACP', dataFrom: 'Update 28.1', bulletSpeed: 380 },
+  { name: 'MP9',        type: 'SMG', damage: 31, rpm: 1000, dps: 520.8, magBase: 20, magExt: 30,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1', bulletSpeed: 380 },
+  { name: 'Micro UZI',  type: 'SMG', damage: 26, rpm: 1250, dps: 546,   magBase: 25, magExt: 35,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1', bulletSpeed: 350 },
 
   // ── 경기관총 (LMG) ──
-  { name: 'MG3',   type: 'LMG', damage: 44.1, rpm: 660,  dps: 485.1, rpm2: 990, dps2: 727.65, magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능' },
-  { name: 'M249',  type: 'LMG', damage: 41, rpm: 800,  dps: 559.65,magBase: 75, magExt: 100,  modes: '완전자동',           caliber: '5.56mm', dataFrom: 'Update 28.1' },
+  { name: 'MG3',   type: 'LMG', damage: 44.1, rpm: 660,  dps: 485.1, rpm2: 990, dps2: 727.65, magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능', bulletSpeed: 820 },
+  { name: 'M249',  type: 'LMG', damage: 41, rpm: 800,  dps: 559.65,magBase: 75, magExt: 100,  modes: '완전자동',           caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 915 },
 
   // ── 산탄총 (SGN) ──
-  // O12: 단일 피해량 100 (펠렛 보정 없음)
-  { name: 'O12',      type: 'SGN', damage: 100, rpm: 480, dps: 720, magBase: 5,  magExt: null, modes: '반자동',    caliber: '12게이지',      dataFrom: 'Update 28.1' },
+  // O12: 단일 피해량 100 (펠렛 보정 없음) — 탄속 데이터 미제공
+  { name: 'O12',      type: 'SGN', damage: 100, rpm: 480, dps: 720, magBase: 5,  magExt: null, modes: '반자동',    caliber: '12게이지',      dataFrom: 'Update 28.1', bulletSpeed: null },
   // 나머지 SG: 펠렛당 피해량 × 9 × 90% 보정 적용 (pelletDmg: true)
-  { name: 'DBS',      type: 'SGN', damage: 28,  rpm: 480, dps: 756, rpm2: 133, magBase: 14, magExt: null, modes: '펌프/반자동', caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true, historyNote: '◎○ 480RPM / ○○ 133RPM (두 가지 연사 간격)' },
-  { name: 'S12K',     type: 'SGN', damage: 24,  rpm: 240, dps: 864, magBase: 5,  magExt: 8,   modes: '반자동',    caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true },
-  { name: 'S686',     type: 'SGN', damage: 26,  rpm: 300, dps: 468, magBase: 2,  magExt: null, modes: '이중 총신', caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true, burstDps: true },
-  { name: 'S1897',    type: 'SGN', damage: 26,  rpm: 109, dps: 425, magBase: 5,  magExt: null, modes: '펌프액션',  caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true },
-  { name: 'Sawed-Off',type: 'SGN', damage: 21,  rpm: 240, dps: 378, magBase: 2,  magExt: null, modes: '이중 총신', caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true, burstDps: true },
+  { name: 'DBS',      type: 'SGN', damage: 28,  rpm: 480, dps: 756, rpm2: 133, magBase: 14, magExt: null, modes: '펌프/반자동', caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true, historyNote: '◎○ 480RPM / ○○ 133RPM (두 가지 연사 간격)', bulletSpeed: 360 },
+  { name: 'S12K',     type: 'SGN', damage: 24,  rpm: 240, dps: 864, magBase: 5,  magExt: 8,   modes: '반자동',    caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true, bulletSpeed: null },
+  { name: 'S686',     type: 'SGN', damage: 26,  rpm: 300, dps: 468, magBase: 2,  magExt: null, modes: '이중 총신', caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true, burstDps: true, bulletSpeed: 360 },
+  { name: 'S1897',    type: 'SGN', damage: 26,  rpm: 109, dps: 425, magBase: 5,  magExt: null, modes: '펌프액션',  caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true, bulletSpeed: 360 },
+  { name: 'Sawed-Off',type: 'SGN', damage: 21,  rpm: 240, dps: 378, magBase: 2,  magExt: null, modes: '이중 총신', caliber: '12게이지 ×9펠렛', dataFrom: 'Update 28.1', pelletDmg: true, burstDps: true, bulletSpeed: 360 },
 
   // ── 권총 (PST) ──
-  { name: 'R1895',        type: 'PST', damage: 64, rpm: 300,  dps: 320,  magBase: 7,  magExt: null, modes: '단발',     caliber: '7.62mm',   dataFrom: 'Update 28.1' },
-  { name: 'Desert Eagle', type: 'PST', damage: 62, rpm: null, dps: null,  magBase: 7,  magExt: null, modes: '단발',     caliber: '.357 Mag', dataFrom: 'Update 28.1', rpmUnknown: true },
-  { name: 'P92',          type: 'PST', damage: 34, rpm: 600,  dps: 340,  magBase: 15, magExt: 20,  modes: '단발',     caliber: '9mm',      dataFrom: 'Update 28.1' },
-  { name: 'P18C',         type: 'PST', damage: 23, rpm: 1100, dps: 414,  magBase: 17, magExt: 25,  modes: '완전자동', caliber: '9mm',      dataFrom: 'Update 28.1' },
-  { name: 'Skorpion',     type: 'PST', damage: 22, rpm: 850,  dps: 308,  magBase: 20, magExt: 35,  modes: '완전자동', caliber: '.32 ACP',  dataFrom: 'Update 28.1' },
+  { name: 'R1895',        type: 'PST', damage: 64, rpm: 300,  dps: 320,  magBase: 7,  magExt: null, modes: '단발',     caliber: '7.62mm',   dataFrom: 'Update 28.1', bulletSpeed: 330 },
+  { name: 'Desert Eagle', type: 'PST', damage: 62, rpm: null, dps: null,  magBase: 7,  magExt: null, modes: '단발',     caliber: '.357 Mag', dataFrom: 'Update 28.1', rpmUnknown: true, bulletSpeed: 450 },
+  { name: 'P92',          type: 'PST', damage: 34, rpm: 600,  dps: 340,  magBase: 15, magExt: 20,  modes: '단발',     caliber: '9mm',      dataFrom: 'Update 28.1', bulletSpeed: 380 },
+  { name: 'P18C',         type: 'PST', damage: 23, rpm: 1100, dps: 414,  magBase: 17, magExt: 25,  modes: '완전자동', caliber: '9mm',      dataFrom: 'Update 28.1', bulletSpeed: 375 },
+  { name: 'Skorpion',     type: 'PST', damage: 22, rpm: 850,  dps: 308,  magBase: 20, magExt: 35,  modes: '완전자동', caliber: '.32 ACP',  dataFrom: 'Update 28.1', bulletSpeed: 350 },
 ];
 
 // ─── 무기 이미지 매핑 ──────────────────────────────────
@@ -415,6 +416,7 @@ function WeaponDetailPanel({ weapon, armorLevel, helmetLevel, onArmorChange, onH
                   weapon.dps != null ? (Number.isInteger(weapon.dps) ? String(weapon.dps) : weapon.dps.toFixed(1)) : '—',
               },
               { label: '탄창', value: `${weapon.magBase}${weapon.magExt ? ` / ${weapon.magExt}` : ''}` },
+              { label: '탄속', value: weapon.bulletSpeed != null ? `${weapon.bulletSpeed} m/s` : '-' },
             ].map(({ label, value }) => (
               <div key={label} className="bg-gray-800/60 rounded-xl px-3 py-2.5 text-center">
                 <div className="text-[10px] text-gray-500 uppercase tracking-wide">{label}</div>
@@ -753,11 +755,19 @@ export default function WeaponDamage() {
   return (
     <>
       <Head>
-        <title>배그 무기 데미지 표 최신판 | PKGG</title>
+        <title>배그 무기 데미지 표 - PUBG 총기 데미지·DPS·방어구별 피해량 비교 | PKGG</title>
         <meta name="description" content="배틀그라운드 전 무기 데미지, DPS, 방어구별 피해량 완벽 정리" />
+        <meta name="keywords" content="배그 무기 데미지, 배그 총기 데미지, PUBG 무기 데미지표, 배틀그라운드 무기 순위, 배그 DPS, PUBG 헤드샷 배율, 배그 탄속" />
+        <meta property="og:title" content="배그 무기 데미지 표 최신판 | PKGG" />
+        <meta property="og:description" content="배틀그라운드 전 무기 데미지, DPS, 방어구별 피해량 완벽 정리" />
+        <meta property="og:url" content="https://pkgg.vercel.app/weapon-damage" />
+        <meta property="og:type" content="website" />
         <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="배그 무기 데미지 표 최신판 | PKGG" />
+        <meta name="twitter:description" content="배틀그라운드 전 무기 데미지, DPS, 방어구별 피해량 완벽 정리" />
         <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
+        <link rel="canonical" href="https://pkgg.vercel.app/weapon-damage" />
       </Head>
       <Header />
 
@@ -767,6 +777,10 @@ export default function WeaponDamage() {
           {/* 헤더 */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white mb-1">🔫 무기 데미지 표</h1>
+            <p className="text-sm text-gray-400 mb-1">
+              PUBG(배틀그라운드) 47종 무기의 데미지, DPS, 헤드샷 배율, 탄속을 최신 42.1 패치 기준으로 정리했습니다.
+              AR·DMR·저격소총·SMG 등 총기별 데미지를 방어구 레벨별로 비교해보세요.
+            </p>
             <p className="text-gray-400 text-sm">기본 데미지 · 연사속도 · 탄창 · DPS 비교 (방어구 미착용 기준)</p>
             <p className="text-sm text-gray-600 mt-1">데이터 검수 도움: 배틀그라운드 공식 카페 - <a href="https://www.youtube.com/@1067mm" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white underline underline-offset-2 transition-colors">광원효과</a>님</p>
           </div>
@@ -942,6 +956,9 @@ export default function WeaponDamage() {
                     <th className="text-right px-4 py-3 text-gray-400 font-semibold">
                       <Tooltip text="초당 데미지 (DPS) — 이론 최대값">DPS</Tooltip>
                     </th>
+                    <th className="text-right px-4 py-3 text-gray-400 font-semibold hidden md:table-cell">
+                      <Tooltip text="탄속 (m/s) — 데이터 미제공 시 '-' 표시">탄속</Tooltip>
+                    </th>
                     <th className="text-right px-4 py-3 text-gray-400 font-semibold hidden md:table-cell">탄창</th>
                   </tr>
                 </thead>
@@ -1063,6 +1080,10 @@ export default function WeaponDamage() {
                               'text-green-400'
                             }`}>{dpsStr}</span>
                           )}
+                        </td>
+                        {/* 탄속 */}
+                        <td className="px-4 py-3 text-right text-gray-400 text-sm hidden md:table-cell">
+                          {w.bulletSpeed != null ? `${w.bulletSpeed}` : <span className="text-gray-700">-</span>}
                         </td>
                         {/* 탄창 */}
                         <td className="px-4 py-3 text-right text-gray-400 text-sm hidden md:table-cell">

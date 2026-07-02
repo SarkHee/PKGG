@@ -280,6 +280,13 @@ export default function MapsPage() {
       <Head>
         <title>{t('maps.page_title')} — PK.GG</title>
         <meta name="description" content={t('maps.meta_desc')} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://pkgg.vercel.app/maps" />
+        <meta property="og:title" content={`${t('maps.page_title')} | PKGG`} />
+        <meta property="og:description" content={t('maps.meta_desc')} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={`${t('maps.page_title')} | PKGG`} />
+        <meta name="twitter:description" content={t('maps.meta_desc')} />
       </Head>
 
       {/* 다크 배경 전체 커버 */}

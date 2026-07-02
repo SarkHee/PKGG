@@ -879,8 +879,26 @@ export default function ComparePage() {
           name="description"
           content="두 PUBG 플레이어의 시즌 통계를 나란히 비교해보세요. MMR, 평균딜량, 승률, Top10% 등을 한눈에."
         />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://pkgg.vercel.app/compare" />
+        <meta
+          property="og:title"
+          content={data ? `${data.playerA.nickname} vs ${data.playerB.nickname} — PKGG` : '플레이어 비교 — PKGG'}
+        />
+        <meta
+          property="og:description"
+          content="두 PUBG 플레이어의 시즌 통계를 나란히 비교해보세요. MMR, 평균딜량, 승률, Top10% 등을 한눈에."
+        />
         <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content={data ? `${data.playerA.nickname} vs ${data.playerB.nickname} — PKGG` : '플레이어 비교 — PKGG'}
+        />
+        <meta
+          name="twitter:description"
+          content="두 PUBG 플레이어의 시즌 통계를 나란히 비교해보세요. MMR, 평균딜량, 승률, Top10% 등을 한눈에."
+        />
         <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
       </Head>
 

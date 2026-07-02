@@ -23,22 +23,16 @@ export default function Document() {
         <link rel="shortcut icon" href="/favicon.png" />
         <link rel="apple-touch-icon" href="/favicon.png" />
 
-        {/* 기본 OG / SNS 공유 메타태그 (각 페이지 <Head>에서 덮어쓸 수 있음) */}
-        <meta property="og:type" content="website" />
+        {/* 사이트 공통 OG 값만 유지 — og:title/description/url/type, twitter:title/description/card는
+            _document.js Head와 각 페이지 next/head가 dedup되지 않아 중복 출력되므로 각 페이지에서 개별 지정 */}
         <meta property="og:site_name" content="PKGG" />
-        <meta property="og:url" content="https://pkgg.vercel.app" />
-        <meta property="og:title" content="PKGG - PUBG 전적 분석 & 클랜 분석" />
-        <meta property="og:description" content="클랜 순위, PKGG 점수, AI 코치 무료 제공" />
         <meta property="og:image" content="https://pkgg.vercel.app/og-image.png" />
         <meta property="og:image:secure_url" content="https://pkgg.vercel.app/og-image.png" />
         <meta property="og:image:width" content="800" />
         <meta property="og:image:height" content="400" />
         <meta property="og:image:type" content="image/png" />
         <meta property="og:image:alt" content="PKGG - PUBG 전적 분석 & 클랜 분석" />
-        <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@pkgg" />
-        <meta name="twitter:title" content="PKGG - PUBG 전적 분석 & 클랜 분석" />
-        <meta name="twitter:description" content="클랜 순위, PKGG 점수, AI 코치 무료 제공" />
         <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
       </Head>
       <body>
