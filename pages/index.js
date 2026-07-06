@@ -1326,7 +1326,7 @@ export async function getServerSideProps() {
     const mapRotation = [
       { name: '에란겔', nameEn: 'Erangel', size: '8×8km', desc: '최초의 PUBG 클래식 맵. 넓은 초원과 군사기지·학교 등 다양한 지형이 공존해 전략적 선택지가 풍부하다.' },
       { name: '미라마', nameEn: 'Miramar', size: '8×8km', desc: '광활한 사막과 험준한 절벽이 특징인 맵. 장거리 저격전과 차량 전투가 빈번하게 발생한다.' },
-      { name: '산혹', nameEn: 'Sanhok', size: '4×4km', desc: '열대 밀림의 소형 맵으로 교전 빈도가 매우 높다. 빠른 루팅과 근거리 전투 능력이 승패를 가른다.' },
+      { name: '사녹', nameEn: 'Sanhok', size: '4×4km', desc: '열대 밀림의 소형 맵으로 교전 빈도가 매우 높다. 빠른 루팅과 근거리 전투 능력이 승패를 가른다.' },
       { name: '태고', nameEn: 'Taego', size: '8×8km', desc: '한국을 배경으로 한 대형 맵. 자기소생 아이템이 적용되며 중거리 교전이 많은 전략적 맵이다.' },
       { name: '데스턴', nameEn: 'Deston', size: '8×8km', desc: '미래 도시를 배경으로 한 맵. 고층 빌딩과 개방 지형이 공존해 입체적인 전투가 펼쳐진다.' },
       { name: '론도', nameEn: 'Rondo', size: '8×8km', desc: '동아시아 산악 지형의 대형 맵. 고저차 큰 지형과 다양한 실내 전투 공간이 특징이다.' },
