@@ -142,15 +142,13 @@ const TopList = ({ label, icon, items, unit = '' }) => (
 
 // ─── 메인 ────────────────────────────────────────────────────────────────────
 
-export default function ClanDetail() {
+export default function ClanDetail({ initialClanData, clanNameParam }) {
   const router = useRouter();
   const { clanName } = router.query;
   const { t } = useT();
   const { user } = useAuth() || {};
 
-  const [clanData, setClanData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [clanData, setClanData] = useState(initialClanData);
   const [activeTab, setActiveTab] = useState('overview');
   const [memberSort, setMemberSort] = useState('mmr');
   const [allSquads, setAllSquads] = useState(null); // { squads: [...], unassigned: [...] }
@@ -178,24 +176,10 @@ export default function ClanDetail() {
     return `${Math.floor(d / 365)}${t('cd.years_ago')}`;
   };
 
+  // SSR(getServerSideProps)이 매 네비게이션마다 새 initialClanData를 내려줌 — 클라이언트 state 동기화만 수행
   useEffect(() => {
-    if (!clanName) return;
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/clan/${encodeURIComponent(clanName)}`);
-        const ct = res.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) throw new Error('서버에서 올바르지 않은 응답을 받았습니다');
-        if (res.status === 404) throw new Error(t('cd.not_found'));
-        if (!res.ok) throw new Error(`클랜 데이터를 가져올 수 없습니다 (${res.status})`);
-        setClanData(await res.json());
-      } catch (e) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [clanName]);
+    setClanData(initialClanData);
+  }, [initialClanData]);
 
   // 로그인 유저의 PUBG 닉네임 조회 (클랜장 여부 판단용)
   useEffect(() => {
@@ -244,41 +228,6 @@ export default function ClanDetail() {
     })();
   }, [activeTab, clanName]);
 
-  if (loading) {
-    return (
-      <Layout>
-        <Head>
-          <title>클랜 정보 로딩 중... | PKGG</title>
-          <meta name="robots" content="noindex" />
-        </Head>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white" style={{ marginTop: '-5rem' }}>
-          <div className="pt-32 flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-500 dark:text-gray-400">{t('cd.loading')}</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error) {
-    return (
-      <Layout>
-        <Head>
-          <title>클랜을 찾을 수 없습니다 | PKGG</title>
-          <meta name="robots" content="noindex" />
-        </Head>
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col items-center justify-center gap-4" style={{ marginTop: '-5rem' }}>
-          <div className="text-5xl">😕</div>
-          <div className="text-xl font-bold text-red-400">{error}</div>
-          <Link href="/clan-analytics" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-semibold transition-colors">
-            {t('cd.error_back')}
-          </Link>
-        </div>
-      </Layout>
-    );
-  }
-
   const { clan, ranking, members, stats, distribution, topPerformers, styleDistribution, strengths, weaknesses } = clanData;
   const grade = stats?.avgMMR ? clanGrade(Number(stats.avgMMR), t) : null;
 
@@ -323,10 +272,12 @@ export default function ClanDetail() {
     { id: 'custom',  name: t('cd.tab_custom'),  icon: '⚡' },
   ];
 
-  const clanTitle = clan?.name ? `${clan.name} 배그 클랜 분석 | PKGG` : '배그 클랜 분석 | PKGG';
-  const clanDesc = clan?.name
-    ? `${clan.name} 클랜 멤버 전적, 시너지, 스쿼드 분석`
-    : '배틀그라운드 클랜 멤버 전적, 시너지, 스쿼드 분석';
+  const clanTitle = clan?.name ? `${clan.name} 클랜 분석 | PKGG` : '클랜 분석 | PKGG';
+  const clanDesc = clan?.name && stats
+    ? `PKGG 점수 ${stats.avgMMR}점, 멤버 ${stats.memberCount}명, 평균 딜량 ${stats.avgDamage} | PKGG`
+    : clan?.name
+      ? `${clan.name} 클랜 멤버 전적, 시너지, 스쿼드 분석`
+      : '배틀그라운드 클랜 멤버 전적, 시너지, 스쿼드 분석';
   const clanUrl = `https://pkgg.vercel.app/clan/${encodeURIComponent(clan?.name || '')}`;
 
   return (
@@ -1864,4 +1815,25 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
       )}
     </div>
   );
+}
+
+// ─── SSR: 클랜 기본 정보를 서버에서 가져와 크롤러가 첫 HTML에서 볼 수 있도록 ──────────
+export async function getServerSideProps({ params }) {
+  const { clanName } = params;
+  const decoded = decodeURIComponent(clanName);
+
+  const base = process.env.PKGG_BASE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+  try {
+    const res = await fetch(`${base}/api/clan/${encodeURIComponent(decoded)}`);
+    if (res.status === 404) return { notFound: true };
+    if (!res.ok) return { notFound: true };
+
+    const initialClanData = await res.json();
+    return { props: { initialClanData, clanNameParam: decoded } };
+  } catch (e) {
+    console.error('[clan SSR] 데이터 로드 실패:', e.message);
+    return { notFound: true };
+  }
 }
