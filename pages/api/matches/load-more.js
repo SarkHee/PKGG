@@ -81,6 +81,7 @@ export default async function handler(req, res) {
           .map((t) => {
             const ts = t.attributes.stats;
             return {
+              accountId:    ts.playerId || '', // 봇킬 rows 매칭용 (응답엔 그대로 노출되어도 무방)
               name:         ts.name,
               kills:        ts.kills || 0,
               assists:      ts.assists || 0,
@@ -89,6 +90,9 @@ export default async function handler(req, res) {
               survivalTime: ts.timeSurvived || 0,
               rank:         ts.winPlace || 0,
               isSelf:       t.id === me.id,
+              botKills:       0,
+              realKills:      ts.kills || 0,
+              isBotCorrected: false,
             };
           })
           .sort((a, b) => {
@@ -159,6 +163,16 @@ export default async function handler(req, res) {
         m.botAssist      = row?.botAssist   ?? 0;
         m.realAssist     = row?.realAssist  ?? m.assists;
         m.weaponStats    = row?.weaponStats ?? {};
+
+        // 팀원별 봇킬/실킬도 동일하게 매칭 (본인 포함 — 테이블 내 일관성 확보)
+        if (Array.isArray(m.teammatesDetail)) {
+          for (const t of m.teammatesDetail) {
+            const tRow = result.rows.find((r) => r.accountId === t.accountId);
+            t.botKills       = tRow?.bot    ?? 0;
+            t.realKills      = tRow?.real   ?? t.kills;
+            t.isBotCorrected = result.isBotCorrected;
+          }
+        }
 
         // 내 팀 기준 팀피해 여부 (다른 스쿼드 제외)
         const myTeamNames = new Set(

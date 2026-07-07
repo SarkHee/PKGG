@@ -241,7 +241,7 @@ export default function MatchListRow({
             <span className="text-xs text-gray-400">{translateGameMode(match.mode)}</span>
             {match.mapName && <span className="text-xs text-gray-400">· {getMapName(match.mapName)}</span>}
           </div>
-          <span className="text-xs text-gray-400 flex-shrink-0">{formatRelativeTime(match.matchTimestamp)}</span>
+          <span className="text-xs text-gray-400 flex-shrink-0" suppressHydrationWarning>{formatRelativeTime(match.matchTimestamp)}</span>
         </div>
 
         {/* 2행: 등수(좌) + WIN뱃지 + MMR(우) */}
@@ -353,7 +353,7 @@ export default function MatchListRow({
 
         {/* 시간 */}
         <div className="w-16 flex-shrink-0 text-center">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">{formatRelativeTime(match.matchTimestamp)}</div>
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300" suppressHydrationWarning>{formatRelativeTime(match.matchTimestamp)}</div>
           <div className="text-xs text-gray-400">{formatTime(match.matchTimestamp)}</div>
         </div>
 

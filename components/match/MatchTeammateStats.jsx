@@ -6,6 +6,14 @@ function calcPerfScore(t) {
   return Math.round(dmgPts + killPts + assistPts + survivePts)
 }
 
+// 봇킬 분석 완료 시 "실킬N (봇킬M)", 아니면 원본 kills만 표시
+function formatKillDisplay(t) {
+  if (t.isBotCorrected) {
+    return `${t.realKills ?? t.kills ?? 0} (봇킬 ${t.botKills ?? 0})`
+  }
+  return `${t.kills || 0}`
+}
+
 function getPerfGrade(score) {
   if (score >= 70) return { grade: 'S', color: 'text-yellow-600', bg: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700' }
   if (score >= 55) return { grade: 'A', color: 'text-green-600',  bg: 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' }
@@ -105,7 +113,7 @@ export default function MatchTeammateStats({ teammatesDetail, shard = 'steam' })
               {/* 2행: 킬·어시·기절·생존 */}
               <div className="grid grid-cols-4 gap-1 mb-2">
                 <div className="text-center bg-gray-50 dark:bg-gray-700 rounded py-1">
-                  <div className={`text-sm font-black ${getKillColor(t.kills || 0)}`}>{t.kills || 0}</div>
+                  <div className={`text-sm font-black ${getKillColor(t.kills || 0)}`}>{formatKillDisplay(t)}</div>
                   <div className="text-[10px] text-gray-400 dark:text-gray-500">킬</div>
                 </div>
                 <div className="text-center bg-gray-50 dark:bg-gray-700 rounded py-1">
@@ -178,7 +186,16 @@ export default function MatchTeammateStats({ teammatesDetail, shard = 'steam' })
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-center"><span className={getKillColor(t.kills || 0)}>{t.kills || 0}</span></td>
+                  <td className="px-3 py-3 text-center">
+                    {t.isBotCorrected ? (
+                      <span className={getKillColor(t.kills || 0)}>
+                        {t.realKills ?? t.kills ?? 0}
+                        <span className="text-gray-400 dark:text-gray-500 font-normal text-xs ml-1">(봇킬 {t.botKills ?? 0})</span>
+                      </span>
+                    ) : (
+                      <span className={getKillColor(t.kills || 0)}>{t.kills || 0}</span>
+                    )}
+                  </td>
                   <td className="px-3 py-3 text-center text-gray-500 dark:text-gray-400">{t.assists || 0}</td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2 min-w-[100px]">
