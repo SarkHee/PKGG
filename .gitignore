@@ -31,3 +31,6 @@ desktop-app/*.onnx
 # 테스트 파일
 public/video-test.html
 .vercel
+
+# 로컬 파일시스템 업로드 (구버전 forum upload.js 잔재 — 이제 Supabase Storage 사용)
+public/uploads/

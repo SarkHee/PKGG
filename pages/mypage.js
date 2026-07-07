@@ -324,6 +324,7 @@ export default function MyPage() {
   const [linking, setLinking]     = useState(false);
   const [linkMsg, setLinkMsg]     = useState(null);
   const [settingMain, setSettingMain] = useState(false);
+  const [unlinking, setUnlinking] = useState(null); // 해제 진행 중인 accountId
   const [playerStats, setPlayerStats]   = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [clanLeaderLoading, setClanLeaderLoading] = useState(false);
@@ -374,6 +375,13 @@ export default function MyPage() {
     setSettingMain(true);
     try { await fetch('/api/user/set-main-account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId }) }); fetchUser(); }
     finally { setSettingMain(false); }
+  };
+
+  const handleUnlinkPubg = async (acc) => {
+    if (!window.confirm(`${acc.nickname} 계정 연동을 해제하시겠습니까?`)) return;
+    setUnlinking(acc.id);
+    try { await fetch('/api/user/unlink-pubg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: acc.id }) }); fetchUser(); }
+    finally { setUnlinking(null); }
   };
 
   const handleSetClanLeader = async () => {
@@ -533,12 +541,18 @@ export default function MyPage() {
                         </div>
                         {isMain && <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">{t('mypage.main_badge')}</span>}
                       </div>
-                      {!isMain && (
-                        <button onClick={() => handleSetMain(acc.id)} disabled={settingMain}
-                          className="text-xs text-blue-400 hover:text-blue-300 font-semibold disabled:opacity-50 transition-colors">
-                          {t('mypage.set_main')}
+                      <div className="flex items-center gap-3">
+                        {!isMain && (
+                          <button onClick={() => handleSetMain(acc.id)} disabled={settingMain}
+                            className="text-xs text-blue-400 hover:text-blue-300 font-semibold disabled:opacity-50 transition-colors">
+                            {t('mypage.set_main')}
+                          </button>
+                        )}
+                        <button onClick={() => handleUnlinkPubg(acc)} disabled={unlinking === acc.id}
+                          className="text-xs text-red-400 hover:text-red-300 font-semibold disabled:opacity-50 transition-colors">
+                          {unlinking === acc.id ? '해제 중...' : '연동 해제'}
                         </button>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
