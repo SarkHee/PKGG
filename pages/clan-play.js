@@ -1,6 +1,7 @@
 // pages/clan-play.js — 클랜 놀이 (클랜 킬내기 + 클랜 내전)
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { signIn } from 'next-auth/react';
 import Header from '../components/layout/Header';
@@ -319,7 +320,7 @@ function BattleList({ type = 'battle', onSelect }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-3">
-        <p className="text-sm font-bold text-white">{type === 'killmatch' ? '내 킬내기 목록' : '내 내전 목록'}</p>
+        <p className="text-sm font-bold text-white">{type === 'killmatch' ? '킬내기 목록' : '내전 목록'}</p>
         <button
           onClick={() => setShowCreate((v) => !v)}
           className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
@@ -347,27 +348,34 @@ function BattleList({ type = 'battle', onSelect }) {
             >
               <div className="flex justify-between items-center">
                 <span className="font-bold text-white text-sm">{b.title}</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${b.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-400'}`}>
-                  {b.status === 'active' ? '진행중' : '종료'}
+                <span className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${b.isOwner ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                    {b.isOwner ? (type === 'killmatch' ? '내 킬내기' : '내 내전') : '참가중'}
+                  </span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${b.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-400'}`}>
+                    {b.status === 'active' ? '진행중' : '종료'}
+                  </span>
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-1">
                 참가자 {b._count?.players ?? 0}명 · 경기 {b._count?.matches ?? 0}회
               </p>
             </button>
-            <button
-              onClick={() => handleDeleteBattle(b.id)}
-              disabled={deletingId === b.id}
-              className="text-gray-500 hover:text-red-400 text-sm px-1.5 flex-shrink-0 disabled:opacity-50"
-              title={type === 'killmatch' ? '킬내기 삭제' : '내전 삭제'}
-            >
-              🗑️
-            </button>
+            {b.isOwner && (
+              <button
+                onClick={() => handleDeleteBattle(b.id)}
+                disabled={deletingId === b.id}
+                className="text-gray-500 hover:text-red-400 text-sm px-1.5 flex-shrink-0 disabled:opacity-50"
+                title={type === 'killmatch' ? '킬내기 삭제' : '내전 삭제'}
+              >
+                🗑️
+              </button>
+            )}
           </div>
         ))}
         {!loading && battles.length === 0 && (
           <p className="text-center text-gray-500 text-sm py-8">
-            {type === 'killmatch' ? '아직 생성한 킬내기가 없습니다' : '아직 생성한 내전이 없습니다'}
+            {type === 'killmatch' ? '참가하거나 생성한 킬내기가 없습니다' : '참가하거나 생성한 내전이 없습니다'}
           </p>
         )}
       </div>
@@ -2154,17 +2162,38 @@ function BattleDetail({ battle: initialBattle, onBack }) {
 
 // ─── 클랜 내전 탭 / 클랜 킬내기 탭 (로그인/PUBG 연동 게이트는 상위 ClanPlay에서 처리) ───
 // 두 탭 모두 동일한 BattleList/BattleDetail을 type만 다르게 재사용한다.
-function ClanBattleTab() {
+// initialBattleId가 있으면(마이페이지 등에서 딥링크로 진입) 목록을 건너뛰고 바로 해당 내전을 연다.
+function useInitialBattle(initialBattleId) {
   const [selectedBattle, setSelectedBattle] = useState(null);
+  const [loadingInitial, setLoadingInitial] = useState(!!initialBattleId);
 
+  useEffect(() => {
+    if (!initialBattleId) return;
+    let cancelled = false;
+    fetch(`/api/clan-battle/${initialBattleId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d?.battle) setSelectedBattle(d.battle); })
+      .finally(() => { if (!cancelled) setLoadingInitial(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line
+  }, [initialBattleId]);
+
+  return { selectedBattle, setSelectedBattle, loadingInitial };
+}
+
+function ClanBattleTab({ initialBattleId }) {
+  const { selectedBattle, setSelectedBattle, loadingInitial } = useInitialBattle(initialBattleId);
+
+  if (loadingInitial) return <p className="text-gray-500 text-sm text-center py-10">불러오는 중...</p>;
   return selectedBattle
     ? <BattleDetail battle={selectedBattle} onBack={() => setSelectedBattle(null)} />
     : <BattleList type="battle" onSelect={setSelectedBattle} />;
 }
 
-function KillMatchTab() {
-  const [selectedBattle, setSelectedBattle] = useState(null);
+function KillMatchTab({ initialBattleId }) {
+  const { selectedBattle, setSelectedBattle, loadingInitial } = useInitialBattle(initialBattleId);
 
+  if (loadingInitial) return <p className="text-gray-500 text-sm text-center py-10">불러오는 중...</p>;
   return selectedBattle
     ? <BattleDetail battle={selectedBattle} onBack={() => setSelectedBattle(null)} />
     : <BattleList type="killmatch" onSelect={setSelectedBattle} />;
@@ -2172,9 +2201,20 @@ function KillMatchTab() {
 
 // ─── 메인 ────────────────────────────────────────────────────────────────────
 export default function ClanPlay() {
+  const router = useRouter();
   const [mainTab, setMainTab] = useState('kill'); // kill | battle
+  const [initialBattleId, setInitialBattleId] = useState(null);
   const { user } = useAuth() || {};
   const [myUserData, setMyUserData] = useState(undefined); // undefined=로딩, null=없음
+
+  // 마이페이지 등에서 /clan-play?tab=kill&battleId=12 형태로 딥링크 진입 시 탭 + 상세 화면 바로 열기
+  useEffect(() => {
+    if (!router.isReady) return;
+    const { tab, battleId } = router.query;
+    if (tab === 'battle' || tab === 'kill') setMainTab(tab);
+    if (battleId) setInitialBattleId(parseInt(battleId));
+    // eslint-disable-next-line
+  }, [router.isReady, router.query.tab, router.query.battleId]);
 
   const mainAcc = myUserData?.pubgAccounts?.find((a) => a.id === myUserData.mainAccountId);
   const hasLinkedPubg = !!mainAcc;
@@ -2274,8 +2314,8 @@ export default function ClanPlay() {
             ))}
           </div>
 
-          {mainTab === 'kill' && <KillMatchTab />}
-          {mainTab === 'battle' && <ClanBattleTab />}
+          {mainTab === 'kill' && <KillMatchTab initialBattleId={initialBattleId} />}
+          {mainTab === 'battle' && <ClanBattleTab initialBattleId={initialBattleId} />}
         </div>
       </div>
     </>

@@ -17,13 +17,22 @@ export default async function handler(req, res) {
     try {
       const { mine, type } = req.query;
       const where = {};
-
-      if (mine === '1') {
-        const authUser = await getSessionAuthUser(req, res);
-        if (!authUser) return res.status(401).json({ error: '로그인이 필요합니다.' });
-        where.createdBy = authUser.id;
-      }
       if (type === 'battle' || type === 'killmatch') where.type = type;
+
+      let authUser = null;
+      if (mine === '1') {
+        authUser = await getSessionAuthUser(req, res);
+        if (!authUser) return res.status(401).json({ error: '로그인이 필요합니다.' });
+
+        // 내가 만든 것 + 내 PUBG 닉네임으로 참가자 등록된 것 모두 포함
+        const myNicknames = (authUser.pubgAccounts || []).map((a) => a.nickname).filter(Boolean);
+        where.OR = [
+          { createdBy: authUser.id },
+          ...(myNicknames.length > 0
+            ? [{ players: { some: { nickname: { in: myNicknames, mode: 'insensitive' } } } }]
+            : []),
+        ];
+      }
 
       const battles = await prisma.clanBattle.findMany({
         where,
@@ -34,7 +43,12 @@ export default async function handler(req, res) {
         orderBy: { createdAt: 'desc' },
       });
 
-      return res.status(200).json({ battles });
+      const result = battles.map((b) => ({
+        ...b,
+        isOwner: authUser ? b.createdBy === authUser.id : undefined,
+      }));
+
+      return res.status(200).json({ battles: result });
     } catch (e) {
       console.error('[clan-battle] GET 오류:', e.message);
       return res.status(500).json({ error: '서버 오류가 발생했습니다.' });

@@ -1,6 +1,7 @@
 // pages/mypage.js — 마이페이지 (프로필 + PUBG 연동 + 일일 목표)
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -309,6 +310,110 @@ function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
       {!nickname && (
         <p className="text-xs text-gray-600 text-center">{t('mypage.no_main_warning')}</p>
       )}
+    </div>
+  );
+}
+
+// 킬내기/내전 한 줄: 뱃지(내 것/참가중) + 진행상태 + 종료 시 내 최종 순위. 클릭 시 /clan-play로 딥링크 이동
+function ClanPlayRow({ b, onClick }) {
+  const rankLabel = b.myRank === 1 ? '🥇 1위' : b.myRank === 2 ? '🥈 2위' : b.myRank === 3 ? '🥉 3위' : b.myRank ? `${b.myRank}위` : null;
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-left"
+    >
+      <div className="min-w-0 flex-1 flex items-center gap-1.5 flex-wrap">
+        <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{b.title}</span>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 ${b.isOwner ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+          {b.isOwner ? (b.type === 'killmatch' ? '내 킬내기' : '내 내전') : '참가중'}
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {rankLabel && <span className="text-xs font-bold text-yellow-500 dark:text-yellow-400">{rankLabel}</span>}
+        <span className={`text-[10px] px-2 py-0.5 rounded-full ${b.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+          {b.status === 'active' ? '진행중' : '종료'}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+// 마이페이지 "클랜 놀이 기록" 섹션 — 내가 만들었거나 참가한 킬내기/내전을 함께 조회
+function ClanPlayRecord({ pubgAccounts }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [battles, setBattles] = useState([]);
+
+  const myNicknames = useMemo(
+    () => new Set((pubgAccounts || []).map((a) => a.nickname?.toLowerCase()).filter(Boolean)),
+    [pubgAccounts]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const [bRes, kRes] = await Promise.all([
+          fetch('/api/clan-battle?mine=1&type=battle'),
+          fetch('/api/clan-battle?mine=1&type=killmatch'),
+        ]);
+        const [bData, kData] = await Promise.all([bRes.json(), kRes.json()]);
+        const all = [...(bData.battles || []), ...(kData.battles || [])];
+
+        // 종료된 항목만 순위 조회 (진행중인 항목은 아직 최종 순위가 없으므로 생략)
+        const withRank = await Promise.all(all.map(async (b) => {
+          if (b.status !== 'ended') return { ...b, myRank: null };
+          try {
+            const r = await fetch(`/api/clan-battle/${b.id}/standings`);
+            if (!r.ok) return { ...b, myRank: null };
+            const d = await r.json();
+            const idx = (d.standings || []).findIndex((s) => myNicknames.has((s.nickname || '').toLowerCase()));
+            return { ...b, myRank: idx >= 0 ? idx + 1 : null };
+          } catch {
+            return { ...b, myRank: null };
+          }
+        }));
+
+        if (!cancelled) setBattles(withRank);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [myNicknames]);
+
+  const goTo = (b) => router.push(`/clan-play?tab=${b.type === 'killmatch' ? 'kill' : 'battle'}&battleId=${b.id}`);
+
+  const killList = battles.filter((b) => b.type === 'killmatch');
+  const battleList = battles.filter((b) => b.type !== 'killmatch');
+
+  if (loading) {
+    return <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-500 mb-2">🎯 킬내기</p>
+        {killList.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {killList.map((b) => <ClanPlayRow key={b.id} b={b} onClick={() => goTo(b)} />)}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">참가한 킬내기가 없습니다</p>
+        )}
+      </div>
+      <div>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-500 mb-2">⚔️ 내전</p>
+        {battleList.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {battleList.map((b) => <ClanPlayRow key={b.id} b={b} onClick={() => goTo(b)} />)}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">참가한 내전이 없습니다</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -759,6 +864,14 @@ export default function MyPage() {
               </div>
               <span className="text-gray-400 dark:text-gray-500 group-hover:text-blue-400 transition-colors">→</span>
             </Link>
+          </div>
+
+          {/* ── 클랜 놀이 기록 ── */}
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
+            <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
+              🎮 <span>클랜 놀이 기록</span>
+            </h2>
+            <ClanPlayRecord pubgAccounts={userData?.pubgAccounts} />
           </div>
 
           {/* ── 일일 목표 ── */}

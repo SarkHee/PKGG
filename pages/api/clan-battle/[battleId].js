@@ -46,6 +46,10 @@ export default async function handler(req, res) {
         pkggStats: cacheMap.get(p.nickname.toLowerCase()) || null,
       }));
 
+      // 생성자 본인인지 여부 (수정/삭제/참가자·경기 관리 버튼 노출 판단용)
+      const authUser = await getSessionAuthUser(req, res);
+      battle.isOwner = authUser ? battle.createdBy === authUser.id : false;
+
       return res.status(200).json({ battle });
     } catch (e) {
       console.error('[clan-battle/[id]] GET 오류:', e.message);
