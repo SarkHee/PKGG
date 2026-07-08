@@ -11,6 +11,7 @@ function generateSiteMap(clans) {
     { url: '/compare',              changefreq: 'weekly',  priority: '0.8' },
     { url: '/forum',                changefreq: 'daily',   priority: '0.8' },
     { url: '/party',                changefreq: 'daily',   priority: '0.8' },
+    { url: '/clan-play',            changefreq: 'daily',   priority: '0.8' },
     { url: '/weapon-test',          changefreq: 'weekly',  priority: '0.8' },
     { url: '/weapon-damage',        changefreq: 'monthly', priority: '0.7' },
     { url: '/aim-trainer',          changefreq: 'monthly', priority: '0.7' },

@@ -441,14 +441,14 @@ model feedbacks {
 }
 
 model ClanLeaderRequest {
-  id           Int      @id @default(autoincrement())
-  clanId       Int
-  clanName     String
-  currentLeader String
+  id              Int      @id @default(autoincrement())
+  clanId          Int
+  clanName        String
+  currentLeader   String
   requestNickname String
-  reason       String
-  status       String   @default("pending") // pending | approved | rejected
-  createdAt    DateTime @default(now())
+  reason          String
+  status          String   @default("pending") // pending | approved | rejected
+  createdAt       DateTime @default(now())
 
   @@map("clan_leader_requests")
 }
@@ -537,14 +537,14 @@ model TeamDamageStat {
 // 배그 치지직 스트리머 목록
 model StreamerList {
   id             Int       @id @default(autoincrement())
-  nickname       String    // 배그 인게임 닉네임 (PKGG 전적 링크용)
+  nickname       String // 배그 인게임 닉네임 (PKGG 전적 링크용)
   shard          String    @default("steam") // steam | kakao
   chzzkChannelId String    @unique
-  streamerName   String    // 치지직 표시명
-  profileImage   String?   // 치지직 프로필 이미지 URL
+  streamerName   String // 치지직 표시명
+  profileImage   String? // 치지직 프로필 이미지 URL
   isLive         Boolean   @default(false)
   viewerCount    Int       @default(0)
-  streamTitle    String?   // 현재 방송 제목
+  streamTitle    String? // 현재 방송 제목
   lastCheckedAt  DateTime?
   createdAt      DateTime  @default(now())
 
@@ -553,15 +553,156 @@ model StreamerList {
 
 // 플레이어 낙하지점 히트맵
 model PlayerLandingStat {
-  id          Int      @id @default(autoincrement())
-  accountId   String
-  mapName     String
-  locationX   Float
-  locationY   Float
-  matchId     String
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  accountId String
+  mapName   String
+  locationX Float
+  locationY Float
+  matchId   String
+  createdAt DateTime @default(now())
 
   @@index([accountId, mapName])
   @@index([matchId])
   @@map("player_landing_stats")
+}
+
+// ── 클랜 내전 (ClanBattle) ──────────────────────────────────────────────────
+model ClanBattle {
+  id          Int       @id @default(autoincrement())
+  title       String
+  createdBy   String // userId
+  status      String    @default("active") // active, ended
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  memo        String?
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime? // 참가자 확정 시각 (null이면 미확정)
+
+  type        String    @default("battle") // "battle" | "killmatch"
+  startTime   DateTime? // 킬내기 시작 시간
+  endTime     DateTime? // 킬내기 종료 시간 (선택)
+  targetScore Int? // 목표 점수 (선택, 먼저 달성하면 종료)
+
+  rule    ClanBattleRule?
+  teams   ClanBattleTeam[]
+  squads  ClanBattleSquad[]
+  players ClanBattlePlayer[]
+  matches ClanBattleMatch[]
+
+  @@index([createdBy])
+  @@map("clan_battles")
+}
+
+model ClanBattleRule {
+  id       Int        @id @default(autoincrement())
+  battleId Int        @unique
+  battle   ClanBattle @relation(fields: [battleId], references: [id])
+
+  // 등수별 점수 예: {"1":10,"2":6,"3":3,"4":2,"5":1}
+  placePoints Json @default("{}")
+
+  // 킬 기본 점수
+  killBasePoint Float @default(1.0)
+
+  // 티어별 킬 배율 예: {"1":1.0,"2":1.5,"3":2.0,"4":2.5,"5":3.0}
+  tierMultipliers Json @default("{}")
+
+  // 티어 배율 사용 여부 (false면 모든 티어를 1.0으로 취급)
+  useTierMultiplier Boolean @default(true)
+
+  // 등수 점수 부여 방식: "individual"(스쿼드원 각자에게 부여) | "squad"(스쿼드 합산에만 추가, 개인 점수엔 미반영)
+  placementPointMode String @default("individual")
+
+  @@map("clan_battle_rules")
+}
+
+model ClanBattleTeam {
+  id       Int                @id @default(autoincrement())
+  battleId Int
+  battle   ClanBattle         @relation(fields: [battleId], references: [id])
+  teamName String
+  clanName String?
+  players  ClanBattlePlayer[]
+  squads   ClanBattleSquad[]
+
+  @@index([battleId])
+  @@map("clan_battle_teams")
+}
+
+model ClanBattleSquad {
+  id        Int                @id @default(autoincrement())
+  battleId  Int
+  battle    ClanBattle         @relation(fields: [battleId], references: [id])
+  teamId    Int?
+  team      ClanBattleTeam?    @relation(fields: [teamId], references: [id])
+  squadName String // "스쿼드1", "Alpha" 등
+  players   ClanBattlePlayer[]
+
+  @@index([battleId])
+  @@index([teamId])
+  @@map("clan_battle_squads")
+}
+
+model ClanBattlePlayer {
+  id       Int                     @id @default(autoincrement())
+  battleId Int
+  battle   ClanBattle              @relation(fields: [battleId], references: [id])
+  teamId   Int?
+  team     ClanBattleTeam?         @relation(fields: [teamId], references: [id])
+  squadId  Int?
+  squad    ClanBattleSquad?        @relation(fields: [squadId], references: [id])
+  nickname String
+  tier     Int                     @default(3) // 1~5
+  userId   String? // nullable, PKGG 계정 연동 시
+  results  ClanBattleMatchResult[]
+
+  // 과거 외부 기록 (다른 내전/커스텀에서의 실적 등, 수동 입력)
+  prevGames        Int? // 이전 경기 수
+  prevAvgKills     Float? // 이전 평균 킬
+  prevAvgDamage    Float? // 이전 평균 딜량
+  prevAvgPlacement Float? // 이전 평균 순위
+  prevAvgAssists   Float? // 이전 평균 어시스트
+  prevMemo         String? // 메모 (어디서 진행했는지 등)
+
+  @@index([battleId])
+  @@index([teamId])
+  @@index([squadId])
+  @@map("clan_battle_players")
+}
+
+model ClanBattleMatch {
+  id          Int                     @id @default(autoincrement())
+  battleId    Int
+  battle      ClanBattle              @relation(fields: [battleId], references: [id])
+  matchNumber Int
+  playedAt    DateTime                @default(now())
+  mapName     String?
+  memo        String?
+  pubgMatchId String? // 원본 PUBG matchId (킬내기 봇킬 재분석 시 텔레메트리 재조회용)
+  results     ClanBattleMatchResult[]
+
+  @@index([battleId])
+  @@map("clan_battle_matches")
+}
+
+model ClanBattleMatchResult {
+  id             Int              @id @default(autoincrement())
+  matchId        Int
+  match          ClanBattleMatch  @relation(fields: [matchId], references: [id])
+  playerId       Int
+  player         ClanBattlePlayer @relation(fields: [playerId], references: [id])
+  placement      Int // 등수
+  squadPlacement Int? // 스쿼드 등수 (개인 등수와 별개)
+  kills          Int              @default(0)
+  damage         Int              @default(0) // 경기별 딜량
+  assists        Int              @default(0) // 경기별 어시스트
+  score          Float            @default(0) // 자동 계산된 점수
+
+  botAnalysisStatus String @default("pending") // "pending" | "analyzing" | "completed" | "failed"
+  rawKills          Int    @default(0) // 원본 킬 (봇킬 포함)
+  realKills         Int? // 실킬 (분석 완료 시)
+
+  @@index([matchId])
+  @@index([playerId])
+  @@map("clan_battle_match_results")
 }

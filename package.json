@@ -19,6 +19,9 @@
     "start-clan-ranking-scheduler": "node -e \"require('./scripts/auto-clan-ranking-update.js').startClanRankingScheduler(); setInterval(() => {}, 1000);\""
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@prisma/client": "^6.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "@tensorflow-models/coco-ssd": "^2.2.3",
