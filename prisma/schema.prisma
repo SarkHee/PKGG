@@ -706,3 +706,71 @@ model ClanBattleMatchResult {
   @@index([playerId])
   @@map("clan_battle_match_results")
 }
+
+// ── 시즌 아카이브 (지난 시즌 PlayerMatch 원본 삭제 전 요약 통계 보존) ──────────
+model MapStatSeason {
+  id          Int      @id @default(autoincrement())
+  season      Int // 41, 42...
+  mapName     String // "Taego", "Erangel"...
+  shard       String   @default("all") // "all", "steam", "kakao"
+  playCount   Int
+  percentage  Float
+  avgSurvival Float?
+  avgKills    Float?
+  createdAt   DateTime @default(now())
+
+  @@unique([season, mapName, shard])
+}
+
+model WeaponMetaSeason {
+  id         Int      @id @default(autoincrement())
+  season     Int
+  shard      String   @default("all")
+  weaponId   String
+  weaponName String
+  kills      Int
+  killRate   Float
+  avgDamage  Float?
+  rank       Int
+  createdAt  DateTime @default(now())
+
+  @@unique([season, weaponId, shard])
+}
+
+model PlayerSeasonSummary {
+  id            Int      @id @default(autoincrement())
+  season        Int
+  nickname      String
+  shard         String
+  totalGames    Int
+  avgRealKills  Float?
+  avgRealDamage Float?
+  avgKills      Float
+  avgDamage     Float
+  winRate       Float
+  top10Rate     Float
+  botKillRatio  Float?
+  topMap1       String?
+  topMap2       String?
+  topMap3       String?
+  topWeapon1    String?
+  topWeapon2    String?
+  topWeapon3    String?
+  createdAt     DateTime @default(now())
+
+  @@unique([season, nickname, shard])
+}
+
+model TeamDamageStatSeason {
+  id               Int      @id @default(autoincrement())
+  season           Int
+  shard            String   @default("all")
+  attackerNickname String
+  totalDamage      Int
+  totalKills       Int
+  totalGroggies    Int
+  victimCount      Int
+  createdAt        DateTime @default(now())
+
+  @@unique([season, attackerNickname, shard])
+}

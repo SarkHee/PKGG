@@ -2,51 +2,7 @@
 // 실제 텔레메트리 기반 무기 메타 집계 API
 import prisma from '../../utils/prisma.js'
 import { getSeasonStart, SEASON_STARTS } from '../../utils/seasonStart.js'
-
-// 제외 패턴 - 차량/캐릭터/환경/투척류/근접무기
-const EXCLUDE = [
-  /^Player(Female|Male)/i,
-  /^UltAIPawn/i,
-  /^TslGameMode/i,
-  /^BP_/i,
-  /^Buggy_/i, /^Dacia_/i, /^Uaz_/i, /^Boat_/i,
-  /^RedZone/i, /^Bluezonebomb/i,
-  /^Buff_/i,
-  /^HR_Proj/i, /^ProjGrenade/i, /^ProjMolotov/i, /^ProjC4/i, /^ProjSticky/i,
-  /^WeapGrenade/i, /^WeapMolotov/i, /^WeapFlareGun/i, /^WeapFlash/i,
-  /^WeapSmoke/i, /^WeapDecoy/i, /^WeapBlue/i, /^WeapStickyGrenade/i,
-  /^WeapC4/i, /^WeapMortar/i, /^WeapPanzer/i,
-  /^WeapPan_/i, /^WeapMachete/i, /^WeapPickaxe/i, /^WeapSickle/i,
-  /^WeapCow/i, /^WeapRock/i, /^WeapPackageFlare/i, /^WeapCoverStruct/i,
-  /^WeapIntegrated/i, /^WeapTrauma/i, /^WeapTacPack/i,
-  /^WeapZipline/i, /^WeapCamoNet/i, /^WeapStunGun/i, /^WeapM79/i,
-  /^None$/, /^Jerrycan/, /^TslDestructible/, /^Mortar_/, /^PanzerFaust/,
-]
-
-const NORMALIZE = {
-  vz61Skorpion: 'Skorpion',
-  'Mads_QBU88':  'QBU88',
-  MadsQBU88:     'QBU88',
-  Win1894:       'Win94',
-  MosinNagant:   'Mosin',
-  FamasG2:       'FAMASG2',
-  'SCAR-L':      'SCAR_L',
-  Crossbow_1:    'Crossbow',
-  CowBar:        'Cowbar',
-}
-
-function isExcluded(raw) {
-  return EXCLUDE.some(p => p.test(raw))
-}
-
-function normalizeId(raw) {
-  const id = raw
-    .replace(/^Item_Weapon_/, '')
-    .replace(/^Weap/, '')
-    .replace(/(_HR)?_C$/, '')
-    .replace(/_HR$/, '')
-  return NORMALIZE[id] ?? id
-}
+import { isExcluded, normalizeId } from '../../utils/weaponMetaFilter.js'
 
 async function getPeriod(period, seasonParam) {
   const now = new Date()
@@ -112,9 +68,67 @@ async function aggregateFromDB(where) {
   return { map, totalKills, totalPickups }
 }
 
+// 지난 시즌 데이터를 WeaponMetaSeason 아카이브에서 조회 (있으면 그걸 우선 사용)
+// season-archive 배치가 아직 안 돈 과거 시즌이면 null을 반환해 실시간 집계로 폴백시킨다.
+async function getArchivedWeapons(seasonNum, shard) {
+  const rows = await prisma.weaponMetaSeason.findMany({
+    where: { season: seasonNum, shard },
+    orderBy: { rank: 'asc' },
+  })
+  if (rows.length === 0) return null
+
+  const starts = Object.keys(SEASON_STARTS).map(Number).sort((a, b) => a - b)
+  const idx = starts.indexOf(seasonNum)
+  const prevSeasonNum = idx > 0 ? starts[idx - 1] : null
+  const prevRows = prevSeasonNum
+    ? await prisma.weaponMetaSeason.findMany({ where: { season: prevSeasonNum, shard }, select: { weaponId: true, rank: true } })
+    : []
+  const prevRanks = Object.fromEntries(prevRows.map((r) => [r.weaponId, r.rank]))
+
+  const totalKills = rows.reduce((s, r) => s + r.kills, 0)
+  const weapons = rows.map((r) => ({
+    key:      r.weaponId,
+    kills:    r.kills,
+    damage:   r.avgDamage != null ? Math.round(r.avgDamage * r.kills) : null,
+    pickups:  null,   // 아카이브 스키마에는 픽업 통계가 없음
+    pickRate: null,
+    killRate: r.killRate,
+    avgDmg:   r.avgDamage != null ? Math.round(r.avgDamage) : 0,
+    prevRank: prevRanks[r.weaponId] ?? null,
+    rank:     r.rank,
+    trend:    prevRanks[r.weaponId] != null ? prevRanks[r.weaponId] - r.rank : null,
+  }))
+
+  return { weapons, totalKills }
+}
+
 export default async function handler(req, res) {
   try {
     const { period = 'week', shard = 'all', season = '' } = req.query
+    const seasonNum = season ? parseInt(season, 10) : null
+
+    // 지난 시즌 탭이면 아카이브 테이블 우선 조회 — 실시간 player_weapon_stats 대신 저장된 요약 데이터 사용
+    if (seasonNum) {
+      const { num: currentSeasonNum } = await getSeasonStart()
+      if (seasonNum !== currentSeasonNum) {
+        const archived = await getArchivedWeapons(seasonNum, shard)
+        if (archived) {
+          res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800')
+          return res.status(200).json({
+            weapons: archived.weapons,
+            meta: {
+              totalKills:   archived.totalKills,
+              totalPickups: null,
+              period:       `season:${seasonNum}`,
+              season:       seasonNum,
+              archived:     true,
+            },
+          })
+        }
+        // 아직 아카이브되지 않은 과거 시즌 → 기존 실시간 집계로 폴백
+      }
+    }
+
     const { start, end, prevStart, prevEnd } = await getPeriod(period, season || null)
     const shardFilter = shard !== 'all' ? { shard } : {}
 
