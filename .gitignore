@@ -34,3 +34,10 @@ public/video-test.html
 
 # 로컬 파일시스템 업로드 (구버전 forum upload.js 잔재 — 이제 Supabase Storage 사용)
 public/uploads/
+
+# bkit 내부 상태 파일 (PDCA 진행상황 자동 기록용 — 코드 아님)
+.bkit/
+.claude/settings.json
+docs/.bkit-memory.json
+docs/.pdca-status.json
+docs/.pdca-snapshots/
