@@ -454,11 +454,15 @@ model ClanLeaderRequest {
 }
 
 model Inquiry {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   topic     String
   message   String
   email     String?
-  createdAt DateTime @default(now())
+  userId    String? // 로그인 유저면 AuthUser.id 연결 (마이페이지 "내 문의"용)
+  createdAt DateTime  @default(now())
+  reply     String?
+  repliedAt DateTime?
+  status    String    @default("pending") // "pending" | "replied"
 
   @@map("inquiries")
 }

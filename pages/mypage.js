@@ -418,6 +418,116 @@ function ClanPlayRecord({ pubgAccounts }) {
   );
 }
 
+const INQUIRY_TOPIC_LABEL = {
+  bug: '🐛 버그/오류',
+  feature: '💡 기능 제안',
+  data: '📊 데이터 오류',
+  forum: '🚨 포럼 신고',
+  other: '📬 기타',
+};
+
+const SEEN_REPLIES_KEY = 'pkgg_seen_inquiry_replies';
+
+// 마이페이지 "내 문의" 섹션 — 로그인 유저 본인이 제출한 문의와 관리자 답변 조회
+function MyInquiries() {
+  const [inquiries, setInquiries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null);
+  const [seenIds, setSeenIds] = useState(() => {
+    if (typeof window === 'undefined') return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem(SEEN_REPLIES_KEY) || '[]')); }
+    catch { return new Set(); }
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/user/my-inquiries')
+      .then((r) => (r.ok ? r.json() : { inquiries: [] }))
+      .then((d) => { if (!cancelled) setInquiries(d.inquiries || []); })
+      .catch(() => { if (!cancelled) setInquiries([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const markSeen = (id) => {
+    setSeenIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem(SEEN_REPLIES_KEY, JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
+  const toggleExpand = (inq) => {
+    setExpandedId((prev) => (prev === inq.id ? null : inq.id));
+    if (inq.status === 'replied') markSeen(inq.id);
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
+  }
+
+  if (inquiries.length === 0) {
+    return <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">제출한 문의가 없습니다</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {inquiries.map((inq) => {
+        const isNew = inq.status === 'replied' && !seenIds.has(inq.id);
+        return (
+          <div key={inq.id} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+            <button
+              onClick={() => toggleExpand(inq)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+            >
+              <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                <span className="text-[10px] bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 flex-shrink-0">
+                  {INQUIRY_TOPIC_LABEL[inq.topic] || inq.topic}
+                </span>
+                <span className="text-sm text-gray-800 dark:text-gray-100 truncate">{inq.message}</span>
+              </div>
+              <span className="flex items-center gap-1 flex-shrink-0">
+                {isNew && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500 text-white font-bold">
+                    NEW
+                  </span>
+                )}
+                <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                  inq.status === 'replied' ? 'bg-green-500/20 text-green-500 dark:text-green-400' : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }`}>
+                  {inq.status === 'replied' ? '답변완료' : '답변 대기 중'}
+                </span>
+              </span>
+            </button>
+
+            {expandedId === inq.id && (
+              <div className="px-3 pb-3 pt-1 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="whitespace-pre-wrap text-xs text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-900 rounded-lg p-3">
+                  {inq.message}
+                </div>
+                {inq.status === 'replied' ? (
+                  <div className="whitespace-pre-wrap text-xs text-gray-800 dark:text-gray-100 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 rounded-lg p-3">
+                    <p className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold mb-1">관리자 답변</p>
+                    {inq.reply}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-2">답변 대기 중입니다</p>
+                )}
+                <p className="text-[10px] text-gray-400 dark:text-gray-600">
+                  접수: {new Date(inq.createdAt).toLocaleString('ko-KR')}
+                  {inq.repliedAt && ` · 답변: ${new Date(inq.repliedAt).toLocaleString('ko-KR')}`}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── 메인 ─────────────────────────────────────────────────────────────────────
 export default function MyPage() {
   const { t } = useT()
@@ -872,6 +982,14 @@ export default function MyPage() {
               🎮 <span>클랜 놀이 기록</span>
             </h2>
             <ClanPlayRecord pubgAccounts={userData?.pubgAccounts} />
+          </div>
+
+          {/* ── 내 문의 ── */}
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
+            <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
+              📮 <span>내 문의</span>
+            </h2>
+            <MyInquiries />
           </div>
 
           {/* ── 일일 목표 ── */}

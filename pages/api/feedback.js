@@ -1,4 +1,5 @@
 import prisma from '../../utils/prisma.js'
+import { getSessionAuthUser } from '../../utils/clanBattleAuth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -9,11 +10,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 로그인 상태면 마이페이지 "내 문의"에서 조회할 수 있도록 userId 연결
+    const authUser = await getSessionAuthUser(req, res)
+
     await prisma.inquiry.create({
       data: {
         topic: type === 'suggest' ? 'feature' : 'bug',
         message: message.trim(),
         email: null,
+        userId: authUser?.id || null,
       },
     })
     return res.status(200).json({ ok: true })

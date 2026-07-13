@@ -28,6 +28,9 @@ export default function AdminDashboard() {
   const [inquiries,   setInquiries]   = useState([]);
   const [inqLoading,  setInqLoading]  = useState(false);
   const [inqExpanded, setInqExpanded] = useState(null);
+  const [replyDrafts, setReplyDrafts] = useState({}); // inquiryId -> 입력 중인 답변 텍스트
+  const [replySending, setReplySending] = useState(null); // 전송 중인 inquiryId
+  const [replyMsg, setReplyMsg] = useState({}); // inquiryId -> { ok, text }
 
   const [users,      setUsers]      = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -195,6 +198,34 @@ export default function AdminDashboard() {
       .catch(() => setInquiries([]))
       .finally(() => setInqLoading(false));
   }, [isAuthed, tab]);
+
+  const handleSendReply = async (inquiryId) => {
+    const replyText = (replyDrafts[inquiryId] || '').trim();
+    if (replyText.length < 2) {
+      setReplyMsg((prev) => ({ ...prev, [inquiryId]: { ok: false, text: '답변 내용을 입력해주세요.' } }));
+      return;
+    }
+    setReplySending(inquiryId);
+    setReplyMsg((prev) => ({ ...prev, [inquiryId]: null }));
+    try {
+      const res = await fetch('/api/admin/inquiry-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminPw() },
+        body: JSON.stringify({ inquiryId, replyText }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setInquiries((prev) => prev.map((inq) => (inq.id === inquiryId ? d.inquiry : inq)));
+        setReplyMsg((prev) => ({ ...prev, [inquiryId]: { ok: true, text: '답변이 저장됐습니다.' } }));
+      } else {
+        setReplyMsg((prev) => ({ ...prev, [inquiryId]: { ok: false, text: d.error || '저장 실패' } }));
+      }
+    } catch {
+      setReplyMsg((prev) => ({ ...prev, [inquiryId]: { ok: false, text: '네트워크 오류가 발생했습니다.' } }));
+    } finally {
+      setReplySending(null);
+    }
+  };
 
   // 리더 변경 요청 목록 로드
   useEffect(() => {
@@ -398,44 +429,100 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {inquiries.map((inq) => (
+                  {inquiries.map((inq) => {
+                    const isExpanded = inqExpanded === inq.id;
+                    const msg = replyMsg[inq.id];
+                    return (
                     <div key={inq.id} className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden">
                       <button
-                        onClick={() => setInqExpanded(inqExpanded === inq.id ? null : inq.id)}
+                        onClick={() => {
+                          const willExpand = !isExpanded;
+                          setInqExpanded(willExpand ? inq.id : null);
+                          if (willExpand) {
+                            setReplyDrafts((prev) => (prev[inq.id] !== undefined ? prev : { ...prev, [inq.id]: inq.reply || '' }));
+                          }
+                        }}
                         className="w-full px-5 py-4 flex items-center gap-3 text-left hover:bg-gray-800 transition-colors"
                       >
                         <span className="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300 flex-shrink-0">
                           {TOPIC_LABEL[inq.topic] || inq.topic}
                         </span>
                         <span className="text-sm text-white flex-1 truncate">{inq.message}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-semibold ${
+                          inq.status === 'replied' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                        }`}>
+                          {inq.status === 'replied' ? '답변완료' : '미답변'}
+                        </span>
                         <span className="text-xs text-gray-500 flex-shrink-0">
                           {new Date(inq.createdAt).toLocaleDateString('ko-KR', {
                             month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                           })}
                         </span>
-                        <span className="text-gray-500 text-xs ml-1">{inqExpanded === inq.id ? '▲' : '▼'}</span>
+                        <span className="text-gray-500 text-xs ml-1">{isExpanded ? '▲' : '▼'}</span>
                       </button>
 
-                      {inqExpanded === inq.id && (
+                      {isExpanded && (
                         <div className="px-5 pb-5 border-t border-gray-700 pt-4 space-y-3">
                           <div className="whitespace-pre-wrap text-sm text-gray-200 leading-relaxed bg-gray-800 rounded-lg p-4">
                             {inq.message}
                           </div>
-                          {inq.email && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-gray-400">답변 이메일:</span>
-                              <a href={`mailto:${inq.email}`} className="text-blue-400 hover:underline">
-                                {inq.email}
-                              </a>
-                            </div>
-                          )}
+
+                          <div className="flex items-center gap-2 text-sm flex-wrap">
+                            {inq.userId ? (
+                              <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400 font-semibold">
+                                💬 인앱 답변 (로그인 유저 · 마이페이지에서 확인)
+                              </span>
+                            ) : (
+                              <span className="text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-400 font-semibold">
+                                ⚠️ 비로그인 문의 — 인앱 알림 불가
+                              </span>
+                            )}
+                            {inq.email && (
+                              <span className="flex items-center gap-1 text-gray-400 text-xs">
+                                이메일: <a href={`mailto:${inq.email}`} className="text-blue-400 hover:underline">{inq.email}</a>
+                              </span>
+                            )}
+                            {!inq.userId && !inq.email && (
+                              <span className="text-xs text-gray-500">이메일 없음 - 직접 연락 불가</span>
+                            )}
+                          </div>
+
                           <div className="text-xs text-gray-500">
                             접수: {new Date(inq.createdAt).toLocaleString('ko-KR')}
+                            {inq.repliedAt && ` · 답변: ${new Date(inq.repliedAt).toLocaleString('ko-KR')}`}
+                          </div>
+
+                          <div className="space-y-2 pt-1">
+                            <label className="text-xs text-gray-400 block">
+                              {inq.status === 'replied' ? '답변 수정' : '답변 작성'}
+                            </label>
+                            <textarea
+                              value={replyDrafts[inq.id] ?? ''}
+                              onChange={(e) => setReplyDrafts((prev) => ({ ...prev, [inq.id]: e.target.value }))}
+                              rows={4}
+                              placeholder="답변 내용을 입력하세요"
+                              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500 resize-none"
+                            />
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => handleSendReply(inq.id)}
+                                disabled={replySending === inq.id}
+                                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold transition-colors"
+                              >
+                                {replySending === inq.id ? '저장 중...' : '답변 저장'}
+                              </button>
+                              {msg && (
+                                <span className={`text-xs font-medium ${msg.ok ? 'text-green-400' : 'text-red-400'}`}>
+                                  {msg.ok ? '✅' : '❌'} {msg.text}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
