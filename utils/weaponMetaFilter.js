@@ -45,12 +45,14 @@ const NORMALIZE = {
   'SCAR-L':      'SCAR_L',
   Crossbow_1:    'Crossbow',
   CowBar:        'Cowbar',
+  // "M416"은 PUBG 커뮤니티에서 부르는 이름일 뿐, 실제 텔레메트리/에셋 이름은 HK416으로 동일한 총이다.
+  M416:          'HK416',
 }
 
 // 실제 무기 화이트리스트(정규화 기준 canonical 이름). Duncans_M416 같은 스킨 변형 ID를
 // "이 이름으로 끝나는지" 검사해 병합하는 데 쓴다 — 무기 목록 자체를 이걸로 필터링하진 않는다.
-const WEAPON_WHITELIST = [
-  'AUG', 'HK416', 'M416', 'BerylM762', 'ACE32', 'MP5K', 'Mini14', 'Mk12', 'AK47',
+export const WEAPON_WHITELIST = [
+  'AUG', 'HK416', 'BerylM762', 'ACE32', 'MP5K', 'Mini14', 'Mk12', 'AK47',
   'Winchester', 'Win94', 'UMP', 'M249', 'M24', 'Vector', 'Kar98k', 'Saiga12',
   'Berreta686', 'FNFal', 'Dragunov', 'UZI', 'SCAR_L', 'Thompson', 'QBZ95', 'M16A4',
   'VSS', 'SKS', 'P90', 'Groza', 'FAMASG2', 'Mk47Mutant', 'K2', 'MG3', 'AWM', 'L6',
@@ -59,20 +61,29 @@ const WEAPON_WHITELIST = [
   'M1911', 'DP28', 'R45', 'Mosin',
 ]
 
-// 정규화 후에도 화이트리스트에 없는 ID가, 화이트리스트 무기 이름으로 "끝나면"(앞에 접두사가 더 있으면)
-// 그 무기의 스킨 변형으로 보고 병합한다. 언더스코어 유무(Duncans_M416 vs DuncansM416)는 무시하고 비교.
-// 예: DuncansHK416 → HK416 / Julies_Kar98k → Kar98k / Lunchmeats_AK47 → AK47
+// 화이트리스트 이름과 raw 스킨 접두사 사이에서 커뮤니티 명칭이 실제 무기 이름과 다른 경우
+// (M416 스킨 → 실제로는 HK416). 접미사 매칭 후보에는 넣되, 최종 canonical 이름은 매핑된 값을 쓴다.
+const SUFFIX_ALIAS = { M416: 'HK416' }
+
+// 정규화 후에도 화이트리스트에 없는 ID가, 화이트리스트(+별칭) 무기 이름으로 "끝나면"(앞에 접두사가
+// 더 있으면) 그 무기의 스킨 변형으로 보고 병합한다. 언더스코어 유무(Duncans_M416 vs DuncansM416)는
+// 무시하고 비교. 예: DuncansHK416 → HK416 / Julies_Kar98k → Kar98k / Duncans_M416 → HK416(별칭)
 function resolveSkinVariant(id) {
   const compact = id.replace(/_/g, '').toLowerCase()
+  const candidates = [
+    ...WEAPON_WHITELIST.map((name) => ({ name, canonical: name })),
+    ...Object.entries(SUFFIX_ALIAS).map(([name, canonical]) => ({ name, canonical })),
+  ]
+
   let best = null
-  for (const weapon of WEAPON_WHITELIST) {
-    const target = weapon.replace(/_/g, '').toLowerCase()
+  for (const { name, canonical } of candidates) {
+    const target = name.replace(/_/g, '').toLowerCase()
     if (compact.length > target.length && compact.endsWith(target)) {
-      // 여러 무기 이름이 동시에 접미사로 걸리는 경우(거의 없지만) 가장 긴 걸 우선
-      if (!best || target.length > best.length) best = weapon
+      // 여러 이름이 동시에 접미사로 걸리는 경우(거의 없지만) 가장 긴 걸 우선
+      if (!best || target.length > best.key.length) best = { key: target, canonical }
     }
   }
-  return best
+  return best?.canonical ?? null
 }
 
 export function isExcluded(raw) {
