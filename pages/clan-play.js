@@ -8,6 +8,17 @@ import Header from '../components/layout/Header';
 import { useAuth } from '../utils/useAuth';
 import { DndContext, DragOverlay, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 
+// 304(Not Modified) 등 바디가 없는 응답에서 res.json()이 던지는 SyntaxError를 막는다.
+// 이게 없으면 "결과 없음"이 catch로 새서 "네트워크 오류"로 잘못 표시된다.
+async function safeJson(res) {
+  try {
+    const text = await res.text();
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+}
+
 // ─── 내전 생성 폼 ───────────────────────────────────────────────────────────
 function CreateBattleForm({ type = 'battle', onCreated, onCancel }) {
   const [title, setTitle] = useState('');
@@ -931,13 +942,14 @@ function BattleDetail({ battle: initialBattle, onBack }) {
     setErr('');
     try {
       const res = await fetch(`/api/clan-battle/${battleId}/recent-matches`);
-      const d = await res.json();
-      if (!res.ok) { setErr(d.error || '최근 게임을 불러오지 못했습니다.'); return; }
+      const d = await safeJson(res);
+      const emptyMsg = battle.type === 'killmatch' ? '조건에 맞는 게임을 찾지 못했습니다.' : '해당 시간대에 사용자 지정 게임이 없습니다.';
+      if (!res.ok) { setErr(d.error || emptyMsg); return; }
       setRecentMatches(d.matches || []);
       // 새로고침 후에도 여전히 목록에 남아있는 선택만 유지 (사라진 항목만 정리)
       setSelectedMatchIds((prev) => prev.filter((id) => (d.matches || []).some((m) => m.matchId === id)));
       if ((d.matches || []).length === 0) {
-        setErr(battle.type === 'killmatch' ? '조건에 맞는 게임을 찾지 못했습니다.' : '최근 사용자 지정 게임을 찾지 못했습니다.');
+        setErr(emptyMsg);
       }
     } catch {
       setErr('네트워크 오류가 발생했습니다.');
@@ -1039,7 +1051,7 @@ function BattleDetail({ battle: initialBattle, onBack }) {
   const handleAutoPollCycle = async () => {
     try {
       const res = await fetch(`/api/clan-battle/${battleId}/recent-matches?representative=1`);
-      const d = await res.json();
+      const d = await safeJson(res);
       const candidates = res.ok ? filterUnregistered(d.matches || []) : [];
       const registeredCount = await registerCandidateMatches(candidates);
 
@@ -1057,7 +1069,7 @@ function BattleDetail({ battle: initialBattle, onBack }) {
     setErr('');
     try {
       const res = await fetch(`/api/clan-battle/${battleId}/recent-matches`);
-      const d = await res.json();
+      const d = await safeJson(res);
       if (!res.ok) { setErr(d.error || '게임을 불러오지 못했습니다.'); return; }
 
       const candidates = filterUnregistered(d.matches || []);
