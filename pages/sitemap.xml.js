@@ -1,19 +1,29 @@
-// pages/sitemap.xml.js — 동적 sitemap 생성
+// pages/sitemap.xml.js — 정적 sitemap 생성
+// 클랜 상세 페이지(/clan/[clanName])는 noindex 처리돼 있어 여기 포함하지 않는다.
 const BASE_URL = 'https://pkgg.vercel.app';
 
-function generateSiteMap(clans) {
+function generateSiteMap() {
   const now = new Date().toISOString().split('T')[0];
 
   const staticPages = [
     { url: '/',                     changefreq: 'daily',   priority: '1.0' },
-    { url: '/clans',                changefreq: 'daily',   priority: '0.9' },
     { url: '/clan-analytics',       changefreq: 'daily',   priority: '0.9' },
+    { url: '/leaderboard',          changefreq: 'daily',   priority: '0.8' },
     { url: '/compare',              changefreq: 'weekly',  priority: '0.8' },
     { url: '/forum',                changefreq: 'daily',   priority: '0.8' },
     { url: '/party',                changefreq: 'daily',   priority: '0.8' },
     { url: '/clan-play',            changefreq: 'daily',   priority: '0.8' },
     { url: '/weapon-test',          changefreq: 'weekly',  priority: '0.8' },
     { url: '/weapon-damage',        changefreq: 'monthly', priority: '0.7' },
+    { url: '/weapon-meta-live',     changefreq: 'daily',   priority: '0.7' },
+    { url: '/awards',               changefreq: 'weekly',  priority: '0.7' },
+    { url: '/settings-share',       changefreq: 'daily',   priority: '0.7' },
+    { url: '/pubg-news',            changefreq: 'daily',   priority: '0.7' },
+    { url: '/streamers',            changefreq: 'daily',   priority: '0.6' },
+    { url: '/server-status',        changefreq: 'daily',   priority: '0.6' },
+    { url: '/map-stats',            changefreq: 'weekly',  priority: '0.6' },
+    { url: '/maps',                 changefreq: 'monthly', priority: '0.6' },
+    { url: '/route-planner',        changefreq: 'monthly', priority: '0.6' },
     { url: '/aim-trainer',          changefreq: 'monthly', priority: '0.7' },
     { url: '/sensitivity-analyzer', changefreq: 'monthly', priority: '0.7' },
     { url: '/recoil-pattern',       changefreq: 'monthly', priority: '0.7' },
@@ -22,7 +32,10 @@ function generateSiteMap(clans) {
     { url: '/peek-trainer',         changefreq: 'monthly', priority: '0.7' },
     { url: '/drop-calculator',      changefreq: 'monthly', priority: '0.7' },
     { url: '/daily-goals',          changefreq: 'monthly', priority: '0.6' },
+    { url: '/sens-preset',          changefreq: 'monthly', priority: '0.5' },
+    { url: '/pubg-survivors',       changefreq: 'monthly', priority: '0.5' },
     { url: '/about',                changefreq: 'monthly', priority: '0.4' },
+    { url: '/privacy',              changefreq: 'monthly', priority: '0.3' },
     { url: '/terms',                changefreq: 'monthly', priority: '0.3' },
     { url: '/contact',              changefreq: 'monthly', priority: '0.3' },
   ];
@@ -38,45 +51,14 @@ function generateSiteMap(clans) {
     )
     .join('\n');
 
-  const clanEntries = clans
-    .map(
-      (name) => `  <url>
-    <loc>${BASE_URL}/clan/${encodeURIComponent(name)}</loc>
-    <lastmod>${now}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>`
-    )
-    .join('\n');
-
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${staticEntries}
-${clanEntries}
 </urlset>`;
 }
 
 export async function getServerSideProps({ res }) {
-  let clans = [];
-
-  try {
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
-    try {
-      const clanRecords = await prisma.clan.findMany({
-        select: { name: true },
-        orderBy: { avgScore: 'desc' },
-        take: 500,
-      });
-      clans = clanRecords.map((c) => c.name);
-    } finally {
-      await prisma.$disconnect();
-    }
-  } catch (e) {
-    console.error('sitemap 클랜 조회 실패:', e.message);
-  }
-
-  const sitemap = generateSiteMap(clans);
+  const sitemap = generateSiteMap();
 
   res.setHeader('Content-Type', 'text/xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate');

@@ -284,6 +284,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
     <Layout>
       <Head>
         <title>{clanTitle}</title>
+        <meta name="robots" content="noindex, follow" />
         <meta name="description" content={clanDesc} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={clanUrl} />
