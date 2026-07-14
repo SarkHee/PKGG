@@ -27,6 +27,17 @@ export default async function handler(req, res) {
           data: { views: { increment: 1 } },
         });
 
+        // 로그인 유저면 내가 좋아요 눌렀는지 여부 확인
+        const session = await getServerSession(req, res, authOptions);
+        const googleId = session?.user?.googleId ?? null;
+        let likedByMe = false;
+        if (googleId) {
+          const myLike = await prisma.forumLike.findUnique({
+            where: { postId_author: { postId: parseInt(postId), author: googleId } },
+          });
+          likedByMe = !!myLike;
+        }
+
         const { password: _pw, ...postWithoutPassword } = post;
         return res.status(200).json({
           post: {
@@ -35,6 +46,7 @@ export default async function handler(req, res) {
             likes: post._count.likedBy,
             replyCount: post._count.replies,
             hasPassword: !!post.password,
+            likedByMe,
           },
         });
       }

@@ -115,39 +115,7 @@ export default function ForumCategory() {
       }
     } catch (error) {
       console.error('Error loading posts:', error);
-      // 임시 데이터 사용
-      setPosts([
-        {
-          id: 1,
-          title: '초보자를 위한 PUBG 생존 가이드',
-          content:
-            'PUBG를 처음 시작하는 분들을 위한 기본적인 생존 팁들을 정리해봤습니다...',
-          preview:
-            'PUBG를 처음 시작하는 분들을 위한 기본적인 생존 팁들을 정리해봤습니다',
-          author: 'PUBG마스터',
-          views: 1234,
-          replyCount: 15,
-          likeCount: 42,
-          isPinned: true,
-          isLocked: false,
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          title: '솔로 랭크 올리는 법',
-          content:
-            '솔로 플레이어들을 위한 효과적인 랭크 상승 전략을 공유합니다...',
-          preview:
-            '솔로 플레이어들을 위한 효과적인 랭크 상승 전략을 공유합니다',
-          author: '솔로킹',
-          views: 856,
-          replyCount: 8,
-          likeCount: 28,
-          isPinned: false,
-          isLocked: false,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      setPosts([]);
     } finally {
       setLoading(false);
     }

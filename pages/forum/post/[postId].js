@@ -147,6 +147,7 @@ export default function PostDetail() {
   const [deleteModal, setDeleteModal] = useState(null); // { type: 'post' | 'reply', id }
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [likeLoading, setLikeLoading] = useState(false);
 
   useEffect(() => {
     if (postId) fetchPost();
@@ -215,6 +216,34 @@ export default function PostDetail() {
       setReplyError('네트워크 오류가 발생했습니다.');
     } finally {
       setSubmittingReply(false);
+    }
+  };
+
+  const handleToggleLike = async () => {
+    if (!session?.user) {
+      alert('로그인 후 이용 가능합니다.');
+      return;
+    }
+    if (likeLoading || !post) return;
+    setLikeLoading(true);
+    const prevLiked = post.likedByMe;
+    const prevCount = post.likes;
+    // 낙관적 업데이트
+    setPost((p) => p ? { ...p, likedByMe: !p.likedByMe, likes: p.likedByMe ? p.likes - 1 : p.likes + 1 } : p);
+    try {
+      const res = await fetch(`/api/forum/likes?postId=${postId}`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setPost((p) => p ? { ...p, likedByMe: data.liked, likes: data.likeCount } : p);
+      } else {
+        setPost((p) => p ? { ...p, likedByMe: prevLiked, likes: prevCount } : p);
+        alert(data.error || '요청에 실패했습니다.');
+      }
+    } catch {
+      setPost((p) => p ? { ...p, likedByMe: prevLiked, likes: prevCount } : p);
+      alert('네트워크 오류가 발생했습니다.');
+    } finally {
+      setLikeLoading(false);
     }
   };
 
@@ -350,6 +379,25 @@ export default function PostDetail() {
             {/* 본문 */}
             <div className="px-6 py-6 text-sm leading-7 min-h-[100px]">
               <PartyContent content={post.content} />
+            </div>
+
+            {/* 좋아요 */}
+            <div className="px-6 pb-5 pt-2 border-t border-gray-100 dark:border-gray-800 flex flex-col items-center gap-1.5">
+              <button
+                onClick={handleToggleLike}
+                disabled={likeLoading}
+                className={`flex items-center gap-2 px-5 py-2 rounded-full border text-sm font-semibold transition-colors disabled:opacity-60 ${
+                  post.likedByMe
+                    ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-500'
+                    : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 hover:border-red-300 hover:text-red-400'
+                }`}
+              >
+                <span>{post.likedByMe ? '❤️' : '🤍'}</span>
+                <span>좋아요 {post.likes ?? 0}</span>
+              </button>
+              {!session?.user && (
+                <p className="text-xs text-gray-400">로그인 후 좋아요를 누를 수 있습니다</p>
+              )}
             </div>
           </div>
 
