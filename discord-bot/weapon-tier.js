@@ -88,13 +88,20 @@ function classifyTiers(weapons) {
 
 // S티어 무기 아이콘을 가로로 나열한 콜라주 PNG 버퍼 생성. 아이콘을 못 받아오면(멜리 무기 등
 // public/weapons/에 파일이 없거나 네트워크 실패) 회색 박스로 자리만 채워서 레이아웃은 안 깨지게 한다.
+// 셀 구조: [셀 120px 폭 안에 96x96 아이콘을 상단 중앙(좌우 12px씩 여백)에 배치 → 8px 간격 →
+//          이름 라벨(셀 폭 안에서 가운데 정렬, 13px에서 시작해 넘치면 자동 축소)]
 async function buildSTierCollage(sTierWeapons) {
+  const CELL_WIDTH   = 120
   const ICON_SIZE    = 96
-  const PADDING      = 14
-  const LABEL_HEIGHT = 26
-  const cellWidth    = ICON_SIZE + PADDING
-  const width        = sTierWeapons.length * cellWidth + PADDING
-  const height       = ICON_SIZE + LABEL_HEIGHT + PADDING * 2
+  const ICON_MARGIN  = (CELL_WIDTH - ICON_SIZE) / 2 // 12 — 좌우 여백
+  const ICON_GAP     = 8   // 아이콘-이름 라벨 사이 간격
+  const LABEL_HEIGHT = 20
+  const MARGIN       = 16  // 캔버스 상하좌우 바깥 여백
+  const BASE_FONT    = 13
+  const MIN_FONT     = 8
+
+  const width  = MARGIN * 2 + CELL_WIDTH * sTierWeapons.length
+  const height = MARGIN + ICON_SIZE + ICON_GAP + LABEL_HEIGHT + MARGIN
 
   const canvas = createCanvas(width, height)
   const ctx    = canvas.getContext('2d')
@@ -104,20 +111,30 @@ async function buildSTierCollage(sTierWeapons) {
 
   for (let i = 0; i < sTierWeapons.length; i++) {
     const w = sTierWeapons[i]
-    const x = PADDING + i * cellWidth
+    const cellX = MARGIN + i * CELL_WIDTH
+    const iconX = cellX + ICON_MARGIN
+    const iconY = MARGIN
 
     try {
       const img = await loadImage(iconUrl(w.key))
-      ctx.drawImage(img, x, PADDING, ICON_SIZE, ICON_SIZE)
+      ctx.drawImage(img, iconX, iconY, ICON_SIZE, ICON_SIZE)
     } catch {
       ctx.fillStyle = '#374151' // gray-700 플레이스홀더
-      ctx.fillRect(x, PADDING, ICON_SIZE, ICON_SIZE)
+      ctx.fillRect(iconX, iconY, ICON_SIZE, ICON_SIZE)
+    }
+
+    // 이름 라벨 — 셀 폭(120px) 안에서 가운데 정렬. 13px에서 시작해 셀 폭을 넘으면 한 단계씩 축소.
+    let fontSize = BASE_FONT
+    ctx.font = `bold ${fontSize}px sans-serif`
+    while (fontSize > MIN_FONT && ctx.measureText(w.key).width > CELL_WIDTH - 8) {
+      fontSize -= 1
+      ctx.font = `bold ${fontSize}px sans-serif`
     }
 
     ctx.fillStyle = '#f9fafb'
-    ctx.font = 'bold 14px sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText(w.key, x + ICON_SIZE / 2, PADDING + ICON_SIZE + 18)
+    const labelBaselineY = MARGIN + ICON_SIZE + ICON_GAP + LABEL_HEIGHT - 6
+    ctx.fillText(w.key, cellX + CELL_WIDTH / 2, labelBaselineY)
   }
 
   return canvas.toBuffer('image/png')
@@ -209,6 +226,7 @@ function startWeeklyTierCron(client, components) {
 
 module.exports = {
   buildTierReply,
+  buildSTierCollage,
   addTierChannel,
   removeTierChannel,
   loadState,
