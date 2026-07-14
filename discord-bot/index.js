@@ -7,8 +7,9 @@ const {
   ButtonBuilder,
   ButtonStyle,
 } = require('discord.js')
-const { checkAndSendNews, addNewsChannel, removeNewsChannel, loadState } = require('./news-checker')
+const { checkAndSendNews, addNewsChannel, removeNewsChannel, loadState, getNewsCheckerStatus } = require('./news-checker')
 const { checkServerStatus } = require('./server-checker')
+const { buildTierReply, addTierChannel, removeTierChannel, loadState: loadTierState, startWeeklyTierCron } = require('./weapon-tier')
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 const PKGG   = 'https://pkgg.vercel.app'
@@ -146,6 +147,9 @@ client.once('clientReady', () => {
   }, SERVER_CHECK_INTERVAL)
 
   console.log(`📡 서버 상태 체크 주기: ${SERVER_CHECK_INTERVAL / 60_000}분`)
+
+  // ── 무기 티어 매주 자동 발행 ────────────────────────────────────────────
+  startWeeklyTierCron(client, DISCORD_COMPONENTS)
 })
 
 const SHARD_LABEL = { steam: '🎮 Steam', kakao: '🟡 카카오' }
@@ -424,6 +428,81 @@ client.on('interactionCreate', async (interaction) => {
       }
       const list = state.channelIds.map((id) => `<#${id}>`).join('\n')
       await interaction.reply({ content: `📋 **뉴스 알림 채널 목록**\n${list}`, ephemeral: true })
+    }
+  }
+
+  // ────────────────────────────────────────────────
+  // /뉴스체커상태 — 마지막 체크 시각/결과 + 다음 체크 예정 시각 확인
+  // ────────────────────────────────────────────────
+  if (interaction.commandName === '뉴스체커상태') {
+    const RESULT_LABEL = {
+      sent:        '✅ 새 글 발송 완료',
+      no_new:      '🔵 새 글 없음 (정상)',
+      no_channels: '⚪ 등록된 채널 없음',
+      empty_parse: '⚠️ 크롤링 파싱 실패 (0건) — pubg.com 페이지 구조 변경 의심',
+      fetch_error: '❌ 크롤링 요청 실패',
+    }
+    const s = getNewsCheckerStatus()
+    const fmt = (d) => d ? d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '기록 없음'
+
+    const embed = new EmbedBuilder()
+      .setTitle('📰 뉴스체커 상태')
+      .setColor(s.lastResult === 'fetch_error' || s.lastResult === 'empty_parse' ? 0xef4444 : 0x3b82f6)
+      .addFields(
+        { name: '마지막 체크', value: fmt(s.lastCheckedAt), inline: true },
+        { name: '다음 체크 예정', value: fmt(s.nextCheckAt), inline: true },
+        { name: '체크 주기', value: `${s.intervalMs / 60_000}분`, inline: true },
+        { name: '마지막 결과', value: s.lastResult ? (RESULT_LABEL[s.lastResult] || s.lastResult) : '❔ 아직 실행 기록 없음', inline: false },
+        { name: '등록된 채널 수', value: String(s.channelCount), inline: true },
+      )
+    if (s.lastError) embed.addFields({ name: '마지막 오류 메시지', value: s.lastError, inline: false })
+
+    await interaction.reply({ embeds: [embed], ephemeral: true })
+  }
+
+  // ────────────────────────────────────────────────
+  // /이번주무기티어 [플랫폼?]
+  // ────────────────────────────────────────────────
+  if (interaction.commandName === '이번주무기티어') {
+    const shard = interaction.options.getString('플랫폼') || 'all'
+    await interaction.deferReply()
+    try {
+      const reply = await buildTierReply(shard, DISCORD_COMPONENTS)
+      await interaction.editReply(reply)
+    } catch (err) {
+      console.error('[이번주무기티어] 오류:', err.message)
+      await interaction.editReply('❌ 무기 티어 조회 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
+    }
+  }
+
+  // ────────────────────────────────────────────────
+  // /무기티어채널 설정·해제·목록
+  // ────────────────────────────────────────────────
+  if (interaction.commandName === '무기티어채널') {
+    const sub = interaction.options.getSubcommand()
+
+    if (sub === '설정') {
+      const channel = interaction.options.getChannel('채널')
+      if (!channel?.isTextBased()) {
+        return interaction.reply({ content: '❌ 텍스트 채널만 설정할 수 있습니다.', ephemeral: true })
+      }
+      addTierChannel(channel.id)
+      await interaction.reply(`✅ <#${channel.id}> 채널에 매주 월요일 오전 10시 무기 티어가 자동 발행됩니다.`)
+    }
+
+    if (sub === '해제') {
+      const channel = interaction.options.getChannel('채널')
+      removeTierChannel(channel.id)
+      await interaction.reply(`🔕 <#${channel.id}> 채널의 무기 티어 자동 발행이 해제되었습니다.`)
+    }
+
+    if (sub === '목록') {
+      const state = loadTierState()
+      if (state.channelIds.length === 0) {
+        return interaction.reply({ content: '📭 설정된 무기 티어 발행 채널이 없습니다.', ephemeral: true })
+      }
+      const list = state.channelIds.map((id) => `<#${id}>`).join('\n')
+      await interaction.reply({ content: `📋 **무기 티어 발행 채널 목록**\n${list}`, ephemeral: true })
     }
   }
 })

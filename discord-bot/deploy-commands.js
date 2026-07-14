@@ -60,6 +60,55 @@ const commands = [
     .addSubcommand((sub) =>
       sub.setName('목록').setDescription('현재 설정된 뉴스 알림 채널 목록을 확인합니다')
     ),
+
+  new SlashCommandBuilder()
+    .setName('뉴스체커상태')
+    .setDescription('뉴스 자동 체크의 마지막 실행 시각/결과와 다음 실행 예정 시각을 확인합니다'),
+
+  new SlashCommandBuilder()
+    .setName('이번주무기티어')
+    .setDescription('최근 7일간 픽률/킬 비중 기준 무기 S/A/B/C 티어를 확인합니다')
+    .addStringOption((opt) =>
+      opt
+        .setName('플랫폼')
+        .setDescription('플랫폼 필터 (미입력 시 전체)')
+        .setRequired(false)
+        .addChoices(
+          { name: '🎮 Steam', value: 'steam' },
+          { name: '🟡 카카오', value: 'kakao' },
+        )
+    ),
+
+  new SlashCommandBuilder()
+    .setName('무기티어채널')
+    .setDescription('매주 월요일 무기 티어 자동 발행 채널 관리')
+    .addSubcommand((sub) =>
+      sub
+        .setName('설정')
+        .setDescription('무기 티어를 매주 자동으로 받을 채널을 설정합니다')
+        .addChannelOption((opt) =>
+          opt
+            .setName('채널')
+            .setDescription('알림을 받을 텍스트 채널')
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('해제')
+        .setDescription('채널의 무기 티어 자동 발행을 해제합니다')
+        .addChannelOption((opt) =>
+          opt
+            .setName('채널')
+            .setDescription('알림을 해제할 채널')
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub.setName('목록').setDescription('현재 설정된 무기 티어 발행 채널 목록을 확인합니다')
+    ),
 ].map((cmd) => cmd.toJSON())
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN)
@@ -69,7 +118,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN)
     console.log('슬래시 커맨드 등록 중...')
     await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: commands })
     console.log('✅ 슬래시 커맨드 등록 완료!')
-    console.log('  /전적, /클랜, /서버상태, /뉴스채널 (설정·해제·목록)')
+    console.log('  /전적, /클랜, /서버상태, /뉴스채널 (설정·해제·목록), /뉴스체커상태, /이번주무기티어, /무기티어채널 (설정·해제·목록)')
   } catch (err) {
     console.error('오류:', err)
   }

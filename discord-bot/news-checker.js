@@ -124,25 +124,50 @@ function buildEmbed(item, EmbedBuilder) {
   return embed
 }
 
+// 체크 1회의 결과를 상태 파일에 남긴다 (마지막 실행 시각/결과를 나중에 조회할 수 있도록)
+function recordCheck(result, extra = {}) {
+  const state = loadState()
+  state.lastCheckedAt = new Date().toISOString()
+  state.lastResult     = result
+  Object.assign(state, extra)
+  saveState(state)
+  return state
+}
+
 // ── 새 글 체크 & 전송 (크론에서 호출) ────────────────────────────────────
 async function checkAndSendNews(client, { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle }) {
+  console.log(`[뉴스체커] 체크 시작 (${new Date().toISOString()})`)
+
   const state = loadState()
-  if (state.channelIds.length === 0) return
+  if (state.channelIds.length === 0) {
+    console.log('[뉴스체커] 등록된 채널 없음 — 체크 스킵')
+    recordCheck('no_channels')
+    return
+  }
 
   let items
   try {
     items = await fetchNews()
   } catch (err) {
     console.error('[뉴스체커] 크롤링 실패:', err.message)
+    recordCheck('fetch_error', { lastError: err.message })
     return
   }
-  if (!items.length) return
+
+  if (!items.length) {
+    // 크롤링 자체는 200을 받았지만 글 목록을 파싱하지 못한 경우 — pubg.com 페이지 구조가
+    // 바뀌었을 가능성이 높음. 조용히 넘어가면 원인 파악이 안 되므로 반드시 로그를 남긴다.
+    console.warn('[뉴스체커] 응답은 받았으나 파싱된 글이 0개 — pubg.com 페이지 구조 변경 의심')
+    recordCheck('empty_parse')
+    return
+  }
 
   const lastSeenSet = new Set(state.lastSeenIds)
   const newItems    = items.filter((item) => !lastSeenSet.has(item.id))
 
   if (!newItems.length) {
-    console.log('[뉴스체커] 새 글 없음')
+    console.log(`[뉴스체커] 새 글 없음 (조회된 글 ${items.length}개 모두 기존과 동일)`)
+    recordCheck('no_new', { lastSeenIds: [...new Set([...items.map((i) => i.id), ...state.lastSeenIds])].slice(0, 50) })
     return
   }
 
@@ -173,8 +198,9 @@ async function checkAndSendNews(client, { EmbedBuilder, ActionRowBuilder, Button
   }
 
   // 현재 페이지 전체 ID 저장 (최대 50개)
-  state.lastSeenIds = [...new Set([...items.map((i) => i.id), ...state.lastSeenIds])].slice(0, 50)
-  saveState(state)
+  recordCheck('sent', {
+    lastSeenIds: [...new Set([...items.map((i) => i.id), ...state.lastSeenIds])].slice(0, 50),
+  })
 }
 
 // ── 채널 등록/제거 ──────────────────────────────────────────────────────
@@ -192,4 +218,21 @@ function removeNewsChannel(channelId) {
   saveState(state)
 }
 
-module.exports = { checkAndSendNews, addNewsChannel, removeNewsChannel, loadState }
+// 마지막 실행 시각/결과 + (setInterval 주기 기준) 다음 실행 예정 시각 조회
+function getNewsCheckerStatus() {
+  const state    = loadState()
+  const interval = parseInt(process.env.NEWS_CHECK_INTERVAL) || 3_600_000
+  const lastCheckedAt = state.lastCheckedAt ? new Date(state.lastCheckedAt) : null
+  const nextCheckAt   = lastCheckedAt ? new Date(lastCheckedAt.getTime() + interval) : null
+
+  return {
+    lastCheckedAt,
+    lastResult: state.lastResult ?? null,
+    lastError:  state.lastError ?? null,
+    nextCheckAt,
+    intervalMs: interval,
+    channelCount: state.channelIds.length,
+  }
+}
+
+module.exports = { checkAndSendNews, addNewsChannel, removeNewsChannel, loadState, getNewsCheckerStatus }
