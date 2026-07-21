@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /admin/
 
-Sitemap: https://pk.gg/sitemap.xml
+Sitemap: https://pkgg.vercel.app/sitemap.xml
