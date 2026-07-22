@@ -47,13 +47,16 @@ const NORMALIZE = {
   CowBar:        'Cowbar',
   // "M416"은 PUBG 커뮤니티에서 부르는 이름일 뿐, 실제 텔레메트리/에셋 이름은 HK416으로 동일한 총이다.
   M416:          'HK416',
+  // "Winchester"는 구버전 에셋 이름, 현재는 Win94/Win1894_C로 남아있는 같은 총(Winchester Model 1894).
+  // weapon-damage.js 무기 DB에도 "Win94"만 있고 별도 "Winchester" 항목이 없어 같은 총임을 재확인했다.
+  Winchester:    'Win94',
 }
 
 // 실제 무기 화이트리스트(정규화 기준 canonical 이름). Duncans_M416 같은 스킨 변형 ID를
 // "이 이름으로 끝나는지" 검사해 병합하는 데 쓴다 — 무기 목록 자체를 이걸로 필터링하진 않는다.
 export const WEAPON_WHITELIST = [
   'AUG', 'HK416', 'BerylM762', 'ACE32', 'MP5K', 'Mini14', 'Mk12', 'AK47',
-  'Winchester', 'Win94', 'UMP', 'M249', 'M24', 'Vector', 'Kar98k', 'Saiga12',
+  'Win94', 'UMP', 'M249', 'M24', 'Vector', 'Kar98k', 'Saiga12',
   'Berreta686', 'FNFal', 'Dragunov', 'UZI', 'SCAR_L', 'Thompson', 'QBZ95', 'M16A4',
   'VSS', 'SKS', 'P90', 'Groza', 'FAMASG2', 'Mk47Mutant', 'K2', 'MG3', 'AWM', 'L6',
   'Mk14', 'Sawnoff', 'JS9', 'M9', 'DP12', 'MP9', 'G36C', 'DesertEagle', 'G18',

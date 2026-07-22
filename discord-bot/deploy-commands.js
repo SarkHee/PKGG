@@ -67,7 +67,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('이번주무기티어')
-    .setDescription('최근 7일간 픽률/킬 비중 기준 무기 S/A/B/C 티어를 확인합니다')
+    .setDescription('최근 7일간 킬수 기준 무기 TOP5 순위를 확인합니다')
     .addStringOption((opt) =>
       opt
         .setName('플랫폼')

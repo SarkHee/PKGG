@@ -1,23 +1,27 @@
 // discord-bot/weapon-tier.js
-// 최근 7일간 무기 픽률/킬 비중 기준 S/A/B/C 티어 분류 + 매주 월요일 등록 채널 자동 발행
-// S티어는 아이콘 콜라주 이미지로, A/B/C는 기존처럼 텍스트로 표시한다.
+// 최근 7일간 킬수 기준 TOP5 무기 순위 + 매주 월요일 등록 채널 자동 발행
+// TOP5 아이콘+이름은 콜라주 이미지로, 순위/타입/킬수/킬률/평균딜은 임베드 텍스트 필드로 표시한다.
 
 const fs   = require('fs')
 const path = require('path')
 const cron = require('node-cron')
-const { createCanvas, loadImage } = require('canvas')
+const { createCanvas, loadImage, registerFont } = require('canvas')
 const { AttachmentBuilder } = require('discord.js')
 
 const STATE_FILE = path.join(__dirname, 'data', 'weapon-tier-state.json')
 const PKGG_URL   = process.env.PKGG_URL || 'https://pkgg.vercel.app'
 
 const SHARD_LABEL = { all: '전체', steam: '🎮 Steam', kakao: '🟡 카카오' }
+const RANK_MEDAL  = { 1: '🥇', 2: '🥈', 3: '🥉', 4: '4️⃣', 5: '5️⃣' }
 
-const TIER_META = {
-  S: { color: 0xef4444, label: '🔥 S티어' },
-  A: { color: 0xf59e0b, label: '🥇 A티어' },
-  B: { color: 0x3b82f6, label: '🥈 B티어' },
-  C: { color: 0x6b7280, label: '🥉 C티어' },
+// node-canvas의 기본 sans-serif는 배포 환경(특히 폰트 없는 리눅스 컨테이너)에 따라 한글이
+// 깨지거나 아예 안 나올 수 있어, 폰트 파일을 직접 등록해서 어떤 환경에서도 동일하게 렌더링되게 한다.
+const FONT_FAMILY = 'NanumGothic'
+const FONT_PATH   = path.join(__dirname, 'assets', 'fonts', 'NanumGothic-Regular.ttf')
+try {
+  registerFont(FONT_PATH, { family: FONT_FAMILY })
+} catch (err) {
+  console.error('[무기티어] 폰트 등록 실패, 시스템 기본 폰트로 대체됨:', err.message)
 }
 
 // utils/weaponMetaFilter.js의 normalizeId() 결과(canonical 이름)와 public/weapons/의
@@ -32,7 +36,30 @@ function iconUrl(weaponKey) {
   return `${PKGG_URL}/weapons/Item_Weapon_${stub}_C.png`
 }
 
-// ── 채널 등록 상태 (뉴스채널과 동일한 파일 기반 패턴) ─────────────────────
+// weapon-damage.js(웹사이트 무기 데미지표)의 타입 분류를 그대로 재사용한다.
+// AR=돌격소총 DMR=고정밀사격소총 SR=저격소총 SMG=기관단총 LMG=경기관총 SGN=샷건 PST=권총 MELEE=근접무기
+const WEAPON_TYPE = {
+  AUG: 'AR', HK416: 'AR', BerylM762: 'AR', ACE32: 'AR', AK47: 'AR', SCAR_L: 'AR',
+  QBZ95: 'AR', M16A4: 'AR', Groza: 'AR', FAMASG2: 'AR', Mk47Mutant: 'AR', K2: 'AR', G36C: 'AR',
+  Mini14: 'DMR', Mk12: 'DMR', FNFal: 'DMR', Dragunov: 'DMR', VSS: 'DMR', SKS: 'DMR', Mk14: 'DMR', QBU88: 'DMR',
+  Win94: 'SR', M24: 'SR', Kar98k: 'SR', AWM: 'SR', L6: 'SR', Crossbow: 'SR', Mosin: 'SR',
+  MP5K: 'SMG', UMP: 'SMG', Vector: 'SMG', UZI: 'SMG', Thompson: 'SMG', P90: 'SMG', JS9: 'SMG', MP9: 'SMG', BizonPP19: 'SMG',
+  M249: 'LMG', MG3: 'LMG', DP28: 'LMG',
+  Saiga12: 'SGN', Berreta686: 'SGN', DP12: 'SGN', OriginS12: 'SGN', Sawnoff: 'SGN',
+  M9: 'PST', DesertEagle: 'PST', G18: 'PST', Skorpion: 'PST', NagantM1895: 'PST', M1911: 'PST', R45: 'PST',
+  Cowbar: 'MELEE',
+}
+const TYPE_LABEL = {
+  AR: '돌격소총', DMR: '고정밀 사격소총', SR: '저격소총', SMG: '기관단총',
+  LMG: '경기관총', SGN: '샷건', PST: '권총', MELEE: '근접무기',
+}
+
+function weaponTypeLabel(key) {
+  const code = WEAPON_TYPE[key]
+  return code ? `${TYPE_LABEL[code]} (${code})` : '기타'
+}
+
+// ── 채널 등록 상태 (뉴스체커와 동일한 파일 기반 패턴) ─────────────────────
 function loadState() {
   try {
     if (fs.existsSync(STATE_FILE)) return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
@@ -60,37 +87,28 @@ function removeTierChannel(channelId) {
   saveState(state)
 }
 
-// ── 무기 메타 조회 + 티어 분류 ────────────────────────────────────────────
+// ── 무기 메타 조회 + TOP5 산출 ─────────────────────────────────────────────
 // 시즌 아카이브(WeaponMetaSeason)는 시즌 전체 요약이라 "최근 7일" 개념이 없어서
-// 이번주 티어는 항상 실시간 주간 집계(period=week)를 쓴다.
+// 이번주 순위는 항상 실시간 주간 집계(period=week)를 쓴다.
 async function fetchWeaponTierWeek(shard = 'all') {
   const res = await fetch(`${PKGG_URL}/api/weapon-meta-live?period=week&shard=${shard}`)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
 
-// 픽률+킬 비중 합산 점수로 재정렬 후 상위 비율(15/40/75%)로 S/A/B/C 분류
-function classifyTiers(weapons) {
-  const scored = weapons
-    .map((w) => ({ ...w, score: (w.pickRate || 0) + (w.killRate || 0) }))
-    .sort((a, b) => b.score - a.score)
-
-  const n = scored.length
-  const sCut = Math.ceil(n * 0.15)
-  const aCut = Math.ceil(n * 0.40)
-  const bCut = Math.ceil(n * 0.75)
-
-  return scored.map((w, i) => ({
-    ...w,
-    tier: i < sCut ? 'S' : i < aCut ? 'A' : i < bCut ? 'B' : 'C',
-  }))
+// 킬수 기준 내림차순 정렬 후 상위 5개만 사용 (API가 이미 킬수 내림차순으로 주지만 방어적으로 재정렬)
+function getTop5(weapons) {
+  return [...weapons]
+    .sort((a, b) => b.kills - a.kills)
+    .slice(0, 5)
+    .map((w, i) => ({ ...w, rank: i + 1 }))
 }
 
-// S티어 무기 아이콘을 가로로 나열한 콜라주 PNG 버퍼 생성. 아이콘을 못 받아오면(멜리 무기 등
+// TOP5 무기 아이콘 + 이름을 가로로 나열한 콜라주 PNG 버퍼 생성. 아이콘을 못 받아오면(멜리 무기 등
 // public/weapons/에 파일이 없거나 네트워크 실패) 회색 박스로 자리만 채워서 레이아웃은 안 깨지게 한다.
 // 셀 구조: [셀 120px 폭 안에 96x96 아이콘을 상단 중앙(좌우 12px씩 여백)에 배치 → 8px 간격 →
 //          이름 라벨(셀 폭 안에서 가운데 정렬, 13px에서 시작해 넘치면 자동 축소)]
-async function buildSTierCollage(sTierWeapons) {
+async function buildTop5Collage(top5) {
   const CELL_WIDTH   = 120
   const ICON_SIZE    = 96
   const ICON_MARGIN  = (CELL_WIDTH - ICON_SIZE) / 2 // 12 — 좌우 여백
@@ -100,7 +118,7 @@ async function buildSTierCollage(sTierWeapons) {
   const BASE_FONT    = 13
   const MIN_FONT     = 8
 
-  const width  = MARGIN * 2 + CELL_WIDTH * sTierWeapons.length
+  const width  = MARGIN * 2 + CELL_WIDTH * top5.length
   const height = MARGIN + ICON_SIZE + ICON_GAP + LABEL_HEIGHT + MARGIN
 
   const canvas = createCanvas(width, height)
@@ -109,8 +127,8 @@ async function buildSTierCollage(sTierWeapons) {
   ctx.fillStyle = '#111827' // gray-900 — Discord 다크 임베드와 어울리는 배경
   ctx.fillRect(0, 0, width, height)
 
-  for (let i = 0; i < sTierWeapons.length; i++) {
-    const w = sTierWeapons[i]
+  for (let i = 0; i < top5.length; i++) {
+    const w = top5[i]
     const cellX = MARGIN + i * CELL_WIDTH
     const iconX = cellX + ICON_MARGIN
     const iconY = MARGIN
@@ -125,10 +143,10 @@ async function buildSTierCollage(sTierWeapons) {
 
     // 이름 라벨 — 셀 폭(120px) 안에서 가운데 정렬. 13px에서 시작해 셀 폭을 넘으면 한 단계씩 축소.
     let fontSize = BASE_FONT
-    ctx.font = `bold ${fontSize}px sans-serif`
+    ctx.font = `bold ${fontSize}px "${FONT_FAMILY}"`
     while (fontSize > MIN_FONT && ctx.measureText(w.key).width > CELL_WIDTH - 8) {
       fontSize -= 1
-      ctx.font = `bold ${fontSize}px sans-serif`
+      ctx.font = `bold ${fontSize}px "${FONT_FAMILY}"`
     }
 
     ctx.fillStyle = '#f9fafb'
@@ -140,36 +158,35 @@ async function buildSTierCollage(sTierWeapons) {
   return canvas.toBuffer('image/png')
 }
 
-async function buildTierEmbed(tiered, meta, shard, EmbedBuilder) {
-  const grouped = { S: [], A: [], B: [], C: [] }
-  for (const w of tiered) grouped[w.tier].push(w)
-
+async function buildTierEmbed(top5, meta, shard, EmbedBuilder) {
   const embed = new EmbedBuilder()
-    .setTitle('🔫 이번주 무기 티어')
-    .setColor(TIER_META.S.color)
+    .setTitle('🔫 이번주 무기 TOP5')
+    .setColor(0xef4444)
     .setURL(`${PKGG_URL}/weapon-meta-live`)
     .setFooter({ text: `PKGG.vercel.app • 최근 7일 · ${SHARD_LABEL[shard] || shard} · 총 ${meta.totalKills?.toLocaleString() ?? 0}킬 기준` })
     .setTimestamp()
 
-  // S티어는 아이콘 콜라주 이미지로 대체하고, 목록 필드는 두지 않는다(중복 표시 방지).
   let attachment = null
-  if (grouped.S.length > 0) {
-    try {
-      const buffer = await buildSTierCollage(grouped.S)
-      attachment = new AttachmentBuilder(buffer, { name: 's-tier.png' })
-      embed.setImage('attachment://s-tier.png')
-      embed.addFields({ name: TIER_META.S.label, value: '👆 이미지 참고', inline: false })
-    } catch (err) {
-      console.error('[무기티어] S티어 콜라주 생성 실패, 텍스트로 폴백:', err.message)
-      embed.addFields({ name: TIER_META.S.label, value: grouped.S.map((w) => `**${w.key}**`).join(', '), inline: false })
-    }
+  try {
+    const buffer = await buildTop5Collage(top5)
+    attachment = new AttachmentBuilder(buffer, { name: 'top5.png' })
+    embed.setImage('attachment://top5.png')
+  } catch (err) {
+    console.error('[무기티어] TOP5 콜라주 생성 실패, 텍스트로만 표시:', err.message)
   }
 
-  for (const tier of ['A', 'B', 'C']) {
-    const list = grouped[tier]
-    if (list.length === 0) continue
-    const value = list.map((w) => `**${w.key}**`).join(', ')
-    embed.addFields({ name: TIER_META[tier].label, value, inline: false })
+  // 콜라주 이미지 아래에 순위별 상세(타입/킬수/킬률/평균딜)를 텍스트 필드로 정리
+  for (const w of top5) {
+    const medal = RANK_MEDAL[w.rank] || `${w.rank}위`
+    embed.addFields({
+      name: `${medal} ${w.rank}위 · ${w.key}`,
+      value:
+        `🎯 타입: ${weaponTypeLabel(w.key)}\n` +
+        `🔫 킬수: ${w.kills.toLocaleString()}\n` +
+        `📊 킬률: ${w.killRate}%\n` +
+        `💥 평균딜: ${w.avgDmg}`,
+      inline: true,
+    })
   }
 
   return { embed, attachment }
@@ -180,8 +197,8 @@ async function buildTierReply(shard, { EmbedBuilder }) {
   if (!weapons?.length) {
     return { content: '❌ 최근 7일간 집계된 무기 데이터가 없습니다.', embeds: [], files: [] }
   }
-  const tiered = classifyTiers(weapons)
-  const { embed, attachment } = await buildTierEmbed(tiered, meta, shard, EmbedBuilder)
+  const top5 = getTop5(weapons)
+  const { embed, attachment } = await buildTierEmbed(top5, meta, shard, EmbedBuilder)
   return { content: null, embeds: [embed], files: attachment ? [attachment] : [] }
 }
 
@@ -226,7 +243,7 @@ function startWeeklyTierCron(client, components) {
 
 module.exports = {
   buildTierReply,
-  buildSTierCollage,
+  buildTop5Collage,
   addTierChannel,
   removeTierChannel,
   loadState,
