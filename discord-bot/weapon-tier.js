@@ -104,34 +104,76 @@ function getTop5(weapons) {
     .map((w, i) => ({ ...w, rank: i + 1 }))
 }
 
-// TOP5 무기 아이콘 + 이름을 가로로 나열한 콜라주 PNG 버퍼 생성. 아이콘을 못 받아오면(멜리 무기 등
-// public/weapons/에 파일이 없거나 네트워크 실패) 회색 박스로 자리만 채워서 레이아웃은 안 깨지게 한다.
-// 셀 구조: [셀 120px 폭 안에 96x96 아이콘을 상단 중앙(좌우 12px씩 여백)에 배치 → 8px 간격 →
-//          이름 라벨(셀 폭 안에서 가운데 정렬, 13px에서 시작해 넘치면 자동 축소)]
-async function buildTop5Collage(top5) {
-  const CELL_WIDTH   = 120
-  const ICON_SIZE    = 96
-  const ICON_MARGIN  = (CELL_WIDTH - ICON_SIZE) / 2 // 12 — 좌우 여백
-  const ICON_GAP     = 8   // 아이콘-이름 라벨 사이 간격
-  const LABEL_HEIGHT = 20
-  const MARGIN       = 16  // 캔버스 상하좌우 바깥 여백
-  const BASE_FONT    = 13
-  const MIN_FONT     = 8
+// 순위별 강조색: 1위 금 / 2위 은 / 3위 동 / 4~5위는 중립 톤
+const RANK_ACCENT = {
+  1: '#fbbf24', // amber-400 (gold)
+  2: '#cbd5e1', // slate-300 (silver)
+  3: '#b45309', // amber-700 (bronze)
+}
+const DEFAULT_ACCENT = '#475569' // slate-600
 
-  const width  = MARGIN * 2 + CELL_WIDTH * top5.length
-  const height = MARGIN + ICON_SIZE + ICON_GAP + LABEL_HEIGHT + MARGIN
+// TOP5를 세로로 쌓은 카드형 콜라주 PNG 버퍼 생성. 카드 1개 = [좌측 62% 텍스트(순위·이름/타입·킬수/
+// 킬률·평균딜) + 우측 38% 아이콘(세로 중앙 정렬)]. 아이콘을 못 받아오면(네트워크 실패 등) 회색
+// 박스로 자리만 채워 레이아웃이 안 깨지게 한다. 1~3위는 순위색 테두리로 추가 강조한다.
+async function buildTop5Collage(top5) {
+  const CANVAS_WIDTH = 520
+  const CARD_HEIGHT  = 110
+  const CARD_GAP     = 10
+  const OUTER_MARGIN = 14
+  const TEXT_RATIO   = 0.62 // 좌측 텍스트 영역 비율 (나머지 38%가 아이콘 영역)
+  const ICON_SIZE    = 80
+
+  const cardWidth = CANVAS_WIDTH - OUTER_MARGIN * 2
+  const width  = CANVAS_WIDTH
+  const height = OUTER_MARGIN * 2 + CARD_HEIGHT * top5.length + CARD_GAP * (top5.length - 1)
 
   const canvas = createCanvas(width, height)
   const ctx    = canvas.getContext('2d')
 
-  ctx.fillStyle = '#111827' // gray-900 — Discord 다크 임베드와 어울리는 배경
+  ctx.fillStyle = '#0f172a' // slate-950 — Discord 다크 임베드와 어울리는 배경
   ctx.fillRect(0, 0, width, height)
 
   for (let i = 0; i < top5.length; i++) {
     const w = top5[i]
-    const cellX = MARGIN + i * CELL_WIDTH
-    const iconX = cellX + ICON_MARGIN
-    const iconY = MARGIN
+    const accent = RANK_ACCENT[w.rank] || DEFAULT_ACCENT
+    const cardX = OUTER_MARGIN
+    const cardY = OUTER_MARGIN + i * (CARD_HEIGHT + CARD_GAP)
+
+    // 카드 배경
+    ctx.fillStyle = '#1e293b' // slate-800
+    ctx.fillRect(cardX, cardY, cardWidth, CARD_HEIGHT)
+
+    // 1~3위는 순위색 테두리로 추가 강조
+    if (w.rank <= 3) {
+      ctx.strokeStyle = accent
+      ctx.lineWidth = 2
+      ctx.strokeRect(cardX + 1, cardY + 1, cardWidth - 2, CARD_HEIGHT - 2)
+    }
+
+    // 좌측 강조 바 (모든 순위 공통)
+    ctx.fillStyle = accent
+    ctx.fillRect(cardX, cardY, 6, CARD_HEIGHT)
+
+    // ── 좌측 텍스트 영역 ──
+    const textX = cardX + 22
+    const textMaxWidth = cardWidth * TEXT_RATIO - 22
+
+    ctx.textAlign = 'left'
+    ctx.fillStyle = accent
+    const titleText = `${w.rank}위 · ${w.key}`
+    fitText(ctx, titleText, textMaxWidth, 22, 14)
+    ctx.fillText(titleText, textX, cardY + 34)
+
+    ctx.fillStyle = '#d1d5db' // slate-300
+    ctx.font = `14px "${FONT_FAMILY}"`
+    ctx.fillText(`타입: ${weaponTypeLabel(w.key)}   킬수: ${w.kills.toLocaleString()}`, textX, cardY + 62)
+    ctx.fillText(`킬률: ${w.killRate}%   평균딜: ${w.avgDmg}`, textX, cardY + 86)
+
+    // ── 우측 아이콘 영역 (세로 중앙 정렬) ──
+    const iconAreaX = cardX + cardWidth * TEXT_RATIO
+    const iconAreaWidth = cardWidth * (1 - TEXT_RATIO)
+    const iconX = iconAreaX + (iconAreaWidth - ICON_SIZE) / 2
+    const iconY = cardY + (CARD_HEIGHT - ICON_SIZE) / 2
 
     try {
       const img = await loadImage(iconUrl(w.key))
@@ -140,27 +182,28 @@ async function buildTop5Collage(top5) {
       ctx.fillStyle = '#374151' // gray-700 플레이스홀더
       ctx.fillRect(iconX, iconY, ICON_SIZE, ICON_SIZE)
     }
-
-    // 이름 라벨 — 셀 폭(120px) 안에서 가운데 정렬. 13px에서 시작해 셀 폭을 넘으면 한 단계씩 축소.
-    let fontSize = BASE_FONT
-    ctx.font = `bold ${fontSize}px "${FONT_FAMILY}"`
-    while (fontSize > MIN_FONT && ctx.measureText(w.key).width > CELL_WIDTH - 8) {
-      fontSize -= 1
-      ctx.font = `bold ${fontSize}px "${FONT_FAMILY}"`
-    }
-
-    ctx.fillStyle = '#f9fafb'
-    ctx.textAlign = 'center'
-    const labelBaselineY = MARGIN + ICON_SIZE + ICON_GAP + LABEL_HEIGHT - 6
-    ctx.fillText(w.key, cellX + CELL_WIDTH / 2, labelBaselineY)
   }
 
   return canvas.toBuffer('image/png')
 }
 
+// text가 maxWidth를 넘으면 minSize까지 한 단계씩 줄여서 ctx.font에 반영한다 (ctx.font를 직접 바꿈).
+function fitText(ctx, text, maxWidth, baseSize, minSize) {
+  let size = baseSize
+  ctx.font = `bold ${size}px "${FONT_FAMILY}"`
+  while (size > minSize && ctx.measureText(text).width > maxWidth) {
+    size -= 1
+    ctx.font = `bold ${size}px "${FONT_FAMILY}"`
+  }
+}
+
 async function buildTierEmbed(top5, meta, shard, EmbedBuilder) {
+  // 순위/타입/킬수/킬률/평균딜은 전부 카드 이미지 안에 들어가므로, 임베드 자체엔 짧은 요약 한 줄만 남긴다.
+  const summary = top5.map((w) => `${w.rank}위 ${w.key}`).join(' · ')
+
   const embed = new EmbedBuilder()
     .setTitle('🔫 이번주 무기 TOP5')
+    .setDescription(summary)
     .setColor(0xef4444)
     .setURL(`${PKGG_URL}/weapon-meta-live`)
     .setFooter({ text: `PKGG.vercel.app • 최근 7일 · ${SHARD_LABEL[shard] || shard} · 총 ${meta.totalKills?.toLocaleString() ?? 0}킬 기준` })
@@ -172,21 +215,20 @@ async function buildTierEmbed(top5, meta, shard, EmbedBuilder) {
     attachment = new AttachmentBuilder(buffer, { name: 'top5.png' })
     embed.setImage('attachment://top5.png')
   } catch (err) {
-    console.error('[무기티어] TOP5 콜라주 생성 실패, 텍스트로만 표시:', err.message)
-  }
-
-  // 콜라주 이미지 아래에 순위별 상세(타입/킬수/킬률/평균딜)를 텍스트 필드로 정리
-  for (const w of top5) {
-    const medal = RANK_MEDAL[w.rank] || `${w.rank}위`
-    embed.addFields({
-      name: `${medal} ${w.rank}위 · ${w.key}`,
-      value:
-        `🎯 타입: ${weaponTypeLabel(w.key)}\n` +
-        `🔫 킬수: ${w.kills.toLocaleString()}\n` +
-        `📊 킬률: ${w.killRate}%\n` +
-        `💥 평균딜: ${w.avgDmg}`,
-      inline: true,
-    })
+    console.error('[무기티어] TOP5 콜라주 생성 실패, 텍스트 필드로 폴백:', err.message)
+    // 이미지 생성이 실패했을 때만 상세 정보를 텍스트 필드로 보여준다(평소엔 이미지와 중복이라 안 넣음).
+    for (const w of top5) {
+      const medal = RANK_MEDAL[w.rank] || `${w.rank}위`
+      embed.addFields({
+        name: `${medal} ${w.rank}위 · ${w.key}`,
+        value:
+          `🎯 타입: ${weaponTypeLabel(w.key)}\n` +
+          `🔫 킬수: ${w.kills.toLocaleString()}\n` +
+          `📊 킬률: ${w.killRate}%\n` +
+          `💥 평균딜: ${w.avgDmg}`,
+        inline: true,
+      })
+    }
   }
 
   return { embed, attachment }
