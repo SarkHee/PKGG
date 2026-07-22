@@ -21,7 +21,7 @@ export const EXCLUDE = [
   /^TslGameMode/i,
   /^BP_/i,
   /^Buggy_/i, /^Dacia_/i, /^Uaz_/i, /^Boat_/i, /^PG117/i,
-  /^RedZone/i, /^Bluezonebomb/i,
+  /^RedZone/i, /^BlackZone/i, /^Bluezonebomb/i,
   /^Buff_/i,
   /^HR_Proj/i, /^ProjGrenade/i, /^ProjMolotov/i, /^ProjC4/i, /^ProjSticky/i,
   /^WeapGrenade/i, /^WeapMolotov/i, /^WeapFlareGun/i, /^WeapFlash/i,
