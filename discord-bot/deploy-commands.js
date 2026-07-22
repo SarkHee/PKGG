@@ -109,6 +109,16 @@ const commands = [
     .addSubcommand((sub) =>
       sub.setName('목록').setDescription('현재 설정된 무기 티어 발행 채널 목록을 확인합니다')
     ),
+
+  new SlashCommandBuilder()
+    .setName('스쿼드예약')
+    .setDescription('스쿼드 모집 게시글을 올립니다 (실행한 사람이 주최자가 됩니다)')
+    .addStringOption((opt) =>
+      opt.setName('시간').setDescription('진행 예정 시간 (예: 오늘 21시)').setRequired(true)
+    )
+    .addIntegerOption((opt) =>
+      opt.setName('인원').setDescription('총 모집 인원 (본인 포함)').setRequired(true).setMinValue(2).setMaxValue(10)
+    ),
 ].map((cmd) => cmd.toJSON())
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN)
@@ -118,7 +128,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN)
     console.log('슬래시 커맨드 등록 중...')
     await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: commands })
     console.log('✅ 슬래시 커맨드 등록 완료!')
-    console.log('  /전적, /클랜, /서버상태, /뉴스채널 (설정·해제·목록), /뉴스체커상태, /이번주무기티어, /무기티어채널 (설정·해제·목록)')
+    console.log('  /전적, /클랜, /서버상태, /뉴스채널 (설정·해제·목록), /뉴스체커상태, /이번주무기티어, /무기티어채널 (설정·해제·목록), /스쿼드예약')
   } catch (err) {
     console.error('오류:', err)
   }

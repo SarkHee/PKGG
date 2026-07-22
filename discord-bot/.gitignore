@@ -2,3 +2,4 @@ node_modules/
 .env
 data/news-state.json
 data/weapon-tier-state.json
+data/squad-recruit-state.json

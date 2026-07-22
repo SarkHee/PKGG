@@ -10,6 +10,7 @@ const {
 const { checkAndSendNews, addNewsChannel, removeNewsChannel, loadState, getNewsCheckerStatus } = require('./news-checker')
 const { checkServerStatus } = require('./server-checker')
 const { buildTierReply, addTierChannel, removeTierChannel, loadState: loadTierState, startWeeklyTierCron } = require('./weapon-tier')
+const { handleCreateCommand: handleSquadRecruitCommand, handleButton: handleSquadRecruitButton } = require('./squad-recruit')
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 const PKGG   = 'https://pkgg.vercel.app'
@@ -253,6 +254,19 @@ client.on('interactionCreate', async (interaction) => {
       console.error('[플랫폼선택버튼] 오류:', err.message)
       return interaction.editReply({ content: '❌ 조회 중 오류가 발생했습니다.', embeds: [], components: [] })
     }
+  }
+
+  // ── 스쿼드예약 버튼 (sq|join|.. / sq|approve|.. / sq|reject|..) ────────
+  if (interaction.isButton() && interaction.customId.startsWith('sq|')) {
+    try {
+      await handleSquadRecruitButton(interaction, DISCORD_COMPONENTS)
+    } catch (err) {
+      console.error('[스쿼드예약] 버튼 처리 오류:', err.message)
+      const payload = { content: '❌ 처리 중 오류가 발생했습니다.', embeds: [], components: [] }
+      if (interaction.replied || interaction.deferred) await interaction.followUp({ ...payload, ephemeral: true }).catch(() => {})
+      else await interaction.reply({ ...payload, ephemeral: true }).catch(() => {})
+    }
+    return
   }
 
   if (!interaction.isChatInputCommand()) return
@@ -503,6 +517,20 @@ client.on('interactionCreate', async (interaction) => {
       }
       const list = state.channelIds.map((id) => `<#${id}>`).join('\n')
       await interaction.reply({ content: `📋 **무기 티어 발행 채널 목록**\n${list}`, ephemeral: true })
+    }
+  }
+
+  // ────────────────────────────────────────────────
+  // /스쿼드예약 시간:<텍스트> 인원:<숫자>
+  // ────────────────────────────────────────────────
+  if (interaction.commandName === '스쿼드예약') {
+    try {
+      await handleSquadRecruitCommand(interaction, DISCORD_COMPONENTS)
+    } catch (err) {
+      console.error('[스쿼드예약] 오류:', err.message)
+      const payload = { content: '❌ 모집글 생성 중 오류가 발생했습니다.', ephemeral: true }
+      if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {})
+      else await interaction.reply(payload).catch(() => {})
     }
   }
 })
