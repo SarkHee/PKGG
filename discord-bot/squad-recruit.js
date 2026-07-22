@@ -4,6 +4,8 @@
 // 상태는 뉴스체커/무기티어와 동일한 파일 기반 JSON 패턴으로 관리한다.
 // 버튼 customId에 recruitId(+applicantId)를 실어서 여러 모집글이 동시에 떠 있어도 서로 안 섞이게 한다.
 //   sq|join|<recruitId>                 — 공개 채널 "참석하기" 버튼
+//   sq|leave|<recruitId>                 — 공개 채널 "불참하기" 버튼 (본인 확정만 취소)
+//   sq|cancel|<recruitId>                — 공개 채널 "취소" 버튼 (주최자 전용, 모집 전체 취소)
 //   sq|approve|<recruitId>|<applicantId> — 주최자 DM "승인" 버튼
 //   sq|reject|<recruitId>|<applicantId>  — 주최자 DM "거절" 버튼
 
@@ -53,7 +55,7 @@ function createRecruit({ hostId, hostName, scheduledTime, capacity, guildId, cha
     capacity,
     participants: [hostId],
     pendingRequests: {}, // applicantId -> { nickname, appliedAt }
-    status: 'open', // 'open' | 'closed'
+    status: 'open', // 'open' | 'closed' | 'canceled'
     createdAt: new Date().toISOString(),
   }
   saveRecruit(recruit)
@@ -66,12 +68,16 @@ function isFull(recruit) {
 
 // ── 임베드/버튼 빌더 ───────────────────────────────────────────────────────
 function buildRecruitEmbed(recruit, { EmbedBuilder }) {
-  const closed = recruit.status === 'closed'
+  const canceled = recruit.status === 'canceled'
+  const closed   = recruit.status === 'closed'
   const participantsText = recruit.participants.map((id) => `<@${id}>`).join('\n') || '아직 없음'
 
+  const title = canceled ? '❌ 취소된 모집' : closed ? '🔒 스쿼드 모집 마감' : '🎮 스쿼드 모집'
+  const color = canceled ? 0xef4444 : closed ? 0x6b7280 : 0x22c55e
+
   return new EmbedBuilder()
-    .setTitle(closed ? '🔒 스쿼드 모집 마감' : '🎮 스쿼드 모집')
-    .setColor(closed ? 0x6b7280 : 0x22c55e)
+    .setTitle(title)
+    .setColor(color)
     .addFields(
       { name: '👑 주최자', value: `<@${recruit.hostId}>`, inline: true },
       { name: '⏰ 진행 예정 시간', value: recruit.scheduledTime, inline: true },
@@ -82,14 +88,28 @@ function buildRecruitEmbed(recruit, { EmbedBuilder }) {
     .setTimestamp(new Date(recruit.createdAt))
 }
 
-function buildJoinRow(recruit, { ActionRowBuilder, ButtonBuilder, ButtonStyle }) {
-  const disabled = recruit.status === 'closed' || isFull(recruit)
-  const button = new ButtonBuilder()
+// 공개 모집글에 붙는 버튼들: 참석하기 / 불참하기 / 취소. 취소된 모집이면 버튼을 아예 없앤다.
+function buildButtonRows(recruit, { ActionRowBuilder, ButtonBuilder, ButtonStyle }) {
+  if (recruit.status === 'canceled') return []
+
+  const joinDisabled = recruit.status === 'closed' || isFull(recruit)
+  const joinButton = new ButtonBuilder()
     .setCustomId(`sq|join|${recruit.id}`)
-    .setLabel(disabled ? '모집 마감' : '✋ 참석하기')
-    .setStyle(disabled ? ButtonStyle.Secondary : ButtonStyle.Success)
-    .setDisabled(disabled)
-  return new ActionRowBuilder().addComponents(button)
+    .setLabel(joinDisabled ? '모집 마감' : '✋ 참석하기')
+    .setStyle(joinDisabled ? ButtonStyle.Secondary : ButtonStyle.Success)
+    .setDisabled(joinDisabled)
+
+  const leaveButton = new ButtonBuilder()
+    .setCustomId(`sq|leave|${recruit.id}`)
+    .setLabel('🙋 불참하기')
+    .setStyle(ButtonStyle.Secondary)
+
+  const cancelButton = new ButtonBuilder()
+    .setCustomId(`sq|cancel|${recruit.id}`)
+    .setLabel('🗑️ 모집 취소')
+    .setStyle(ButtonStyle.Danger)
+
+  return [new ActionRowBuilder().addComponents(joinButton, leaveButton, cancelButton)]
 }
 
 function buildApprovalRow(recruitId, applicantId, { ActionRowBuilder, ButtonBuilder, ButtonStyle }) {
@@ -108,7 +128,7 @@ async function refreshRecruitMessage(client, recruit, components) {
     if (!message) return
     await message.edit({
       embeds: [buildRecruitEmbed(recruit, components)],
-      components: [buildJoinRow(recruit, components)],
+      components: buildButtonRows(recruit, components),
     })
   } catch (err) {
     console.error(`[스쿼드예약] 모집글(${recruit.id}) 갱신 실패:`, err.message)
@@ -131,7 +151,7 @@ async function handleCreateCommand(interaction, components) {
 
   await interaction.reply({
     embeds: [buildRecruitEmbed(recruit, components)],
-    components: [buildJoinRow(recruit, components)],
+    components: buildButtonRows(recruit, components),
   })
   const message = await interaction.fetchReply()
   recruit.messageId = message.id
@@ -155,6 +175,9 @@ async function handleJoinButton(interaction, recruitId, components) {
   }
   if (recruit.pendingRequests[userId]) {
     return interaction.reply({ content: '이미 신청하고 주최자 승인을 기다리는 중입니다.', ephemeral: true })
+  }
+  if (recruit.status === 'canceled') {
+    return interaction.reply({ content: '❌ 취소된 모집입니다.', ephemeral: true })
   }
   if (recruit.status === 'closed' || isFull(recruit)) {
     return interaction.reply({ content: '❌ 이미 인원이 마감된 모집입니다.', ephemeral: true })
@@ -196,6 +219,9 @@ async function handleApproveButton(interaction, recruitId, applicantId, componen
   if (interaction.user.id !== recruit.hostId) {
     return interaction.reply({ content: '❌ 주최자만 승인할 수 있습니다.', ephemeral: true })
   }
+  if (recruit.status === 'canceled') {
+    return interaction.update({ content: '❌ 이미 취소된 모집입니다.', embeds: [], components: [] })
+  }
 
   const applicant = recruit.pendingRequests[applicantId]
   if (!applicant) {
@@ -229,6 +255,9 @@ async function handleRejectButton(interaction, recruitId, applicantId, component
   if (interaction.user.id !== recruit.hostId) {
     return interaction.reply({ content: '❌ 주최자만 거절할 수 있습니다.', ephemeral: true })
   }
+  if (recruit.status === 'canceled') {
+    return interaction.update({ content: '❌ 이미 취소된 모집입니다.', embeds: [], components: [] })
+  }
 
   const applicant = recruit.pendingRequests[applicantId]
   if (!applicant) {
@@ -248,12 +277,82 @@ async function handleRejectButton(interaction, recruitId, applicantId, component
   }
 }
 
+// ── 버튼: 모집 취소 (주최자 전용) ────────────────────────────────────────────
+async function handleCancelButton(interaction, recruitId, components) {
+  const recruit = getRecruit(recruitId)
+  if (!recruit) {
+    return interaction.reply({ content: '❌ 존재하지 않는 모집글입니다.', ephemeral: true })
+  }
+  if (interaction.user.id !== recruit.hostId) {
+    return interaction.reply({ content: '❌ 주최자만 모집을 취소할 수 있습니다.', ephemeral: true })
+  }
+  if (recruit.status === 'canceled') {
+    return interaction.reply({ content: '이미 취소된 모집입니다.', ephemeral: true })
+  }
+
+  // 주최자를 제외한 확정 참가자에게만 취소 알림 (본인이 취소한 거라 본인에겐 안 보냄)
+  const notifyTargets = recruit.participants.filter((id) => id !== recruit.hostId)
+
+  recruit.status = 'canceled'
+  recruit.pendingRequests = {}
+  saveRecruit(recruit)
+
+  await interaction.reply({ content: '🗑️ 모집을 취소했습니다.', ephemeral: true })
+  await refreshRecruitMessage(interaction.client, recruit, components)
+
+  for (const userId of notifyTargets) {
+    try {
+      const user = await interaction.client.users.fetch(userId)
+      await user.send(`❌ **${recruit.hostName}**님의 스쿼드 모집(${recruit.scheduledTime})이 취소되었습니다.`)
+    } catch (err) {
+      console.error(`[스쿼드예약] 취소 알림 DM 실패(${userId}):`, err.message)
+    }
+  }
+}
+
+// ── 버튼: 불참하기 (본인 확정만 취소 가능) ──────────────────────────────────
+async function handleLeaveButton(interaction, recruitId, components) {
+  const recruit = getRecruit(recruitId)
+  if (!recruit) {
+    return interaction.reply({ content: '❌ 존재하지 않는 모집글입니다.', ephemeral: true })
+  }
+  if (recruit.status === 'canceled') {
+    return interaction.reply({ content: '❌ 취소된 모집입니다.', ephemeral: true })
+  }
+
+  const userId = interaction.user.id
+  if (userId === recruit.hostId) {
+    return interaction.reply({ content: '❌ 주최자는 불참 대신 "모집 취소"를 사용해주세요.', ephemeral: true })
+  }
+  if (!recruit.participants.includes(userId)) {
+    return interaction.reply({ content: '❌ 참가 확정된 상태가 아닙니다.', ephemeral: true })
+  }
+
+  const wasClosed = recruit.status === 'closed'
+  recruit.participants = recruit.participants.filter((id) => id !== userId)
+  if (wasClosed && !isFull(recruit)) recruit.status = 'open' // 마감 상태였으면 정원 미달로 다시 오픈
+  saveRecruit(recruit)
+
+  const nickname = interaction.user.displayName || interaction.user.username
+  await interaction.reply({ content: '🙋 불참 처리했습니다.', ephemeral: true })
+  await refreshRecruitMessage(interaction.client, recruit, components)
+
+  try {
+    const host = await interaction.client.users.fetch(recruit.hostId)
+    await host.send(`🙋 **${nickname}**님이 모집(${recruit.scheduledTime})에 불참 처리했습니다. (${recruit.participants.length}/${recruit.capacity}명)`)
+  } catch (err) {
+    console.error(`[스쿼드예약] 주최자(${recruit.hostId}) 불참 알림 DM 실패:`, err.message)
+  }
+}
+
 // customId 라우팅 (index.js interactionCreate에서 호출)
 async function handleButton(interaction, components) {
   const [prefix, action, recruitId, applicantId] = interaction.customId.split('|')
   if (prefix !== 'sq') return false
 
   if (action === 'join')    await handleJoinButton(interaction, recruitId, components)
+  else if (action === 'leave')   await handleLeaveButton(interaction, recruitId, components)
+  else if (action === 'cancel')  await handleCancelButton(interaction, recruitId, components)
   else if (action === 'approve') await handleApproveButton(interaction, recruitId, applicantId, components)
   else if (action === 'reject')  await handleRejectButton(interaction, recruitId, applicantId, components)
 
