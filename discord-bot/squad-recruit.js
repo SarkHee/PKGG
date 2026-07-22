@@ -1,13 +1,11 @@
 // discord-bot/squad-recruit.js
-// /스쿼드예약 — 채널에 모집 임베드 게시 → "참석하기" 신청 → 주최자 DM 승인/거절 → 임베드 갱신
+// /스쿼드예약 — 채널에 모집 임베드 게시 → "참석하기" 클릭 시 승인 절차 없이 선착순 즉시 확정
 //
 // 상태는 뉴스체커/무기티어와 동일한 파일 기반 JSON 패턴으로 관리한다.
-// 버튼 customId에 recruitId(+applicantId)를 실어서 여러 모집글이 동시에 떠 있어도 서로 안 섞이게 한다.
-//   sq|join|<recruitId>                 — 공개 채널 "참석하기" 버튼
-//   sq|leave|<recruitId>                 — 공개 채널 "불참하기" 버튼 (본인 확정만 취소)
-//   sq|cancel|<recruitId>                — 공개 채널 "취소" 버튼 (주최자 전용, 모집 전체 취소)
-//   sq|approve|<recruitId>|<applicantId> — 주최자 DM "승인" 버튼
-//   sq|reject|<recruitId>|<applicantId>  — 주최자 DM "거절" 버튼
+// 버튼 customId에 recruitId를 실어서 여러 모집글이 동시에 떠 있어도 서로 안 섞이게 한다.
+//   sq|join|<recruitId>   — 공개 채널 "참석하기" 버튼 (클릭 즉시 참가 확정)
+//   sq|leave|<recruitId>  — 공개 채널 "불참하기" 버튼 (본인 확정만 취소)
+//   sq|cancel|<recruitId> — 공개 채널 "취소" 버튼 (주최자 전용, 모집 전체 취소)
 
 const fs   = require('fs')
 const path = require('path')
@@ -54,7 +52,6 @@ function createRecruit({ hostId, hostName, scheduledTime, capacity, guildId, cha
     scheduledTime,
     capacity,
     participants: [hostId],
-    pendingRequests: {}, // applicantId -> { nickname, appliedAt }
     status: 'open', // 'open' | 'closed' | 'canceled'
     createdAt: new Date().toISOString(),
   }
@@ -112,13 +109,6 @@ function buildButtonRows(recruit, { ActionRowBuilder, ButtonBuilder, ButtonStyle
   return [new ActionRowBuilder().addComponents(joinButton, leaveButton, cancelButton)]
 }
 
-function buildApprovalRow(recruitId, applicantId, { ActionRowBuilder, ButtonBuilder, ButtonStyle }) {
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`sq|approve|${recruitId}|${applicantId}`).setLabel('승인').setEmoji('✅').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId(`sq|reject|${recruitId}|${applicantId}`).setLabel('거절').setEmoji('❌').setStyle(ButtonStyle.Danger),
-  )
-}
-
 // 공개 채널의 모집글 메시지를 최신 상태로 다시 그린다.
 async function refreshRecruitMessage(client, recruit, components) {
   try {
@@ -158,7 +148,7 @@ async function handleCreateCommand(interaction, components) {
   saveRecruit(recruit)
 }
 
-// ── 버튼: 참석하기 ─────────────────────────────────────────────────────────
+// ── 버튼: 참석하기 (승인 절차 없이 클릭 즉시 선착순 확정) ──────────────────
 async function handleJoinButton(interaction, recruitId, components) {
   const recruit = getRecruit(recruitId)
   if (!recruit) {
@@ -173,9 +163,6 @@ async function handleJoinButton(interaction, recruitId, components) {
   if (recruit.participants.includes(userId)) {
     return interaction.reply({ content: '이미 참가 확정된 모집입니다.', ephemeral: true })
   }
-  if (recruit.pendingRequests[userId]) {
-    return interaction.reply({ content: '이미 신청하고 주최자 승인을 기다리는 중입니다.', ephemeral: true })
-  }
   if (recruit.status === 'canceled') {
     return interaction.reply({ content: '❌ 취소된 모집입니다.', ephemeral: true })
   }
@@ -183,98 +170,12 @@ async function handleJoinButton(interaction, recruitId, components) {
     return interaction.reply({ content: '❌ 이미 인원이 마감된 모집입니다.', ephemeral: true })
   }
 
-  recruit.pendingRequests[userId] = {
-    nickname: interaction.user.displayName || interaction.user.username,
-    appliedAt: new Date().toISOString(),
-  }
-  saveRecruit(recruit)
-
-  await interaction.reply({ content: '✅ 신청 완료! 주최자 승인 대기 중입니다.', ephemeral: true })
-
-  // 주최자에게 DM으로 승인/거절 요청
-  try {
-    const host = await interaction.client.users.fetch(recruit.hostId)
-    const { EmbedBuilder } = components
-    const dmEmbed = new EmbedBuilder()
-      .setTitle('📨 스쿼드 참가 신청')
-      .setDescription(`**${recruit.pendingRequests[userId].nickname}**님이 모집(${recruit.scheduledTime})에 참가 신청했습니다.`)
-      .addFields({ name: '현재 인원', value: `${recruit.participants.length}/${recruit.capacity}명`, inline: true })
-      .setColor(0x3b82f6)
-      .setFooter({ text: `모집 ID: ${recruit.id}` })
-    await host.send({ embeds: [dmEmbed], components: [buildApprovalRow(recruit.id, userId, components)] })
-  } catch (err) {
-    console.error(`[스쿼드예약] 주최자(${recruit.hostId}) DM 발송 실패:`, err.message)
-    // 신청 자체는 이미 접수됐으니 신청자에게만 안내 (모집글 신청 상태는 그대로 유지)
-    await interaction.followUp({
-      content: '⚠️ 주최자에게 DM 발송에 실패했습니다(DM 차단 등). 서버에서 직접 연락해보세요. 신청 내역은 저장되었습니다.',
-      ephemeral: true,
-    })
-  }
-}
-
-// ── 버튼(DM): 승인/거절 ───────────────────────────────────────────────────
-async function handleApproveButton(interaction, recruitId, applicantId, components) {
-  const recruit = getRecruit(recruitId)
-  if (!recruit) return interaction.update({ content: '❌ 존재하지 않는 모집글입니다.', embeds: [], components: [] })
-  if (interaction.user.id !== recruit.hostId) {
-    return interaction.reply({ content: '❌ 주최자만 승인할 수 있습니다.', ephemeral: true })
-  }
-  if (recruit.status === 'canceled') {
-    return interaction.update({ content: '❌ 이미 취소된 모집입니다.', embeds: [], components: [] })
-  }
-
-  const applicant = recruit.pendingRequests[applicantId]
-  if (!applicant) {
-    return interaction.update({ content: '⚠️ 이미 처리됐거나 취소된 신청입니다.', embeds: [], components: [] })
-  }
-
-  delete recruit.pendingRequests[applicantId]
-  if (!recruit.participants.includes(applicantId)) recruit.participants.push(applicantId)
+  recruit.participants.push(userId)
   if (isFull(recruit)) recruit.status = 'closed'
   saveRecruit(recruit)
 
-  await interaction.update({
-    content: `✅ **${applicant.nickname}**님을 승인했습니다. (${recruit.participants.length}/${recruit.capacity}명)`,
-    embeds: [],
-    components: [],
-  })
-
+  await interaction.reply({ content: '✅ 참가 확정되었습니다!', ephemeral: true })
   await refreshRecruitMessage(interaction.client, recruit, components)
-
-  try {
-    const applicantUser = await interaction.client.users.fetch(applicantId)
-    await applicantUser.send(`✅ **${recruit.hostName}**님의 스쿼드 모집(${recruit.scheduledTime})에 참가가 승인되었습니다!`)
-  } catch (err) {
-    console.error(`[스쿼드예약] 신청자(${applicantId}) 승인 알림 DM 실패:`, err.message)
-  }
-}
-
-async function handleRejectButton(interaction, recruitId, applicantId, components) {
-  const recruit = getRecruit(recruitId)
-  if (!recruit) return interaction.update({ content: '❌ 존재하지 않는 모집글입니다.', embeds: [], components: [] })
-  if (interaction.user.id !== recruit.hostId) {
-    return interaction.reply({ content: '❌ 주최자만 거절할 수 있습니다.', ephemeral: true })
-  }
-  if (recruit.status === 'canceled') {
-    return interaction.update({ content: '❌ 이미 취소된 모집입니다.', embeds: [], components: [] })
-  }
-
-  const applicant = recruit.pendingRequests[applicantId]
-  if (!applicant) {
-    return interaction.update({ content: '⚠️ 이미 처리됐거나 취소된 신청입니다.', embeds: [], components: [] })
-  }
-
-  delete recruit.pendingRequests[applicantId]
-  saveRecruit(recruit)
-
-  await interaction.update({ content: `🚫 **${applicant.nickname}**님의 신청을 거절했습니다.`, embeds: [], components: [] })
-
-  try {
-    const applicantUser = await interaction.client.users.fetch(applicantId)
-    await applicantUser.send(`❌ **${recruit.hostName}**님의 스쿼드 모집(${recruit.scheduledTime}) 참가 신청이 거절되었습니다.`)
-  } catch (err) {
-    console.error(`[스쿼드예약] 신청자(${applicantId}) 거절 알림 DM 실패:`, err.message)
-  }
 }
 
 // ── 버튼: 모집 취소 (주최자 전용) ────────────────────────────────────────────
@@ -294,7 +195,6 @@ async function handleCancelButton(interaction, recruitId, components) {
   const notifyTargets = recruit.participants.filter((id) => id !== recruit.hostId)
 
   recruit.status = 'canceled'
-  recruit.pendingRequests = {}
   saveRecruit(recruit)
 
   await interaction.reply({ content: '🗑️ 모집을 취소했습니다.', ephemeral: true })
@@ -347,14 +247,12 @@ async function handleLeaveButton(interaction, recruitId, components) {
 
 // customId 라우팅 (index.js interactionCreate에서 호출)
 async function handleButton(interaction, components) {
-  const [prefix, action, recruitId, applicantId] = interaction.customId.split('|')
+  const [prefix, action, recruitId] = interaction.customId.split('|')
   if (prefix !== 'sq') return false
 
-  if (action === 'join')    await handleJoinButton(interaction, recruitId, components)
-  else if (action === 'leave')   await handleLeaveButton(interaction, recruitId, components)
-  else if (action === 'cancel')  await handleCancelButton(interaction, recruitId, components)
-  else if (action === 'approve') await handleApproveButton(interaction, recruitId, applicantId, components)
-  else if (action === 'reject')  await handleRejectButton(interaction, recruitId, applicantId, components)
+  if (action === 'join')        await handleJoinButton(interaction, recruitId, components)
+  else if (action === 'leave')  await handleLeaveButton(interaction, recruitId, components)
+  else if (action === 'cancel') await handleCancelButton(interaction, recruitId, components)
 
   return true
 }
