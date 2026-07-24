@@ -282,6 +282,7 @@ function MyApp({ Component, pageProps }) {
     || pathname.startsWith('/player/')
     || pathname.startsWith('/clan/')
     || pathname.startsWith('/weapon-test/')
+    || pathname.startsWith('/replay/')
 
   return (
     <SessionProvider session={pageProps.session}>
