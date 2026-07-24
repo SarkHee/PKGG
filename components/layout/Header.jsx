@@ -221,6 +221,7 @@ const handleSearchSubmit = async (e) => {
     { href: '/map-stats',      labelKey: 'nav.map_stats',      icon: '🗺️' },
     { href: '/maps',            labelKey: 'nav.maps',            icon: '🗺️' },
     { href: '/route-planner',  labelKey: 'nav.route_planner',  icon: '📍' },
+    { href: '/replay',         labelKey: 'nav.replay',         icon: '🎬' },
   ];
 
   const weaponLinks = [

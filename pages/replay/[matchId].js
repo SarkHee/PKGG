@@ -97,6 +97,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
+  const [showTip, setShowTip] = useState(false)
 
   const canvasRef = useRef(null)
   const mapImgRef = useRef(null)
@@ -104,6 +105,15 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
   const rafRef = useRef(null)
   const lastTsRef = useRef(null)
   const killLogRef = useRef(null)
+
+  // ── 컨트롤 안내 툴팁 (최초 1회만) ───────────────────────────────────────
+  useEffect(() => {
+    if (!localStorage.getItem('pkgg_replay_tip_seen')) setShowTip(true)
+  }, [])
+  const dismissTip = () => {
+    localStorage.setItem('pkgg_replay_tip_seen', '1')
+    setShowTip(false)
+  }
 
   // ── 데이터 로드 (접근 제어 통과한 경우에만) ────────────────────────────
   useEffect(() => {
@@ -396,6 +406,25 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
                   className="w-full h-full rounded-lg border border-gray-700 bg-gray-900"
                 />
               </div>
+
+              {/* 컨트롤 안내 툴팁 (최초 1회) */}
+              {showTip && (
+                <div className="mt-4 flex items-start gap-2 bg-blue-950/60 border border-blue-800 rounded-lg px-3 py-2.5 text-xs text-blue-200">
+                  <span className="text-base leading-none mt-0.5">💡</span>
+                  <ul className="flex-1 space-y-1 leading-relaxed">
+                    <li>▶ 버튼으로 재생/일시정지할 수 있어요</li>
+                    <li>타임라인을 드래그하면 원하는 시점으로 바로 이동합니다</li>
+                    <li>배속 버튼(1x~8x)으로 재생 속도를 조절할 수 있어요</li>
+                  </ul>
+                  <button
+                    onClick={dismissTip}
+                    className="text-blue-300 hover:text-white shrink-0 px-1"
+                    aria-label="안내 닫기"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               {/* 재생 컨트롤 */}
               <div className="mt-4 flex flex-wrap items-center gap-3">
