@@ -192,7 +192,7 @@ const PlayerHeader = ({
   const mmrSource = t('ph.mmr_source');
 
   // 이벤트 모드 필터 — matchType OR gameMode OR mapName 기반
-  const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom', 'arcade'])
+  const EVENT_MATCH_TYPES = new Set(['event', 'casual', 'airoyale', 'custom', 'arcade', 'training', 'trainingroom', 'tutorialatoz', 'seasonal'])
   const EVENT_GAME_MODE_KEYWORDS = ['tdm', 'ibr', 'arcade', 'training']
   const EVENT_MAP_KEYWORDS = ['_tdm_', '_training_', 'range_main', 'pillarcompound', 'boardwalk']
   const isEventMatch = (m) => {

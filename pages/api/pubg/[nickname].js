@@ -1723,6 +1723,7 @@ export default async function handler(req, res) {
         matchId,
         mode: modeKor,
         gameMode: matchData.data.attributes.gameMode, // 원본 gameMode 필드 추가
+        matchType: matchData.data.attributes.matchType, // 원본 matchType 필드 추가 (casual/custom/event 등 필터링용)
         modeType: modeType, // 경쟁전/일반 구분 추가
         playedAt: matchData.data.attributes.createdAt,
         matchTimestamp: new Date(matchData.data.attributes.createdAt).getTime(), // 타임스탬프로 변환
