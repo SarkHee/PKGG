@@ -45,6 +45,11 @@ export default function AdminDashboard() {
   const [restrictedForm,   setRestrictedForm]   = useState({ nickname: '', type: 'search_restricted', reason: '' });
   const [restrictedAdding, setRestrictedAdding] = useState(false);
 
+  // 검색 비활성화 유저 (본인 마이페이지 토글)
+  const [searchHidden,        setSearchHidden]        = useState([]);
+  const [searchHiddenLoading, setSearchHiddenLoading] = useState(false);
+  const [unhidingId,          setUnhidingId]          = useState(null);
+
   // 배치 실행
   const [batchRunning, setBatchRunning] = useState(false);
   const [batchResult,  setBatchResult]  = useState(null);
@@ -184,6 +189,32 @@ export default function AdminDashboard() {
       body: JSON.stringify({ id }),
     });
     if ((await res.json()).ok) setRestricted((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  // 검색 비활성화 유저 목록 로드
+  useEffect(() => {
+    if (!isAuthed || tab !== 'searchHidden') return;
+    setSearchHiddenLoading(true);
+    fetch('/api/admin/search-hidden-players', { headers: { 'x-admin-token': adminPw() } })
+      .then((r) => r.json())
+      .then((d) => setSearchHidden(d.list || []))
+      .catch(() => setSearchHidden([]))
+      .finally(() => setSearchHiddenLoading(false));
+  }, [isAuthed, tab]);
+
+  const handleForceUnhide = async (row) => {
+    if (!confirm(`${row.nickname}님의 검색 비활성화를 강제로 해제하시겠습니까?`)) return;
+    setUnhidingId(row.id);
+    try {
+      const res = await fetch('/api/admin/search-hidden-players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminPw() },
+        body: JSON.stringify({ nickname: row.nickname, shard: row.shard }),
+      });
+      if ((await res.json()).ok) setSearchHidden((prev) => prev.filter((r) => r.id !== row.id));
+    } finally {
+      setUnhidingId(null);
+    }
   };
 
   const adminPw = () => sessionStorage.getItem('admin_pw') || '';
@@ -391,6 +422,7 @@ export default function AdminDashboard() {
               { key: 'leaderRequests', label: '👑 리더 변경 요청' },
               { key: 'users',          label: '👤 구글 로그인 유저' },
               { key: 'restricted',     label: '🚫 검색 제한' },
+              { key: 'searchHidden',   label: '🔒 검색 비활성화' },
               { key: 'batch',          label: '⚙️ 배치 실행' },
               { key: 'newUsers',       label: '🆕 신규 유저' },
               { key: 'streamers',      label: '📡 스트리머 관리' },
@@ -732,6 +764,51 @@ export default function AdminDashboard() {
                           className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded border border-red-800/50 hover:border-red-700"
                         >
                           해제
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 검색 비활성화 유저 탭 (마이페이지 자가 토글) */}
+          {tab === 'searchHidden' && (
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <h1 className="text-xl font-bold">검색 비활성화 유저</h1>
+                <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">총 {searchHidden.length}명</span>
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                유저가 마이페이지에서 직접 "계정 검색 비활성화"를 켠 계정 목록입니다. 관리자 지정 "검색 제한"과는 별개입니다.
+              </p>
+
+              {searchHiddenLoading ? (
+                <div className="text-gray-500 text-sm">불러오는 중...</div>
+              ) : searchHidden.length === 0 ? (
+                <div className="text-gray-500 text-sm">검색을 비활성화한 유저 없음</div>
+              ) : (
+                <div className="space-y-2">
+                  {searchHidden.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-xl px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-700 text-gray-300">
+                          {r.shard === 'steam' ? '🖥️ Steam' : r.shard === 'kakao' ? '📱 Kakao' : r.shard}
+                        </span>
+                        <span className="font-mono text-white text-sm">{r.nickname}</span>
+                        <span className="text-xs text-gray-500">{r.email || '연동 계정 정보 없음'}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-600">
+                          {r.searchHiddenAt ? new Date(r.searchHiddenAt).toLocaleString('ko-KR') : '-'}
+                        </span>
+                        <button
+                          onClick={() => handleForceUnhide(r)}
+                          disabled={unhidingId === r.id}
+                          className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 px-2 py-1 rounded border border-red-800/50 hover:border-red-700"
+                        >
+                          {unhidingId === r.id ? '해제 중...' : '강제 해제'}
                         </button>
                       </div>
                     </div>

@@ -253,6 +253,8 @@ model PlayerCache {
   isBanned          Boolean   @default(false)
   bannedAt          DateTime?
   banCheckFailCount Int       @default(0)
+  isSearchHidden    Boolean   @default(false)
+  searchHiddenAt    DateTime?
 
   @@unique([nickname, pubgShardId])
   @@index([pubgPlayerId, avgDamage, isBanned, lastUpdated(sort: Desc)], name: "idx_player_cache_recent")

@@ -190,6 +190,15 @@ export default async function handler(req, res) {
       autoDetectPlayer(b),
     ])
 
+    // 검색 비활성화 계정은 비교 대상에서도 제외 (본인 예외 없음 — 로그인 세션과 무관한 순수 조회 API)
+    for (const info of [infoA, infoB]) {
+      const hidden = await prisma.playerCache.findFirst({
+        where: { pubgPlayerId: info.playerId, isSearchHidden: true },
+        select: { id: true },
+      })
+      if (hidden) throw new Error(`'${info.nickname}'은(는) 검색이 제한되어 찾을 수 없습니다.`)
+    }
+
     // 각 플랫폼의 현재 시즌 조회 (서로 다른 shard일 수 있음)
     const shards = [...new Set([infoA.shard, infoB.shard])]
     const seasonMap = {}

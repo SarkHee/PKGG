@@ -288,7 +288,7 @@ export default async function handler(req, res) {
     if (found.length === 0) return res.json({ results: [] })
 
     // ── Step 2: DB 스탯 보강 + 결과 조합 ────────────────────────────────
-    const results = await Promise.all(found.map(async entry => {
+    const rawResults = await Promise.all(found.map(async entry => {
       const { accountId, shard: apiShard, nickname: nick, matchCount } = entry
 
       // DB에서 accountId 또는 닉네임으로 스탯 조회
@@ -304,8 +304,12 @@ export default async function handler(req, res) {
           id: true, pubgPlayerId: true, pubgShardId: true,
           avgDamage: true, avgKills: true, avgAssists: true, avgSurviveTime: true,
           winRate: true, top10Rate: true, style: true, lastUpdated: true, roundsPlayed: true,
+          isSearchHidden: true,
         },
       })
+
+      // 본인이 검색 노출을 꺼둔 계정은 검색 결과에서 제외 (누가 검색하든 예외 없음)
+      if (cache?.isSearchHidden) return null
 
       // findPlayerByName이 cross-play 보정 로직 포함 → API shard 신뢰
       // (kakao 유저가 steam으로 잘못 나오는 경우를 dedup 로직이 이미 처리)
@@ -328,6 +332,7 @@ export default async function handler(req, res) {
       }
     }))
 
+    const results = rawResults.filter(Boolean)
     const payload = { results }
 
     // Redis에 결과 저장 (fire-and-forget, shardFilter 있을 때만)

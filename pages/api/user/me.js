@@ -16,6 +16,20 @@ export default async function handler(req, res) {
     });
     if (!authUser) return res.status(404).json({ error: 'User not found' });
 
+    // 연동 계정별 검색 비활성화 상태 표시 (마이페이지 토글 UI용)
+    if (authUser.pubgAccounts.length > 0) {
+      const caches = await prisma.playerCache.findMany({
+        where: {
+          OR: authUser.pubgAccounts.map((a) => ({ nickname: { equals: a.nickname, mode: 'insensitive' }, pubgShardId: a.platform })),
+        },
+        select: { nickname: true, pubgShardId: true, isSearchHidden: true },
+      });
+      authUser.pubgAccounts = authUser.pubgAccounts.map((a) => {
+        const cache = caches.find((c) => c.nickname.toLowerCase() === a.nickname.toLowerCase() && c.pubgShardId === a.platform);
+        return { ...a, isSearchHidden: cache?.isSearchHidden ?? false };
+      });
+    }
+
     // 대표 계정의 클랜 정보 조회
     let clanData = null;
     if (authUser.mainAccountId) {

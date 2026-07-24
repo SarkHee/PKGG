@@ -540,6 +540,7 @@ export default function MyPage() {
   const [linkMsg, setLinkMsg]     = useState(null);
   const [settingMain, setSettingMain] = useState(false);
   const [unlinking, setUnlinking] = useState(null); // 해제 진행 중인 accountId
+  const [togglingHidden, setTogglingHidden] = useState(null); // 검색 비활성화 토글 진행 중인 accountId
   const [playerStats, setPlayerStats]   = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [clanLeaderLoading, setClanLeaderLoading] = useState(false);
@@ -597,6 +598,20 @@ export default function MyPage() {
     setUnlinking(acc.id);
     try { await fetch('/api/user/unlink-pubg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: acc.id }) }); fetchUser(); }
     finally { setUnlinking(null); }
+  };
+
+  const handleToggleSearchHidden = async (acc) => {
+    setTogglingHidden(acc.id);
+    try {
+      await fetch('/api/user/toggle-search-hidden', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: acc.id, hidden: !acc.isSearchHidden }),
+      });
+      fetchUser();
+    } finally {
+      setTogglingHidden(null);
+    }
   };
 
   const handleSetClanLeader = async () => {
@@ -738,36 +753,63 @@ export default function MyPage() {
                 {userData.pubgAccounts.map((acc) => {
                   const isMain = acc.id === userData.mainAccountId;
                   return (
-                    <div key={acc.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                    <div key={acc.id} className={`p-3 rounded-xl border transition-all ${
                       isMain ? 'border-blue-500/40 bg-blue-500/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
                     }`}>
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">
-                          {acc.platform === 'steam' ? '🖥️' : acc.platform === 'kakao' ? '📱' : '🎮'}
-                        </span>
-                        <div>
-                          <Link href={`/player/${acc.platform}/${acc.nickname}`}
-                            className="text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-blue-400 dark:hover:text-blue-400 transition-colors">
-                            {acc.nickname}
-                          </Link>
-                          <div className="text-xs text-gray-500">
-                            {acc.platform === 'steam' ? 'Steam (PC)' : acc.platform === 'kakao' ? 'Kakao (PC)' : acc.platform === 'psn' ? 'PlayStation' : acc.platform === 'xbox' ? 'Xbox' : acc.platform}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">
+                            {acc.platform === 'steam' ? '🖥️' : acc.platform === 'kakao' ? '📱' : '🎮'}
+                          </span>
+                          <div>
+                            <Link href={`/player/${acc.platform}/${acc.nickname}`}
+                              className="text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-blue-400 dark:hover:text-blue-400 transition-colors">
+                              {acc.nickname}
+                            </Link>
+                            <div className="text-xs text-gray-500">
+                              {acc.platform === 'steam' ? 'Steam (PC)' : acc.platform === 'kakao' ? 'Kakao (PC)' : acc.platform === 'psn' ? 'PlayStation' : acc.platform === 'xbox' ? 'Xbox' : acc.platform}
+                            </div>
                           </div>
+                          {isMain && <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">{t('mypage.main_badge')}</span>}
                         </div>
-                        {isMain && <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">{t('mypage.main_badge')}</span>}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {!isMain && (
-                          <button onClick={() => handleSetMain(acc.id)} disabled={settingMain}
-                            className="text-xs text-blue-400 hover:text-blue-300 font-semibold disabled:opacity-50 transition-colors">
-                            {t('mypage.set_main')}
+                        <div className="flex items-center gap-3">
+                          {!isMain && (
+                            <button onClick={() => handleSetMain(acc.id)} disabled={settingMain}
+                              className="text-xs text-blue-400 hover:text-blue-300 font-semibold disabled:opacity-50 transition-colors">
+                              {t('mypage.set_main')}
+                            </button>
+                          )}
+                          <button onClick={() => handleUnlinkPubg(acc)} disabled={unlinking === acc.id}
+                            className="text-xs text-red-400 hover:text-red-300 font-semibold disabled:opacity-50 transition-colors">
+                            {unlinking === acc.id ? '해제 중...' : '연동 해제'}
                           </button>
-                        )}
-                        <button onClick={() => handleUnlinkPubg(acc)} disabled={unlinking === acc.id}
-                          className="text-xs text-red-400 hover:text-red-300 font-semibold disabled:opacity-50 transition-colors">
-                          {unlinking === acc.id ? '해제 중...' : '연동 해제'}
+                        </div>
+                      </div>
+
+                      {/* 계정 검색 비활성화 토글 */}
+                      <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-200/60 dark:border-gray-700/60">
+                        <p className="text-[11px] text-gray-500 dark:text-gray-500">
+                          해당 버튼은 타인 검색을 제한합니다
+                        </p>
+                        <button
+                          onClick={() => handleToggleSearchHidden(acc)}
+                          disabled={togglingHidden === acc.id}
+                          role="switch"
+                          aria-checked={acc.isSearchHidden}
+                          className={`relative inline-flex items-center h-6 w-11 flex-shrink-0 rounded-full transition-colors disabled:opacity-50 ${
+                            acc.isSearchHidden ? 'bg-red-500' : 'bg-gray-300 dark:bg-gray-600'
+                          }`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            acc.isSearchHidden ? 'translate-x-6' : 'translate-x-1'
+                          }`} />
                         </button>
                       </div>
+                      {acc.isSearchHidden && (
+                        <p className="text-[11px] text-red-400 mt-1.5">
+                          🔒 계정 검색 비활성화 — 검색 결과와 전적 페이지가 타인에게 노출되지 않습니다
+                        </p>
+                      )}
                     </div>
                   );
                 })}

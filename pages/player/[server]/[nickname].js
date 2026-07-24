@@ -669,7 +669,7 @@ function setCachedPlayer(key, data) {
   } catch {}
 }
 
-export default function PlayerPage({ playerData: ssrData, error, isBanned, renamedTo, dataSource }) {
+export default function PlayerPage({ playerData: ssrData, error, isBanned, isSearchHidden, renamedTo, dataSource }) {
   const { t } = useT();
   const router = useRouter();
   const { server, nickname } = router.query;
@@ -864,6 +864,40 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, renam
                   메인으로
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (isSearchHidden) {
+    return (
+      <>
+        <Head>
+          <meta name="robots" content="noindex, follow" />
+        </Head>
+        <Header />
+        <div className="container mx-auto p-6 min-h-screen">
+          <div className="max-w-2xl mx-auto mt-20">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 border border-gray-300 dark:border-gray-700 shadow-lg text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">🔒</span>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                  검색이 제한된 계정입니다
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  계정 소유자가 검색 노출을 비활성화했습니다.
+                </p>
+              </div>
+              <button
+                onClick={() => router.push('/')}
+                className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+              >
+                메인으로
+              </button>
             </div>
           </div>
         </div>
@@ -1200,7 +1234,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, renam
           return placement === 1 || match.win === true
         });
       case '이벤트': {
-        const EVENT_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom']);
+        const EVENT_TYPES = new Set(['event', 'casual', 'airoyale', 'arcade', 'custom', 'training', 'trainingroom', 'tutorialatoz', 'seasonal']);
         return matches.filter((match) => {
           const mt = (match.matchType || '').toLowerCase();
           if (EVENT_TYPES.has(mt)) return true;
@@ -2539,7 +2573,7 @@ async function getPlayerFromDB(nickname, server) {
   }
 }
 
-export async function getServerSideProps({ params, query }) {
+export async function getServerSideProps({ params, query, req, res }) {
   const { server, nickname } = params;
   const forceRefresh = query.force === '1';
   const { cachedPubgFetch, TTL, PubgApiError, getPlayerDataCache, setPlayerDataCache, invalidateCache } = await import('../../../utils/pubgApiCache');
@@ -2549,6 +2583,36 @@ export async function getServerSideProps({ params, query }) {
   const prisma = new PrismaClient();
   const PUBG_BASE = 'https://api.pubg.com/shards';
   const shards = ['steam', 'kakao', 'psn', 'xbox'];
+
+  // ── 검색 비활성화 계정 차단 (본인이 로그인해서 자기 페이지 보는 경우는 예외) ──
+  // 무거운 PUBG API/ban 복구 로직보다 먼저 가볍게 체크해서, 막힌 페이지는 불필요한 API 호출 없이 즉시 반환한다.
+  try {
+    const hiddenCache = await prisma.playerCache.findFirst({
+      where: { nickname: { equals: nickname, mode: 'insensitive' }, pubgShardId: server, isSearchHidden: true },
+      select: { id: true },
+    });
+    if (hiddenCache) {
+      const { getServerSession } = await import('next-auth/next');
+      const { authOptions } = await import('../../api/auth/[...nextauth]');
+      const session = await getServerSession(req, res, authOptions);
+      let isOwner = false;
+      if (session?.user?.googleId) {
+        const authUser = await prisma.authUser.findUnique({
+          where: { googleId: session.user.googleId },
+          include: { pubgAccounts: true },
+        });
+        isOwner = (authUser?.pubgAccounts || []).some(
+          (a) => a.nickname.toLowerCase() === nickname.toLowerCase() && a.platform === server
+        );
+      }
+      if (!isOwner) {
+        await prisma.$disconnect();
+        return { props: { playerData: null, error: null, isSearchHidden: true, dataSource: null } };
+      }
+    }
+  } catch (e) {
+    console.warn('[SSR] 검색 비활성화 체크 실패(무시하고 진행):', e.message);
+  }
 
   // ── force=1: Redis + 인메모리 캐시 즉시 무효화 ──
   if (forceRefresh) {
