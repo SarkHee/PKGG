@@ -56,16 +56,25 @@ function toSec(iso, refMs) {
 }
 
 // 원본 텔레메트리 → 경량 리플레이 JSON (위치 10초 간격 + 자기장 + 킬 이벤트만 추출)
+// 매치 시작(t=0, 비행기 탑승 전 대기)부터 착지 이후까지 위치 전 구간 포함
 function buildReplayJson(telemetry, matchId, mapName) {
   if (!Array.isArray(telemetry) || telemetry.length === 0) return null
 
-  const refMs = new Date(telemetry[0]._D).getTime()
+  // telemetry[0]이 항상 시간순으로 가장 이른 이벤트는 아님(예: LogMatchDefinition이 배열 맨 앞이지만
+  // 실제 타임스탬프는 더 나중인 경우가 있음) — 전체 이벤트 중 가장 이른 시각을 t=0 기준으로 사용
+  let refMs = Infinity
+  for (const e of telemetry) {
+    if (!e._D) continue
+    const ms = new Date(e._D).getTime()
+    if (ms < refMs) refMs = ms
+  }
+  if (!Number.isFinite(refMs)) refMs = new Date(telemetry[0]._D).getTime()
+
   const roster = extractRoster(telemetry)
 
   const positions = []
   for (const e of telemetry) {
     if (e._T !== 'LogPlayerPosition') continue
-    if ((e.common?.isGame ?? 1) < 1) continue // 비행기/낙하산 구간 제외
     const ch = e.character
     const loc = ch?.location
     if (!ch?.accountId?.startsWith('account.') || !loc) continue
@@ -77,6 +86,44 @@ function buildReplayJson(telemetry, matchId, mapName) {
       hp: Math.round(ch.health ?? 0),
       bz: !!ch.isInBlueZone,
       dbno: !!ch.isDBNO,
+      iv: !!ch.isInVehicle, // 비행기(탑승) 판별용 — 프론트에서 착지 전 상태와 조합해 낙하산/비행기 단계 구분
+    })
+  }
+
+  // 비행기 항로 — 낙하산 투입 전(isGame<1) 구간 중 탑승 상태(iv) 위치들의 시작/끝 지점으로
+  // 직선 항로를 근사 (실제 항로는 일직선이라 두 지점만으로 충분)
+  let planePath = null
+  {
+    const planePts = []
+    for (const e of telemetry) {
+      if (e._T !== 'LogPlayerPosition') continue
+      if ((e.common?.isGame ?? 1) >= 1) continue
+      const ch = e.character
+      if (!ch?.isInVehicle || !ch.location) continue
+      planePts.push({ t: toSec(e._D, refMs), x: ch.location.x, y: ch.location.y })
+    }
+    if (planePts.length >= 2) {
+      planePts.sort((a, b) => a.t - b.t)
+      const first = planePts[0]
+      const last = planePts[planePts.length - 1]
+      planePath = {
+        t1: first.t, x1: Math.round(first.x), y1: Math.round(first.y),
+        t2: last.t, x2: Math.round(last.x), y2: Math.round(last.y),
+      }
+    }
+  }
+
+  // 착지 이벤트 (낙하산 하강 종료 시점/위치)
+  const landings = []
+  for (const e of telemetry) {
+    if (e._T !== 'LogParachuteLanding') continue
+    const ch = e.character
+    if (!ch?.accountId?.startsWith('account.') || !ch.location) continue
+    landings.push({
+      t: toSec(e._D, refMs),
+      id: ch.accountId,
+      x: Math.round(ch.location.x),
+      y: Math.round(ch.location.y),
     })
   }
 
@@ -117,6 +164,7 @@ function buildReplayJson(telemetry, matchId, mapName) {
   }
 
   // 넉다운(LogPlayerMakeGroggy) — 확인사살(kills)과 구분해서 기록
+  // 가해자→피해자 방향선 표시를 위해 양쪽 좌표 모두 저장 (kills와 동일한 형태)
   const downs = []
   for (const e of telemetry) {
     if (e._T !== 'LogPlayerMakeGroggy') continue
@@ -129,21 +177,63 @@ function buildReplayJson(telemetry, matchId, mapName) {
       victim: victim.accountId,
       x: victim.location ? Math.round(victim.location.x) : null,
       y: victim.location ? Math.round(victim.location.y) : null,
+      ax: attacker?.location ? Math.round(attacker.location.x) : null,
+      ay: attacker?.location ? Math.round(attacker.location.y) : null,
       weapon: e.damageCauserName || null,
     })
   }
 
+  // 피격(LogPlayerTakeDamage) — 넉다운/확인사살로 이어지지 않은 일반 피격만.
+  // 가해자·피해자 모두 실제 플레이어 + damage>0 + 자해 제외.
+  // 같은 (가해자,피해자,초) 조합이 kills/downs에 이미 있으면 제외 — 그 타격이 곧 킬/넉다운이므로
+  // 파란 피격선과 빨강/노랑 킬·다운선이 같은 자리에 겹쳐 그려지는 중복을 막는다.
+  const lethalHitKeys = new Set()
+  for (const k of kills) {
+    if (k.killer) lethalHitKeys.add(`${k.killer}|${k.victim}|${k.t}`)
+  }
+  for (const d of downs) {
+    if (d.attacker) lethalHitKeys.add(`${d.attacker}|${d.victim}|${d.t}`)
+  }
+  const hits = []
+  for (const e of telemetry) {
+    if (e._T !== 'LogPlayerTakeDamage') continue
+    if (!((e.damage ?? 0) > 0)) continue
+    const attacker = e.attacker
+    const victim = e.victim
+    if (!attacker?.accountId?.startsWith('account.')) continue
+    if (!victim?.accountId?.startsWith('account.')) continue
+    if (attacker.accountId === victim.accountId) continue
+    if (!attacker.location || !victim.location) continue
+    const t = toSec(e._D, refMs)
+    if (lethalHitKeys.has(`${attacker.accountId}|${victim.accountId}|${t}`)) continue
+    hits.push({
+      t,
+      attacker: attacker.accountId,
+      victim: victim.accountId,
+      ax: Math.round(attacker.location.x),
+      ay: Math.round(attacker.location.y),
+      vx: Math.round(victim.location.x),
+      vy: Math.round(victim.location.y),
+    })
+  }
+
   const duration = positions.length ? Math.max(...positions.map((p) => p.t)) : 0
+  // 재생 시작 기준점 — 비행기 탑승 시점(로비/대기 구간 데이터는 유지하되 재생은 여기서부터 시작)
+  const boardingStart = planePath ? planePath.t1 : 0
 
   return {
     matchId,
     mapName: mapName || null,
     duration,
+    boardingStart,
     players: [...roster.values()],
     positions,
     zones,
     kills,
     downs,
+    hits,
+    landings,
+    planePath,
   }
 }
 

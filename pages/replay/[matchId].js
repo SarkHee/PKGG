@@ -43,8 +43,16 @@ export async function getServerSideProps({ params, req, res }) {
 }
 
 const CANVAS_SIZE = 800
-const EFFECT_FADE_SEC = 5
+const ENGAGEMENT_FADE_SEC = 1.2 // 킬/넉다운 방향선 노출 시간 — 짧게 유지해 여러 건 겹쳐도 지저분해지지 않게
+const HIT_FADE_SEC = 0.6 // 피격(비치명) 방향선 — 킬/넉다운보다 훨씬 빈번해서 더 짧게
 const SPEEDS = [1, 2, 4, 8]
+const MIN_MARKER_RADIUS = 1.5 // 확대해도 이 이하(월드 단위)로는 작아지지 않음
+
+// 확대해도 화면상 크기가 거의 일정하게 유지되도록 반지름을 zoom 배율에 반비례시킴
+// (ctx가 scale만큼 곱해서 그리므로, 여기서 미리 나눠두면 최종 화면 픽셀 크기가 일정해짐)
+function scaledRadius(baseRadius, zoomScale) {
+  return Math.max(MIN_MARKER_RADIUS, baseRadius / zoomScale)
+}
 
 // 팀 ID → 색상 (골든 앵글 회전으로 팀 수가 많아도 시각적으로 구분되게)
 function teamColor(teamId) {
@@ -98,6 +106,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
   const [isPlaying, setIsPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
   const [showTip, setShowTip] = useState(false)
+  const [sidePanelTab, setSidePanelTab] = useState('squads') // 'squads' | 'kills'
 
   const canvasRef = useRef(null)
   const mapImgRef = useRef(null)
@@ -105,6 +114,66 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
   const rafRef = useRef(null)
   const lastTsRef = useRef(null)
   const killLogRef = useRef(null)
+
+  // ── 확대/축소 + 드래그 이동 ──────────────────────────────────────────────
+  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 })
+  const draggingRef = useRef(false)
+  const dragStartRef = useRef(null) // { clientX, clientY, baseX, baseY }
+
+  const resetView = () => setTransform({ scale: 1, x: 0, y: 0 })
+
+  const handleCanvasMouseDown = (e) => {
+    draggingRef.current = true
+    dragStartRef.current = { clientX: e.clientX, clientY: e.clientY, baseX: transform.x, baseY: transform.y }
+  }
+
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (!draggingRef.current || !dragStartRef.current) return
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const rect = canvas.getBoundingClientRect()
+      const ratio = CANVAS_SIZE / rect.width
+      const { clientX, clientY, baseX, baseY } = dragStartRef.current
+      setTransform((prev) => ({
+        ...prev,
+        x: baseX + (e.clientX - clientX) * ratio,
+        y: baseY + (e.clientY - clientY) * ratio,
+      }))
+    }
+    const onMouseUp = () => {
+      draggingRef.current = false
+      dragStartRef.current = null
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
+
+  // 휠 확대/축소 — 커서 위치를 기준으로 확대 (React onWheel은 passive라 preventDefault 안 먹어서 네이티브로 부착)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const onWheel = (e) => {
+      e.preventDefault()
+      const rect = canvas.getBoundingClientRect()
+      const ratio = CANVAS_SIZE / rect.width
+      const mx = (e.clientX - rect.left) * ratio
+      const my = (e.clientY - rect.top) * ratio
+      setTransform((prev) => {
+        const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15
+        const newScale = Math.min(8, Math.max(1, prev.scale * factor))
+        const worldX = (mx - prev.x) / prev.scale
+        const worldY = (my - prev.y) / prev.scale
+        return { scale: newScale, x: mx - worldX * newScale, y: my - worldY * newScale }
+      })
+    }
+    canvas.addEventListener('wheel', onWheel, { passive: false })
+    return () => canvas.removeEventListener('wheel', onWheel)
+  }, [replayData]) // replayData 로드 후에야 canvas가 실제로 마운트되므로 이 시점에 다시 부착
 
   // ── 컨트롤 안내 툴팁 (최초 1회만) ───────────────────────────────────────
   useEffect(() => {
@@ -127,7 +196,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
       })
       .then((data) => {
         setReplayData(data)
-        setCurrentTime(0)
+        setCurrentTime(data.boardingStart ?? 0) // 로비/대기 구간은 스킵하고 비행기 탑승 시점부터 재생 시작
         setLoading(false)
       })
       .catch((err) => {
@@ -177,6 +246,25 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
     return map
   }, [replayData])
 
+  // 각 플레이어의 착지 시각/위치 (LogParachuteLanding 기준) — 이전까지는 비행기/낙하산 단계
+  const landingByPlayer = useMemo(() => {
+    const map = new Map()
+    for (const l of replayData?.landings ?? []) {
+      if (l.id && !map.has(l.id)) map.set(l.id, l)
+    }
+    return map
+  }, [replayData])
+
+  // 각 플레이어가 처음 비행기에 탑승한 시각(iv=true 최초 시점) — 낙하산 단계 판별용
+  const boardTimeByPlayer = useMemo(() => {
+    const map = new Map()
+    for (const [id, snapshots] of positionsByPlayer) {
+      const first = snapshots.find((s) => s.iv)
+      if (first) map.set(id, first.t)
+    }
+    return map
+  }, [positionsByPlayer])
+
   // 킬로그: 시간순, 재생 시점까지 발생한 것만
   const killLog = useMemo(() => {
     return [...(replayData?.kills ?? [])].sort((a, b) => a.t - b.t)
@@ -194,6 +282,42 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
     )
     return me?.teamId ?? null
   }, [nickname, replayData])
+
+  // 팀별 그룹핑 (본인 소속 팀을 맨 위로)
+  const squadGroups = useMemo(() => {
+    const map = new Map()
+    for (const p of replayData?.players ?? []) {
+      if (!map.has(p.teamId)) map.set(p.teamId, [])
+      map.get(p.teamId).push(p)
+    }
+    return [...map.entries()]
+      .map(([teamId, members]) => ({ teamId, members }))
+      .sort((a, b) => {
+        if (a.teamId === highlightTeamId) return -1
+        if (b.teamId === highlightTeamId) return 1
+        return a.teamId - b.teamId
+      })
+  }, [replayData, highlightTeamId])
+
+  // 특정 팀 위치로 카메라(확대/이동) 포커스 이동
+  const focusOnTeam = (teamId) => {
+    const members = (replayData?.players ?? []).filter((p) => p.teamId === teamId)
+    const pts = []
+    for (const m of members) {
+      const snapshots = positionsByPlayer.get(m.id)
+      if (!snapshots) continue
+      const pos = interpAt(snapshots, currentTime, ['x', 'y'])
+      if (pos) pts.push(pos)
+    }
+    if (pts.length === 0) return
+    const avgX = pts.reduce((s, p) => s + p.x, 0) / pts.length
+    const avgY = pts.reduce((s, p) => s + p.y, 0) / pts.length
+    const maxCoord = getMaxCoord(replayData.mapName)
+    const cx = (avgX / maxCoord) * CANVAS_SIZE
+    const cy = (avgY / maxCoord) * CANVAS_SIZE
+    const scale = 4
+    setTransform({ scale, x: CANVAS_SIZE / 2 - cx * scale, y: CANVAS_SIZE / 2 - cy * scale })
+  }
 
   // 킬로그 새 항목 추가 시 자동 스크롤
   useEffect(() => {
@@ -233,7 +357,10 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
     const maxCoord = getMaxCoord(mapName)
     const toPx = (x, y) => ({ px: (x / maxCoord) * CANVAS_SIZE, py: (y / maxCoord) * CANVAS_SIZE })
 
+    // 물리 캔버스 전체를 지운 뒤(항상 단위 변환으로), 확대/이동 변환을 적용해서 그 안에서만 그린다
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE)
+    ctx.setTransform(transform.scale, 0, 0, transform.scale, transform.x, transform.y)
 
     if (mapImgReady && mapImgRef.current) {
       ctx.drawImage(mapImgRef.current, 0, 0, CANVAS_SIZE, CANVAS_SIZE)
@@ -265,7 +392,36 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
       ctx.setLineDash([])
     }
 
-    // 플레이어 위치
+    // 비행기 항로 (착지 전 구간에서만 표시) — 실선 궤적 + 이동하는 비행기 아이콘
+    const planePath = replayData.planePath
+    if (planePath && currentTime <= planePath.t2 + 15) {
+      const start = toPx(planePath.x1, planePath.y1)
+      const end = toPx(planePath.x2, planePath.y2)
+      ctx.beginPath()
+      ctx.moveTo(start.px, start.py)
+      ctx.lineTo(end.px, end.py)
+      ctx.strokeStyle = 'rgba(226,232,240,0.55)'
+      ctx.lineWidth = 1.5
+      ctx.setLineDash([4, 4])
+      ctx.stroke()
+      ctx.setLineDash([])
+
+      const ratio = Math.max(0, Math.min(1, (currentTime - planePath.t1) / ((planePath.t2 - planePath.t1) || 1)))
+      const px = planePath.x1 + (planePath.x2 - planePath.x1) * ratio
+      const py = planePath.y1 + (planePath.y2 - planePath.y1) * ratio
+      const planePx = toPx(px, py)
+      ctx.save()
+      ctx.translate(planePx.px, planePx.py)
+      ctx.rotate(Math.atan2(end.py - start.py, end.px - start.px))
+      ctx.beginPath()
+      ctx.moveTo(9, 0); ctx.lineTo(-7, 5); ctx.lineTo(-4, 0); ctx.lineTo(-7, -5)
+      ctx.closePath()
+      ctx.fillStyle = '#e2e8f0'
+      ctx.fill()
+      ctx.restore()
+    }
+
+    // 플레이어 위치 — 착지 전(비행기 탑승/낙하산 하강)과 착지 후를 구분해서 표시
     for (const player of replayData.players) {
       const snapshots = positionsByPlayer.get(player.id)
       const deathT = deathTimeByPlayer.get(player.id)
@@ -278,38 +434,100 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
       if (!pos) continue
       const { px, py } = toPx(pos.x, pos.y)
 
+      const landing = landingByPlayer.get(player.id)
+      const boardT = boardTimeByPlayer.get(player.id)
+      const hasLanded = landing != null && currentTime >= landing.t
+      const isFalling = !hasLanded && boardT != null && currentTime >= boardT && !pos.iv
+      const isOnPlane = !hasLanded && pos.iv
+
+      if (isOnPlane) continue // 비행기 탑승 중엔 위쪽의 공용 비행기 아이콘 하나로만 표시 (개별 점은 생략)
+
+      if (isFalling) {
+        // 낙하산 하강 중 — 팀 색 다이아몬드 마커
+        const r = scaledRadius(isHighlight ? 7 : 5, transform.scale)
+        ctx.beginPath()
+        ctx.moveTo(px, py - r); ctx.lineTo(px + r, py); ctx.lineTo(px, py + r); ctx.lineTo(px - r, py)
+        ctx.closePath()
+        ctx.fillStyle = teamColor(player.teamId)
+        ctx.fill()
+        ctx.lineWidth = scaledRadius(isHighlight ? 3 : 1.5, transform.scale)
+        ctx.strokeStyle = isHighlight ? '#ffffff' : 'rgba(0,0,0,0.6)'
+        ctx.stroke()
+        continue
+      }
+
       ctx.beginPath()
-      ctx.arc(px, py, isHighlight ? 7 : 5, 0, Math.PI * 2)
+      ctx.arc(px, py, scaledRadius(isHighlight ? 7 : 5, transform.scale), 0, Math.PI * 2)
       ctx.fillStyle = pos.dbno ? 'rgba(234,88,12,0.9)' : teamColor(player.teamId)
       ctx.fill()
-      ctx.lineWidth = isHighlight ? 3 : 1.5
+      ctx.lineWidth = scaledRadius(isHighlight ? 3 : 1.5, transform.scale)
       ctx.strokeStyle = isHighlight ? '#ffffff' : 'rgba(0,0,0,0.6)'
       ctx.stroke()
     }
 
-    // 킬 이펙트: 넉다운(노란 X) / 확인사살(빨간 X) — 발생 후 5초간 페이드아웃
-    const drawEffectX = (x, y, t, color) => {
-      const fade = 1 - (currentTime - t) / EFFECT_FADE_SEC
-      if (fade <= 0 || fade > 1) return
-      const { px, py } = toPx(x, y)
-      ctx.globalAlpha = fade
-      ctx.strokeStyle = color
-      ctx.lineWidth = 3
+    // 착지 이펙트 — 착지 지점에 잠깐 옅어지는 흰 링 (낙하산 하강 종료 표시)
+    // 마커와 동일하게 확대해도 화면상 크기가 일정하도록 scaledRadius 적용 (미적용 시 확대 시 거대한 흰 원으로 보이는 버그 있었음)
+    for (const l of replayData.landings ?? []) {
+      const fade = 1 - (currentTime - l.t) / 3
+      if (fade <= 0 || fade > 1) continue
+      const { px, py } = toPx(l.x, l.y)
+      ctx.globalAlpha = fade * 0.6
+      ctx.strokeStyle = '#e2e8f0'
+      ctx.lineWidth = scaledRadius(1, transform.scale)
       ctx.beginPath()
-      ctx.moveTo(px - 7, py - 7); ctx.lineTo(px + 7, py + 7)
-      ctx.moveTo(px + 7, py - 7); ctx.lineTo(px - 7, py + 7)
+      ctx.arc(px, py, scaledRadius(3 + (1 - fade) * 4, transform.scale), 0, Math.PI * 2)
       ctx.stroke()
       ctx.globalAlpha = 1
     }
+
+    // 교전 이펙트: 가해자 → 피해자 방향선 + 화살촉 (피격=파랑, 넉다운=노랑, 확인사살=빨강)
+    // 선 굵기/화살촉 크기는 확대와 무관하게 화면상 일정하게 유지
+    const drawEngagementLine = (ax, ay, vx, vy, t, color, fadeSec, sizeScale = 1) => {
+      const fade = 1 - (currentTime - t) / fadeSec
+      if (fade <= 0 || fade > 1) return
+      if (ax == null || ay == null || vx == null || vy == null) return
+      const a = toPx(ax, ay)
+      const v = toPx(vx, vy)
+      const angle = Math.atan2(v.py - a.py, v.px - a.px)
+      const lineW = scaledRadius(2.5 * sizeScale, transform.scale)
+      const headLen = scaledRadius(9 * sizeScale, transform.scale)
+
+      ctx.globalAlpha = fade
+      ctx.strokeStyle = color
+      ctx.fillStyle = color
+      ctx.lineWidth = lineW
+      ctx.beginPath()
+      ctx.moveTo(a.px, a.py)
+      ctx.lineTo(v.px, v.py)
+      ctx.stroke()
+
+      // 피해자 쪽 화살촉
+      ctx.save()
+      ctx.translate(v.px, v.py)
+      ctx.rotate(angle)
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.lineTo(-headLen, headLen * 0.5)
+      ctx.lineTo(-headLen, -headLen * 0.5)
+      ctx.closePath()
+      ctx.fill()
+      ctx.restore()
+      ctx.globalAlpha = 1
+    }
+    // 피격 — 킬/넉다운보다 훨씬 빈번해서 짧게(0.6초)+살짝 얇게 표시해 화면이 지저분해지지 않도록 함
+    for (const h of replayData.hits ?? []) {
+      if (h.t > currentTime) continue
+      drawEngagementLine(h.ax, h.ay, h.vx, h.vy, h.t, '#38bdf8', HIT_FADE_SEC, 0.75)
+    }
     for (const d of replayData.downs ?? []) {
-      if (d.x == null || d.y == null || d.t > currentTime) continue
-      drawEffectX(d.x, d.y, d.t, '#facc15') // 넉다운 = 노란색
+      if (d.t > currentTime) continue
+      drawEngagementLine(d.ax, d.ay, d.x, d.y, d.t, '#facc15', ENGAGEMENT_FADE_SEC) // 넉다운 = 노란색
     }
     for (const k of replayData.kills ?? []) {
-      if (k.kx == null || k.ky == null || k.t > currentTime) continue
-      drawEffectX(k.kx, k.ky, k.t, '#ef4444') // 확인사살 = 빨간색
+      if (k.t > currentTime) continue
+      drawEngagementLine(k.ax, k.ay, k.kx, k.ky, k.t, '#ef4444', ENGAGEMENT_FADE_SEC) // 확인사살 = 빨간색
     }
-  }, [currentTime, replayData, mapImgReady, positionsByPlayer, zonesSorted, deathTimeByPlayer, highlightTeamId])
+  }, [currentTime, replayData, mapImgReady, positionsByPlayer, zonesSorted, deathTimeByPlayer, highlightTeamId, landingByPlayer, boardTimeByPlayer, transform])
 
   const handleSeek = (e) => {
     setCurrentTime(Number(e.target.value))
@@ -403,9 +621,18 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
                   ref={canvasRef}
                   width={CANVAS_SIZE}
                   height={CANVAS_SIZE}
-                  className="w-full h-full rounded-lg border border-gray-700 bg-gray-900"
+                  onMouseDown={handleCanvasMouseDown}
+                  className="w-full h-full rounded-lg border border-gray-700 bg-gray-900 cursor-grab active:cursor-grabbing"
                 />
+                <button
+                  onClick={resetView}
+                  className="absolute top-2 right-2 px-2.5 py-1 text-xs rounded-md bg-gray-900/80 border border-gray-700 text-gray-300 hover:bg-gray-800"
+                  title="확대/이동 초기화"
+                >
+                  🔄 리셋
+                </button>
               </div>
+              <p className="text-[11px] text-gray-500 mt-1.5">마우스 휠로 확대/축소, 드래그로 지도를 이동할 수 있어요</p>
 
               {/* 컨트롤 안내 툴팁 (최초 1회) */}
               {showTip && (
@@ -464,31 +691,89 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
               </div>
             </div>
 
-            {/* 킬로그 사이드 패널 */}
+            {/* 사이드 패널: 스쿼드 목록 / 킬로그 탭 */}
             <div className="w-full lg:w-64 shrink-0">
-              <h2 className="text-sm font-semibold text-gray-300 mb-2">킬로그 ({visibleKillLog.length})</h2>
-              <div
-                ref={killLogRef}
-                className="h-64 lg:h-[600px] overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg divide-y divide-gray-800"
-              >
-                {visibleKillLog.length === 0 && (
-                  <p className="text-xs text-gray-500 p-3">아직 발생한 킬이 없습니다.</p>
-                )}
-                {visibleKillLog.map((k, i) => (
-                  <button
-                    key={`${k.t}-${k.victim}-${i}`}
-                    onClick={() => jumpTo(k.t)}
-                    className="w-full text-left px-3 py-2 text-xs hover:bg-gray-800 transition-colors"
-                  >
-                    <div className="text-gray-500">{formatTime(k.t)}</div>
-                    <div className="text-gray-200">
-                      <span className="text-cyan-400">{nameById.get(k.killer) || '알 수 없음'}</span>
-                      {' → '}
-                      <span className="text-red-400">{nameById.get(k.victim) || '알 수 없음'}</span>
-                    </div>
-                  </button>
-                ))}
+              <div className="flex gap-1 mb-2">
+                <button
+                  onClick={() => setSidePanelTab('squads')}
+                  className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-md ${
+                    sidePanelTab === 'squads' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  스쿼드 목록
+                </button>
+                <button
+                  onClick={() => setSidePanelTab('kills')}
+                  className={`flex-1 px-2 py-1.5 text-xs font-semibold rounded-md ${
+                    sidePanelTab === 'kills' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  킬로그 ({visibleKillLog.length})
+                </button>
               </div>
+
+              {sidePanelTab === 'squads' && (
+                <div className="h-64 lg:h-[600px] overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg divide-y divide-gray-800">
+                  {squadGroups.map(({ teamId, members }) => (
+                    <button
+                      key={teamId}
+                      onClick={() => focusOnTeam(teamId)}
+                      className={`w-full text-left px-3 py-2 hover:bg-gray-800 transition-colors ${
+                        teamId === highlightTeamId ? 'bg-blue-950/40' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: teamColor(teamId) }}
+                        />
+                        <span className="text-[11px] text-gray-500">팀 {teamId}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 pl-4">
+                        {members.map((m, i) => {
+                          const deathT = deathTimeByPlayer.get(m.id)
+                          const isDead = deathT != null && currentTime >= deathT
+                          return (
+                            <span
+                              key={m.id}
+                              className={`text-xs ${
+                                isDead ? 'text-gray-600 line-through' : 'text-gray-200'
+                              }`}
+                            >
+                              {i + 1}번 {m.clanTag ? `[${m.clanTag}] ` : ''}{m.name}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {sidePanelTab === 'kills' && (
+                <div
+                  ref={killLogRef}
+                  className="h-64 lg:h-[600px] overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg divide-y divide-gray-800"
+                >
+                  {visibleKillLog.length === 0 && (
+                    <p className="text-xs text-gray-500 p-3">아직 발생한 킬이 없습니다.</p>
+                  )}
+                  {visibleKillLog.map((k, i) => (
+                    <button
+                      key={`${k.t}-${k.victim}-${i}`}
+                      onClick={() => jumpTo(k.t)}
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-gray-800 transition-colors"
+                    >
+                      <div className="text-gray-500">{formatTime(k.t)}</div>
+                      <div className="text-gray-200">
+                        <span className="text-cyan-400">{nameById.get(k.killer) || '알 수 없음'}</span>
+                        {' → '}
+                        <span className="text-red-400">{nameById.get(k.victim) || '알 수 없음'}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
