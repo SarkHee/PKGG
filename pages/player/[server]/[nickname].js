@@ -2586,12 +2586,21 @@ export async function getServerSideProps({ params, query, req, res }) {
 
   // ── 검색 비활성화 계정 차단 (본인이 로그인해서 자기 페이지 보는 경우는 예외) ──
   // 무거운 PUBG API/ban 복구 로직보다 먼저 가볍게 체크해서, 막힌 페이지는 불필요한 API 호출 없이 즉시 반환한다.
+  // 두 가지 별도 메커니즘 모두 확인: ① 유저 자율 토글(PlayerCache.isSearchHidden)
+  // ② 관리자 지정 검색 제한(RestrictedPlayer.type='search_restricted') — search.js에서는 이미 걸러지고 있었지만
+  //    프로필 페이지 직접 접근은 지금까지 체크가 빠져 있던 부분
   try {
-    const hiddenCache = await prisma.playerCache.findFirst({
-      where: { nickname: { equals: nickname, mode: 'insensitive' }, pubgShardId: server, isSearchHidden: true },
-      select: { id: true },
-    });
-    if (hiddenCache) {
+    const [hiddenCache, restricted] = await Promise.all([
+      prisma.playerCache.findFirst({
+        where: { nickname: { equals: nickname, mode: 'insensitive' }, pubgShardId: server, isSearchHidden: true },
+        select: { id: true },
+      }),
+      prisma.restrictedPlayer.findFirst({
+        where: { nickname: { equals: nickname, mode: 'insensitive' }, type: 'search_restricted' },
+        select: { id: true },
+      }),
+    ]);
+    if (hiddenCache || restricted) {
       const { getServerSession } = await import('next-auth/next');
       const { authOptions } = await import('../../api/auth/[...nextauth]');
       const session = await getServerSession(req, res, authOptions);
