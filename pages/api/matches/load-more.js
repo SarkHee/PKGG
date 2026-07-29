@@ -325,8 +325,10 @@ export default async function handler(req, res) {
       )])
     )
 
+    // 이벤트/연습장 경기는 봇킬 분석만 건너뛸 뿐(위 2-2단계), 프론트 "이벤트" 탭에서 보여줘야
+    // 하므로 응답 자체에서 제외하면 안 된다 — 예전엔 여기서 걸러내고 있어서 이벤트 탭이
+    // 항상 비어 보이는 버그가 있었다.
     const matches = rawMatches
-      .filter(m => !isEventOrPractice(m))
       .map(({ _matchData, _accountId, ...rest }) => rest);
 
     // ── 2-6. hasTeamDamage DB 보완 (분석 실패 경기 대상 — 내 팀 기준 필터) ──────
