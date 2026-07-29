@@ -45,7 +45,7 @@ const WEAPON_TYPE = {
   Win94: 'SR', M24: 'SR', Kar98k: 'SR', AWM: 'SR', L6: 'SR', Crossbow: 'SR', Mosin: 'SR',
   MP5K: 'SMG', UMP: 'SMG', Vector: 'SMG', UZI: 'SMG', Thompson: 'SMG', P90: 'SMG', JS9: 'SMG', MP9: 'SMG', BizonPP19: 'SMG',
   M249: 'LMG', MG3: 'LMG', DP28: 'LMG',
-  Saiga12: 'SGN', Berreta686: 'SGN', DP12: 'SGN', OriginS12: 'SGN', Sawnoff: 'SGN',
+  Saiga12: 'SGN', Berreta686: 'SGN', DP12: 'SGN', OriginS12: 'SGN', Sawnoff: 'SGN', S1897: 'SGN',
   M9: 'PST', DesertEagle: 'PST', G18: 'PST', Skorpion: 'PST', NagantM1895: 'PST', M1911: 'PST', R45: 'PST',
   Cowbar: 'MELEE',
 }

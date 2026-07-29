@@ -53,7 +53,7 @@ const WEAPON_INFO = {
   DP12:        { name: 'DBS',          type: 'SG',     img: 'DP12' },
   Saiga12:     { name: 'S12K',         type: 'SG',     img: 'Saiga12' },
   OriginS12:   { name: 'O12',          type: 'SG',     img: 'OriginS12' },
-  Winchester:  { name: 'S1897',        type: 'SG',     img: 'Winchester' },
+  S1897:       { name: 'S1897',        type: 'SG',     img: 'Winchester' },
   Sawnoff:     { name: 'Sawed-off',    type: 'SG',     img: 'Sawnoff' },
   // LMG
   DP28:        { name: 'DP-28',        type: 'LMG',    img: 'DP28' },

@@ -47,9 +47,13 @@ const NORMALIZE = {
   CowBar:        'Cowbar',
   // "M416"은 PUBG 커뮤니티에서 부르는 이름일 뿐, 실제 텔레메트리/에셋 이름은 HK416으로 동일한 총이다.
   M416:          'HK416',
-  // "Winchester"는 구버전 에셋 이름, 현재는 Win94/Win1894_C로 남아있는 같은 총(Winchester Model 1894).
-  // weapon-damage.js 무기 DB에도 "Win94"만 있고 별도 "Winchester" 항목이 없어 같은 총임을 재확인했다.
-  Winchester:    'Win94',
+  // 2026-07 정정: "Winchester"는 Win94(Winchester Model 1894 라이플, 카라킨 전용)가 아니라
+  // S1897 펌프액션 샷건의 텔레메트리 ID다. utils/weaponNameMap.js에 이미 정확한 매핑
+  // ('Item_Weapon_Winchester_C': 'S1897')이 있었는데 대조하지 않고 Win94로 잘못 병합했었다.
+  // 실제로 WeapWinchester_C 킬은 9개 맵 전역에 퍼져 있고(카라킨 비중 3.3%뿐), 반대로
+  // WeapWin94_C 킬은 100% 카라킨에서만 발생 — 완전히 다른 무기라는 근거가 명확했다.
+  // DB에 별도의 "WeapS1897_C" ID는 존재하지 않아 Winchester가 이 총의 유일한 텔레메트리 ID다.
+  Winchester:    'S1897',
 }
 
 // 실제 무기 화이트리스트(정규화 기준 canonical 이름). Duncans_M416 같은 스킨 변형 ID를
@@ -66,7 +70,8 @@ export const WEAPON_WHITELIST = [
 
 // 화이트리스트 이름과 raw 스킨 접두사 사이에서 커뮤니티 명칭이 실제 무기 이름과 다른 경우
 // (M416 스킨 → 실제로는 HK416). 접미사 매칭 후보에는 넣되, 최종 canonical 이름은 매핑된 값을 쓴다.
-const SUFFIX_ALIAS = { M416: 'HK416' }
+// Winchester도 동일한 이유로 여기 있다 — 텔레메트리 ID는 항상 "Winchester"이고 실제 무기는 S1897.
+const SUFFIX_ALIAS = { M416: 'HK416', Winchester: 'S1897' }
 
 // 정규화 후에도 화이트리스트에 없는 ID가, 화이트리스트(+별칭) 무기 이름으로 "끝나면"(앞에 접두사가
 // 더 있으면) 그 무기의 스킨 변형으로 보고 병합한다. 언더스코어 유무(Duncans_M416 vs DuncansM416)는
