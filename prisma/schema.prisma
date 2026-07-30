@@ -780,3 +780,14 @@ model TeamDamageStatSeason {
 
   @@unique([season, attackerNickname, shard])
 }
+
+model TargetShootingScore {
+  id        Int      @id @default(autoincrement())
+  userId    String?  @unique // 로그인+연동 유저의 AuthUser.id (서버가 세션에서 직접 조회, 클라이언트 입력 아님).
+                             // null이면 익명(닉네임 직접입력) 기록 — 매번 새 행으로 쌓이고 최고점수 로직 미적용
+  nickname  String
+  score     Int
+  createdAt DateTime @default(now())
+
+  @@index([score(sort: Desc)])
+}

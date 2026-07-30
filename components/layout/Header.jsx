@@ -245,6 +245,7 @@ const handleSearchSubmit = async (e) => {
     { href: '/recoil-pattern',       labelKey: 'nav.recoil_pattern',       icon: '🔫' },
     { href: '/sens-preset',          labelKey: 'nav.sens_preset',          icon: '⚙️' },
     { href: '/pubg-survivors',       labelKey: 'nav.pubg_survivors',       icon: '🎮' },
+    { href: '/target-shooting',      labelKey: 'nav.target_shooting',      icon: '🎯' },
   ];
 
   const currentLang = LANG_OPTIONS.find((lp) => lp.code === lang) || LANG_OPTIONS[0];
