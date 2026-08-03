@@ -23,7 +23,18 @@ export default async function handler(req, res) {
     const updatedClans = [];
 
     for (const clan of clans) {
-      if (clan.members.length === 0) continue;
+      if (clan.members.length === 0) {
+        // 마지막 멤버가 탈퇴/재소속되어 클랜이 비면 이전 스냅샷이 박제되지 않도록 0으로 리셋
+        // (memberCount 0일 때 avgScore도 0으로 두는 것은 telemetry-batch.js 등 기존 컨벤션과 동일)
+        if (clan.avgScore !== 0 || clan.memberCount !== 0) {
+          await prisma.clan.update({
+            where: { id: clan.id },
+            data: { avgScore: 0, memberCount: 0 },
+          });
+          updatedClans.push({ name: clan.name, avgScore: 0, memberCount: 0 });
+        }
+        continue;
+      }
 
       const activeMembers = clan.members.filter((m) => (m.score || 0) > 0);
       const source = activeMembers.length > 0 ? activeMembers : clan.members;

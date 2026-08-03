@@ -1294,9 +1294,10 @@ export async function getServerSideProps() {
 
     // ── topClans, recentPlayers: 매 요청마다 조회 (가벼운 쿼리) ───────────
     const [topClans, recentPlayers] = await Promise.all([
-      // 클랜 랭킹 TOP 5
+      // 클랜 랭킹 TOP 5 — memberCount는 갱신 시점 캐시값이라 이후 멤버가 빠져나가면 실제로는
+      // 멤버가 0명인 "유령 클랜"이 남을 수 있음 → members 관계에 실제 행이 있는 클랜만 노출
       prisma.clan.findMany({
-        where: { avgScore: { gt: 0 }, memberCount: { gt: 0 } },
+        where: { avgScore: { gt: 0 }, memberCount: { gt: 0 }, members: { some: {} } },
         orderBy: { avgScore: 'desc' },
         take: 5,
         select: { name: true, avgScore: true, memberCount: true, pubgClanTag: true, region: true, shard: true },

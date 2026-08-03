@@ -18,7 +18,8 @@ export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
   if (!session?.user) return res.status(401).json({ error: '로그인이 필요합니다.' });
 
-  const clanName = decodeURIComponent(req.query.clanName);
+  // req.query.clanName은 이미 URL-디코딩된 값 — 다시 decodeURIComponent 호출 시 이중 디코딩됨
+  const { clanName } = req.query;
   const isAdmin = ADMIN_EMAILS.includes(session.user.email);
 
   // 클랜 조회

@@ -57,9 +57,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const decodedClanName = decodeURIComponent(clanName);
+    // req.query.clanName은 Next.js가 이미 URL-디코딩한 값 — decodeURIComponent를 또 호출하면
+    // 이중 디코딩이 되어 클랜명에 %가 포함된 경우 URIError(500)가 발생할 수 있음
     const clan = await prisma.clan.findFirst({
-      where: { name: decodedClanName },
+      where: { name: clanName },
       include: { members: true },
     });
 

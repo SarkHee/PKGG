@@ -10,9 +10,9 @@ export default async function handler(req, res) {
   const { clanName } = req.query;
 
   try {
-    // 클랜 조회
+    // req.query.clanName은 이미 URL-디코딩된 값 — 다시 decodeURIComponent 호출 시 이중 디코딩됨
     const clan = await prisma.clan.findFirst({
-      where: { name: decodeURIComponent(clanName) },
+      where: { name: clanName },
       include: { members: true },
     });
     if (!clan) return res.status(404).json({ error: '클랜을 찾을 수 없습니다.' });

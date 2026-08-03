@@ -1820,19 +1820,20 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
 
 // ─── SSR: 클랜 기본 정보를 서버에서 가져와 크롤러가 첫 HTML에서 볼 수 있도록 ──────────
 export async function getServerSideProps({ params }) {
+  // params.clanName은 Next.js가 이미 URL-디코딩한 값 — 여기서 decodeURIComponent를 또 호출하면
+  // 이중 디코딩이 되어 클랜명에 %가 포함된 경우 URIError(500)가 발생할 수 있음
   const { clanName } = params;
-  const decoded = decodeURIComponent(clanName);
 
   const base = process.env.PKGG_BASE_URL
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
   try {
-    const res = await fetch(`${base}/api/clan/${encodeURIComponent(decoded)}`);
+    const res = await fetch(`${base}/api/clan/${encodeURIComponent(clanName)}`);
     if (res.status === 404) return { notFound: true };
     if (!res.ok) return { notFound: true };
 
     const initialClanData = await res.json();
-    return { props: { initialClanData, clanNameParam: decoded } };
+    return { props: { initialClanData, clanNameParam: clanName } };
   } catch (e) {
     console.error('[clan SSR] 데이터 로드 실패:', e.message);
     return { notFound: true };
