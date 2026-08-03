@@ -8,6 +8,7 @@ import Layout from '../../components/layout/Layout'
 import { getMaxCoord, getMapImage } from '../../utils/mapCoords'
 import { getSessionAuthUser } from '../../utils/clanBattleAuth'
 import prisma from '../../utils/prisma'
+import { useT } from '../../utils/i18n'
 
 export async function getServerSideProps({ params, req, res }) {
   const { matchId } = params
@@ -96,6 +97,7 @@ function interpAt(snapshots, t, numericKeys) {
 
 export default function MatchReplayPage({ accessError, matchId, verifiedShard, verifiedNickname }) {
   const router = useRouter()
+  const { t } = useT()
   const shard = verifiedShard
   const nickname = verifiedNickname
 
@@ -191,7 +193,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
     setError(null)
     fetch(`/api/pubg/match-replay?matchId=${matchId}&shard=${shard}`)
       .then((res) => {
-        if (!res.ok) return res.json().then((d) => Promise.reject(new Error(d.error || '불러오기 실패')))
+        if (!res.ok) return res.json().then((d) => Promise.reject(new Error(d.error || t('replay.fetch_failed'))))
         return res.json()
       })
       .then((data) => {
@@ -552,23 +554,23 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
     const GATE = {
       not_logged_in: {
         icon: '🔐',
-        title: '로그인이 필요합니다',
-        desc: '2D 리플레이는 본인이 참여한 경기에 한해 구글 로그인 후 확인할 수 있습니다.',
-        actionLabel: 'Google로 로그인',
+        title: t('replay.gate_login_title'),
+        desc: t('replay.gate_login_desc'),
+        actionLabel: t('replay.gate_login_action'),
         onAction: () => signIn('google'),
       },
       not_linked: {
         icon: '🔗',
-        title: 'PUBG 계정 연동이 필요합니다',
-        desc: '마이페이지에서 PUBG 닉네임을 먼저 연동해주세요.',
-        actionLabel: '마이페이지로 이동',
+        title: t('replay.gate_notlinked_title'),
+        desc: t('replay.gate_notlinked_desc'),
+        actionLabel: t('replay.gate_notlinked_action'),
         onAction: () => router.push('/mypage'),
       },
       not_participant: {
         icon: '🚫',
-        title: '본인이 참여한 경기만 리플레이할 수 있습니다',
-        desc: '이 매치는 로그인한 계정과 연동된 PUBG 닉네임이 참여한 경기가 아닙니다.',
-        actionLabel: '메인으로',
+        title: t('replay.gate_notparticipant_title'),
+        desc: t('replay.gate_notparticipant_desc'),
+        actionLabel: t('replay.gate_notparticipant_action'),
         onAction: () => router.push('/'),
       },
     }[accessError]
@@ -576,7 +578,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
     return (
       <Layout>
         <Head>
-          <title>매치 리플레이 | PK.GG</title>
+          <title>{t('replay.detail_title')}</title>
         </Head>
         <div className="max-w-2xl mx-auto mt-20 p-6">
           <div className="bg-gray-900 rounded-2xl p-8 border border-gray-700 shadow-lg text-center">
@@ -600,20 +602,20 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
   return (
     <Layout>
       <Head>
-        <title>매치 리플레이 | PK.GG</title>
+        <title>{t('replay.detail_title')}</title>
       </Head>
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        <h1 className="text-xl font-bold text-gray-100 mb-4">2D 매치 리플레이</h1>
+        <h1 className="text-xl font-bold text-gray-100 mb-4">{t('replay.detail_heading')}</h1>
 
-        {loading && <p className="text-gray-400">텔레메트리를 불러오는 중...</p>}
-        {error && <p className="text-red-400">오류: {error}</p>}
+        {loading && <p className="text-gray-400">{t('replay.loading_telemetry')}</p>}
+        {error && <p className="text-red-400">{t('replay.error_label')} {error}</p>}
 
         {replayData && (
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-2 text-sm text-gray-400">
                 <span>{replayData.mapName}</span>
-                <span>생존 {alivePlayers ?? '-'}명 / {aliveTeams ?? '-'}팀</span>
+                <span>{t('replay.alive_players_label').replace('{n}', alivePlayers ?? '-')} / {t('replay.team_unit').replace('{n}', aliveTeams ?? '-')}</span>
               </div>
 
               <div className="relative w-full" style={{ aspectRatio: '1 / 1' }}>
@@ -627,26 +629,26 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
                 <button
                   onClick={resetView}
                   className="absolute top-2 right-2 px-2.5 py-1 text-xs rounded-md bg-gray-900/80 border border-gray-700 text-gray-300 hover:bg-gray-800"
-                  title="확대/이동 초기화"
+                  title={t('replay.reset_tooltip')}
                 >
-                  🔄 리셋
+                  {t('replay.reset_label')}
                 </button>
               </div>
-              <p className="text-[11px] text-gray-500 mt-1.5">마우스 휠로 확대/축소, 드래그로 지도를 이동할 수 있어요</p>
+              <p className="text-[11px] text-gray-500 mt-1.5">{t('replay.zoom_hint')}</p>
 
               {/* 컨트롤 안내 툴팁 (최초 1회) */}
               {showTip && (
                 <div className="mt-4 flex items-start gap-2 bg-blue-950/60 border border-blue-800 rounded-lg px-3 py-2.5 text-xs text-blue-200">
                   <span className="text-base leading-none mt-0.5">💡</span>
                   <ul className="flex-1 space-y-1 leading-relaxed">
-                    <li>▶ 버튼으로 재생/일시정지할 수 있어요</li>
-                    <li>타임라인을 드래그하면 원하는 시점으로 바로 이동합니다</li>
-                    <li>배속 버튼(1x~8x)으로 재생 속도를 조절할 수 있어요</li>
+                    <li>{t('replay.tip1')}</li>
+                    <li>{t('replay.tip2')}</li>
+                    <li>{t('replay.tip3')}</li>
                   </ul>
                   <button
                     onClick={dismissTip}
                     className="text-blue-300 hover:text-white shrink-0 px-1"
-                    aria-label="안내 닫기"
+                    aria-label={t('replay.tip_close_aria')}
                   >
                     ✕
                   </button>
@@ -700,7 +702,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
                     sidePanelTab === 'squads' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                   }`}
                 >
-                  스쿼드 목록
+                  {t('replay.tab_squads')}
                 </button>
                 <button
                   onClick={() => setSidePanelTab('kills')}
@@ -708,7 +710,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
                     sidePanelTab === 'kills' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                   }`}
                 >
-                  킬로그 ({visibleKillLog.length})
+                  {t('replay.tab_kills').replace('{n}', visibleKillLog.length)}
                 </button>
               </div>
 
@@ -727,7 +729,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
                           className="w-2.5 h-2.5 rounded-full shrink-0"
                           style={{ backgroundColor: teamColor(teamId) }}
                         />
-                        <span className="text-[11px] text-gray-500">팀 {teamId}</span>
+                        <span className="text-[11px] text-gray-500">{t('replay.team_label').replace('{n}', teamId)}</span>
                       </div>
                       <div className="flex flex-col gap-0.5 pl-4">
                         {members.map((m, i) => {
@@ -740,7 +742,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
                                 isDead ? 'text-gray-600 line-through' : 'text-gray-200'
                               }`}
                             >
-                              {i + 1}번 {m.clanTag ? `[${m.clanTag}] ` : ''}{m.name}
+                              {t('replay.member_number').replace('{n}', i + 1)} {m.clanTag ? `[${m.clanTag}] ` : ''}{m.name}
                             </span>
                           )
                         })}
@@ -756,7 +758,7 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
                   className="h-64 lg:h-[600px] overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg divide-y divide-gray-800"
                 >
                   {visibleKillLog.length === 0 && (
-                    <p className="text-xs text-gray-500 p-3">아직 발생한 킬이 없습니다.</p>
+                    <p className="text-xs text-gray-500 p-3">{t('replay.no_kills')}</p>
                   )}
                   {visibleKillLog.map((k, i) => (
                     <button
@@ -766,9 +768,9 @@ export default function MatchReplayPage({ accessError, matchId, verifiedShard, v
                     >
                       <div className="text-gray-500">{formatTime(k.t)}</div>
                       <div className="text-gray-200">
-                        <span className="text-cyan-400">{nameById.get(k.killer) || '알 수 없음'}</span>
+                        <span className="text-cyan-400">{nameById.get(k.killer) || t('replay.unknown_player')}</span>
                         {' → '}
-                        <span className="text-red-400">{nameById.get(k.victim) || '알 수 없음'}</span>
+                        <span className="text-red-400">{nameById.get(k.victim) || t('replay.unknown_player')}</span>
                       </div>
                     </button>
                   ))}

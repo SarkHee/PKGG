@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Header from '../../components/layout/Header';
+import { useT } from '../../utils/i18n';
 
 export default function NoticeDetailPage() {
+  const { t } = useT();
   const [notice, setNotice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,11 +26,11 @@ export default function NoticeDetailPage() {
       if (response.ok) {
         setNotice(data);
       } else {
-        setError(data.error || '공지사항을 불러올 수 없습니다.');
+        setError(data.error || t('notices.load_error'));
       }
     } catch (error) {
       console.error('공지사항 조회 오류:', error);
-      setError('서버 오류가 발생했습니다.');
+      setError(t('notices.server_error'));
     } finally {
       setLoading(false);
     }
@@ -36,10 +38,10 @@ export default function NoticeDetailPage() {
 
   const getTypeLabel = (type) => {
     const typeMap = {
-      UPDATE: '기능 업데이트',
-      MAINTENANCE: '점검 공지',
-      EVENT: '이벤트',
-      GENERAL: '일반 공지',
+      UPDATE: t('notices.type_update'),
+      MAINTENANCE: t('notices.type_maintenance'),
+      EVENT: t('notices.type_event'),
+      GENERAL: t('notices.type_general'),
     };
     return typeMap[type] || type;
   };
@@ -99,14 +101,14 @@ export default function NoticeDetailPage() {
             <div className="text-center py-8">
               <div className="text-6xl mb-4">⚠️</div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                오류가 발생했습니다
+                {t('notices.error_title')}
               </h2>
               <p className="text-gray-600 mb-4">{error}</p>
               <button
                 onClick={() => router.push('/notices')}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
               >
-                공지사항 목록으로 돌아가기
+                {t('notices.back_to_list_btn')}
               </button>
             </div>
           </div>
@@ -141,7 +143,7 @@ export default function NoticeDetailPage() {
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
-                목록으로
+                {t('notices.back_to_list')}
               </button>
             </div>
 
@@ -156,12 +158,12 @@ export default function NoticeDetailPage() {
               </span>
               {notice.isPinned && (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                  고정
+                  {t('notices.pinned')}
                 </span>
               )}
               {notice.priority === 'HIGH' && (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
-                  중요
+                  {t('notices.important')}
                 </span>
               )}
             </div>
@@ -171,14 +173,14 @@ export default function NoticeDetailPage() {
             </h1>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-              <span>작성자: {notice.author}</span>
-              <span>조회: {notice.views.toLocaleString()}</span>
+              <span>{t('notices.author_prefix').replace('{n}', notice.author)}</span>
+              <span>{t('notices.views_prefix').replace('{n}', notice.views.toLocaleString())}</span>
               <span>
-                작성일: {new Date(notice.createdAt).toLocaleString('ko-KR')}
+                {t('notices.written_prefix').replace('{n}', new Date(notice.createdAt).toLocaleString('ko-KR'))}
               </span>
               {notice.updatedAt !== notice.createdAt && (
                 <span>
-                  수정일: {new Date(notice.updatedAt).toLocaleString('ko-KR')}
+                  {t('notices.updated_prefix').replace('{n}', new Date(notice.updatedAt).toLocaleString('ko-KR'))}
                 </span>
               )}
             </div>
@@ -214,7 +216,7 @@ export default function NoticeDetailPage() {
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
-                목록으로 돌아가기
+                {t('notices.back_to_list2')}
               </button>
 
               <div className="flex gap-2">
@@ -228,7 +230,7 @@ export default function NoticeDetailPage() {
                       });
                     } else {
                       navigator.clipboard.writeText(window.location.href);
-                      alert('링크가 클립보드에 복사되었습니다.');
+                      alert(t('notices.share_copied'));
                     }
                   }}
                   className="flex items-center gap-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-100"
@@ -246,7 +248,7 @@ export default function NoticeDetailPage() {
                       d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
                     />
                   </svg>
-                  공유
+                  {t('notices.share')}
                 </button>
               </div>
             </div>

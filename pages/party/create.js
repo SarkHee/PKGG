@@ -5,35 +5,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import Header from '../../components/layout/Header';
-
-const MODE_OPTIONS = [
-  { value: 'squad',     label: '🏆 스쿼드 (4인)' },
-  { value: 'squad-fpp', label: '🏆 스쿼드 FPP (4인)' },
-  { value: 'duo',       label: '👥 듀오 (2인)' },
-  { value: 'duo-fpp',   label: '👥 듀오 FPP (2인)' },
-  { value: 'solo',      label: '🎯 솔로' },
-];
-
-const SLOTS_OPTIONS = [
-  { value: 1, label: '1명' },
-  { value: 2, label: '2명' },
-  { value: 3, label: '3명' },
-  { value: 0, label: '협의' },
-];
-
-const PLAYTIME_OPTIONS = [
-  { value: 'morning',   label: '☀️ 오전 (06~12시)' },
-  { value: 'afternoon', label: '🌤️ 오후 (12~18시)' },
-  { value: 'evening',   label: '🌙 저녁 (18~24시)' },
-  { value: 'midnight',  label: '🌃 새벽 (00~06시)' },
-  { value: 'anytime',   label: '⏰ 언제든 가능' },
-];
-
-const MIC_OPTIONS = [
-  { value: 'required',    label: '🎤 마이크 필수' },
-  { value: 'preferred',   label: '🎤 마이크 선호' },
-  { value: 'not_required',label: '🔇 마이크 불필요' },
-];
+import { useT } from '../../utils/i18n';
 
 const Field = ({ label, required, children, error }) => (
   <div>
@@ -50,6 +22,32 @@ const inputCls  = "w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gr
 
 export default function PartyCreate() {
   const router = useRouter();
+  const { t } = useT();
+  const MODE_OPTIONS = [
+    { value: 'squad',     label: t('partycreate.mode.squad') },
+    { value: 'squad-fpp', label: t('partycreate.mode.squad_fpp') },
+    { value: 'duo',       label: t('partycreate.mode.duo') },
+    { value: 'duo-fpp',   label: t('partycreate.mode.duo_fpp') },
+    { value: 'solo',      label: t('partycreate.mode.solo') },
+  ];
+  const SLOTS_OPTIONS = [
+    { value: 1, label: t('partycreate.slots.one') },
+    { value: 2, label: t('partycreate.slots.two') },
+    { value: 3, label: t('partycreate.slots.three') },
+    { value: 0, label: t('partycreate.slots.negotiate') },
+  ];
+  const PLAYTIME_OPTIONS = [
+    { value: 'morning',   label: t('partycreate.playtime.morning') },
+    { value: 'afternoon', label: t('partycreate.playtime.afternoon') },
+    { value: 'evening',   label: t('partycreate.playtime.evening') },
+    { value: 'midnight',  label: t('partycreate.playtime.midnight') },
+    { value: 'anytime',   label: t('partycreate.playtime.anytime') },
+  ];
+  const MIC_OPTIONS = [
+    { value: 'required',     label: t('partycreate.mic.required') },
+    { value: 'preferred',    label: t('partycreate.mic.preferred') },
+    { value: 'not_required', label: t('partycreate.mic.not_required') },
+  ];
   const { data: session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -85,10 +83,10 @@ export default function PartyCreate() {
 
   const validate = () => {
     const e = {};
-    if (!form.author.trim())    e.author   = '닉네임을 입력해주세요';
-    if (!form.password.trim())  e.password = '삭제 비밀번호를 입력해주세요';
-    else if (form.password.length < 4) e.password = '비밀번호는 4자 이상 입력해주세요';
-    if (!form.title.trim())     e.title    = '제목을 입력해주세요';
+    if (!form.author.trim())    e.author   = t('forum.nickname_required');
+    if (!form.password.trim())  e.password = t('forum.delete_password_required');
+    else if (form.password.length < 4) e.password = t('forum.password_min');
+    if (!form.title.trim())     e.title    = t('forum.title_required');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -127,10 +125,10 @@ export default function PartyCreate() {
       if (res.ok) {
         router.push('/party');
       } else {
-        setErrors({ general: result.error || '등록에 실패했습니다.' });
+        setErrors({ general: result.error || t('partycreate.register_failed') });
       }
     } catch {
-      setErrors({ general: '네트워크 오류가 발생했습니다.' });
+      setErrors({ general: t('fpost.network_error') });
     } finally {
       setIsSubmitting(false);
     }
@@ -139,7 +137,7 @@ export default function PartyCreate() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Head>
-        <title>파티 모집글 작성 | PKGG</title>
+        <title>{t('partycreate.title')}</title>
       </Head>
       <Header />
 
@@ -147,26 +145,26 @@ export default function PartyCreate() {
         {/* 헤더 */}
         <div className="flex items-center gap-3 mb-8">
           <Link href="/party" passHref>
-            <span className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer text-sm">← 파티 찾기</span>
+            <span className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer text-sm">{t('partycreate.back')}</span>
           </Link>
         </div>
 
-        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">🎮 파티 모집글 작성</h1>
-        <p className="text-sm text-gray-500 mb-8">함께 플레이할 팀원을 모집해보세요</p>
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{t('partycreate.heading')}</h1>
+        <p className="text-sm text-gray-500 mb-8">{t('partycreate.subheading')}</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* 작성자 + 비밀번호 */}
           <div className="grid grid-cols-2 gap-4">
-            <Field label="닉네임" required error={errors.author}>
+            <Field label={t('form.nickname_label')} required error={errors.author}>
               {linkedNickname ? (
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-gray-700 border border-blue-300 dark:border-blue-500/50 rounded-xl">
                   <span className="text-sm font-medium text-blue-800 dark:text-gray-200">{linkedNickname}</span>
-                  <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
+                  <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">{t('form.linked')}</span>
                 </div>
               ) : (
                 <input
                   type="text"
-                  placeholder="게임 닉네임"
+                  placeholder={t('partycreate.nickname_placeholder')}
                   maxLength={20}
                   value={form.author}
                   onChange={(e) => set('author', e.target.value)}
@@ -174,10 +172,10 @@ export default function PartyCreate() {
                 />
               )}
             </Field>
-            <Field label="삭제 비밀번호" required error={errors.password}>
+            <Field label={t('form.delete_password_label')} required error={errors.password}>
               <input
                 type="password"
-                placeholder="4자 이상"
+                placeholder={t('partycreate.password_placeholder')}
                 value={form.password}
                 onChange={(e) => set('password', e.target.value)}
                 className={inputCls}
@@ -186,10 +184,10 @@ export default function PartyCreate() {
           </div>
 
           {/* 제목 */}
-          <Field label="제목" required error={errors.title}>
+          <Field label={t('forum.title_label')} required error={errors.title}>
             <input
               type="text"
-              placeholder="예) 스쿼드 1명 구해요! 저녁 즐겜"
+              placeholder={t('partycreate.title_placeholder')}
               maxLength={80}
               value={form.title}
               onChange={(e) => set('title', e.target.value)}
@@ -199,12 +197,12 @@ export default function PartyCreate() {
 
           {/* 게임 모드 + 서버 */}
           <div className="grid grid-cols-2 gap-4">
-            <Field label="게임 모드" required>
+            <Field label={t('partycreate.mode_label')} required>
               <select value={form.mode} onChange={(e) => set('mode', e.target.value)} className={selectCls}>
                 {MODE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
-            <Field label="서버" required>
+            <Field label={t('partycreate.server_label')} required>
               <select value={form.server} onChange={(e) => set('server', e.target.value)} className={selectCls}>
                 <option value="steam">🔵 Steam</option>
                 <option value="kakao">🟡 Kakao</option>
@@ -214,12 +212,12 @@ export default function PartyCreate() {
 
           {/* 모집 인원 + 플레이 시간대 */}
           <div className="grid grid-cols-2 gap-4">
-            <Field label="모집 인원">
+            <Field label={t('partycreate.slots_label')}>
               <select value={form.slotsNeeded} onChange={(e) => set('slotsNeeded', e.target.value)} className={selectCls}>
                 {SLOTS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
-            <Field label="주요 플레이 시간대">
+            <Field label={t('partycreate.playtime_label')}>
               <select value={form.playtime} onChange={(e) => set('playtime', e.target.value)} className={selectCls}>
                 {PLAYTIME_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -228,25 +226,25 @@ export default function PartyCreate() {
 
           {/* 마이크 + MMR 범위 */}
           <div className="grid grid-cols-3 gap-4">
-            <Field label="마이크">
+            <Field label={t('partycreate.mic_label')}>
               <select value={form.mic} onChange={(e) => set('mic', e.target.value)} className={selectCls}>
                 {MIC_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </Field>
-            <Field label="MMR 최소 (선택)">
+            <Field label={t('partycreate.mmr_min_label')}>
               <input
                 type="number"
-                placeholder="예) 1200"
+                placeholder={`${t('form.example_prefix')} 1200`}
                 min={0} max={9999}
                 value={form.mmrMin}
                 onChange={(e) => set('mmrMin', e.target.value)}
                 className={inputCls}
               />
             </Field>
-            <Field label="MMR 최대 (선택)">
+            <Field label={t('partycreate.mmr_max_label')}>
               <input
                 type="number"
-                placeholder="예) 2000"
+                placeholder={`${t('form.example_prefix')} 2000`}
                 min={0} max={9999}
                 value={form.mmrMax}
                 onChange={(e) => set('mmrMax', e.target.value)}
@@ -256,9 +254,9 @@ export default function PartyCreate() {
           </div>
 
           {/* 자유 설명 */}
-          <Field label="추가 설명 (선택)">
+          <Field label={t('partycreate.desc_label')}>
             <textarea
-              placeholder="원하는 플레이 스타일, 연령대, 디스코드 여부 등 자유롭게 적어주세요"
+              placeholder={t('partycreate.desc_placeholder')}
               rows={4}
               maxLength={500}
               value={form.description}
@@ -278,7 +276,7 @@ export default function PartyCreate() {
           <div className="flex gap-3 pt-2">
             <Link href="/party" passHref>
               <span className="flex-1 py-3 text-center bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold rounded-xl cursor-pointer text-sm transition-all">
-                취소
+                {t('form.cancel')}
               </span>
             </Link>
             <button
@@ -286,7 +284,7 @@ export default function PartyCreate() {
               disabled={isSubmitting}
               className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-all"
             >
-              {isSubmitting ? '등록 중...' : '🎮 모집글 등록'}
+              {isSubmitting ? t('partycreate.submitting') : t('partycreate.submit')}
             </button>
           </div>
         </form>

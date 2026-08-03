@@ -5,32 +5,11 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import Header from '../../components/layout/Header';
-
-const TYPE_OPTIONS = [
-  { value: 'full',     label: '🔧 풀세팅 (전체)',     desc: '그래픽+마우스+키바인딩 모두' },
-  { value: 'graphics', label: '🖥️ 그래픽 세팅',       desc: '해상도, 그래픽 품질 등' },
-  { value: 'mouse',    label: '🖱️ 마우스/감도 세팅',   desc: 'DPI, 인게임 감도 등' },
-  { value: 'keybind',  label: '⌨️ 키바인딩 세팅',      desc: '단축키, 특수 키 설정' },
-];
-
-const PRESET_OPTIONS = [
-  { value: 'very_low', label: '매우 낮음' },
-  { value: 'low',      label: '낮음' },
-  { value: 'medium',   label: '중간' },
-  { value: 'high',     label: '높음' },
-  { value: 'ultra',    label: '울트라' },
-];
+import { useT } from '../../utils/i18n';
 
 const RESOLUTION_OPTIONS = [
   '1920x1080', '2560x1440', '3840x2160',
   '1680x1050', '1600x900', '1366x768', '1280x720',
-  '직접 입력',
-];
-
-const AA_OPTIONS = [
-  { value: 'none', label: '없음' },
-  { value: 'fxaa', label: 'FXAA' },
-  { value: 'taa',  label: 'TAA' },
 ];
 
 const Field = ({ label, sub, required, children, error }) => (
@@ -56,6 +35,25 @@ const SECTION = ({ title, children }) => (
 
 export default function SettingsCreate() {
   const router = useRouter();
+  const { t } = useT();
+  const TYPE_OPTIONS = [
+    { value: 'full',     label: t('settingscreate.type_full'),     desc: t('settingscreate.type_full_desc') },
+    { value: 'graphics', label: t('settingscreate.type_graphics'), desc: t('settingscreate.type_graphics_desc') },
+    { value: 'mouse',    label: t('settingscreate.type_mouse'),    desc: t('settingscreate.type_mouse_desc') },
+    { value: 'keybind',  label: t('settingscreate.type_keybind'),  desc: t('settingscreate.type_keybind_desc') },
+  ];
+  const PRESET_OPTIONS = [
+    { value: 'very_low', label: t('settings.preset.very_low') },
+    { value: 'low',      label: t('settings.preset.low') },
+    { value: 'medium',   label: t('settings.preset.medium') },
+    { value: 'high',     label: t('settings.preset.high') },
+    { value: 'ultra',    label: t('settings.preset.ultra') },
+  ];
+  const AA_OPTIONS = [
+    { value: 'none', label: t('settingscreate.aa_none') },
+    { value: 'fxaa', label: 'FXAA' },
+    { value: 'taa',  label: 'TAA' },
+  ];
   const { data: session } = useSession();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -103,10 +101,10 @@ export default function SettingsCreate() {
 
   const validate = () => {
     const e = {};
-    if (!form.author.trim())   e.author   = '닉네임을 입력해주세요';
-    if (!form.password.trim()) e.password = '삭제 비밀번호를 입력해주세요';
-    else if (form.password.length < 4) e.password = '비밀번호는 4자 이상 입력해주세요';
-    if (!form.title.trim())    e.title    = '제목을 입력해주세요';
+    if (!form.author.trim())   e.author   = t('forum.nickname_required');
+    if (!form.password.trim()) e.password = t('forum.delete_password_required');
+    else if (form.password.length < 4) e.password = t('forum.password_min');
+    if (!form.title.trim())    e.title    = t('forum.title_required');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -155,10 +153,10 @@ export default function SettingsCreate() {
       if (res.ok) {
         router.push('/settings-share');
       } else {
-        setErrors({ general: result.error || '등록에 실패했습니다.' });
+        setErrors({ general: result.error || t('settingscreate.register_failed') });
       }
     } catch {
-      setErrors({ general: '네트워크 오류가 발생했습니다.' });
+      setErrors({ general: t('fpost.network_error') });
     } finally {
       setIsSubmitting(false);
     }
@@ -170,52 +168,52 @@ export default function SettingsCreate() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Head><title>세팅 공유 작성 | PKGG</title></Head>
+      <Head><title>{t('settingscreate.title')}</title></Head>
       <Header />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <Link href="/settings-share" passHref>
-            <span className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer text-sm">← 세팅 공유</span>
+            <span className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer text-sm">{t('settingscreate.back')}</span>
           </Link>
         </div>
 
-        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">⚙️ 세팅 공유 작성</h1>
-        <p className="text-sm text-gray-500 mb-8">내 인게임 세팅을 공유해보세요</p>
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">{t('settingscreate.heading')}</h1>
+        <p className="text-sm text-gray-500 mb-8">{t('settingscreate.subheading')}</p>
 
         <form onSubmit={handleSubmit} className="space-y-5">
 
           {/* 작성자 + 비밀번호 */}
           <div className="grid grid-cols-2 gap-4">
-            <Field label="닉네임" required error={errors.author}>
+            <Field label={t('form.nickname_label')} required error={errors.author}>
               {linkedNickname ? (
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-gray-700 border border-blue-300 dark:border-blue-500/50 rounded-xl">
                   <span className="text-sm font-medium text-blue-800 dark:text-gray-200">{linkedNickname}</span>
-                  <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
+                  <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">{t('form.linked')}</span>
                 </div>
               ) : (
-                <input type="text" placeholder="게임 닉네임" maxLength={20}
+                <input type="text" placeholder={t('settingscreate.nickname_placeholder')} maxLength={20}
                   value={form.author} onChange={e => set('author', e.target.value)}
                   className={inputCls} />
               )}
             </Field>
-            <Field label="삭제 비밀번호" required error={errors.password}>
-              <input type="password" placeholder="4자 이상"
+            <Field label={t('form.delete_password_label')} required error={errors.password}>
+              <input type="password" placeholder={t('settingscreate.password_placeholder')}
                 value={form.password} onChange={e => set('password', e.target.value)}
                 className={inputCls} />
             </Field>
           </div>
 
           {/* 제목 */}
-          <Field label="제목" required error={errors.title}>
-            <input type="text" placeholder="예) 저사양 최적화 세팅 공유합니다" maxLength={80}
+          <Field label={t('forum.title_label')} required error={errors.title}>
+            <input type="text" placeholder={t('settingscreate.title_placeholder')} maxLength={80}
               value={form.title} onChange={e => set('title', e.target.value)}
               className={inputCls} />
           </Field>
 
           {/* 세팅 유형 */}
           <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">세팅 유형 <span className="text-red-400">*</span></p>
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('settingscreate.type_label')} <span className="text-red-400">*</span></p>
             <div className="grid grid-cols-2 gap-2">
               {TYPE_OPTIONS.map(o => (
                 <button key={o.value} type="button" onClick={() => set('type', o.value)}
@@ -233,36 +231,37 @@ export default function SettingsCreate() {
 
           {/* 그래픽 섹션 */}
           {showGraphics && (
-            <SECTION title="🖥️ 그래픽 설정">
+            <SECTION title={t('settingscreate.graphics_section')}>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="해상도">
-                  <select value={customRes ? '직접 입력' : form.resolution}
+                <Field label={t('settingscreate.resolution_label')}>
+                  <select value={customRes ? t('settingscreate.custom_input') : form.resolution}
                     onChange={e => {
-                      if (e.target.value === '직접 입력') { setCustomRes(true); }
+                      if (e.target.value === t('settingscreate.custom_input')) { setCustomRes(true); }
                       else { setCustomRes(false); set('resolution', e.target.value); }
                     }}
                     className={selectCls}>
                     {RESOLUTION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    <option value={t('settingscreate.custom_input')}>{t('settingscreate.custom_input')}</option>
                   </select>
                   {customRes && (
-                    <input type="text" placeholder="예) 1440x900" value={form.customResolution}
+                    <input type="text" placeholder={`${t('form.example_prefix')} 1440x900`} value={form.customResolution}
                       onChange={e => set('customResolution', e.target.value)}
                       className={`${inputCls} mt-2`} />
                   )}
                 </Field>
-                <Field label="모니터 주사율 (Hz)">
-                  <input type="number" placeholder="예) 144" min={60} max={360}
+                <Field label={t('settingscreate.hz_label')}>
+                  <input type="number" placeholder={`${t('form.example_prefix')} 144`} min={60} max={360}
                     value={form.hz} onChange={e => set('hz', e.target.value)}
                     className={inputCls} />
                 </Field>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="그래픽 프리셋">
+                <Field label={t('settingscreate.preset_label')}>
                   <select value={form.graphicsPreset} onChange={e => set('graphicsPreset', e.target.value)} className={selectCls}>
                     {PRESET_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </Field>
-                <Field label="안티앨리어싱">
+                <Field label={t('settingscreate.aa_label')}>
                   <select value={form.antialiasing} onChange={e => set('antialiasing', e.target.value)} className={selectCls}>
                     {AA_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -273,28 +272,28 @@ export default function SettingsCreate() {
 
           {/* 마우스/감도 섹션 */}
           {showMouse && (
-            <SECTION title="🖱️ 마우스 / 감도 설정">
+            <SECTION title={t('settingscreate.mouse_section')}>
               <div className="grid grid-cols-3 gap-3">
                 <Field label="DPI">
                   <input type="number" placeholder="800" min={100} max={25600}
                     value={form.dpi} onChange={e => set('dpi', e.target.value)}
                     className={inputCls} />
                 </Field>
-                <Field label="일반 감도">
+                <Field label={t('settingscreate.sens_label')}>
                   <input type="number" placeholder="45" min={1} max={100} step={0.1}
                     value={form.sensitivity} onChange={e => set('sensitivity', e.target.value)}
                     className={inputCls} />
                 </Field>
-                <Field label="수직 감도 배율">
+                <Field label={t('settingscreate.vert_sens_label')}>
                   <input type="number" placeholder="1.0" min={0.1} max={2.0} step={0.05}
                     value={form.vertSens} onChange={e => set('vertSens', e.target.value)}
                     className={inputCls} />
                 </Field>
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">스코프 감도 <span className="text-gray-600 font-normal text-xs">(선택)</span></p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('settingscreate.scope_sens_label')} <span className="text-gray-600 font-normal text-xs">{t('settingscreate.optional')}</span></p>
                 <div className="grid grid-cols-5 gap-2">
-                  {[['scope2x','2배'],['scope3x','3배'],['scope4x','4배'],['scope6x','6배'],['scope8x','8배']].map(([k,lbl]) => (
+                  {[['scope2x','×2'],['scope3x','×3'],['scope4x','×4'],['scope6x','×6'],['scope8x','×8']].map(([k,lbl]) => (
                     <div key={k}>
                       <p className="text-xs text-gray-500 dark:text-gray-600 mb-1 text-center">{lbl}</p>
                       <input type="number" placeholder="-" min={1} max={100} step={0.1}
@@ -309,9 +308,9 @@ export default function SettingsCreate() {
 
           {/* 키바인딩 섹션 */}
           {showKeybind && (
-            <SECTION title="⌨️ 키바인딩 설정">
-              <Field label="키바인딩 내용" sub="(자유 형식으로 작성)">
-                <textarea placeholder={`예)\n앉기: 좌Ctrl\n엎드리기: Z\n지도: M\n핑: 마우스 중앙버튼`}
+            <SECTION title={t('settingscreate.keybind_section')}>
+              <Field label={t('settingscreate.keybind_label')} sub={t('settingscreate.keybind_sub')}>
+                <textarea placeholder={t('settingscreate.keybind_placeholder')}
                   rows={5} maxLength={1000}
                   value={form.keybindText} onChange={e => set('keybindText', e.target.value)}
                   className={`${inputCls} resize-none`} />
@@ -321,16 +320,16 @@ export default function SettingsCreate() {
           )}
 
           {/* 이미지 URL */}
-          <Field label="이미지 URL" sub="(선택 — 세팅 스크린샷 등)">
+          <Field label={t('settingscreate.image_url_label')} sub={t('settingscreate.image_url_sub')}>
             <input type="url" placeholder="https://..." value={form.imageUrl}
               onChange={e => set('imageUrl', e.target.value)}
               className={inputCls} />
           </Field>
 
           {/* 추가 설명 */}
-          <Field label="추가 설명" sub="(선택)">
+          <Field label={t('settingscreate.desc_label')} sub={t('settingscreate.optional')}>
             <textarea
-              placeholder="PC 사양, 세팅 의도, 주의사항 등 자유롭게 적어주세요"
+              placeholder={t('settingscreate.desc_placeholder')}
               rows={4} maxLength={500}
               value={form.description} onChange={e => set('description', e.target.value)}
               className={`${inputCls} resize-none`} />
@@ -346,12 +345,12 @@ export default function SettingsCreate() {
           <div className="flex gap-3 pt-2">
             <Link href="/settings-share" passHref>
               <span className="flex-1 py-3 text-center bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-semibold rounded-xl cursor-pointer text-sm transition-all">
-                취소
+                {t('form.cancel')}
               </span>
             </Link>
             <button type="submit" disabled={isSubmitting}
               className="flex-1 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition-all">
-              {isSubmitting ? '등록 중...' : '⚙️ 세팅 공유하기'}
+              {isSubmitting ? t('settingscreate.submitting') : t('settingscreate.submit')}
             </button>
           </div>
         </form>

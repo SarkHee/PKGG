@@ -7,6 +7,7 @@ import Layout from '../../components/layout/Layout'
 import { getMapName } from '../../utils/mapUtils'
 import { getSessionAuthUser } from '../../utils/clanBattleAuth'
 import prisma from '../../utils/prisma'
+import { useT } from '../../utils/i18n'
 
 const MAX_MATCHES = 30
 
@@ -47,28 +48,29 @@ function formatDate(iso) {
 
 export default function ReplayListPage({ accessError, matches }) {
   const router = useRouter()
+  const { t } = useT()
 
   if (accessError) {
     const GATE = {
       not_logged_in: {
         icon: '🔐',
-        title: '로그인이 필요합니다',
-        desc: '2D 리플레이는 본인이 참여한 경기에 한해 구글 로그인 후 확인할 수 있습니다.',
-        actionLabel: 'Google로 로그인',
+        title: t('replay.gate_login_title'),
+        desc: t('replay.gate_login_desc'),
+        actionLabel: t('replay.gate_login_action'),
         onAction: () => signIn('google'),
       },
       not_linked: {
         icon: '🔗',
-        title: 'PUBG 계정 연동이 필요합니다',
-        desc: '마이페이지에서 PUBG 닉네임을 먼저 연동해주세요.',
-        actionLabel: '마이페이지로 이동',
+        title: t('replay.gate_notlinked_title'),
+        desc: t('replay.gate_notlinked_desc'),
+        actionLabel: t('replay.gate_notlinked_action'),
         onAction: () => router.push('/mypage'),
       },
     }[accessError]
 
     return (
       <Layout>
-        <Head><title>리플레이 | PK.GG</title></Head>
+        <Head><title>{t('replay.list_title')}</title></Head>
         <div className="max-w-2xl mx-auto mt-20 p-6">
           <div className="bg-gray-900 rounded-2xl p-8 border border-gray-700 shadow-lg text-center">
             <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -90,17 +92,17 @@ export default function ReplayListPage({ accessError, matches }) {
 
   return (
     <Layout>
-      <Head><title>리플레이 | PK.GG</title></Head>
+      <Head><title>{t('replay.list_title')}</title></Head>
       <div className="max-w-3xl mx-auto p-4 sm:p-6">
-        <h1 className="text-xl font-bold text-gray-100 mb-2">🎬 2D 리플레이</h1>
+        <h1 className="text-xl font-bold text-gray-100 mb-2">{t('replay.list_heading')}</h1>
         <p className="text-sm text-gray-400 mb-6 leading-relaxed">
-          본인이 참여한 최근 경기를 2D로 다시 볼 수 있어요.<br />
-          경기를 선택하면 위치·자기장·킬 흐름을 재생할 수 있습니다.
+          {t('replay.list_intro1')}<br />
+          {t('replay.list_intro2')}
         </p>
 
         {matches.length === 0 && (
           <div className="bg-gray-900 border border-gray-700 rounded-xl p-8 text-center text-gray-400 text-sm">
-            아직 리플레이할 수 있는 최근 경기가 없습니다.
+            {t('replay.list_empty')}
           </div>
         )}
 
@@ -119,7 +121,7 @@ export default function ReplayListPage({ accessError, matches }) {
                 </div>
                 <div className="text-right shrink-0 text-xs text-gray-400">
                   <div className="text-amber-400 font-semibold">#{m.placement}</div>
-                  <div>킬 {m.kills} · 딜 {Math.round(m.damage)}</div>
+                  <div>{t('replay.kill_label').replace('{n}', m.kills)} · {t('replay.damage_label').replace('{n}', Math.round(m.damage))}</div>
                 </div>
               </span>
             </Link>

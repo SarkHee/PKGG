@@ -4,25 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Header from '../components/layout/Header';
-
-const TYPE_OPTIONS = [
-  { value: 'all',      label: '전체' },
-  { value: 'full',     label: '풀세팅' },
-  { value: 'graphics', label: '그래픽' },
-  { value: 'mouse',    label: '마우스/감도' },
-  { value: 'keybind',  label: '키바인딩' },
-];
-
-const TYPE_META = {
-  full:     { label: '풀세팅',    color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
-  graphics: { label: '그래픽',    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-  mouse:    { label: '마우스/감도', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
-  keybind:  { label: '키바인딩',  color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-};
-
-const PRESET_LABELS = {
-  very_low: '매우 낮음', low: '낮음', medium: '중간', high: '높음', ultra: '울트라',
-};
+import { useT } from '../utils/i18n';
 
 function parseSettings(content) {
   try {
@@ -32,18 +14,29 @@ function parseSettings(content) {
   return null;
 }
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, t) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return '방금';
-  if (m < 60) return `${m}분 전`;
+  if (m < 1) return t('settings.time_now');
+  if (m < 60) return t('settings.time_min').replace('{n}', m);
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
-  return `${Math.floor(h / 24)}일 전`;
+  if (h < 24) return t('settings.time_hour').replace('{n}', h);
+  return t('settings.time_day').replace('{n}', Math.floor(h / 24));
 }
 
 function SettingsCard({ post }) {
   const router = useRouter();
+  const { t } = useT();
+  const TYPE_META = {
+    full:     { label: t('settings.type_full'),     color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+    graphics: { label: t('settings.type_graphics'), color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    mouse:    { label: t('settings.type_mouse'),    color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+    keybind:  { label: t('settings.type_keybind'),  color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  };
+  const PRESET_LABELS = {
+    very_low: t('settings.preset.very_low'), low: t('settings.preset.low'), medium: t('settings.preset.medium'), high: t('settings.preset.high'), ultra: t('settings.preset.ultra'),
+  };
+
   const s = parseSettings(post.content);
   if (!s) return null;
   const meta = TYPE_META[s.type] || TYPE_META.full;
@@ -75,7 +68,7 @@ function SettingsCard({ post }) {
             </span>
           )}
         </div>
-        <span className="text-xs text-gray-600 flex-shrink-0">{timeAgo(post.createdAt)}</span>
+        <span className="text-xs text-gray-600 flex-shrink-0">{timeAgo(post.createdAt, t)}</span>
       </div>
 
       {/* 제목 */}
@@ -87,7 +80,7 @@ function SettingsCard({ post }) {
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mb-3">
         <span>👤 {post.author}</span>
         {s.dpi && <span>🖱️ DPI {s.dpi}</span>}
-        {s.sensitivity && <span>감도 {s.sensitivity}</span>}
+        {s.sensitivity && <span>{t('settings.sensitivity_label').replace('{n}', s.sensitivity)}</span>}
       </div>
 
       {/* 설명 미리보기 */}
@@ -106,6 +99,14 @@ function SettingsCard({ post }) {
 }
 
 export default function SettingsSharePage() {
+  const { t } = useT();
+  const TYPE_OPTIONS = [
+    { value: 'all',      label: t('settings.type_all') },
+    { value: 'full',     label: t('settings.type_full') },
+    { value: 'graphics', label: t('settings.type_graphics') },
+    { value: 'mouse',    label: t('settings.type_mouse') },
+    { value: 'keybind',  label: t('settings.type_keybind') },
+  ];
   const [posts, setPosts]       = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
@@ -122,7 +123,7 @@ export default function SettingsSharePage() {
       setPosts(data.posts || []);
       setPagination(data.pagination || {});
     } catch {
-      setError('게시글을 불러올 수 없습니다.');
+      setError(t('party.load_failed'));
     } finally {
       setLoading(false);
     }
@@ -139,20 +140,20 @@ export default function SettingsSharePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Head>
-        <title>인게임 세팅 공유 | PKGG</title>
-        <meta name="description" content="PUBG 그래픽/마우스/키바인딩 세팅을 공유하고 참고하세요." />
+        <title>{t('settings.title')}</title>
+        <meta name="description" content={t('settings.meta_desc')} />
       </Head>
       <Header />
 
       <main className="max-w-3xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white">⚙️ 인게임 세팅 공유</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">그래픽·마우스·키바인딩 세팅을 공유하고 참고하세요</p>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white">{t('settings.heading')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('settings.subheading')}</p>
           </div>
           <Link href="/settings-share/create" passHref>
             <span className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap">
-              + 세팅 공유
+              {t('settings.share_btn')}
             </span>
           </Link>
         </div>
@@ -176,15 +177,15 @@ export default function SettingsSharePage() {
 
         {/* 목록 */}
         {loading ? (
-          <div className="text-center py-16 text-gray-500">불러오는 중...</div>
+          <div className="text-center py-16 text-gray-500">{t('settings.loading')}</div>
         ) : error ? (
           <div className="text-center py-16 text-red-400">{error}</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-gray-500 mb-4">아직 공유된 세팅이 없습니다.</p>
+            <p className="text-gray-500 mb-4">{t('settings.empty')}</p>
             <Link href="/settings-share/create" passHref>
               <span className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-xl cursor-pointer transition-all">
-                첫 세팅 공유하기
+                {t('settings.share_first')}
               </span>
             </Link>
           </div>

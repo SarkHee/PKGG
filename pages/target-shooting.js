@@ -3,6 +3,7 @@ import Head from 'next/head'
 import { useSession } from 'next-auth/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Header from '../components/layout/Header'
+import { useT } from '../utils/i18n'
 
 const CW = 960
 const CH = 540
@@ -27,6 +28,7 @@ function formatTime(sec) {
 }
 
 export default function TargetShootingPage() {
+  const { t } = useT()
   const { data: session } = useSession()
   const [screen, setScreen] = useState('menu') // menu | playing | result
   const [score, setScore] = useState(0)
@@ -238,7 +240,7 @@ export default function TargetShootingPage() {
         body: JSON.stringify({ nickname: nick, score: scoreRef.current }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || '기록 저장 실패')
+      if (!res.ok) throw new Error(data.error || t('ts.save_failed'))
       if (!linkedNicknameRef.current) {
         try { localStorage.setItem(NICK_KEY, nick) } catch {}
       }
@@ -329,15 +331,15 @@ export default function TargetShootingPage() {
   return (
     <>
       <Head>
-        <title>타겟프랙티스 | PK.GG</title>
-        <meta name="description" content="60초 동안 랜덤으로 나타나는 표적을 맞춰 점수를 겨루는 미니게임" />
+        <title>{t('ts.title')}</title>
+        <meta name="description" content={t('ts.meta_description')} />
       </Head>
       <Header />
       <div className="min-h-screen bg-gray-950 text-white px-4 py-8">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl font-bold mb-1">🎯 타겟프랙티스</h1>
+          <h1 className="text-2xl font-bold mb-1">{t('ts.heading')}</h1>
           <p className="text-sm text-gray-400 mb-6">
-            60초 동안 랜덤하게 나타나는 표적을 최대한 많이 맞춰보세요. 시간이 지날수록 표적이 빨리 사라지고 개수도 늘어납니다.
+            {t('ts.intro')}
           </p>
 
           <div className="flex flex-col lg:flex-row gap-6">
@@ -353,13 +355,13 @@ export default function TargetShootingPage() {
                   onClick={toggleFullscreen}
                   className="absolute top-2 right-2 z-10 px-2.5 py-1.5 rounded-md bg-black/50 hover:bg-black/70 text-xs text-gray-200 transition-colors"
                 >
-                  {isFullscreen ? '⤢ 전체화면 종료' : '⛶ 전체화면'}
+                  {isFullscreen ? t('ts.fullscreen_exit') : t('ts.fullscreen_enter')}
                 </button>
 
                 {screen === 'playing' && (
                   <>
                     <div className="absolute top-2 left-2 z-10 flex items-center gap-2 text-sm">
-                      <span className="font-semibold text-cyan-400 bg-black/50 px-2.5 py-1 rounded-md">점수 {score}</span>
+                      <span className="font-semibold text-cyan-400 bg-black/50 px-2.5 py-1 rounded-md">{t('ts.score_label').replace('{n}', score)}</span>
                       <span className="font-mono text-gray-200 bg-black/50 px-2.5 py-1 rounded-md">{formatTime(timeLeft)}</span>
                     </div>
                     <canvas
@@ -378,32 +380,32 @@ export default function TargetShootingPage() {
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-gray-900">
                     <div className="text-5xl">🎯</div>
                     <div className="text-center text-sm text-gray-400 max-w-xs leading-relaxed">
-                      원형 표적이 짧게 나타났다 사라집니다.<br />
-                      제한시간 60초, 명중당 {HIT_SCORE}점!
+                      {t('ts.menu_desc1')}<br />
+                      {t('ts.menu_desc2').replace('{n}', HIT_SCORE)}
                     </div>
                     <button
                       onClick={startGame}
                       className="px-8 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-lg transition-colors"
                     >
-                      시작하기
+                      {t('ts.start_button')}
                     </button>
                   </div>
                 )}
 
                 {screen === 'result' && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gray-900 px-6">
-                    <div className="text-sm text-gray-400">최종 점수</div>
+                    <div className="text-sm text-gray-400">{t('ts.final_score')}</div>
                     <div className="text-5xl font-extrabold text-cyan-400">{score}</div>
 
                     {linkedNickname ? (
                       // 연동 유저 — 입력 UI 없이 자동 기록, 상태만 표시
                       <div className="text-center text-sm">
-                        {submitState === 'submitting' && <p className="text-gray-400">기록 저장 중...</p>}
+                        {submitState === 'submitting' && <p className="text-gray-400">{t('ts.saving_record')}</p>}
                         {submitState === 'done' && bestScoreInfo && (
                           <p className={bestScoreInfo.updated ? 'text-emerald-400' : 'text-gray-400'}>
                             {bestScoreInfo.updated
-                              ? '🎉 신기록으로 등록되었습니다!'
-                              : `이전 최고 기록(${bestScoreInfo.bestScore}점)이 더 높아 유지됩니다.`}
+                              ? t('ts.new_record')
+                              : t('ts.record_kept').replace('{n}', bestScoreInfo.bestScore)}
                           </p>
                         )}
                         {submitState === 'error' && <p className="text-red-400">{submitError}</p>}
@@ -415,7 +417,7 @@ export default function TargetShootingPage() {
                           onChange={(e) => setNickname(e.target.value)}
                           onKeyDown={handleNicknameKeyDown}
                           maxLength={20}
-                          placeholder="닉네임 입력"
+                          placeholder={t('ts.nickname_placeholder')}
                           autoFocus
                           className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
                         />
@@ -425,18 +427,18 @@ export default function TargetShootingPage() {
                           disabled={submitState === 'submitting' || !nickname.trim()}
                           className="w-full px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm transition-colors"
                         >
-                          {submitState === 'submitting' ? '저장 중...' : '확인'}
+                          {submitState === 'submitting' ? t('ts.saving') : t('ts.confirm')}
                         </button>
                       </div>
                     ) : (
-                      <p className="text-sm text-emerald-400">✓ 기록이 등록되었습니다!</p>
+                      <p className="text-sm text-emerald-400">{t('ts.record_saved')}</p>
                     )}
 
                     <button
                       onClick={startGame}
                       className="mt-2 px-6 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm font-medium transition-colors"
                     >
-                      다시 하기
+                      {t('ts.retry')}
                     </button>
                   </div>
                 )}
@@ -445,12 +447,12 @@ export default function TargetShootingPage() {
 
             {/* 리더보드 */}
             <div className="w-full lg:w-72 shrink-0">
-              <h2 className="text-sm font-semibold text-gray-300 mb-2">🏆 TOP 10</h2>
+              <h2 className="text-sm font-semibold text-gray-300 mb-2">{t('ts.leaderboard_title')}</h2>
               <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800 overflow-hidden">
                 {leaderboardLoading ? (
-                  <p className="text-xs text-gray-500 p-4 text-center">불러오는 중...</p>
+                  <p className="text-xs text-gray-500 p-4 text-center">{t('ts.loading')}</p>
                 ) : leaderboard.length === 0 ? (
-                  <p className="text-xs text-gray-500 p-4 text-center">아직 등록된 기록이 없습니다.</p>
+                  <p className="text-xs text-gray-500 p-4 text-center">{t('ts.no_records')}</p>
                 ) : (
                   leaderboard.map((row, i) => (
                     <div key={row.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
@@ -458,7 +460,7 @@ export default function TargetShootingPage() {
                         <span className="w-6 text-center text-xs text-gray-400 shrink-0">{rankBadge(i)}</span>
                         <span className="truncate text-gray-200">{row.nickname}</span>
                         {row.verified && (
-                          <span className="text-cyan-400 text-xs shrink-0" title="연동 계정으로 등록된 기록">✓</span>
+                          <span className="text-cyan-400 text-xs shrink-0" title={t('ts.verified_tooltip')}>✓</span>
                         )}
                       </div>
                       <span className="font-mono font-semibold text-cyan-400 shrink-0">{row.score}</span>

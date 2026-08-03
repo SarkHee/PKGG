@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import Header from "../../../components/layout/Header";
+import { useT } from '../../../utils/i18n';
 
 const CATEGORY_INFO = {
   strategy: { name: '전략 & 팁', icon: '🧠', color: 'blue', description: '게임 전략, 팁, 가이드를 공유하세요' },
@@ -11,6 +12,8 @@ const CATEGORY_INFO = {
   recruitment: { name: '클랜 모집', icon: '👥', color: 'purple', description: '클랜원을 모집하거나 클랜을 찾아보세요' },
   party: { name: '파티 찾기', icon: '🎮', color: 'cyan', description: '함께 플레이할 파티원을 모집하거나 찾아보세요' },
 };
+
+const CAT_I18N_KEY = { strategy: 'strategy', general: 'general', questions: 'questions', recruitment: 'recruitment', party: 'party', settings: 'settings' };
 
 function PostCard({ post }) {
   const router = useRouter();
@@ -47,6 +50,7 @@ function PostCard({ post }) {
 
 export default function ForumCategory() {
   const router = useRouter();
+  const { t } = useT();
   const { categoryId } = router.query;
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +58,9 @@ export default function ForumCategory() {
   const [pagination, setPagination] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryInfo, setCategoryInfo] = useState(null);
+  const catI18nKey = CAT_I18N_KEY[categoryId];
+  const catName = catI18nKey ? t(`forum.cat.${catI18nKey}.name`) : categoryInfo?.name;
+  const catDesc = catI18nKey ? t(`forum.cat.${catI18nKey}.desc`) : categoryInfo?.description;
 
   // 카테고리 정보 로드
   useEffect(() => {
@@ -128,16 +135,16 @@ export default function ForumCategory() {
   };
 
   if (!categoryInfo) {
-    return <div>카테고리를 찾을 수 없습니다.</div>;
+    return <div>{t('forum.category_not_found')}</div>;
   }
 
   return (
     <>
       <Head>
-        <title>{categoryInfo.name} | 커뮤니티 포럼 | PKGG</title>
+        <title>{t('forum.category_page_title').replace('{n}', catName)}</title>
         <meta
           name="description"
-          content={`${categoryInfo.name} - PUBG 커뮤니티 포럼`}
+          content={t('forum.category_meta_desc').replace('{n}', catName)}
         />
       </Head>
 
@@ -148,11 +155,11 @@ export default function ForumCategory() {
         <div className="mb-6">
           <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
             <Link href="/forum" className="hover:text-blue-600">
-              커뮤니티 포럼
+              {t('forum.heading')}
             </Link>
             <span>›</span>
             <span className="text-gray-900 dark:text-gray-100">
-              {categoryInfo.name}
+              {catName}
             </span>
           </nav>
         </div>
@@ -168,17 +175,17 @@ export default function ForumCategory() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {categoryInfo.name}
+                  {catName}
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                  PUBG 관련 {categoryInfo.name} 게시판입니다
+                  {t('forum.category_desc_template').replace('{n}', catName)}
                 </p>
               </div>
             </div>
 
             <Link href={`/forum/create?category=${categoryId}`}>
               <button className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors">
-                ✏️ 새 글 작성
+                {t('forum.write_post_new')}
               </button>
             </Link>
           </div>
@@ -189,7 +196,7 @@ export default function ForumCategory() {
           <form onSubmit={handleSearch} className="flex gap-2">
             <input
               type="text"
-              placeholder="게시글 검색..."
+              placeholder={t('forum.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
@@ -198,7 +205,7 @@ export default function ForumCategory() {
               type="submit"
               className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
             >
-              검색
+              {t('forum.search_button')}
             </button>
           </form>
         </div>
@@ -227,14 +234,14 @@ export default function ForumCategory() {
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
               <div className="text-6xl mb-4">📝</div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                게시글이 없습니다
+                {t('forum.no_posts_cat')}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                첫 번째 게시글을 작성해보세요!
+                {t('forum.no_posts_desc')}
               </p>
               <Link href={`/forum/create?category=${categoryId}`}>
                 <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors">
-                  글 작성하기
+                  {t('forum.write_post_short')}
                 </button>
               </Link>
             </div>
@@ -249,7 +256,7 @@ export default function ForumCategory() {
               disabled={page === 1}
               className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
             >
-              이전
+              {t('forum.prev')}
             </button>
 
             {Array.from(
@@ -280,7 +287,7 @@ export default function ForumCategory() {
               disabled={page === pagination.totalPages}
               className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
             >
-              다음
+              {t('forum.next')}
             </button>
           </div>
         )}

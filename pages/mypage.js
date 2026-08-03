@@ -316,7 +316,9 @@ function DailyGoals({ playerStats, statsLoading, nickname, shard }) {
 
 // 킬내기/내전 한 줄: 뱃지(내 것/참가중) + 진행상태 + 종료 시 내 최종 순위. 클릭 시 /clan-play로 딥링크 이동
 function ClanPlayRow({ b, onClick }) {
-  const rankLabel = b.myRank === 1 ? '🥇 1위' : b.myRank === 2 ? '🥈 2위' : b.myRank === 3 ? '🥉 3위' : b.myRank ? `${b.myRank}위` : null;
+  const { t } = useT();
+  const medal = b.myRank === 1 ? '🥇 ' : b.myRank === 2 ? '🥈 ' : b.myRank === 3 ? '🥉 ' : '';
+  const rankLabel = b.myRank ? `${medal}${t('mypage.rank_n').replace('{n}', b.myRank)}` : null;
   return (
     <button
       onClick={onClick}
@@ -325,13 +327,13 @@ function ClanPlayRow({ b, onClick }) {
       <div className="min-w-0 flex-1 flex items-center gap-1.5 flex-wrap">
         <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{b.title}</span>
         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold flex-shrink-0 ${b.isOwner ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
-          {b.isOwner ? (b.type === 'killmatch' ? '내 킬내기' : '내 내전') : '참가중'}
+          {b.isOwner ? (b.type === 'killmatch' ? t('mypage.my_killmatch') : t('mypage.my_clanwar')) : t('mypage.joining')}
         </span>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {rankLabel && <span className="text-xs font-bold text-yellow-500 dark:text-yellow-400">{rankLabel}</span>}
         <span className={`text-[10px] px-2 py-0.5 rounded-full ${b.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
-          {b.status === 'active' ? '진행중' : '종료'}
+          {b.status === 'active' ? t('mypage.in_progress') : t('mypage.ended')}
         </span>
       </div>
     </button>
@@ -341,6 +343,7 @@ function ClanPlayRow({ b, onClick }) {
 // 마이페이지 "클랜 놀이 기록" 섹션 — 내가 만들었거나 참가한 킬내기/내전을 함께 조회
 function ClanPlayRecord({ pubgAccounts }) {
   const router = useRouter();
+  const { t } = useT();
   const [loading, setLoading] = useState(true);
   const [battles, setBattles] = useState([]);
 
@@ -395,41 +398,41 @@ function ClanPlayRecord({ pubgAccounts }) {
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs font-bold text-gray-500 dark:text-gray-500 mb-2">🎯 킬내기</p>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-500 mb-2">{t('mypage.kill_match_label')}</p>
         {killList.length > 0 ? (
           <div className="flex flex-col gap-2">
             {killList.map((b) => <ClanPlayRow key={b.id} b={b} onClick={() => goTo(b)} />)}
           </div>
         ) : (
-          <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">참가한 킬내기가 없습니다</p>
+          <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">{t('mypage.no_kill_match')}</p>
         )}
       </div>
       <div>
-        <p className="text-xs font-bold text-gray-500 dark:text-gray-500 mb-2">⚔️ 내전</p>
+        <p className="text-xs font-bold text-gray-500 dark:text-gray-500 mb-2">{t('mypage.clan_war_label')}</p>
         {battleList.length > 0 ? (
           <div className="flex flex-col gap-2">
             {battleList.map((b) => <ClanPlayRow key={b.id} b={b} onClick={() => goTo(b)} />)}
           </div>
         ) : (
-          <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">참가한 내전이 없습니다</p>
+          <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">{t('mypage.no_clan_war')}</p>
         )}
       </div>
     </div>
   );
 }
 
-const INQUIRY_TOPIC_LABEL = {
-  bug: '🐛 버그/오류',
-  feature: '💡 기능 제안',
-  data: '📊 데이터 오류',
-  forum: '🚨 포럼 신고',
-  other: '📬 기타',
-};
-
 const SEEN_REPLIES_KEY = 'pkgg_seen_inquiry_replies';
 
 // 마이페이지 "내 문의" 섹션 — 로그인 유저 본인이 제출한 문의와 관리자 답변 조회
 function MyInquiries() {
+  const { t } = useT();
+  const INQUIRY_TOPIC_LABEL = {
+    bug: t('mypage.inquiry_topic.bug'),
+    feature: t('mypage.inquiry_topic.feature'),
+    data: t('mypage.inquiry_topic.data'),
+    forum: t('mypage.inquiry_topic.forum'),
+    other: t('mypage.inquiry_topic.other'),
+  };
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -469,7 +472,7 @@ function MyInquiries() {
   }
 
   if (inquiries.length === 0) {
-    return <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">제출한 문의가 없습니다</p>;
+    return <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">{t('mypage.no_submitted_inquiry')}</p>;
   }
 
   return (
@@ -497,7 +500,7 @@ function MyInquiries() {
                 <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                   inq.status === 'replied' ? 'bg-green-500/20 text-green-500 dark:text-green-400' : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                 }`}>
-                  {inq.status === 'replied' ? '답변완료' : '답변 대기 중'}
+                  {inq.status === 'replied' ? t('mypage.reply_done') : t('mypage.reply_waiting')}
                 </span>
               </span>
             </button>
@@ -509,15 +512,15 @@ function MyInquiries() {
                 </div>
                 {inq.status === 'replied' ? (
                   <div className="whitespace-pre-wrap text-xs text-gray-800 dark:text-gray-100 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 rounded-lg p-3">
-                    <p className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold mb-1">관리자 답변</p>
+                    <p className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold mb-1">{t('mypage.admin_reply')}</p>
                     {inq.reply}
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-2">답변 대기 중입니다</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-2">{t('mypage.reply_waiting_full')}</p>
                 )}
                 <p className="text-[10px] text-gray-400 dark:text-gray-600">
-                  접수: {new Date(inq.createdAt).toLocaleString('ko-KR')}
-                  {inq.repliedAt && ` · 답변: ${new Date(inq.repliedAt).toLocaleString('ko-KR')}`}
+                  {t('mypage.received_at').replace('{n}', new Date(inq.createdAt).toLocaleString('ko-KR'))}
+                  {inq.repliedAt && ` · ${t('mypage.replied_at').replace('{n}', new Date(inq.repliedAt).toLocaleString('ko-KR'))}`}
                 </p>
               </div>
             )}
@@ -781,7 +784,7 @@ export default function MyPage() {
                           )}
                           <button onClick={() => handleUnlinkPubg(acc)} disabled={unlinking === acc.id}
                             className="text-xs text-red-400 hover:text-red-300 font-semibold disabled:opacity-50 transition-colors">
-                            {unlinking === acc.id ? '해제 중...' : '연동 해제'}
+                            {unlinking === acc.id ? t('mypage.unlinking') : t('mypage.unlink')}
                           </button>
                         </div>
                       </div>
@@ -789,7 +792,7 @@ export default function MyPage() {
                       {/* 계정 검색 비활성화 토글 */}
                       <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-200/60 dark:border-gray-700/60">
                         <p className="text-[11px] text-gray-500 dark:text-gray-500">
-                          해당 버튼은 타인 검색을 제한합니다
+                          {t('mypage.search_hidden_desc')}
                         </p>
                         <button
                           onClick={() => handleToggleSearchHidden(acc)}
@@ -807,7 +810,7 @@ export default function MyPage() {
                       </div>
                       {acc.isSearchHidden && (
                         <p className="text-[11px] text-red-400 mt-1.5">
-                          🔒 계정 검색 비활성화 — 검색 결과와 전적 페이지가 타인에게 노출되지 않습니다
+                          {t('mypage.search_hidden_active')}
                         </p>
                       )}
                     </div>
@@ -883,8 +886,8 @@ export default function MyPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    <span>👥 {userData.clan.memberCount}명</span>
-                    {userData.clan.avgScore > 0 && <span>⚡ 평균 {userData.clan.avgScore} MMR</span>}
+                    <span>{t('mypage.member_count').replace('{n}', userData.clan.memberCount)}</span>
+                    {userData.clan.avgScore > 0 && <span>{t('mypage.avg_mmr').replace('{n}', userData.clan.avgScore)}</span>}
                     {userData.clan.region && <span>🌏 {userData.clan.region}</span>}
                   </div>
                   {userData.clan.leader && (
@@ -1021,7 +1024,7 @@ export default function MyPage() {
           {/* ── 클랜 놀이 기록 ── */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
             <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
-              🎮 <span>클랜 놀이 기록</span>
+              🎮 <span>{t('mypage.clanplay_title')}</span>
             </h2>
             <ClanPlayRecord pubgAccounts={userData?.pubgAccounts} />
           </div>
@@ -1029,7 +1032,7 @@ export default function MyPage() {
           {/* ── 내 문의 ── */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
             <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
-              📮 <span>내 문의</span>
+              📮 <span>{t('mypage.myinquiries_title')}</span>
             </h2>
             <MyInquiries />
           </div>

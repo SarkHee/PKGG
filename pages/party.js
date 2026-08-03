@@ -4,55 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Header from '../components/layout/Header';
-
-const MODE_OPTIONS = [
-  { value: 'all',       label: '전체 모드' },
-  { value: 'squad',     label: '스쿼드' },
-  { value: 'squad-fpp', label: '스쿼드 FPP' },
-  { value: 'duo',       label: '듀오' },
-  { value: 'duo-fpp',   label: '듀오 FPP' },
-  { value: 'solo',      label: '솔로' },
-];
-
-const SERVER_OPTIONS = [
-  { value: 'all',   label: '전체 서버' },
-  { value: 'steam', label: 'Steam' },
-  { value: 'kakao', label: 'Kakao' },
-];
-
-const MIC_OPTIONS = [
-  { value: 'all',         label: '마이크 무관' },
-  { value: 'required',    label: '마이크 필수' },
-  { value: 'preferred',   label: '선호' },
-  { value: 'not_required',label: '불필요' },
-];
-
-const MODE_LABELS = {
-  squad:     '🏆 스쿼드',
-  'squad-fpp':'🏆 스쿼드FPP',
-  duo:       '👥 듀오',
-  'duo-fpp': '👥 듀오FPP',
-  solo:      '🎯 솔로',
-};
-
-const SERVER_STYLE = {
-  steam: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  kakao: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-};
-
-const MIC_LABELS = {
-  required:    '🎤 마이크 필수',
-  preferred:   '🎤 마이크 선호',
-  not_required:'🔇 불필요',
-};
-
-const PLAYTIME_LABELS = {
-  morning:   '☀️ 오전',
-  afternoon: '🌤️ 오후',
-  evening:   '🌙 저녁',
-  midnight:  '🌃 새벽',
-  anytime:   '⏰ 언제든',
-};
+import { useT } from '../utils/i18n';
 
 function parseParty(content) {
   try {
@@ -62,24 +14,49 @@ function parseParty(content) {
   return null;
 }
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, t) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return '방금';
-  if (m < 60) return `${m}분 전`;
+  if (m < 1) return t('party.time_now');
+  if (m < 60) return t('party.time_min').replace('{n}', m);
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}시간 전`;
-  return `${Math.floor(h / 24)}일 전`;
+  if (h < 24) return t('party.time_hour').replace('{n}', h);
+  return t('party.time_day').replace('{n}', Math.floor(h / 24));
 }
 
 function PartyCard({ post }) {
   const router = useRouter();
+  const { t } = useT();
+  const MODE_LABELS = {
+    squad: t('party.badge.mode_squad'),
+    'squad-fpp': t('party.badge.mode_squad_fpp'),
+    duo: t('party.badge.mode_duo'),
+    'duo-fpp': t('party.badge.mode_duo_fpp'),
+    solo: t('party.badge.mode_solo'),
+  };
+  const SERVER_STYLE = {
+    steam: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    kakao: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  };
+  const MIC_LABELS = {
+    required: t('party.badge.mic_required'),
+    preferred: t('party.badge.mic_preferred'),
+    not_required: t('party.badge.mic_not_required'),
+  };
+  const PLAYTIME_LABELS = {
+    morning: t('party.badge.playtime_morning'),
+    afternoon: t('party.badge.playtime_afternoon'),
+    evening: t('party.badge.playtime_evening'),
+    midnight: t('party.badge.playtime_midnight'),
+    anytime: t('party.badge.playtime_anytime'),
+  };
+
   const p = parseParty(post.content);
   if (!p) return null;
 
-  const slotsText = p.slotsNeeded > 0 ? `${p.slotsNeeded}자리 모집` : '인원 협의';
+  const slotsText = p.slotsNeeded > 0 ? t('party.slots_needed').replace('{n}', p.slotsNeeded) : t('party.slots_negotiable');
   const mmrText = (p.mmrMin || p.mmrMax)
-    ? `MMR ${p.mmrMin || '0'}~${p.mmrMax ? p.mmrMax : '무제한'}`
+    ? `MMR ${p.mmrMin || '0'}~${p.mmrMax ? p.mmrMax : t('party.mmr_unlimited')}`
     : null;
 
   return (
@@ -109,7 +86,7 @@ function PartyCard({ post }) {
             </span>
           )}
         </div>
-        <span className="text-xs text-gray-400 dark:text-gray-600 flex-shrink-0">{timeAgo(post.createdAt)}</span>
+        <span className="text-xs text-gray-400 dark:text-gray-600 flex-shrink-0">{timeAgo(post.createdAt, t)}</span>
       </div>
 
       {/* 제목 */}
@@ -141,6 +118,27 @@ function PartyCard({ post }) {
 }
 
 export default function PartyPage() {
+  const { t } = useT();
+  const MODE_OPTIONS = [
+    { value: 'all',       label: t('party.opt.mode_all') },
+    { value: 'squad',     label: t('party.opt.mode_squad') },
+    { value: 'squad-fpp', label: t('party.opt.mode_squad_fpp') },
+    { value: 'duo',       label: t('party.opt.mode_duo') },
+    { value: 'duo-fpp',   label: t('party.opt.mode_duo_fpp') },
+    { value: 'solo',      label: t('party.opt.mode_solo') },
+  ];
+  const SERVER_OPTIONS = [
+    { value: 'all',   label: t('party.opt.server_all') },
+    { value: 'steam', label: t('party.opt.server_steam') },
+    { value: 'kakao', label: t('party.opt.server_kakao') },
+  ];
+  const MIC_OPTIONS = [
+    { value: 'all',          label: t('party.opt.mic_all') },
+    { value: 'required',     label: t('party.opt.mic_required') },
+    { value: 'preferred',    label: t('party.opt.mic_preferred') },
+    { value: 'not_required', label: t('party.opt.mic_not_required') },
+  ];
+
   const [posts, setPosts]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
@@ -159,7 +157,7 @@ export default function PartyPage() {
       setPosts(data.posts || []);
       setPagination(data.pagination || {});
     } catch {
-      setError('게시글을 불러올 수 없습니다.');
+      setError(t('party.load_failed'));
     } finally {
       setLoading(false);
     }
@@ -180,8 +178,8 @@ export default function PartyPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Head>
-        <title>파티 찾기 | PKGG</title>
-        <meta name="description" content="PUBG 함께 게임할 파티원을 모집하거나 찾아보세요." />
+        <title>{t('party.title')}</title>
+        <meta name="description" content={t('party.meta_desc')} />
       </Head>
       <Header />
 
@@ -189,12 +187,12 @@ export default function PartyPage() {
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white">🎮 파티 찾기</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">함께 플레이할 파티원을 모집하거나 참여하세요</p>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white">{t('party.heading')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('party.subheading')}</p>
           </div>
           <Link href="/party/create" passHref>
             <span className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-all cursor-pointer">
-              + 모집글 작성
+              {t('party.create_btn')}
             </span>
           </Link>
         </div>
@@ -227,7 +225,7 @@ export default function PartyPage() {
               onClick={() => { setModeFilter('all'); setServerFilter('all'); setMicFilter('all'); }}
               className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm rounded-xl transition-colors"
             >
-              ✕ 초기화
+              {t('party.filter_reset')}
             </button>
           )}
         </div>
@@ -236,25 +234,25 @@ export default function PartyPage() {
         {loading ? (
           <div className="text-center py-16 text-gray-500 dark:text-gray-500">
             <div className="text-4xl mb-3 animate-pulse">🎮</div>
-            <p>불러오는 중...</p>
+            <p>{t('party.loading')}</p>
           </div>
         ) : error ? (
           <div className="text-center py-16 text-gray-500">
             <p>{error}</p>
-            <button onClick={() => loadPosts(1)} className="mt-4 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 text-sm">다시 시도</button>
+            <button onClick={() => loadPosts(1)} className="mt-4 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 text-sm">{t('party.retry')}</button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-4">🎯</div>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
               {posts.length === 0
-                ? '아직 모집글이 없습니다. 첫 번째로 파티를 모집해보세요!'
-                : '해당 조건의 모집글이 없습니다. 필터를 변경해보세요.'}
+                ? t('party.empty_all')
+                : t('party.empty_filtered')}
             </p>
             {posts.length === 0 && (
               <Link href="/party/create" passHref>
                 <span className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl cursor-pointer">
-                  모집글 작성하기
+                  {t('party.create_first')}
                 </span>
               </Link>
             )}
@@ -275,7 +273,7 @@ export default function PartyPage() {
               onClick={() => { const p = page - 1; setPage(p); loadPosts(p); }}
               className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-sm disabled:opacity-40"
             >
-              이전
+              {t('party.prev')}
             </button>
             <span className="text-gray-500 dark:text-gray-400 text-sm">{page} / {pagination.totalPages}</span>
             <button
@@ -283,7 +281,7 @@ export default function PartyPage() {
               onClick={() => { const p = page + 1; setPage(p); loadPosts(p); }}
               className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-sm disabled:opacity-40"
             >
-              다음
+              {t('party.next')}
             </button>
           </div>
         )}

@@ -4,39 +4,41 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import Header from '../../../components/layout/Header';
+import { useT } from '../../../utils/i18n';
 
 function DeleteModal({ type, onConfirm, onCancel, loading, error }) {
+  const { t } = useT();
   const [password, setPassword] = useState('');
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
       <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm shadow-xl">
         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
-          {type === 'post' ? '게시글 삭제' : '댓글 삭제'}
+          {type === 'post' ? t('fpost.delete_post_title') : t('fpost.delete_reply_title')}
         </h3>
         <p className="text-sm text-gray-500 mb-4">
-          작성 시 입력한 비밀번호를 입력하세요.<br />
-          삭제 후 복구할 수 없습니다.
+          {t('fpost.delete_desc1')}<br />
+          {t('fpost.delete_desc2')}
         </p>
         {error && <p className="mb-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2.5">{error}</p>}
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="비밀번호"
+          placeholder={t('fpost.password_placeholder')}
           className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
           onKeyDown={(e) => e.key === 'Enter' && onConfirm(password)}
           autoFocus
         />
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            취소
+            {t('form.cancel')}
           </button>
           <button
             onClick={() => onConfirm(password)}
             disabled={loading || !password}
             className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-lg text-sm font-semibold transition-colors"
           >
-            {loading ? '삭제 중...' : '삭제'}
+            {loading ? t('fpost.deleting') : t('fpost.delete')}
           </button>
         </div>
       </div>
@@ -49,7 +51,7 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function formatContent(content) {
+function formatContent(content, t) {
   return content.split('\n').map((line, i) => {
     // 이미지 마크다운: ![alt](url)
     const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
@@ -58,7 +60,7 @@ function formatContent(content) {
         <div key={i} className="my-4 -mx-6">
           <img
             src={imgMatch[2]}
-            alt={imgMatch[1] || '이미지'}
+            alt={imgMatch[1] || t('fpost.image_alt')}
             className="w-full block"
             style={{ objectFit: 'cover' }}
           />
@@ -73,17 +75,18 @@ function formatContent(content) {
   });
 }
 
-const MODE_LABELS    = { squad:'🏆 스쿼드', 'squad-fpp':'🏆 스쿼드 FPP', duo:'👥 듀오', 'duo-fpp':'👥 듀오 FPP', solo:'🎯 솔로' };
-const PLAYTIME_LABELS= { morning:'☀️ 오전', afternoon:'🌤️ 오후', evening:'🌙 저녁', midnight:'🌃 새벽', anytime:'⏰ 언제든' };
-const MIC_LABELS     = { required:'🎤 마이크 필수', preferred:'🎤 마이크 선호', not_required:'🔇 마이크 불필요' };
-
 function PartyContent({ content }) {
+  const { t } = useT();
+  const MODE_LABELS     = { squad: t('fpost.mode.squad'), 'squad-fpp': t('fpost.mode.squad_fpp'), duo: t('fpost.mode.duo'), 'duo-fpp': t('fpost.mode.duo_fpp'), solo: t('fpost.mode.solo') };
+  const PLAYTIME_LABELS = { morning: t('fpost.playtime.morning'), afternoon: t('fpost.playtime.afternoon'), evening: t('fpost.playtime.evening'), midnight: t('fpost.playtime.midnight'), anytime: t('fpost.playtime.anytime') };
+  const MIC_LABELS      = { required: t('fpost.mic.required'), preferred: t('fpost.mic.preferred'), not_required: t('fpost.mic.not_required') };
+
   let p = null;
   try { const d = JSON.parse(content); if (d?.__party) p = d; } catch {}
-  if (!p) return formatContent(content);
+  if (!p) return formatContent(content, t);
 
   const mmrText = (p.mmrMin || p.mmrMax)
-    ? `MMR ${p.mmrMin || 0} ~ ${p.mmrMax || '무제한'}`
+    ? `MMR ${p.mmrMin || 0} ~ ${p.mmrMax || t('fpost.mmr_unlimited')}`
     : null;
 
   return (
@@ -102,7 +105,7 @@ function PartyContent({ content }) {
         )}
         {p.slotsNeeded > 0 && (
           <span className="text-sm font-semibold px-3 py-1.5 rounded-full bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30">
-            👥 {p.slotsNeeded}자리 모집
+            👥 {t('fpost.slots_recruit').replace('{n}', p.slotsNeeded)}
           </span>
         )}
         {p.mic && (
@@ -134,6 +137,7 @@ function PartyContent({ content }) {
 
 export default function PostDetail() {
   const router = useRouter();
+  const { t } = useT();
   const { postId } = router.query;
   const { data: session } = useSession();
 
@@ -187,10 +191,10 @@ export default function PostDetail() {
 
   const handleSubmitReply = async (e) => {
     e.preventDefault();
-    if (!replyForm.author.trim()) { setReplyError('닉네임을 입력해주세요.'); return; }
-    if (!replyForm.password.trim()) { setReplyError('삭제 비밀번호를 입력해주세요.'); return; }
-    if (replyForm.password.length < 4) { setReplyError('비밀번호는 4자 이상 입력해주세요.'); return; }
-    if (!replyForm.content.trim()) { setReplyError('내용을 입력해주세요.'); return; }
+    if (!replyForm.author.trim()) { setReplyError(t('fpost.nickname_required')); return; }
+    if (!replyForm.password.trim()) { setReplyError(t('fpost.password_required')); return; }
+    if (replyForm.password.length < 4) { setReplyError(t('fpost.password_min')); return; }
+    if (!replyForm.content.trim()) { setReplyError(t('fpost.content_required')); return; }
     setSubmittingReply(true);
     setReplyError('');
     try {
@@ -210,10 +214,10 @@ export default function PostDetail() {
         setReplyForm({ content: '', author: '', password: '' });
         setPost((p) => p ? { ...p, replyCount: (p.replyCount || 0) + 1 } : p);
       } else {
-        setReplyError(data.error || '댓글 작성에 실패했습니다.');
+        setReplyError(data.error || t('fpost.reply_failed'));
       }
     } catch {
-      setReplyError('네트워크 오류가 발생했습니다.');
+      setReplyError(t('fpost.network_error'));
     } finally {
       setSubmittingReply(false);
     }
@@ -221,7 +225,7 @@ export default function PostDetail() {
 
   const handleToggleLike = async () => {
     if (!session?.user) {
-      alert('로그인 후 이용 가능합니다.');
+      alert(t('fpost.login_required_alert'));
       return;
     }
     if (likeLoading || !post) return;
@@ -237,11 +241,11 @@ export default function PostDetail() {
         setPost((p) => p ? { ...p, likedByMe: data.liked, likes: data.likeCount } : p);
       } else {
         setPost((p) => p ? { ...p, likedByMe: prevLiked, likes: prevCount } : p);
-        alert(data.error || '요청에 실패했습니다.');
+        alert(data.error || t('fpost.request_failed'));
       }
     } catch {
       setPost((p) => p ? { ...p, likedByMe: prevLiked, likes: prevCount } : p);
-      alert('네트워크 오류가 발생했습니다.');
+      alert(t('fpost.network_error'));
     } finally {
       setLikeLoading(false);
     }
@@ -271,10 +275,10 @@ export default function PostDetail() {
           setDeleteModal(null);
         }
       } else {
-        setDeleteError(data.error || '삭제에 실패했습니다.');
+        setDeleteError(data.error || t('fpost.delete_failed'));
       }
     } catch {
-      setDeleteError('네트워크 오류가 발생했습니다.');
+      setDeleteError(t('fpost.network_error'));
     } finally {
       setDeleteLoading(false);
     }
@@ -287,7 +291,7 @@ export default function PostDetail() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
           <div className="text-center">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">게시글을 불러오는 중...</p>
+            <p className="text-gray-500 text-sm">{t('fpost.loading_post')}</p>
           </div>
         </div>
       </>
@@ -301,8 +305,8 @@ export default function PostDetail() {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
           <div className="text-center">
             <div className="text-5xl mb-4">📭</div>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">게시글을 찾을 수 없습니다</h2>
-            <Link href="/forum" className="text-blue-500 hover:underline text-sm">포럼으로 돌아가기</Link>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{t('fpost.post_not_found')}</h2>
+            <Link href="/forum" className="text-blue-500 hover:underline text-sm">{t('fpost.back_to_forum')}</Link>
           </div>
         </div>
       </>
@@ -312,7 +316,7 @@ export default function PostDetail() {
   return (
     <>
       <Head>
-        <title>{post.title} | PKGG 커뮤니티</title>
+        <title>{post.title} {t('fpost.title_suffix')}</title>
         <meta name="description" content={post.content?.substring(0, 160)} />
       </Head>
       <Header />
@@ -331,7 +335,7 @@ export default function PostDetail() {
         <div className="max-w-3xl mx-auto px-4 py-8">
           {/* 브레드크럼 */}
           <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-            <Link href="/forum" className="hover:text-blue-600">포럼</Link>
+            <Link href="/forum" className="hover:text-blue-600">{t('forum.breadcrumb_forum')}</Link>
             <span>›</span>
             <Link href={`/forum/category/${post.categoryId}`} className="hover:text-blue-600">
               {post.category?.name}
@@ -349,7 +353,7 @@ export default function PostDetail() {
                   {post.category?.name}
                 </span>
                 {post.isPinned && (
-                  <span className="text-xs bg-red-50 text-red-500 border border-red-100 px-2 py-0.5 rounded-full">📌 공지</span>
+                  <span className="text-xs bg-red-50 text-red-500 border border-red-100 px-2 py-0.5 rounded-full">{t('fpost.pinned')}</span>
                 )}
               </div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 leading-tight">{post.title}</h1>
@@ -370,7 +374,7 @@ export default function PostDetail() {
                     onClick={() => setDeleteModal({ type: 'post', id: post.id })}
                     className="text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    삭제
+                    {t('fpost.delete')}
                   </button>
                 )}
               </div>
@@ -393,10 +397,10 @@ export default function PostDetail() {
                 }`}
               >
                 <span>{post.likedByMe ? '❤️' : '🤍'}</span>
-                <span>좋아요 {post.likes ?? 0}</span>
+                <span>{t('fpost.likes_prefix').replace('{n}', post.likes ?? 0)}</span>
               </button>
               {!session?.user && (
-                <p className="text-xs text-gray-400">로그인 후 좋아요를 누를 수 있습니다</p>
+                <p className="text-xs text-gray-400">{t('fpost.login_to_like')}</p>
               )}
             </div>
           </div>
@@ -404,14 +408,14 @@ export default function PostDetail() {
           {/* 댓글 섹션 */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-              <h2 className="font-bold text-gray-900 dark:text-gray-100 text-base">댓글 {replies.length}개</h2>
+              <h2 className="font-bold text-gray-900 dark:text-gray-100 text-base">{t('fpost.reply_count').replace('{n}', replies.length)}</h2>
             </div>
 
             {/* 댓글 목록 */}
             <div className="divide-y divide-gray-50 dark:divide-gray-800">
               {replies.length === 0 ? (
                 <div className="py-10 text-center text-gray-400 text-sm">
-                  첫 번째 댓글을 남겨보세요
+                  {t('fpost.first_reply_hint')}
                 </div>
               ) : (
                 replies.map((reply) => (
@@ -428,7 +432,7 @@ export default function PostDetail() {
                         onClick={() => setDeleteModal({ type: 'reply', id: reply.id })}
                         className="text-xs text-gray-300 dark:text-gray-600 hover:text-red-500 transition-colors flex-shrink-0"
                       >
-                        삭제
+                        {t('fpost.delete')}
                       </button>
                     </div>
                     <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed ml-9 whitespace-pre-wrap">{reply.content}</p>
@@ -439,7 +443,7 @@ export default function PostDetail() {
 
             {/* 댓글 작성 폼 */}
             <div className="px-6 py-5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">댓글 작성</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{t('fpost.reply_write_title')}</h3>
               {replyError && (
                 <div className="mb-3 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
                   ⚠️ {replyError}
@@ -450,19 +454,19 @@ export default function PostDetail() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      닉네임 <span className="text-red-500">*</span>
+                      {t('form.nickname_label')} <span className="text-red-500">*</span>
                     </label>
                     {linkedNickname ? (
                       <div className="flex items-center gap-2 px-3 py-2 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                         <span className="text-sm font-medium text-blue-800 dark:text-blue-300">{linkedNickname}</span>
-                        <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">연동됨</span>
+                        <span className="text-[11px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">{t('form.linked')}</span>
                       </div>
                     ) : (
                       <input
                         type="text"
                         value={replyForm.author}
                         onChange={(e) => setReplyForm((p) => ({ ...p, author: e.target.value }))}
-                        placeholder="닉네임"
+                        placeholder={t('form.nickname_label')}
                         maxLength={20}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                       />
@@ -470,14 +474,14 @@ export default function PostDetail() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      삭제 비밀번호 <span className="text-red-500">*</span>
-                      <span className="font-normal text-gray-400 ml-1">(4자 이상)</span>
+                      {t('form.delete_password_label')} <span className="text-red-500">*</span>
+                      <span className="font-normal text-gray-400 ml-1">{t('fpost.min_4_chars')}</span>
                     </label>
                     <input
                       type="password"
                       value={replyForm.password}
                       onChange={(e) => setReplyForm((p) => ({ ...p, password: e.target.value }))}
-                      placeholder="댓글 삭제 시 사용됩니다"
+                      placeholder={t('fpost.reply_password_placeholder')}
                       maxLength={30}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                     />
@@ -488,7 +492,7 @@ export default function PostDetail() {
                   <textarea
                     value={replyForm.content}
                     onChange={(e) => setReplyForm((p) => ({ ...p, content: e.target.value }))}
-                    placeholder="댓글을 입력하세요..."
+                    placeholder={t('fpost.content_placeholder')}
                     rows={3}
                     maxLength={1000}
                     className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
@@ -498,7 +502,7 @@ export default function PostDetail() {
                     disabled={submittingReply}
                     className="px-5 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg text-sm font-semibold transition-colors self-end"
                   >
-                    {submittingReply ? '작성 중...' : '작성'}
+                    {submittingReply ? t('fpost.writing') : t('fpost.write')}
                   </button>
                 </div>
               </form>
@@ -511,7 +515,7 @@ export default function PostDetail() {
               onClick={() => router.back()}
               className="text-sm text-gray-400 hover:text-blue-600 flex items-center gap-1 transition-colors"
             >
-              ← 목록으로
+              {t('fpost.back_to_list')}
             </button>
           </div>
         </div>

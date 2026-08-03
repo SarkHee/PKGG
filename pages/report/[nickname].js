@@ -2,8 +2,10 @@ import { useRef, useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import ReportCard, { CARD_W } from '../../components/player/ReportCard'
+import { useT } from '../../utils/i18n'
 
 export default function ReportPage({ data, error, nickname }) {
+  const { t } = useT()
   const cardRef  = useRef(null)
   const [saving, setSaving]     = useState(false)
   const [copied, setCopied]     = useState(false)
@@ -29,7 +31,7 @@ export default function ReportPage({ data, error, nickname }) {
       a.download = `pkgg_report_${nickname}.png`
       a.click()
     } catch (e) {
-      setShareErr('이미지 저장 실패: ' + e.message)
+      setShareErr(t('report.save_failed').replace('{n}', e.message))
     } finally {
       setSaving(false)
     }
@@ -41,7 +43,7 @@ export default function ReportPage({ data, error, nickname }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      setShareErr('링크 복사 실패')
+      setShareErr(t('report.copy_failed'))
     }
   }
 
@@ -78,17 +80,17 @@ export default function ReportPage({ data, error, nickname }) {
         {/* 상단 네비 */}
         <div style={{ width: '100%', maxWidth: CARD_W, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <Link href={`/player/steam/${encodeURIComponent(nickname)}`} style={{ color: 'rgba(165,160,240,0.7)', fontSize: 12, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-            ← 전적 보기
+            {t('report.back_to_stats')}
           </Link>
           <img src="/logo.png" alt="PKGG" style={{ height: 20, objectFit: 'contain', opacity: 0.7 }} />
         </div>
 
         {error ? (
           <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '24px 32px', textAlign: 'center', maxWidth: 480 }}>
-            <div style={{ color: '#F87171', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>데이터를 불러올 수 없습니다</div>
+            <div style={{ color: '#F87171', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{t('report.load_error_title')}</div>
             <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>{error}</div>
             <Link href={`/player/steam/${encodeURIComponent(nickname)}`} style={{ display: 'inline-block', marginTop: 16, color: '#A5A0F0', fontSize: 12 }}>
-              플레이어 페이지 방문 후 다시 시도해주세요 →
+              {t('report.retry_hint')}
             </Link>
           </div>
         ) : (
@@ -112,19 +114,19 @@ export default function ReportPage({ data, error, nickname }) {
                 disabled={saving}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px 20px', background: '#7F77DD', borderRadius: 10, border: 'none', color: 'white', fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
               >
-                {saving ? '저장 중...' : '💾 이미지 저장'}
+                {saving ? t('report.saving') : t('report.save_image')}
               </button>
               <button
                 onClick={handleCopyLink}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px 20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: copied ? '#34D399' : 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
               >
-                {copied ? '✓ 복사됨' : '🔗 링크 복사'}
+                {copied ? t('report.copied') : t('report.copy_link')}
               </button>
               <button
                 onClick={handleShare}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '12px 20px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', gridColumn: isMobile ? '1 / -1' : 'auto' }}
               >
-                📤 공유하기
+                {t('report.share')}
               </button>
             </div>
 
@@ -133,7 +135,7 @@ export default function ReportPage({ data, error, nickname }) {
             )}
 
             <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>
-              이미지 저장 후 카카오톡·디스코드에 공유하세요
+              {t('report.share_hint')}
             </div>
           </>
         )}

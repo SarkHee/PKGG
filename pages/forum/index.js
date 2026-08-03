@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Header from "../../components/layout/Header";
+import { useT } from '../../utils/i18n';
 
 const FORUM_CATEGORIES = [
   {
@@ -34,8 +35,14 @@ const FORUM_CATEGORIES = [
   },
 ];
 
+const CAT_I18N_KEY = { strategy: 'strategy', general: 'general', questions: 'questions', recruitment: 'recruitment', party: 'party', settings: 'settings' };
+
 function ForumCategoryCard({ category, postCount = 0, latestPost = null }) {
   const router = useRouter();
+  const { t } = useT();
+  const catKey = CAT_I18N_KEY[category?.id];
+  const catName = catKey ? t(`forum.cat.${catKey}.name`) : category.name;
+  const catDesc = catKey ? t(`forum.cat.${catKey}.desc`) : category.description;
 
   const colorClasses = {
     '#3B82F6':
@@ -90,15 +97,15 @@ function ForumCategoryCard({ category, postCount = 0, latestPost = null }) {
             {category.icon}
           </div>
           <div>
-            <h3 className="text-lg font-bold mb-1">{category.name}</h3>
-            <p className="text-sm opacity-75">{category.description}</p>
+            <h3 className="text-lg font-bold mb-1">{catName}</h3>
+            <p className="text-sm opacity-75">{catDesc}</p>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-medium">게시글 {postCount}개</div>
+          <div className="text-sm font-medium">{t('forum.post_count').replace('{n}', postCount)}</div>
           {latestPost && (
             <div className="text-xs opacity-75 mt-1">
-              최근: {latestPost.title.slice(0, 20)}...
+              {t('forum.latest_prefix')} {latestPost.title.slice(0, 20)}...
             </div>
           )}
         </div>
@@ -136,6 +143,7 @@ function RecentPostCard({ post }) {
 }
 
 export default function ForumIndex() {
+  const { t } = useT();
   const [categories, setCategories] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,10 +218,10 @@ export default function ForumIndex() {
   return (
     <>
       <Head>
-        <title>커뮤니티 포럼 | PKGG</title>
+        <title>{t('forum.title')}</title>
         <meta
           name="description"
-          content="PUBG 플레이어들의 커뮤니티 포럼 - 전략, 팁, 질문을 공유하세요"
+          content={t('forum.meta_description')}
         />
       </Head>
 
@@ -226,11 +234,10 @@ export default function ForumIndex() {
             <span className="text-2xl">🏆</span>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            커뮤니티 포럼
+            {t('forum.heading')}
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            PUBG 플레이어들과 전략을 공유하고, 팁을 배우며, 클랜원을
-            모집해보세요!
+            {t('forum.intro')}
           </p>
         </div>
 
@@ -240,14 +247,14 @@ export default function ForumIndex() {
             onClick={() => router.push('/forum/create')}
             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2"
           >
-            ✏️ 새 글 작성하기
+            {t('forum.write_post')}
           </button>
         </div>
 
         {/* 카테고리 섹션 */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
-            📂 카테고리
+            {t('forum.categories_heading')}
           </h2>
           {categoriesLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -282,7 +289,7 @@ export default function ForumIndex() {
         {/* 최근 게시글 섹션 */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
-            🔥 최근 게시글
+            {t('forum.recent_posts_heading')}
           </h2>
 
           {loading ? (
@@ -311,16 +318,16 @@ export default function ForumIndex() {
             <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
               <div className="text-6xl mb-4">📝</div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                아직 게시글이 없습니다
+                {t('forum.no_posts_title')}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                첫 번째 게시글을 작성해보세요!
+                {t('forum.no_posts_desc')}
               </p>
               <button
                 onClick={() => router.push('/forum/create')}
                 className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
               >
-                글 작성하기
+                {t('forum.write_post_short')}
               </button>
             </div>
           )}
@@ -329,25 +336,25 @@ export default function ForumIndex() {
         {/* 포럼 규칙 */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
           <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            📋 포럼 이용 규칙
+            {t('forum.rules_heading')}
           </h3>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <h4 className="font-semibold text-green-600 mb-2">✅ 권장사항</h4>
+              <h4 className="font-semibold text-green-600 mb-2">{t('forum.rules_recommend')}</h4>
               <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                <li>• 건설적이고 도움이 되는 내용 공유</li>
-                <li>• 정확한 정보와 근거 제시</li>
-                <li>• 다른 사용자에게 예의바른 태도</li>
-                <li>• 관련 카테고리에 게시글 작성</li>
+                <li>• {t('forum.rule_r1')}</li>
+                <li>• {t('forum.rule_r2')}</li>
+                <li>• {t('forum.rule_r3')}</li>
+                <li>• {t('forum.rule_r4')}</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold text-red-600 mb-2">❌ 금지사항</h4>
+              <h4 className="font-semibold text-red-600 mb-2">{t('forum.rules_forbid')}</h4>
               <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                <li>• 욕설, 비방, 차별적 발언</li>
-                <li>• 스팸, 광고, 도배 행위</li>
-                <li>• 부정행위 관련 정보 공유</li>
-                <li>• 개인정보 노출 및 사생활 침해</li>
+                <li>• {t('forum.rule_f1')}</li>
+                <li>• {t('forum.rule_f2')}</li>
+                <li>• {t('forum.rule_f3')}</li>
+                <li>• {t('forum.rule_f4')}</li>
               </ul>
             </div>
           </div>

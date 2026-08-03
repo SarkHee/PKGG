@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Header from '../../components/layout/Header';
+import { useT } from '../../utils/i18n';
 
 const CHANGELOG = [
   {
@@ -49,6 +50,7 @@ const CHANGELOG = [
 ];
 
 export default function NoticesPage() {
+  const { t } = useT();
   const [tab, setTab] = useState('notices');
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,10 +96,10 @@ export default function NoticesPage() {
 
   const getTypeLabel = (type) => {
     const typeMap = {
-      UPDATE: '기능 업데이트',
-      MAINTENANCE: '점검 공지',
-      EVENT: '이벤트',
-      GENERAL: '일반 공지',
+      UPDATE: t('notices.type_update'),
+      MAINTENANCE: t('notices.type_maintenance'),
+      EVENT: t('notices.type_event'),
+      GENERAL: t('notices.type_general'),
     };
     return typeMap[type] || type;
   };
@@ -129,10 +131,10 @@ export default function NoticesPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  📋 공지사항
+                  {t('notices.heading')}
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  사이트 업데이트 및 공지사항을 확인하세요
+                  {t('notices.subheading')}
                 </p>
               </div>
             </div>
@@ -140,8 +142,8 @@ export default function NoticesPage() {
             {/* 탭 */}
             <div className="flex gap-1 mt-4 bg-gray-100 rounded-lg p-1 w-fit">
               {[
-                { key: 'notices', label: '📋 공지사항' },
-                { key: 'changelog', label: '🆕 업데이트 기록' },
+                { key: 'notices', label: t('notices.tab_notices') },
+                { key: 'changelog', label: t('notices.tab_changelog') },
               ].map(({ key, label }) => (
                 <button
                   key={key}
@@ -195,21 +197,21 @@ export default function NoticesPage() {
               onChange={(e) => setFilter((prev) => ({ ...prev, type: e.target.value }))}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
-              <option value="">전체 유형</option>
-              <option value="UPDATE">기능 업데이트</option>
-              <option value="MAINTENANCE">점검 공지</option>
-              <option value="EVENT">이벤트</option>
-              <option value="GENERAL">일반 공지</option>
+              <option value="">{t('notices.filter_all_type')}</option>
+              <option value="UPDATE">{t('notices.type_update')}</option>
+              <option value="MAINTENANCE">{t('notices.type_maintenance')}</option>
+              <option value="EVENT">{t('notices.type_event')}</option>
+              <option value="GENERAL">{t('notices.type_general')}</option>
             </select>
             <select
               value={filter.priority}
               onChange={(e) => setFilter((prev) => ({ ...prev, priority: e.target.value }))}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
-              <option value="">전체 우선순위</option>
-              <option value="HIGH">높음</option>
-              <option value="NORMAL">보통</option>
-              <option value="LOW">낮음</option>
+              <option value="">{t('notices.filter_all_priority')}</option>
+              <option value="HIGH">{t('notices.priority_high')}</option>
+              <option value="NORMAL">{t('notices.priority_normal')}</option>
+              <option value="LOW">{t('notices.priority_low')}</option>
             </select>
           </div>
 
@@ -217,11 +219,11 @@ export default function NoticesPage() {
             {loading ? (
               <div className="px-6 py-8 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-gray-500">공지사항을 불러오는 중...</p>
+                <p className="mt-2 text-gray-500">{t('notices.loading')}</p>
               </div>
             ) : notices.length === 0 ? (
               <div className="px-6 py-8 text-center text-gray-500">
-                등록된 공지사항이 없습니다.
+                {t('notices.empty')}
               </div>
             ) : (
               notices.map((notice) => (
@@ -243,7 +245,7 @@ export default function NoticesPage() {
                         </span>
                         {notice.isPinned && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            고정
+                            {t('notices.pinned')}
                           </span>
                         )}
                       </div>
@@ -259,8 +261,8 @@ export default function NoticesPage() {
                       )}
 
                       <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>작성자: {notice.author}</span>
-                        <span>조회: {notice.views.toLocaleString()}</span>
+                        <span>{t('notices.author_prefix').replace('{n}', notice.author)}</span>
+                        <span>{t('notices.views_prefix').replace('{n}', notice.views.toLocaleString())}</span>
                         <span>
                           {new Date(notice.createdAt).toLocaleDateString(
                             'ko-KR'
@@ -295,10 +297,9 @@ export default function NoticesPage() {
             <div className="px-6 py-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-500">
-                  총 {pagination.total}개 중{' '}
+                  {t('notices.total_count').replace('{n}', pagination.total)}{' '}
                   {(currentPage - 1) * pagination.limit + 1}-
-                  {Math.min(currentPage * pagination.limit, pagination.total)}개
-                  표시
+                  {t('notices.showing_range').replace('{n}', Math.min(currentPage * pagination.limit, pagination.total))}
                 </div>
 
                 <div className="flex gap-1">
@@ -309,7 +310,7 @@ export default function NoticesPage() {
                     disabled={currentPage === 1}
                     className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50"
                   >
-                    이전
+                    {t('notices.prev')}
                   </button>
 
                   {[...Array(pagination.totalPages)].map((_, i) => {
@@ -351,7 +352,7 @@ export default function NoticesPage() {
                     disabled={currentPage === pagination.totalPages}
                     className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50"
                   >
-                    다음
+                    {t('notices.next')}
                   </button>
                 </div>
               </div>
