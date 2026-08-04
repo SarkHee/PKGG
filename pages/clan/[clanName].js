@@ -240,10 +240,11 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
     myPubgNick.toLowerCase() === clan.leader.toLowerCase();
   const canRefresh = isLeader || user?.isAdmin;
 
-  // 쿨타임: lastSynced 기준 7일
+  // 쿨타임: lastManualRefresh(수동 갱신 버튼을 실제로 누른 시각) 기준 7일
+  // — lastSynced는 자동 크론도 매일 갱신하므로 쿨다운 기준으로 쓰면 안 됨 (버튼을 안 눌러도 리셋되는 버그였음)
   const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
-  const lastSynced = clan.updatedAt ? new Date(clan.updatedAt) : null;
-  const cooldownRemaining = lastSynced ? Math.max(0, COOLDOWN_MS - (Date.now() - lastSynced.getTime())) : 0;
+  const lastManualRefresh = clan.lastManualRefresh ? new Date(clan.lastManualRefresh) : null;
+  const cooldownRemaining = lastManualRefresh ? Math.max(0, COOLDOWN_MS - (Date.now() - lastManualRefresh.getTime())) : 0;
   const isCoolingDown = cooldownRemaining > 0;
   const cooldownDays  = Math.floor(cooldownRemaining / 86400000);
   const cooldownHours = Math.floor((cooldownRemaining % 86400000) / 3600000);

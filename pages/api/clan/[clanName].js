@@ -270,6 +270,8 @@ export default async function handler(req, res) {
         apiMemberCount: clan.pubgMemberCount || clan.memberCount,
         region: clan.region,
         updatedAt: clan.lastSynced,
+        // 수동 갱신 쿨다운 전용 — 자동 크론과는 별도로, 사람이 버튼을 눌렀을 때만 갱신됨
+        lastManualRefresh: clan.lastManualRefresh,
         leader: clan.leader || null,
         playStyle,
       },

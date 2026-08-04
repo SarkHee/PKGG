@@ -21,6 +21,9 @@ model Clan {
   pubgClanLevel     Int?
   pubgMemberCount   Int?
   lastSynced        DateTime?
+  // 클랜장/관리자가 "수동 갱신" 버튼을 눌렀을 때만 갱신 — 자동 크론(full-batch-update)은
+  // lastSynced만 건드리고 이 필드는 절대 건드리지 않음. 수동 갱신 쿨다운 계산 전용
+  lastManualRefresh DateTime?
   region            String?
   isKorean          Boolean?
   shardDistribution String?

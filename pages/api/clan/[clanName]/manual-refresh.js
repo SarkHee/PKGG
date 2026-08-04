@@ -238,9 +238,12 @@ export default async function handler(req, res) {
     updatedCount++;
   }
 
+  // lastSynced: "마지막 동기화" 일반 표시용 — 자동 크론도 함께 갱신함
+  // lastManualRefresh: 수동 갱신 쿨다운 전용 — 이 버튼을 누를 때만 갱신
+  const now = new Date();
   await prisma.clan.update({
     where: { id: clan.id },
-    data: { lastSynced: new Date(), memberCount: members.length },
+    data: { lastSynced: now, lastManualRefresh: now, memberCount: members.length },
   }).catch(() => {});
 
   return res.status(200).json({
