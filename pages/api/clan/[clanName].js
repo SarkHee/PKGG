@@ -157,6 +157,21 @@ export default async function handler(req, res) {
             top10Rate: Number(m.top10Rate).toFixed(1),
           }
         : null,
+      // 경쟁전 기록 없으면 null (Unranked) — 멤버 탭 일반전/경쟁전 토글용
+      rankedStats: m.rankedRoundsPlayed > 0
+        ? {
+            score: m.rankedScore || 0,
+            tier: m.rankedTier || 'Unranked',
+            subTier: m.rankedSubTier || 0,
+            rp: m.rankedRP || 0,
+            avgDamage: m.rankedAvgDamage || 0,
+            avgKills: Number(m.rankedAvgKills || 0).toFixed(2),
+            avgAssists: Number(m.rankedAvgAssists || 0).toFixed(2),
+            avgSurviveTime: m.rankedAvgSurviveTime || 0,
+            winRate: Number(m.rankedWinRate || 0).toFixed(1),
+            top10Rate: Number(m.rankedTop10Rate || 0).toFixed(1),
+          }
+        : null,
     }));
 
     // ── 분포 데이터 ───────────────────────────────────────────────────

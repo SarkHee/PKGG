@@ -45,6 +45,19 @@ model ClanMember {
   pubgShardId    String?
   lastUpdated    DateTime          @default(now())
   roundsPlayed   Int               @default(0)
+  // 경쟁전(ranked) 전용 스탯 — 일반전 6모드와 별도 집계, 멤버 탭 일반전/경쟁전 토글용
+  // rankedRoundsPlayed가 0이면 해당 시즌 경쟁전 기록 없음(Unranked)으로 취급
+  rankedScore          Int?     @default(0)
+  rankedTier           String?
+  rankedSubTier        Int?     @default(0)
+  rankedRP             Int?     @default(0)
+  rankedAvgDamage      Float?   @default(0)
+  rankedAvgKills       Float?   @default(0)
+  rankedAvgAssists     Float?   @default(0)
+  rankedAvgSurviveTime Float?   @default(0)
+  rankedWinRate        Float?   @default(0)
+  rankedTop10Rate      Float?   @default(0)
+  rankedRoundsPlayed   Int?     @default(0)
   clan           Clan?             @relation(fields: [clanId], references: [id])
   modeStats      PlayerModeStats[]
 }

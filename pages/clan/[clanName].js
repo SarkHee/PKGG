@@ -151,6 +151,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
   const [clanData, setClanData] = useState(initialClanData);
   const [activeTab, setActiveTab] = useState('overview');
   const [memberSort, setMemberSort] = useState('mmr');
+  const [memberStatMode, setMemberStatMode] = useState('normal'); // 'normal' | 'ranked' — 멤버 탭 일반전/경쟁전 토글
   const [allSquads, setAllSquads] = useState(null); // { squads: [...], unassigned: [...] }
   const [rankingData, setRankingData] = useState(null);
   const [rankingLoading, setRankingLoading] = useState(false);
@@ -253,13 +254,18 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
   const regColor = regionColors[clan.region] ?? 'bg-gray-600';
   const regLabel = clan.region ? t('region.' + clan.region) : t('region.UNKNOWN');
 
-  // 멤버 정렬
+  // 멤버 정렬 — 경쟁전 토글 시 rankedStats 기준으로 정렬 (기록 없는 멤버는 자연히 뒤로 밀림)
+  const statsKey = memberStatMode === 'ranked' ? 'rankedStats' : 'stats';
   const sortedMembers = [...(members || [])].sort((a, b) => {
-    if (memberSort === 'mmr') return (b.mmr || 0) - (a.mmr || 0);
-    if (memberSort === 'kills') return Number(b.stats?.avgKills || 0) - Number(a.stats?.avgKills || 0);
-    if (memberSort === 'damage') return (b.stats?.avgDamage || 0) - (a.stats?.avgDamage || 0);
-    if (memberSort === 'winRate') return Number(b.stats?.winRate || 0) - Number(a.stats?.winRate || 0);
-    if (memberSort === 'top10') return Number(b.stats?.top10Rate || 0) - Number(a.stats?.top10Rate || 0);
+    if (memberSort === 'mmr') {
+      const mmrA = memberStatMode === 'ranked' ? (a.rankedStats?.score || 0) : (a.mmr || 0);
+      const mmrB = memberStatMode === 'ranked' ? (b.rankedStats?.score || 0) : (b.mmr || 0);
+      return mmrB - mmrA;
+    }
+    if (memberSort === 'kills') return Number(b[statsKey]?.avgKills || 0) - Number(a[statsKey]?.avgKills || 0);
+    if (memberSort === 'damage') return (b[statsKey]?.avgDamage || 0) - (a[statsKey]?.avgDamage || 0);
+    if (memberSort === 'winRate') return Number(b[statsKey]?.winRate || 0) - Number(a[statsKey]?.winRate || 0);
+    if (memberSort === 'top10') return Number(b[statsKey]?.top10Rate || 0) - Number(a[statsKey]?.top10Rate || 0);
     return 0;
   });
 
@@ -583,29 +589,53 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
             <>
               <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
                 <h2 className="text-lg font-bold text-gray-200">{t('cd.members_title')} ({sortedMembers.length}{t('cd.persons')})</h2>
-                {/* 정렬 버튼 */}
-                <div className="flex gap-1 flex-wrap">
-                  {[
-                    { key: 'mmr', label: 'MMR' },
-                    { key: 'damage', label: t('cd.damage') },
-                    { key: 'kills', label: t('cd.kills') },
-                    { key: 'winRate', label: t('cd.winrate') },
-                    { key: 'top10', label: 'Top10' },
-                  ].map(({ key, label }) => (
-                    <button
-                      key={key}
-                      onClick={() => setMemberSort(key)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
-                        memberSort === key
-                          ? 'bg-blue-600 border-blue-500 text-white'
-                          : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* 일반전/경쟁전 토글 */}
+                  <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    {[
+                      { key: 'normal', label: t('cd.mode_normal') },
+                      { key: 'ranked', label: t('cd.mode_ranked') },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setMemberStatMode(key)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                          memberStatMode === key
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {/* 정렬 버튼 */}
+                  <div className="flex gap-1 flex-wrap">
+                    {[
+                      { key: 'mmr', label: 'MMR' },
+                      { key: 'damage', label: t('cd.damage') },
+                      { key: 'kills', label: t('cd.kills') },
+                      { key: 'winRate', label: t('cd.winrate') },
+                      { key: 'top10', label: 'Top10' },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setMemberSort(key)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
+                          memberSort === key
+                            ? 'bg-blue-600 border-blue-500 text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
+              {memberStatMode === 'ranked' && (
+                <p className="text-xs text-gray-500 mb-3">{t('cd.ranked_mode_hint')}</p>
+              )}
 
               <div className={`relative ${!canViewFull ? 'select-none' : ''}`}>
                 {!canViewFull && (
@@ -635,9 +665,10 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
               {/* 모바일 카드 */}
               <div className="sm:hidden space-y-2">
                 {sortedMembers.map((member, i) => {
-                  const s = member.stats;
+                  const s = member[statsKey];
                   const isLeaderMember = clan.leader && member.playerName.toLowerCase() === clan.leader.toLowerCase();
                   const isInactive = !member.lastActiveAt || (Date.now() - new Date(member.lastActiveAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
+                  const noRankedData = memberStatMode === 'ranked' && !member.rankedStats;
                   return (
                     <div key={member.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3">
                       <div className="flex items-center justify-between mb-2">
@@ -656,26 +687,34 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                             <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-500/20 text-gray-400 border border-gray-500/30">💤 장기미접속</span>
                           )}
                         </div>
-                        <span className="font-black text-blue-400 text-sm flex-shrink-0">{member.mmr || '—'} <span className="text-[10px] text-gray-500">MMR</span></span>
+                        {memberStatMode === 'ranked' ? (
+                          <span className="font-black text-blue-400 text-sm flex-shrink-0">{member.rankedStats?.tier || t('cd.unranked')}</span>
+                        ) : (
+                          <span className="font-black text-blue-400 text-sm flex-shrink-0">{member.mmr || '—'} <span className="text-[10px] text-gray-500">MMR</span></span>
+                        )}
                       </div>
-                      <div className="grid grid-cols-4 gap-1">
-                        <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
-                          <div className="text-xs font-bold text-orange-400">{s?.avgDamage ?? '—'}</div>
-                          <div className="text-[10px] text-gray-500">딜량</div>
+                      {noRankedData ? (
+                        <div className="text-center text-xs text-gray-500 py-2">{t('cd.no_ranked_data')}</div>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-1">
+                          <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
+                            <div className="text-xs font-bold text-orange-400">{s?.avgDamage ?? '—'}</div>
+                            <div className="text-[10px] text-gray-500">딜량</div>
+                          </div>
+                          <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
+                            <div className="text-xs font-bold text-red-400">{s?.avgKills ?? '—'}</div>
+                            <div className="text-[10px] text-gray-500">킬</div>
+                          </div>
+                          <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
+                            <div className="text-xs font-bold text-green-400">{s?.winRate != null ? `${s.winRate}%` : '—'}</div>
+                            <div className="text-[10px] text-gray-500">승률</div>
+                          </div>
+                          <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
+                            <div className="text-xs font-bold text-purple-400">{s?.top10Rate != null ? `${s.top10Rate}%` : '—'}</div>
+                            <div className="text-[10px] text-gray-500">Top10</div>
+                          </div>
                         </div>
-                        <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
-                          <div className="text-xs font-bold text-red-400">{s?.avgKills ?? '—'}</div>
-                          <div className="text-[10px] text-gray-500">킬</div>
-                        </div>
-                        <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
-                          <div className="text-xs font-bold text-green-400">{s?.winRate != null ? `${s.winRate}%` : '—'}</div>
-                          <div className="text-[10px] text-gray-500">승률</div>
-                        </div>
-                        <div className="text-center bg-gray-100 dark:bg-gray-800/60 rounded py-1.5">
-                          <div className="text-xs font-bold text-purple-400">{s?.top10Rate != null ? `${s.top10Rate}%` : '—'}</div>
-                          <div className="text-[10px] text-gray-500">Top10</div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
@@ -689,11 +728,15 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                       <tr className="bg-gray-100 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 text-xs">
                         <th className="px-4 py-3 text-left w-10">#</th>
                         <th className="px-4 py-3 text-left">{t('cd.nickname')}</th>
-                        <th className="px-4 py-3 text-right">
-                          <Tooltip content={t('cd.mmr_tooltip')}>
-                            <span className="cursor-help border-b border-dotted border-gray-600">MMR</span>
-                          </Tooltip>
-                        </th>
+                        {memberStatMode === 'ranked' ? (
+                          <th className="px-4 py-3 text-right">{t('cd.tier')}</th>
+                        ) : (
+                          <th className="px-4 py-3 text-right">
+                            <Tooltip content={t('cd.mmr_tooltip')}>
+                              <span className="cursor-help border-b border-dotted border-gray-600">MMR</span>
+                            </Tooltip>
+                          </th>
+                        )}
                         <th className="px-4 py-3 text-right">{t('cd.avg_deal_col')}</th>
                         <th className="px-4 py-3 text-right">{t('cd.avg_kill_col')}</th>
                         <th className="px-4 py-3 text-right">{t('cd.winrate_col')}</th>
@@ -704,9 +747,10 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                       {sortedMembers.map((member, i) => {
-                        const s = member.stats;
+                        const s = member[statsKey];
                         const isLeaderMember = clan.leader && member.playerName.toLowerCase() === clan.leader.toLowerCase();
                         const isInactive = !member.lastActiveAt || (Date.now() - new Date(member.lastActiveAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
+                        const noRankedData = memberStatMode === 'ranked' && !member.rankedStats;
                         return (
                           <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                             <td className="px-4 py-3">
@@ -728,12 +772,25 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-right font-black text-blue-400">{member.mmr || '—'}</td>
-                            <td className="px-4 py-3 text-right text-orange-400 font-semibold">{s?.avgDamage ?? '—'}</td>
-                            <td className="px-4 py-3 text-right text-red-400 font-semibold">{s?.avgKills ?? '—'}</td>
-                            <td className="px-4 py-3 text-right text-green-400 font-semibold">{s?.winRate != null ? `${s.winRate}%` : '—'}</td>
-                            <td className="px-4 py-3 text-right text-purple-400 font-semibold">{s?.top10Rate != null ? `${s.top10Rate}%` : '—'}</td>
-                            <td className="px-4 py-3 text-right text-gray-400">{s?.avgSurviveTime ? fmtTime(s.avgSurviveTime) : '—'}</td>
+                            {memberStatMode === 'ranked' ? (
+                              <td className="px-4 py-3 text-right font-black text-blue-400">
+                                {member.rankedStats?.tier || t('cd.unranked')}
+                                {member.rankedStats?.subTier > 0 && ` ${member.rankedStats.subTier}`}
+                              </td>
+                            ) : (
+                              <td className="px-4 py-3 text-right font-black text-blue-400">{member.mmr || '—'}</td>
+                            )}
+                            {noRankedData ? (
+                              <td colSpan={5} className="px-4 py-3 text-right text-gray-500 text-xs">{t('cd.no_ranked_data')}</td>
+                            ) : (
+                              <>
+                                <td className="px-4 py-3 text-right text-orange-400 font-semibold">{s?.avgDamage ?? '—'}</td>
+                                <td className="px-4 py-3 text-right text-red-400 font-semibold">{s?.avgKills ?? '—'}</td>
+                                <td className="px-4 py-3 text-right text-green-400 font-semibold">{s?.winRate != null ? `${s.winRate}%` : '—'}</td>
+                                <td className="px-4 py-3 text-right text-purple-400 font-semibold">{s?.top10Rate != null ? `${s.top10Rate}%` : '—'}</td>
+                                <td className="px-4 py-3 text-right text-gray-400">{s?.avgSurviveTime ? fmtTime(s.avgSurviveTime) : '—'}</td>
+                              </>
+                            )}
                             <td className="px-4 py-3 text-right text-gray-400 dark:text-gray-600 text-xs">{timeAgo(member.lastActiveAt)}</td>
                           </tr>
                         );

@@ -11,6 +11,22 @@ import { fetchClanMembersBatch } from '../../../../utils/pubgBatchApi.js';
 const DEFAULT_SHARD = 'steam';
 const ALL_MODES = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
+// RP 우선, RP 같으면 티어 우선 — pages/api/pubg/[nickname].js 티어 선정 로직과 동일
+const TIER_ORDER = ['Conqueror', 'Master', 'Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze', 'Unranked'];
+
+function pickBestRankedTier(rankedGameModeStats) {
+  const entries = Object.values(rankedGameModeStats || {})
+    .filter((r) => r?.currentTier?.tier);
+  if (entries.length === 0) return null;
+  entries.sort((a, b) => {
+    const rpA = a.currentRankPoint || 0, rpB = b.currentRankPoint || 0;
+    if (rpB !== rpA) return rpB - rpA;
+    return TIER_ORDER.indexOf(a.currentTier.tier) - TIER_ORDER.indexOf(b.currentTier.tier);
+  });
+  const top = entries[0];
+  // PUBG API는 currentTier.subTier를 문자열("4")로 내려줌 — Int 컬럼이라 반드시 숫자로 변환
+  return { tier: top.currentTier.tier, subTier: parseInt(top.currentTier.subTier, 10) || 0, rp: top.currentRankPoint || 0 };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -120,37 +136,63 @@ export default async function handler(req, res) {
       }
     }
 
-    // 경쟁전 합산
+    // 경쟁전 합산 — 일반전 합계와 분리해서 별도 집계 (멤버 탭 일반전/경쟁전 토글용)
+    let rTotalRounds = 0, rTotalDamage = 0, rTotalKills = 0;
+    let rTotalAssists = 0, rTotalSurvival = 0, rTotalWins = 0, rTotalTop10s = 0;
+    let bestTier = null;
     if (member.pubgPlayerId) {
       try {
         const rankedData = await cachedPubgFetch(
           `https://api.pubg.com/shards/${shard}/players/${member.pubgPlayerId}/seasons/${currentSeason.id}/ranked`,
           { ttl: TTL.PLAYER }
         );
-        for (const rm of Object.values(rankedData?.data?.attributes?.rankedGameModeStats || {})) {
+        const rms = rankedData?.data?.attributes?.rankedGameModeStats || {};
+        bestTier = pickBestRankedTier(rms);
+        // 경쟁전 API는 timeSurvived/top10s 대신 avgSurvivalTime(평균)/top10Ratio(비율)로 내려옴
+        // → 라운드 수를 곱해 합계로 환산 후 나중에 나눠서 모드 간 가중평균 처리
+        for (const rm of Object.values(rms)) {
           if (!rm?.roundsPlayed) continue;
-          totalRounds += rm.roundsPlayed; totalDamage += rm.damageDealt || 0;
-          totalKills += rm.kills || 0; totalAssists += rm.assists || 0;
-          totalSurvival += rm.timeSurvived || 0; totalWins += rm.wins || 0; totalTop10s += rm.top10s || 0;
+          rTotalRounds += rm.roundsPlayed; rTotalDamage += rm.damageDealt || 0;
+          rTotalKills += rm.kills || 0; rTotalAssists += rm.assists || 0;
+          rTotalSurvival += (rm.avgSurvivalTime || 0) * rm.roundsPlayed;
+          rTotalWins += rm.wins || 0; rTotalTop10s += (rm.top10Ratio || 0) * rm.roundsPlayed;
         }
       } catch (_) {}
     }
 
-    if (totalRounds === 0) { errorCount++; continue; }
+    if (totalRounds === 0 && rTotalRounds === 0) { errorCount++; continue; }
 
-    const avgDamage      = totalDamage   / totalRounds;
-    const avgKills       = totalKills    / totalRounds;
-    const avgAssists     = totalAssists  / totalRounds;
-    const avgSurviveTime = totalSurvival / totalRounds;
-    const winRate        = (totalWins    / totalRounds) * 100;
-    const top10Rate      = (totalTop10s  / totalRounds) * 100;
+    let avgDamage = 0, avgKills = 0, avgAssists = 0, avgSurviveTime = 0, winRate = 0, top10Rate = 0;
+    if (totalRounds > 0) {
+      avgDamage      = totalDamage   / totalRounds;
+      avgKills       = totalKills    / totalRounds;
+      avgAssists     = totalAssists  / totalRounds;
+      avgSurviveTime = totalSurvival / totalRounds;
+      winRate        = (totalWins    / totalRounds) * 100;
+      top10Rate      = (totalTop10s  / totalRounds) * 100;
+    }
     const score = calculateMMR({ avgDamage, avgKills, avgAssists, avgSurviveTime, winRate, top10Rate });
+
+    let rankedAvgDamage = 0, rankedAvgKills = 0, rankedAvgAssists = 0;
+    let rankedAvgSurviveTime = 0, rankedWinRate = 0, rankedTop10Rate = 0, rankedScore = 0;
+    if (rTotalRounds > 0) {
+      rankedAvgDamage      = rTotalDamage   / rTotalRounds;
+      rankedAvgKills       = rTotalKills    / rTotalRounds;
+      rankedAvgAssists     = rTotalAssists  / rTotalRounds;
+      rankedAvgSurviveTime = rTotalSurvival / rTotalRounds;
+      rankedWinRate        = (rTotalWins   / rTotalRounds) * 100;
+      rankedTop10Rate      = (rTotalTop10s / rTotalRounds) * 100;
+      rankedScore = calculateMMR({
+        avgDamage: rankedAvgDamage, avgKills: rankedAvgKills, avgAssists: rankedAvgAssists,
+        avgSurviveTime: rankedAvgSurviveTime, winRate: rankedWinRate, top10Rate: rankedTop10Rate,
+      });
+    }
 
     const existingScore = calculateMMR({
       avgDamage: member.avgDamage || 0, avgKills: member.avgKills || 0,
       winRate: member.winRate || 0, top10Rate: member.top10Rate || 0,
     });
-    const shouldUpdate = score >= existingScore * 0.7 || !member.avgDamage;
+    const shouldUpdate = totalRounds > 0 && (score >= existingScore * 0.7 || !member.avgDamage);
 
     await prisma.clanMember.update({
       where: { id: member.id },
@@ -163,6 +205,17 @@ export default async function handler(req, res) {
           winRate: parseFloat(winRate.toFixed(1)),
           top10Rate: parseFloat(top10Rate.toFixed(1)),
           score,
+        } : {}),
+        ...(rTotalRounds > 0 ? {
+          rankedAvgDamage: Math.round(rankedAvgDamage),
+          rankedAvgKills: parseFloat(rankedAvgKills.toFixed(2)),
+          rankedAvgAssists: parseFloat(rankedAvgAssists.toFixed(2)),
+          rankedAvgSurviveTime: Math.round(rankedAvgSurviveTime),
+          rankedWinRate: parseFloat(rankedWinRate.toFixed(1)),
+          rankedTop10Rate: parseFloat(rankedTop10Rate.toFixed(1)),
+          rankedRoundsPlayed: rTotalRounds,
+          rankedScore,
+          ...(bestTier ? { rankedTier: bestTier.tier, rankedSubTier: bestTier.subTier, rankedRP: bestTier.rp } : {}),
         } : {}),
         lastUpdated: new Date(),
       },

@@ -13,6 +13,23 @@ const MAX_MS        = 250_000;
 const DEFAULT_SHARD = 'steam';
 const ACTIVE_DAYS   = 30; // 최근 N일 내 업데이트된 멤버만 처리 (버그2)
 const ALL_MODES     = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
+// RP 우선, RP 같으면 티어 우선 — pages/api/pubg/[nickname].js 티어 선정 로직과 동일
+const TIER_ORDER = ['Conqueror', 'Master', 'Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze', 'Unranked'];
+
+// 경쟁전 전 모드 중 RP가 가장 높은(동률이면 티어가 높은) 모드를 대표 티어로 선정
+function pickBestRankedTier(rankedGameModeStats) {
+  const entries = Object.values(rankedGameModeStats || {})
+    .filter((r) => r?.currentTier?.tier);
+  if (entries.length === 0) return null;
+  entries.sort((a, b) => {
+    const rpA = a.currentRankPoint || 0, rpB = b.currentRankPoint || 0;
+    if (rpB !== rpA) return rpB - rpA;
+    return TIER_ORDER.indexOf(a.currentTier.tier) - TIER_ORDER.indexOf(b.currentTier.tier);
+  });
+  const top = entries[0];
+  // PUBG API는 currentTier.subTier를 문자열("4")로 내려줌 — Int 컬럼이라 반드시 숫자로 변환
+  return { tier: top.currentTier.tier, subTier: parseInt(top.currentTier.subTier, 10) || 0, rp: top.currentRankPoint || 0 };
+}
 
 export default async function handler(req, res) {
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -228,9 +245,12 @@ export default async function handler(req, res) {
             totals = sumNormalStats(data.seasonStats);
           }
 
-          let { totalRounds, totalDamage, totalKills, totalAssists, totalSurvival, totalWins, totalTop10s } = totals;
+          const { totalRounds, totalDamage, totalKills, totalAssists, totalSurvival, totalWins, totalTop10s } = totals;
 
-          // 경쟁전 합산
+          // 경쟁전 합산 — 일반전 합계(totals)와 분리해서 별도 집계 (멤버 탭 일반전/경쟁전 토글용)
+          let rTotalRounds = 0, rTotalDamage = 0, rTotalKills = 0;
+          let rTotalAssists = 0, rTotalSurvival = 0, rTotalWins = 0, rTotalTop10s = 0;
+          let bestTier = null;
           const shard = member.pubgShardId || DEFAULT_SHARD;
           const currentSeason = seasonCache[shard];
           if (member.pubgPlayerId && currentSeason) {
@@ -240,15 +260,19 @@ export default async function handler(req, res) {
                 { ttl: TTL.PLAYER }
               );
               const rms = rankedData?.data?.attributes?.rankedGameModeStats || {};
+              bestTier = pickBestRankedTier(rms);
+              // 경쟁전(ranked) API는 일반전(gameModeStats)과 필드명이 다름:
+              // timeSurvived(합계)가 아니라 avgSurvivalTime(이미 라운드당 평균), top10s(횟수)가 아니라
+              // top10Ratio(0~1 비율)로 내려옴 — 모드 간 가중평균을 위해 라운드 수를 곱해 합계로 환산 후 나중에 나눔
               for (const rm of Object.values(rms)) {
                 if (!rm?.roundsPlayed) continue;
-                totalRounds   += rm.roundsPlayed;
-                totalDamage   += rm.damageDealt  || 0;
-                totalKills    += rm.kills        || 0;
-                totalAssists  += rm.assists      || 0;
-                totalSurvival += rm.timeSurvived || 0;
-                totalWins     += rm.wins         || 0;
-                totalTop10s   += rm.top10s       || 0;
+                rTotalRounds   += rm.roundsPlayed;
+                rTotalDamage   += rm.damageDealt  || 0;
+                rTotalKills    += rm.kills        || 0;
+                rTotalAssists  += rm.assists      || 0;
+                rTotalSurvival += (rm.avgSurvivalTime || 0) * rm.roundsPlayed;
+                rTotalWins     += rm.wins         || 0;
+                rTotalTop10s   += (rm.top10Ratio  || 0) * rm.roundsPlayed;
               }
             } catch (rankedErr) {
               console.warn(`[FullBatch] ranked 조회 실패 nick=${nick}:`, rankedErr.message);
@@ -266,8 +290,23 @@ export default async function handler(req, res) {
             top10Rate      = (totalTop10s / totalRounds) * 100;
           }
 
+          let rankedAvgDamage = 0, rankedAvgKills = 0, rankedAvgAssists = 0;
+          let rankedAvgSurviveTime = 0, rankedWinRate = 0, rankedTop10Rate = 0, rankedScore = 0;
+          if (rTotalRounds > 0) {
+            rankedAvgDamage      = rTotalDamage   / rTotalRounds;
+            rankedAvgKills       = rTotalKills    / rTotalRounds;
+            rankedAvgAssists     = rTotalAssists  / rTotalRounds;
+            rankedAvgSurviveTime = rTotalSurvival / rTotalRounds;
+            rankedWinRate        = (rTotalWins   / rTotalRounds) * 100;
+            rankedTop10Rate      = (rTotalTop10s / rTotalRounds) * 100;
+            rankedScore = calculateMMR({
+              avgDamage: rankedAvgDamage, avgKills: rankedAvgKills, avgAssists: rankedAvgAssists,
+              avgSurviveTime: rankedAvgSurviveTime, winRate: rankedWinRate, top10Rate: rankedTop10Rate,
+            });
+          }
+
           const hasData = avgDamage > 0 || avgKills > 0 || winRate > 0;
-          if (!hasData) {
+          if (!hasData && rTotalRounds === 0) {
             console.warn(`[FullBatch] hasData=false nick=${nick} totalRounds=${totalRounds} — 배치 통계 비어있음`);
             continue;
           }
@@ -279,7 +318,7 @@ export default async function handler(req, res) {
             winRate:    member.winRate    || 0,
             top10Rate:  member.top10Rate  || 0,
           });
-          const shouldUpdate = score >= existingScore * 0.7 || !member.avgDamage;
+          const shouldUpdate = hasData && (score >= existingScore * 0.7 || !member.avgDamage);
 
           await prisma.clanMember.update({
             where: { id: member.id },
@@ -292,6 +331,19 @@ export default async function handler(req, res) {
                 winRate:        parseFloat(winRate.toFixed(1)),
                 top10Rate:      parseFloat(top10Rate.toFixed(1)),
                 score,
+              } : {}),
+              // 경쟁전 데이터는 이번 조회에서 실제로 라운드를 찾은 경우에만 갱신
+              // (일시적 API 실패로 0건 조회됐다고 기존 경쟁전 기록을 지우지 않기 위함)
+              ...(rTotalRounds > 0 ? {
+                rankedAvgDamage:      Math.round(rankedAvgDamage),
+                rankedAvgKills:       parseFloat(rankedAvgKills.toFixed(2)),
+                rankedAvgAssists:     parseFloat(rankedAvgAssists.toFixed(2)),
+                rankedAvgSurviveTime: Math.round(rankedAvgSurviveTime),
+                rankedWinRate:        parseFloat(rankedWinRate.toFixed(1)),
+                rankedTop10Rate:      parseFloat(rankedTop10Rate.toFixed(1)),
+                rankedRoundsPlayed:   rTotalRounds,
+                rankedScore,
+                ...(bestTier ? { rankedTier: bestTier.tier, rankedSubTier: bestTier.subTier, rankedRP: bestTier.rp } : {}),
               } : {}),
               lastUpdated: new Date(),
             },
