@@ -34,8 +34,15 @@ export default async function handler(req, res) {
     const pubgAccountId = player.id;
     const resolvedNickname = player.attributes?.name || nickname.trim();
 
-    const authUser = await prisma.authUser.findUnique({ where: { googleId: session.user.googleId } });
-    if (!authUser) return res.status(404).json({ error: 'User not found' });
+    let authUser = await prisma.authUser.findUnique({ where: { googleId: session.user.googleId } });
+    if (!authUser) {
+      // signIn 콜백의 upsert가 일시적 DB 오류 등으로 실패해 AuthUser가 없는 상태일 수 있음 — 세션 정보로 자가 치유
+      authUser = await prisma.authUser.upsert({
+        where: { googleId: session.user.googleId },
+        update: { email: session.user.email, name: session.user.name },
+        create: { googleId: session.user.googleId, email: session.user.email, name: session.user.name },
+      });
+    }
 
     // 이미 연동된 계정인지 확인
     const existing = await prisma.pubgAccount.findFirst({

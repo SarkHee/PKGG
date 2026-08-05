@@ -10,11 +10,19 @@ export default async function handler(req, res) {
   if (!session?.user?.googleId) return res.status(401).json({ error: 'Unauthorized' });
 
   try {
-    const authUser = await prisma.authUser.findUnique({
+    let authUser = await prisma.authUser.findUnique({
       where: { googleId: session.user.googleId },
       include: { pubgAccounts: { orderBy: { createdAt: 'asc' } } },
     });
-    if (!authUser) return res.status(404).json({ error: 'User not found' });
+    if (!authUser) {
+      // signIn 콜백의 upsert가 일시적 DB 오류 등으로 실패해 AuthUser가 없는 상태일 수 있음 — 세션 정보로 자가 치유
+      authUser = await prisma.authUser.upsert({
+        where: { googleId: session.user.googleId },
+        update: { email: session.user.email, name: session.user.name },
+        create: { googleId: session.user.googleId, email: session.user.email, name: session.user.name },
+        include: { pubgAccounts: { orderBy: { createdAt: 'asc' } } },
+      });
+    }
 
     // 연동 계정별 검색 비활성화 상태 표시 (마이페이지 토글 UI용)
     if (authUser.pubgAccounts.length > 0) {
