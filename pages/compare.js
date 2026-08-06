@@ -26,6 +26,11 @@ function normalize(val, max) {
 
 // ── SVG 레이더 차트 ───────────────────────────────────────────────────────────
 function RadarChart({ playerA, playerB }) {
+  const { t } = useT();
+  const RADAR_AXES = RADAR_AXES_KEYS.map(a => ({
+    ...a,
+    label: a.tKey.startsWith('cmp.') ? t(a.tKey) : a.tKey,
+  }));
   const [hovered, setHovered] = useState(null)
   const [isDark, setIsDark] = useState(true)
 
@@ -461,6 +466,7 @@ function RankBadge({ tier, subTier, rankPoint }) {
 
 // ── 플레이어 카드 ──────────────────────────────────────────────────────────────
 function PlayerCard({ player, side }) {
+  const { t } = useT();
   const stats = player.combined || {}
   const tier = getMMRTier(stats.mmr ?? 1000);
   const color = side === 'A' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-red-500 bg-red-50 dark:bg-red-900/20';
@@ -520,6 +526,7 @@ function PlayerCard({ player, side }) {
 
 // ── 배틀 공유 카드 (이미지 캡처용, 화면 밖 렌더링) ─────────────────────────
 function BattleShareCard({ playerA, playerB, cardRef }) {
+  const { t } = useT();
   const mmrA = playerA.mmr ?? 1000;
   const mmrB = playerB.mmr ?? 1000;
   const tierA = getMMRTier(mmrA);
