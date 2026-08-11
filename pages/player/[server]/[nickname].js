@@ -26,6 +26,19 @@ const GrowthChart           = dynamic(() => import('../../../components/player/G
 const AICoachingCard        = dynamic(() => import('../../../components/player/AICoachingCard'), { ssr: false, loading: () => <div className="h-32 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-xl" /> });
 const PlayerPercentileCard  = dynamic(() => import('../../../components/player/PlayerPercentileCard'), { ssr: false, loading: () => <div className="h-24 bg-gray-100 animate-pulse rounded-xl" /> });
 
+// 경쟁전 대표 모드 선택 — squad-fpp > squad > duo-fpp > duo > solo-fpp > solo 우선순위.
+// 실제로 선택된 모드를 { mode, data }로 함께 반환해야 rankedSummary.mode가 정확히 표시됨
+// (과거엔 modeData만 뽑고 mode: 'squad-fpp'를 하드코딩해서 duo/solo만 뛴 유저도
+// "스쿼드 FPP"로 잘못 표시되던 버그가 있었음)
+const RANKED_MODE_PRIORITY = ['squad-fpp', 'squad', 'duo-fpp', 'duo', 'solo-fpp', 'solo'];
+function pickRankedMode(rankedModeStats) {
+  for (const mode of RANKED_MODE_PRIORITY) {
+    if (rankedModeStats[mode]) return { mode, data: rankedModeStats[mode] };
+  }
+  const [mode, data] = Object.entries(rankedModeStats)[0] || [];
+  return data ? { mode, data } : { mode: null, data: null };
+}
+
 // 반드시 export default 함수 바깥에 위치!
 function getDateLabel(timestamp) {
   if (!timestamp) return null
@@ -1094,12 +1107,12 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
       // 경쟁전 변환
       if (rankedRes.status === 'fulfilled' && rankedRes.value?.success) {
         const rankedModeStats = rankedRes.value.data?.rankedGameModeStats || {};
-        const modeData = rankedModeStats['squad-fpp'] || rankedModeStats['squad'] || Object.values(rankedModeStats)[0];
+        const { mode: pickedMode, data: modeData } = pickRankedMode(rankedModeStats);
         if (modeData && modeData.roundsPlayed > 0) {
           const r = modeData.roundsPlayed;
           const deaths = Math.max(1, r - (modeData.wins || 0));
           setOverrideRankedSummary({
-            mode: 'squad-fpp',
+            mode: pickedMode,
             tier: modeData.currentTier?.tier || 'Unranked',
             subTier: modeData.currentTier?.subTier || 0,
             currentTier: modeData.currentTier?.tier || 'Unranked',
@@ -2914,13 +2927,13 @@ export async function getServerSideProps({ params, query, req, res }) {
               // 경쟁전 랭크 보완
               if (rankedResult.status === 'fulfilled') {
                 const rankedModeStats = rankedResult.value.data?.attributes?.rankedGameModeStats || {};
-                const modeData = rankedModeStats['squad-fpp'] || rankedModeStats['squad'] || Object.values(rankedModeStats)[0];
+                const { mode: pickedMode, data: modeData } = pickRankedMode(rankedModeStats);
                 if (modeData && modeData.roundsPlayed > 0) {
                   const r = modeData.roundsPlayed;
                   const deaths = Math.max(1, r - (modeData.wins || 0));
                   const _t10r = typeof modeData.top10Ratio === 'number' ? modeData.top10Ratio : (modeData.top10s || 0) / r;
                   cached.rankedSummary = {
-                    mode: 'squad-fpp',
+                    mode: pickedMode,
                     tier: modeData.currentTier?.tier || 'Unranked',
                     subTier: modeData.currentTier?.subTier || 0,
                     currentTier: modeData.currentTier?.tier || 'Unranked',
@@ -3381,7 +3394,7 @@ export async function getServerSideProps({ params, query, req, res }) {
         // 랭크 통계 변환
         if (rankedResult.status === 'fulfilled') {
           const rankedModeStats = rankedResult.value.data?.attributes?.rankedGameModeStats || {};
-          const modeData = rankedModeStats['squad-fpp'] || rankedModeStats['squad'] || Object.values(rankedModeStats)[0];
+          const { mode: pickedMode, data: modeData } = pickRankedMode(rankedModeStats);
           if (modeData && modeData.roundsPlayed > 0) {
             const r = modeData.roundsPlayed;
             const deaths = Math.max(1, r - (modeData.wins || 0));
@@ -3401,7 +3414,7 @@ export async function getServerSideProps({ params, query, req, res }) {
             }
 
             pubgRankedSummary = {
-              mode: 'squad-fpp',
+              mode: pickedMode,
               tier: modeData.currentTier?.tier || 'Unranked',
               subTier: modeData.currentTier?.subTier || 0,
               currentTier: modeData.currentTier?.tier || 'Unranked',
@@ -3521,12 +3534,12 @@ export async function getServerSideProps({ params, query, req, res }) {
             // 랭크 통계도 Steam에서 가져오기
             if (steamRankedRes.status === 'fulfilled' && pubgRankedSummary === null) {
               const rms = steamRankedRes.value.data?.attributes?.rankedGameModeStats || {};
-              const md = rms['squad-fpp'] || rms['squad'] || Object.values(rms)[0];
+              const { mode: pickedSteamMode, data: md } = pickRankedMode(rms);
               if (md && md.roundsPlayed > 0) {
                 const r = md.roundsPlayed;
                 const deaths = Math.max(1, r - (md.wins || 0));
                 pubgRankedSummary = {
-                  mode: 'squad-fpp', tier: md.currentTier?.tier || 'Unranked',
+                  mode: pickedSteamMode, tier: md.currentTier?.tier || 'Unranked',
                   subTier: md.currentTier?.subTier || 0,
                   currentTier: md.currentTier?.tier || 'Unranked',
                   rp: md.currentRankPoint || 0,

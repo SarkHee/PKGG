@@ -11,7 +11,7 @@ import { fetchClanMembersBatch } from '../../../../utils/pubgBatchApi.js';
 const DEFAULT_SHARD = 'steam';
 const ALL_MODES = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
-// RP 우선, RP 같으면 티어 우선 — pages/api/pubg/[nickname].js 티어 선정 로직과 동일
+// RP 우선, RP 같으면 티어 우선 — pages/player/[server]/[nickname].js의 pickRankedMode()와 동일한 우선순위
 const TIER_ORDER = ['Conqueror', 'Master', 'Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze', 'Unranked'];
 
 function pickBestRankedTier(rankedGameModeStats) {

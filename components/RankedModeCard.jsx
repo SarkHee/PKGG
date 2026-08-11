@@ -4,7 +4,9 @@ const modeLabels = {
   'squad-fpp': '스쿼드 FPP',
   squad: '스쿼드',
   'duo-fpp': '듀오 FPP',
+  duo: '듀오',
   'solo-fpp': '솔로 FPP',
+  solo: '솔로',
 };
 
 export default function RankedModeCard({ mode }) {

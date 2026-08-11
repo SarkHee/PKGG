@@ -13,7 +13,7 @@ const MAX_MS        = 250_000;
 const DEFAULT_SHARD = 'steam';
 const ACTIVE_DAYS   = 30; // 최근 N일 내 업데이트된 멤버만 처리 (버그2)
 const ALL_MODES     = ['solo', 'duo', 'squad', 'solo-fpp', 'duo-fpp', 'squad-fpp'];
-// RP 우선, RP 같으면 티어 우선 — pages/api/pubg/[nickname].js 티어 선정 로직과 동일
+// RP 우선, RP 같으면 티어 우선 — pages/player/[server]/[nickname].js의 pickRankedMode()와 동일한 우선순위
 const TIER_ORDER = ['Conqueror', 'Master', 'Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze', 'Unranked'];
 
 // 경쟁전 전 모드 중 RP가 가장 높은(동률이면 티어가 높은) 모드를 대표 티어로 선정

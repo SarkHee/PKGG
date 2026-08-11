@@ -64,7 +64,6 @@ PUBG(배그) 플레이어 통계/전적 조회 웹앱. Next.js + Prisma + Tailwi
 ### pages/api/
 | 경로 | 설명 |
 |------|------|
-| `pubg/[nickname].js` | 플레이어 기본 정보 |
 | `pubg/stats/[...params].js` | 시즌/랭크/무기/생존 통계 |
 | `pubg/player-id.js` | accountId 조회 |
 | `pubg/compare.js` | 두 플레이어 시즌 스탯 비교 (`GET ?a=A&b=B&shard=steam`). DB캐시→PUBG API 순으로 playerId 조회, 시즌 스탯 병렬 fetch. |
