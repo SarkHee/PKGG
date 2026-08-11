@@ -135,6 +135,97 @@ function PartyContent({ content }) {
   );
 }
 
+function SettingsContent({ content }) {
+  const { t } = useT();
+  const TYPE_LABELS = { full: t('settings.type_full'), graphics: t('settings.type_graphics'), mouse: t('settings.type_mouse'), keybind: t('settings.type_keybind') };
+  const PRESET_LABELS = { very_low: t('settings.preset.very_low'), low: t('settings.preset.low'), medium: t('settings.preset.medium'), high: t('settings.preset.high'), ultra: t('settings.preset.ultra') };
+  const AA_LABELS = { none: t('settingscreate.aa_none'), fxaa: 'FXAA', taa: 'TAA' };
+  const SCOPE_FIELDS = [['scope2x', '×2'], ['scope3x', '×3'], ['scope4x', '×4'], ['scope6x', '×6'], ['scope8x', '×8']];
+
+  let s = null;
+  try { const d = JSON.parse(content); if (d?.__settings) s = d; } catch {}
+  if (!s) return formatContent(content, t);
+
+  const hasGraphics = s.resolution || s.hz || s.graphicsPreset || s.antialiasing;
+  const hasMouse = s.dpi || s.sensitivity || s.vertSens || SCOPE_FIELDS.some(([k]) => s[k]);
+  const hasKeybind = s.keybindText;
+
+  const Row = ({ label, value }) => value == null || value === '' ? null : (
+    <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+      <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
+      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{value}</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* 유형 배지 */}
+      {s.type && (
+        <span className="inline-block text-sm font-bold px-3 py-1.5 rounded-full bg-purple-600/20 text-purple-600 dark:text-purple-400 border border-purple-500/30">
+          {TYPE_LABELS[s.type] || s.type}
+        </span>
+      )}
+
+      {hasGraphics && (
+        <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('settingscreate.graphics_section')}</p>
+          <Row label={t('settingscreate.resolution_label')} value={s.resolution} />
+          <Row label={t('settingscreate.hz_label')} value={s.hz ? `${s.hz}Hz` : null} />
+          <Row label={t('settingscreate.preset_label')} value={PRESET_LABELS[s.graphicsPreset] || s.graphicsPreset} />
+          <Row label={t('settingscreate.aa_label')} value={AA_LABELS[s.antialiasing] || s.antialiasing} />
+        </div>
+      )}
+
+      {hasMouse && (
+        <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('settingscreate.mouse_section')}</p>
+          <Row label="DPI" value={s.dpi} />
+          <Row label={t('settingscreate.sens_label')} value={s.sensitivity} />
+          <Row label={t('settingscreate.vert_sens_label')} value={s.vertSens} />
+          {SCOPE_FIELDS.some(([k]) => s[k]) && (
+            <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">{t('settingscreate.scope_sens_label')}</p>
+              <div className="grid grid-cols-5 gap-2">
+                {SCOPE_FIELDS.map(([k, lbl]) => (
+                  <div key={k} className="text-center">
+                    <p className="text-[10px] text-gray-500 dark:text-gray-600">{lbl}</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{s[k] ?? '-'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {hasKeybind && (
+        <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{t('settingscreate.keybind_section')}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{s.keybindText}</p>
+        </div>
+      )}
+
+      {s.imageUrl && (
+        <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+          <img src={s.imageUrl} alt={t('fpost.image_alt')} className="w-full block" />
+        </div>
+      )}
+
+      {s.description && (
+        <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{s.description}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PostContent({ post }) {
+  return post.categoryId === 'settings'
+    ? <SettingsContent content={post.content} />
+    : <PartyContent content={post.content} />;
+}
+
 export default function PostDetail() {
   const router = useRouter();
   const { t } = useT();
@@ -382,7 +473,7 @@ export default function PostDetail() {
 
             {/* 본문 */}
             <div className="px-6 py-6 text-sm leading-7 min-h-[100px]">
-              <PartyContent content={post.content} />
+              <PostContent post={post} />
             </div>
 
             {/* 좋아요 */}
