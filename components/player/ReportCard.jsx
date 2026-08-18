@@ -50,6 +50,7 @@ export const WEAP_IMG = {
   WeapDP28_C: 'Item_Weapon_DP28_C.png',
   WeapM249_C: 'Item_Weapon_M249_C.png',
   WeapMG3_C: 'Item_Weapon_MG3_C.png',
+  WeapRPD_C: 'Item_Weapon_RPD_C.png',
   // SG
   WeapSaiga12_C: 'Item_Weapon_Saiga12_C.png', WeapSaiga12_HR_C: 'Item_Weapon_Saiga12_C.png',
   WeapWinchester_C: 'Item_Weapon_Winchester_C.png', WeapWinchester_HR_C: 'Item_Weapon_Winchester_C.png',

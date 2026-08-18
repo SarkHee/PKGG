@@ -17,7 +17,7 @@ const WEAP_NAME = {
   WeapUMP_C:'UMP9', WeapVector_C:'Vector', WeapMP5K_C:'MP5K',
   WeapPP19_C:'PP-19 Bizon', WeapMP9_C:'MP9', WeapP90_C:'P90',
   WeapUZI_C:'Micro Uzi', WeapSkorpion_C:'Skorpion', WeapTommyGun_C:'Tommy Gun',
-  WeapDP28_C:'DP-28', WeapM249_C:'M249', WeapMG3_C:'MG3',
+  WeapDP28_C:'DP-28', WeapM249_C:'M249', WeapMG3_C:'MG3', WeapRPD_C:'RPD',
   WeapSaiga12_C:'S12K', WeapWinchester_C:'S1897', WeapBerreta686_C:'S686',
   WeapDP12_C:'DBS', WeapOriginS12_C:'O12', WeapSawnoff_C:'Sawed-off',
   WeapDesertEagle_C:'Deagle', WeapP1911_C:'P1911', WeapP92_C:'P92',

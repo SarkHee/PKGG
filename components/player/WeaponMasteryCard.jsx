@@ -54,6 +54,7 @@ const WEAPON_MAP = {
   Item_Weapon_DP28_C:        { name: 'DP-28',       category: 'LMG', img: 'Item_Weapon_DP28_C.png' },
   Item_Weapon_M249_C:        { name: 'M249',        category: 'LMG', img: 'Item_Weapon_M249_C.png' },
   Item_Weapon_MG3_C:         { name: 'MG3',         category: 'LMG', img: 'Item_Weapon_MG3_C.png' },
+  Item_Weapon_RPD_C:         { name: 'RPD',         category: 'LMG', img: 'Item_Weapon_RPD_C.png' },
 
   // ── Shotguns ──────────────────────────────────────────────────────
   Item_Weapon_OriginS12_C:   { name: 'S12K',        category: 'SG',  img: 'Item_Weapon_OriginS12_C.png' },

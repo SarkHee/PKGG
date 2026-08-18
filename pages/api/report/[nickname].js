@@ -83,6 +83,7 @@ const WEAP_NAME = {
   WeapDP28_C: 'DP-28',
   WeapM249_C: 'M249',
   WeapMG3_C: 'MG3',
+  WeapRPD_C: 'RPD',
   // SG
   WeapSaiga12_C: 'S12K', WeapSaiga12_HR_C: 'S12K',
   WeapWinchester_C: 'S1897', WeapWinchester_HR_C: 'S1897',

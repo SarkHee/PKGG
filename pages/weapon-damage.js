@@ -69,6 +69,7 @@ const WEAPON_DATA = [
   // ── 경기관총 (LMG) ──
   { name: 'MG3',   type: 'LMG', damage: 44.1, rpm: 660,  dps: 485.1, rpm2: 990, dps2: 727.65, magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능', bulletSpeed: 820 },
   { name: 'M249',  type: 'LMG', damage: 41, rpm: 800,  dps: 559.65,magBase: 75, magExt: 100,  modes: '완전자동',           caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 915 },
+  { name: 'RPD',   type: 'LMG', damage: 43, rpm: 750,  dps: 537.5, magBase: 50, magExt: 110,  modes: '완전자동',           caliber: '7.62mm', dataFrom: 'Update 42.3', historyNote: 'U42.3: 신규 추가 (2026.08.12)', bulletSpeed: 735 },
 
   // ── 산탄총 (SGN) ──
   // O12: 단일 피해량 100 (펠렛 보정 없음) — 탄속 데이터 미제공
@@ -131,6 +132,7 @@ const WEAPON_IMG = {
   // LMG
   'MG3':         '/weapons/Item_Weapon_MG3_C.png',
   'M249':        '/weapons/Item_Weapon_M249_C.png',
+  'RPD':         '/weapons/Item_Weapon_RPD_C.png',
   // SGN
   'O12':         '/weapons/Item_Weapon_OriginS12_C.png',
   'DBS':         '/weapons/Item_Weapon_DP12_C.png',
@@ -533,9 +535,22 @@ function WeaponDetailPanel({ weapon, armorLevel, helmetLevel, onArmorChange, onH
 // ─── 패치 노트 이력 ──────────────────────────────────────
 const PATCH_NOTES = [
   {
+    version: 'Update 42.3',
+    date: '2026.08',
+    isLatest: true,
+    sections: [
+      {
+        title: '신규 무기',
+        items: [
+          { weapon: 'RPD', changes: ['LMG 신규 추가 · 7.62mm · 완전자동', '기본 탄창 50발 / 확장 시 110발', '부착물: AR/LMG 탄창·개머리판, 최대 6배율 스코프 (총구·손잡이 부착 불가)', '월드 스폰, 전 맵 등장'] },
+        ],
+      },
+    ],
+  },
+  {
     version: 'Update 42.1',
     date: '2026.06',
-    isLatest: true,
+    isLatest: false,
     sections: [
       {
         title: '무기 밸런스',
@@ -778,7 +793,7 @@ export default function WeaponDamage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white mb-1">🔫 무기 데미지 표</h1>
             <p className="text-sm text-gray-400 mb-1">
-              PUBG(배틀그라운드) 47종 무기의 데미지, DPS, 헤드샷 배율, 탄속을 최신 42.1 패치 기준으로 정리했습니다.
+              PUBG(배틀그라운드) {WEAPON_DATA.length}종 무기의 데미지, DPS, 헤드샷 배율, 탄속을 최신 42.1 패치 기준으로 정리했습니다.
               AR·DMR·저격소총·SMG 등 총기별 데미지를 방어구 레벨별로 비교해보세요.
             </p>
             <p className="text-gray-400 text-sm">기본 데미지 · 연사속도 · 탄창 · DPS 비교 (방어구 미착용 기준)</p>

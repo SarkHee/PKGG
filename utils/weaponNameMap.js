@@ -166,6 +166,7 @@ const weaponNameMap = {
   'Item_Weapon_PanzerFaust100M_C': 'Panzerfaust',
   'Item_Weapon_QBU88_C': 'QBU88',
   'Item_Weapon_QBZ95_C': 'QBZ95',
+  'Item_Weapon_RPD_C': 'RPD',
   'Item_Weapon_Rhino_C': 'R45',
   'Item_Weapon_Rock_C': 'Rock',
   'Item_Weapon_SCAR-L_C': 'SCAR-L',

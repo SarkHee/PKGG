@@ -62,7 +62,7 @@ export const WEAPON_WHITELIST = [
   'AUG', 'HK416', 'BerylM762', 'ACE32', 'MP5K', 'Mini14', 'Mk12', 'AK47',
   'Win94', 'UMP', 'M249', 'M24', 'Vector', 'Kar98k', 'Saiga12',
   'Berreta686', 'FNFal', 'Dragunov', 'UZI', 'SCAR_L', 'Thompson', 'QBZ95', 'M16A4',
-  'VSS', 'SKS', 'P90', 'Groza', 'FAMASG2', 'Mk47Mutant', 'K2', 'MG3', 'AWM', 'L6',
+  'VSS', 'SKS', 'P90', 'Groza', 'FAMASG2', 'Mk47Mutant', 'K2', 'MG3', 'RPD', 'AWM', 'L6',
   'Mk14', 'Sawnoff', 'JS9', 'M9', 'DP12', 'MP9', 'G36C', 'DesertEagle', 'G18',
   'Cowbar', 'Crossbow', 'Skorpion', 'NagantM1895', 'QBU88', 'BizonPP19', 'OriginS12',
   'M1911', 'DP28', 'R45', 'Mosin',

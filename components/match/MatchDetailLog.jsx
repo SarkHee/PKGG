@@ -21,7 +21,7 @@ const WEAP_NAME = {
   WeapPP19_C: 'PP-19 Bizon', WeapMP9_C: 'MP9', WeapP90_C: 'P90',
   WeapUZI_C: 'Micro Uzi', WeapSkorpion_C: 'Skorpion', WeapTommyGun_C: 'Tommy Gun',
   // LMG
-  WeapDP28_C: 'DP-28', WeapM249_C: 'M249', WeapMG3_C: 'MG3',
+  WeapDP28_C: 'DP-28', WeapM249_C: 'M249', WeapMG3_C: 'MG3', WeapRPD_C: 'RPD',
   // SG
   WeapSaiga12_C: 'S12K', WeapWinchester_C: 'S1897', WeapBerreta686_C: 'S686',
   WeapDP12_C: 'DBS', WeapOriginS12_C: 'O12', WeapSawnoff_C: 'Sawed-off',
@@ -66,7 +66,7 @@ const WEAP_IMG = {
   WeapUZI_C: 'Item_Weapon_UZI_C.png', WeapSkorpion_C: 'Item_Weapon_Skorpion_C.png',
   WeapTommyGun_C: 'Item_Weapon_Thompson_C.png',
   WeapDP28_C: 'Item_Weapon_DP28_C.png', WeapM249_C: 'Item_Weapon_M249_C.png',
-  WeapMG3_C: 'Item_Weapon_MG3_C.png',
+  WeapMG3_C: 'Item_Weapon_MG3_C.png', WeapRPD_C: 'Item_Weapon_RPD_C.png',
   WeapSaiga12_C: 'Item_Weapon_Saiga12_C.png', WeapWinchester_C: 'Item_Weapon_Winchester_C.png',
   WeapBerreta686_C: 'Item_Weapon_Berreta686_C.png', WeapDP12_C: 'Item_Weapon_DP12_C.png',
   WeapOriginS12_C: 'Item_Weapon_OriginS12_C.png', WeapSawnoff_C: 'Item_Weapon_Sawnoff_C.png',

@@ -59,6 +59,7 @@ const WEAPON_INFO = {
   DP28:        { name: 'DP-28',        type: 'LMG',    img: 'DP28' },
   M249:        { name: 'M249',         type: 'LMG',    img: 'M249' },
   MG3:         { name: 'MG3',          type: 'LMG',    img: 'MG3' },
+  RPD:         { name: 'RPD',          type: 'LMG',    img: 'RPD' },
   // Pistol — Skorpion(.32 ACP 완전자동 권총)은 SMG가 아닌 Pistol 분류
   DesertEagle: { name: 'Deagle',       type: 'Pistol', img: 'DesertEagle' },
   M1911:       { name: 'P1911',        type: 'Pistol', img: 'M1911' },
