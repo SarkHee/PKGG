@@ -1,6 +1,8 @@
 // pages/route-planner.js — 배그 동선 계획 도구 (Canvas 기반)
 import Head from 'next/head'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/router'
+import { useSession, signIn } from 'next-auth/react'
 import Header from '../components/layout/Header'
 import { toPng } from 'html-to-image'
 
@@ -17,6 +19,27 @@ const MAPS = [
   { id: 'karakin', name: '카라킨', img: '/maps/karakin.jpg', kmSize: 2 },
 ]
 const COLORS = ['#ef4444','#3b82f6','#22c55e','#eab308','#f97316','#a855f7','#ec4899','#ffffff']
+
+// maps.js의 마커 타입별 아이콘/색상과 동일 — 고정 스폰 차량·비밀의 방 등 오버레이 참고용
+const MAP_OVERLAY_TYPES = [
+  { key: 'fixed_vehicle', label: '고정 차량',   icon: '🚗', color: '#f59e0b' },
+  { key: 'spawn_vehicle', label: '스폰 차량',   icon: '🚙', color: '#3b82f6' },
+  { key: 'boat',          label: '보트',        icon: '🚤', color: '#06b6d4' },
+  { key: 'secret_room',   label: '비밀의 방',   icon: '🚪', color: '#a855f7' },
+  { key: 'glider',        label: '글라이더',    icon: '🪂', color: '#10b981' },
+]
+
+// 블루존(자기장) 수동 배치 — 페이즈별 반경(맵 너비 대비 %)·색상.
+// 정확한 공식 수치는 공개돼 있지 않아, 실제 리플레이 텔레메트리(에란겔 실경기)에서
+// 뽑은 페이즈별 반경 비율을 반올림해서 사용 — 절대 km가 아니라 맵 kmSize 대비 %라 모든 맵에 스케일링됨
+const BLUEZONE_PHASES = [
+  { phase: 1, radiusPct: 70,  color: '#93c5fd' },
+  { phase: 2, radiusPct: 23,  color: '#60a5fa' },
+  { phase: 3, radiusPct: 13,  color: '#3b82f6' },
+  { phase: 4, radiusPct: 7.5, color: '#2563eb' },
+  { phase: 5, radiusPct: 4.5, color: '#1d4ed8' },
+  { phase: 6, radiusPct: 3,   color: '#1e3a8a' },
+]
 
 // ── 유틸 ───────────────────────────────────────────────────────────────────
 const meterDist = (p1, p2, km) => {
@@ -212,6 +235,53 @@ function drawMarkers(ctx, markers, kmSize, W, H, T, dpr) {
   })
 }
 
+// ── 맵 정보 오버레이 드로잉 (고정 스폰 차량 / 비밀의 방 등) ───────────────────
+function drawMapOverlay(ctx, mapMarkers, W, H, T, dpr) {
+  mapMarkers.forEach(mk => {
+    const info = MAP_OVERLAY_TYPES.find(t => t.key === mk.type)
+    if (!info) return
+    const [cx, cy] = toPx(mk.x, mk.y, W, H, T, dpr)
+    const r = 9 * dpr
+    ctx.save()
+    ctx.globalAlpha = 0.85
+    ctx.fillStyle = info.color
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1.5 * dpr
+    ctx.stroke()
+    ctx.globalAlpha = 1
+    ctx.font = `${11 * dpr}px sans-serif`
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.fillText(info.icon, cx, cy + 0.5 * dpr)
+    ctx.restore()
+  })
+}
+
+// ── 블루존(자기장) 수동 배치 드로잉 — 페이즈별 고정 반경 원 ──
+function drawPlacedZones(ctx, placedZones, W, H, T, dpr) {
+  placedZones.forEach(z => {
+    const info = BLUEZONE_PHASES.find(p => p.phase === z.phase)
+    if (!info) return
+    const [cx, cy] = toPx(z.x, z.y, W, H, T, dpr)
+    const [ex]     = toPx(z.x + info.radiusPct, z.y, W, H, T, dpr)
+    const rPx      = Math.abs(ex - cx)
+    ctx.save()
+    ctx.globalAlpha = 0.22
+    ctx.fillStyle   = info.color
+    ctx.beginPath(); ctx.arc(cx, cy, rPx, 0, Math.PI * 2); ctx.fill()
+    ctx.globalAlpha = 0.8
+    ctx.strokeStyle = info.color; ctx.lineWidth = 1.5 * dpr
+    ctx.stroke()
+    ctx.globalAlpha = 1
+    ctx.font = `bold ${11 * dpr}px sans-serif`
+    ctx.fillStyle = 'white'
+    ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 3 * dpr
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.strokeText(`P${z.phase}`, cx, cy)
+    ctx.fillText(`P${z.phase}`, cx, cy)
+    ctx.restore()
+  })
+}
+
 // ── 거리 측정 드로잉 ───────────────────────────────────────────────────────
 function drawMeasurements(ctx, measurements, pending, kmSize, W, H, T, dpr) {
   measurements.forEach(m => {
@@ -251,27 +321,108 @@ function drawMeasurements(ctx, measurements, pending, kmSize, W, H, T, dpr) {
 
 // ── 메인 컴포넌트 ──────────────────────────────────────────────────────────
 export default function RoutePlanner() {
+  const router = useRouter()
   const [selectedMap,    setSelectedMap]    = useState(MAPS[0])
   const [tool,           setTool]           = useState('route')
   const [showGrid,       setShowGrid]       = useState(false)
   const [activeColor,    setActiveColor]    = useState('#ef4444')
   const [markerRadius,   setMarkerRadius]   = useState('')
   const [nextLabel,      setNextLabel]      = useState('')
+  const [selectedPhase,  setSelectedPhase]  = useState(1)
 
   const [routes,         setRoutes]         = useState([{ id: 0, color: '#ef4444', label: 'A팀', points: [] }])
   const [activeRoute,    setActiveRoute]    = useState(0)
   const [markers,        setMarkers]        = useState([])
   const [measurements,   setMeasurements]   = useState([])
+  const [placedZones,    setPlacedZones]    = useState([])
   const [pendingMeasure, setPendingMeasure] = useState(null)
 
   const [transform,      setTransform]      = useState({ scale: 1, x: 0, y: 0 })
   const [dragging,       setDragging]       = useState(false)
+
+  // ── 서버 저장 (로그인 유저) ──
+  const { data: session } = useSession()
+  const [savedByMap, setSavedByMap] = useState({})
+  const [saveStatus, setSaveStatus] = useState('idle') // idle | saving | saved | error
+  const loadedMapsRef = useRef(new Set())
+
+  // ── 맵 정보 오버레이 (고정 스폰 차량 / 비밀의 방 등) ──
+  const [mapMarkers,     setMapMarkers]     = useState([])
+  const [overlayLoaded,  setOverlayLoaded]  = useState(false)
+  const [showMapOverlay, setShowMapOverlay] = useState(false)
 
   const mapRef    = useRef(null)
   const canvasRef = useRef(null)
   const dragRef   = useRef(false)
   const lastPos   = useRef({ x: 0, y: 0 })
   const dragMoved = useRef(false)
+
+  // ── URL의 ?mapId= 로 진입 시 해당 맵 자동 선택 (마이페이지 "저장된 동선"에서 이동) ──
+  useEffect(() => {
+    if (!router.isReady) return
+    const qMapId = router.query.mapId
+    if (!qMapId) return
+    const found = MAPS.find(m => m.id === qMapId)
+    if (found) setSelectedMap(found)
+  }, [router.isReady, router.query.mapId])
+
+  // ── 로그인 시 저장된 동선 목록 불러오기 (최초 1회) ──
+  useEffect(() => {
+    if (!session?.user) return
+    fetch('/api/route-planner/list')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.routes) return
+        const byMap = {}
+        data.routes.forEach(r => { byMap[r.mapId] = r })
+        setSavedByMap(byMap)
+      })
+      .catch(() => {})
+  }, [session?.user?.email])
+
+  // ── 현재 맵에 저장된 동선이 있으면 자동 불러오기 (맵당 1회만) ──
+  useEffect(() => {
+    const saved = savedByMap[selectedMap.id]
+    if (!saved || loadedMapsRef.current.has(selectedMap.id)) return
+    loadedMapsRef.current.add(selectedMap.id)
+    if (Array.isArray(saved.routes) && saved.routes.length > 0) {
+      setRoutes(saved.routes)
+      setActiveRoute(saved.routes[0]?.id ?? 0)
+    }
+    if (Array.isArray(saved.markers))      setMarkers(saved.markers)
+    if (Array.isArray(saved.measurements)) setMeasurements(saved.measurements)
+    if (Array.isArray(saved.blueZones))    setPlacedZones(saved.blueZones)
+  }, [selectedMap.id, savedByMap])
+
+  // ── 맵 정보 오버레이 마커 불러오기 (맵 전환 시마다, 로그인 무관 공개 데이터) ──
+  useEffect(() => {
+    setOverlayLoaded(false)
+    fetch(`/api/maps/markers?mapId=${selectedMap.id}`)
+      .then(r => r.ok ? r.json() : { markers: [] })
+      .then(data => setMapMarkers(data.markers || []))
+      .catch(() => setMapMarkers([]))
+      .finally(() => setOverlayLoaded(true))
+  }, [selectedMap.id])
+
+  const saveToServer = async () => {
+    if (!session?.user) { signIn('google'); return }
+    setSaveStatus('saving')
+    try {
+      const res = await fetch('/api/route-planner/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mapId: selectedMap.id, routes, markers, measurements, blueZones: placedZones }),
+      })
+      if (!res.ok) throw new Error()
+      setSavedByMap(prev => ({ ...prev, [selectedMap.id]: { mapId: selectedMap.id, routes, markers, measurements, blueZones: placedZones } }))
+      loadedMapsRef.current.add(selectedMap.id)
+      setSaveStatus('saved')
+    } catch {
+      setSaveStatus('error')
+    } finally {
+      setTimeout(() => setSaveStatus('idle'), 2000)
+    }
+  }
 
   // ── Canvas 크기를 컨테이너에 맞게 설정 ──
   useEffect(() => {
@@ -302,10 +453,13 @@ export default function RoutePlanner() {
 
     if (showGrid)
       drawGrid(ctx, selectedMap.kmSize, W, H, transform, dpr)
+    if (showMapOverlay)
+      drawMapOverlay(ctx, mapMarkers, W, H, transform, dpr)
+    drawPlacedZones(ctx, placedZones, W, H, transform, dpr)
     drawRoutes(ctx, routes, activeRoute, selectedMap.kmSize, W, H, transform, dpr)
     drawMarkers(ctx, markers, selectedMap.kmSize, W, H, transform, dpr)
     drawMeasurements(ctx, measurements, pendingMeasure, selectedMap.kmSize, W, H, transform, dpr)
-  }, [showGrid, routes, activeRoute, markers, measurements, pendingMeasure, transform, selectedMap])
+  }, [showGrid, showMapOverlay, mapMarkers, placedZones, routes, activeRoute, markers, measurements, pendingMeasure, transform, selectedMap])
 
   useEffect(() => { draw() }, [draw])
 
@@ -416,6 +570,8 @@ export default function RoutePlanner() {
         radiusKm: isNaN(r) ? 0 : r,
       }])
       setNextLabel('')
+    } else if (tool === 'bluezone') {
+      setPlacedZones(prev => [...prev, { id: Date.now(), phase: selectedPhase, ...pt }])
     }
   }
 
@@ -429,12 +585,14 @@ export default function RoutePlanner() {
       else setMeasurements(prev => prev.slice(0, -1))
     } else if (tool === 'marker') {
       setMarkers(prev => prev.slice(0, -1))
+    } else if (tool === 'bluezone') {
+      setPlacedZones(prev => prev.slice(0, -1))
     }
   }
 
   const clearAll = () => {
     setRoutes([{ id: 0, color: '#ef4444', label: 'A팀', points: [] }])
-    setActiveRoute(0); setMarkers([]); setMeasurements([]); setPendingMeasure(null)
+    setActiveRoute(0); setMarkers([]); setMeasurements([]); setPendingMeasure(null); setPlacedZones([])
   }
 
   const saveImage = async () => {
@@ -529,6 +687,27 @@ export default function RoutePlanner() {
                     두 번째 점을 클릭하세요
                   </div>
                 )}
+
+                {/* 맵 정보 오버레이 토글 (고정 스폰 차량 / 비밀의 방 등) */}
+                <div className="absolute top-3 right-3 z-10">
+                  <button
+                    onClick={e => { e.stopPropagation(); if (mapMarkers.length > 0) setShowMapOverlay(v => !v) }}
+                    disabled={overlayLoaded && mapMarkers.length === 0}
+                    title={overlayLoaded && mapMarkers.length === 0 ? '이 맵은 오버레이 데이터가 없습니다' : '고정 스폰 차량·비밀의 방 등 표시'}
+                    className={`text-xs font-bold px-2.5 py-1.5 rounded-lg backdrop-blur-sm border transition-all ${
+                      overlayLoaded && mapMarkers.length === 0
+                        ? 'bg-gray-900/60 border-gray-800 text-gray-700 cursor-not-allowed'
+                        : showMapOverlay
+                          ? 'bg-emerald-600/25 border-emerald-500/50 text-emerald-300'
+                          : 'bg-gray-900/85 border-gray-700 text-gray-400 hover:text-gray-200'
+                    }`}
+                  >
+                    {overlayLoaded && mapMarkers.length === 0
+                      ? '데이터 없음'
+                      : showMapOverlay ? '👁️ 맵 정보' : '🙈 맵 정보'}
+                  </button>
+                </div>
+
                 <div className="absolute bottom-3 right-3 z-10 flex gap-2">
                   {transform.scale > 1 && (
                     <button onClick={e => { e.stopPropagation(); setTransform({ scale: 1, x: 0, y: 0 }) }}
@@ -553,11 +732,12 @@ export default function RoutePlanner() {
               {/* 도구 선택 */}
               <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
                 <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">도구</div>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-2 gap-1.5">
                   {[
-                    { key: 'route',   icon: '📍', label: '동선' },
-                    { key: 'measure', icon: '📏', label: '거리측정' },
-                    { key: 'marker',  icon: '🔵', label: '마커' },
+                    { key: 'route',    icon: '📍', label: '동선' },
+                    { key: 'measure',  icon: '📏', label: '거리측정' },
+                    { key: 'marker',   icon: '🔵', label: '마커' },
+                    { key: 'bluezone', icon: '🌀', label: '블루존 설정' },
                   ].map(t => (
                     <button key={t.key}
                       onClick={() => { setTool(t.key); setPendingMeasure(null) }}
@@ -588,24 +768,26 @@ export default function RoutePlanner() {
               </div>
 
               {/* 색상 */}
-              <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
-                <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">색상</div>
-                <div className="flex gap-2 flex-wrap">
-                  {COLORS.map(c => (
-                    <button key={c} onClick={() => setActiveColor(c)}
-                      className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
-                      style={{ backgroundColor: c, borderColor: activeColor === c ? 'white' : 'transparent' }}
-                    />
-                  ))}
+              {tool !== 'bluezone' && (
+                <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
+                  <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">색상</div>
+                  <div className="flex gap-2 flex-wrap">
+                    {COLORS.map(c => (
+                      <button key={c} onClick={() => setActiveColor(c)}
+                        className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
+                        style={{ backgroundColor: c, borderColor: activeColor === c ? 'white' : 'transparent' }}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 도구별 설정 */}
               <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
                 <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                  {tool === 'measure' ? '거리측정 안내' : '설정'}
+                  {tool === 'measure' ? '거리측정 안내' : tool === 'bluezone' ? '페이즈 선택' : '설정'}
                 </div>
-                {tool !== 'measure' && (
+                {tool !== 'measure' && tool !== 'bluezone' && (
                   <input type="text" value={nextLabel} onChange={e => setNextLabel(e.target.value)}
                     placeholder={tool === 'route' ? '포인트 라벨 (선택)' : '마커 라벨 (선택)'}
                     maxLength={12}
@@ -628,7 +810,49 @@ export default function RoutePlanner() {
                     {measurements.length > 0 && <p className="text-gray-600">{measurements.length}개 측정됨</p>}
                   </div>
                 )}
+                {tool === 'bluezone' && (
+                  <>
+                    <div className="grid grid-cols-3 gap-1.5 mb-2">
+                      {BLUEZONE_PHASES.map(p => (
+                        <button key={p.phase} onClick={() => setSelectedPhase(p.phase)}
+                          className={`flex flex-col items-center gap-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
+                            selectedPhase === p.phase ? 'border-white' : 'border-transparent opacity-60 hover:opacity-90'
+                          }`}
+                          style={{ backgroundColor: p.color + '30' }}
+                        >
+                          <span className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }} />
+                          <span style={{ color: p.color }}>P{p.phase}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-gray-600">
+                      페이즈 선택 후 맵을 클릭하면 해당 크기의 자기장 원이 배치됩니다. (참고용 추정치)
+                    </p>
+                  </>
+                )}
               </div>
+
+              {/* 배치된 자기장 목록 (블루존 설정 모드) */}
+              {tool === 'bluezone' && placedZones.length > 0 && (
+                <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
+                  <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                    배치된 자기장 · {placedZones.length}개
+                  </div>
+                  <div className="space-y-1">
+                    {placedZones.map((z, i) => {
+                      const info = BLUEZONE_PHASES.find(p => p.phase === z.phase)
+                      return (
+                        <div key={z.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-gray-800/60">
+                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: info?.color }} />
+                          <span className="text-xs text-gray-300 flex-1">#{i + 1} · Phase {z.phase}</span>
+                          <button onClick={() => setPlacedZones(prev => prev.filter(pz => pz.id !== z.id))}
+                            className="text-gray-600 hover:text-red-400 text-xs">×</button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* 경로 목록 (동선 모드) */}
               {tool === 'route' && (
@@ -693,6 +917,19 @@ export default function RoutePlanner() {
                 <button onClick={clearAll}
                   className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-gray-500 text-xs rounded-xl transition-colors"
                 >🗑 전체 초기화</button>
+                <button onClick={saveToServer} disabled={saveStatus === 'saving'}
+                  className={`w-full py-2 text-xs font-bold rounded-xl transition-colors ${
+                    saveStatus === 'saved' ? 'bg-emerald-700 text-white'
+                    : saveStatus === 'error' ? 'bg-red-800 text-white'
+                    : 'bg-blue-700 hover:bg-blue-600 text-white disabled:opacity-60'
+                  }`}
+                >
+                  {!session?.user ? '☁️ 로그인 후 저장'
+                    : saveStatus === 'saving' ? '저장 중…'
+                    : saveStatus === 'saved'  ? '✅ 저장됨'
+                    : saveStatus === 'error'  ? '❌ 저장 실패'
+                    : '☁️ 서버에 저장'}
+                </button>
                 <button onClick={saveImage}
                   className="w-full py-2 bg-green-700 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-colors"
                 >💾 이미지 저장</button>

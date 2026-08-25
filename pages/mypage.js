@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Layout from '../components/layout/Layout';
 import { useT } from '../utils/i18n';
+import { MAP_ID_TO_LABEL } from '../utils/mapCoords';
 
 const DIFF_ACCENT = {
   green:  { border: 'border-green-500/50',  bg: 'bg-green-500/10',  text: 'text-green-400',  bar: 'bg-green-500',  btn: 'bg-green-600 hover:bg-green-500' },
@@ -424,6 +425,81 @@ function ClanPlayRecord({ pubgAccounts }) {
 const SEEN_REPLIES_KEY = 'pkgg_seen_inquiry_replies';
 
 // 마이페이지 "내 문의" 섹션 — 로그인 유저 본인이 제출한 문의와 관리자 답변 조회
+function SavedRoutesSection() {
+  const router = useRouter();
+  const [saved, setSaved] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/route-planner/list')
+      .then((r) => (r.ok ? r.json() : { routes: [] }))
+      .then((d) => { if (!cancelled) setSaved(d.routes || []); })
+      .catch(() => { if (!cancelled) setSaved([]); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('저장된 동선을 삭제하시겠습니까?')) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch('/api/route-planner/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) setSaved((prev) => prev.filter((s) => s.id !== id));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>;
+  }
+
+  if (saved.length === 0) {
+    return <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-3">저장된 동선이 없습니다.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {saved.map((s) => {
+        const pointCount = (s.routes || []).reduce((sum, r) => sum + (r.points?.length || 0), 0);
+        return (
+          <div key={s.id}
+            onClick={() => router.push(`/route-planner?mapId=${s.mapId}`)}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+          >
+            <div className="min-w-0 flex-1 flex items-center gap-2">
+              <span className="text-[10px] bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300 flex-shrink-0">
+                {MAP_ID_TO_LABEL[s.mapId] || s.mapId}
+              </span>
+              <span className="text-sm text-gray-800 dark:text-gray-100 truncate">
+                경로 {pointCount}pt · 마커 {(s.markers || []).length}개
+                {(s.blueZones || []).length > 0 && ` · 자기장 ${s.blueZones.length}개`}
+              </span>
+            </div>
+            <span className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-[10px] text-gray-400 dark:text-gray-600">
+                {new Date(s.updatedAt).toLocaleString('ko-KR')}
+              </span>
+              <button
+                onClick={(e) => handleDelete(e, s.id)}
+                disabled={deletingId === s.id}
+                className="text-gray-400 hover:text-red-400 text-xs px-1.5 disabled:opacity-40"
+              >✕</button>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function MyInquiries() {
   const { t } = useT();
   const INQUIRY_TOPIC_LABEL = {
@@ -1027,6 +1103,14 @@ export default function MyPage() {
               🎮 <span>{t('mypage.clanplay_title')}</span>
             </h2>
             <ClanPlayRecord pubgAccounts={userData?.pubgAccounts} />
+          </div>
+
+          {/* ── 저장된 동선 ── */}
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
+            <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
+              🗺️ <span>저장된 동선</span>
+            </h2>
+            <SavedRoutesSection />
           </div>
 
           {/* ── 내 문의 ── */}

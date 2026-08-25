@@ -28,6 +28,12 @@ export const MAP_IMAGE = {
   Chimera_Main: '/maps/paramo.jpg',
 }
 
+// route-planner.js MAPS의 id → 한글 표시명 (mypage.js 저장된 동선 목록 등에서 재사용)
+export const MAP_ID_TO_LABEL = {
+  erangel: '에란겔', miramar: '미라마', taego: '태이고', deston: '데스턴',
+  rondo: '론도', vikendi: '비켄디', sanhok: '사녹', paramo: '파라모', karakin: '카라킨',
+}
+
 export function getMaxCoord(mapName) {
   return MAP_MAX[mapName] || 820000
 }
