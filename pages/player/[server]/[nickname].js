@@ -4,6 +4,7 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { calculateMMR, getMMRTier } from '../../../utils/mmrCalculator';
 import { classifyPlaystyle, TYPES } from '../../../utils/playstyleClassifier';
+import { analyzePlayStyle } from '../../../utils/aiCoaching';
 import { useT } from '../../../utils/i18n';
 
 import Header from '../../../components/layout/Header';
@@ -1298,6 +1299,56 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
     clanMembers = [],
   } = displayData || {};
 
+  // AICoachingCard와 동일한 방식으로 만든 플레이스타일 분석용 통계 — PlaystyleSummaryText에서도 재사용
+  const aiCoachingStats = (() => {
+    const latestSeasonStats =
+      seasonStats && Object.keys(seasonStats).length > 0
+        ? Object.values(seasonStats)[0]
+        : null
+    const nonEventModes = latestSeasonStats
+      ? Object.fromEntries(
+          Object.entries(latestSeasonStats).filter(
+            ([mode]) => !mode.startsWith('normal') && !mode.includes('event')
+          )
+        )
+      : {}
+    const bestModeStats = Object.values(nonEventModes)
+      .filter(Boolean)
+      .sort((a, b) => (b?.rounds || 0) - (a?.rounds || 0))[0] ?? null
+    const totalSeasonMatches = latestSeasonStats
+      ? Object.values(latestSeasonStats).reduce((total, ms) => total + (ms?.rounds || 0), 0)
+      : 0
+    const rankedMatches = rankedSummary?.games || 0
+    const totalAllMatches = Math.max(totalSeasonMatches, rankedMatches, summary?.roundsPlayed || 0)
+    return {
+      avgDamage:       bestModeStats?.avgDamage       || summary?.avgDamage       || profile?.avgDamage       || 0,
+      avgKills:        bestModeStats?.avgKills         || summary?.avgKills         || profile?.avgKills         || 0,
+      avgAssists:      bestModeStats?.avgAssists       || summary?.avgAssists       || profile?.avgAssists       || 0,
+      avgSurvivalTime: bestModeStats?.avgSurvivalTime  || summary?.avgSurviveTime   || profile?.avgSurviveTime   || 0,
+      winRate:         bestModeStats?.winRate          || summary?.winRate          || profile?.winRate          || 0,
+      top10Rate:       bestModeStats?.top10Rate        || summary?.top10Rate        || profile?.top10Rate        || 0,
+      headshotRate: (() => {
+        if (summary?.headshotKillRatio != null) {
+          const r = parseFloat(summary.headshotKillRatio)
+          return parseFloat((r > 1 ? r : r * 100).toFixed(1))
+        }
+        if (summary?.kills > 0 && summary?.headshots != null) {
+          return parseFloat(((summary.headshots / summary.kills) * 100).toFixed(1))
+        }
+        return bestModeStats?.headshotRate || profile?.headshotKillRatio || 0
+      })(),
+      headshots:   summary?.headshots   || bestModeStats?.headshots || 0,
+      totalKills:  summary?.kills        || bestModeStats?.kills     || 0,
+      totalMatches: totalAllMatches,
+      kd:          bestModeStats?.kd     || summary?.kd              || profile?.kd || 0,
+    }
+  })()
+
+  // 검색엔진 색인 제외 대상(5경기 미만/시즌 스탯 없음)과 동일한 기준 — 콘텐츠 보강 블록도 같은 기준으로 노출 여부 결정
+  const isThinContent =
+    (typeof summary?.roundsPlayed === 'number' && summary.roundsPlayed < 5) ||
+    ((summary?.avgDamage ?? 0) === 0 && (summary?.avgKills ?? 0) === 0);
+
   // profile.clan이 객체일 경우 안전하게 문자열로 출력
   const clanName =
     profile?.clan?.name ||
@@ -1711,6 +1762,9 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
         <div className="max-w-screen-xl mx-auto px-4 py-6">
         <Head>
           <title>{`${profile?.nickname || '플레이어'} 배그 전적 | PKGG`}</title>
+          {/* 이번 시즌 5경기 미만 또는 시즌 스탯 자체가 없는 "데이터 빈약" 페이지는 검색엔진 색인 제외
+              (isSearchHidden과 동일한 패턴, 렌더 시점의 실시간 시즌 스탯 기준 — 별도 배치/컬럼 불필요) */}
+          {isThinContent && <meta name="robots" content="noindex, follow" />}
           <meta name="description" content={ssrData?.metaDescription || `${profile?.nickname || '플레이어'}의 배틀그라운드 전적, PKGG 점수, 플레이스타일 분석`} />
           <meta property="og:type" content="profile" />
           <meta property="og:url" content={`https://pkgg.vercel.app/player/${router.query.server}/${profile?.nickname}`} />
@@ -1771,6 +1825,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
           <div className="mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3">
             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">PKGG 분석 요약</div>
             <p className="text-sm text-gray-400">{ssrData.seoText}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-600 mt-1.5">※ 이 통계는 봇킬을 제거한 실제 대인전 기록입니다.</p>
           </div>
         )}
 
@@ -2137,50 +2192,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
               </div>
               <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 {lazyVisible && <AICoachingCard
-                  playerStats={(() => {
-                    const latestSeasonStats =
-                      seasonStats && Object.keys(seasonStats).length > 0
-                        ? Object.values(seasonStats)[0]
-                        : null
-                    const nonEventModes = latestSeasonStats
-                      ? Object.fromEntries(
-                          Object.entries(latestSeasonStats).filter(
-                            ([mode]) => !mode.startsWith('normal') && !mode.includes('event')
-                          )
-                        )
-                      : {}
-                    // 판수가 가장 많은 모드를 선택 (1인칭/3인칭 무관하게 주력 모드 기준)
-                    const bestModeStats = Object.values(nonEventModes)
-                      .filter(Boolean)
-                      .sort((a, b) => (b?.rounds || 0) - (a?.rounds || 0))[0] ?? null
-                    const totalSeasonMatches = latestSeasonStats
-                      ? Object.values(latestSeasonStats).reduce((total, ms) => total + (ms?.rounds || 0), 0)
-                      : 0
-                    const rankedMatches = rankedSummary?.games || 0
-                    const totalAllMatches = Math.max(totalSeasonMatches, rankedMatches, summary?.roundsPlayed || 0)
-                    return {
-                      avgDamage:       bestModeStats?.avgDamage       || summary?.avgDamage       || profile?.avgDamage       || 0,
-                      avgKills:        bestModeStats?.avgKills         || summary?.avgKills         || profile?.avgKills         || 0,
-                      avgAssists:      bestModeStats?.avgAssists       || summary?.avgAssists       || profile?.avgAssists       || 0,
-                      avgSurvivalTime: bestModeStats?.avgSurvivalTime  || summary?.avgSurviveTime   || profile?.avgSurviveTime   || 0,
-                      winRate:         bestModeStats?.winRate          || summary?.winRate          || profile?.winRate          || 0,
-                      top10Rate:       bestModeStats?.top10Rate        || summary?.top10Rate        || profile?.top10Rate        || 0,
-                      headshotRate: (() => {
-                        if (summary?.headshotKillRatio != null) {
-                          const r = parseFloat(summary.headshotKillRatio)
-                          return parseFloat((r > 1 ? r : r * 100).toFixed(1))
-                        }
-                        if (summary?.kills > 0 && summary?.headshots != null) {
-                          return parseFloat(((summary.headshots / summary.kills) * 100).toFixed(1))
-                        }
-                        return bestModeStats?.headshotRate || profile?.headshotKillRatio || 0
-                      })(),
-                      headshots:   summary?.headshots   || bestModeStats?.headshots || 0,
-                      totalKills:  summary?.kills        || bestModeStats?.kills     || 0,
-                      totalMatches: totalAllMatches,
-                      kd:          bestModeStats?.kd     || summary?.kd              || profile?.kd || 0,
-                    }
-                  })()}
+                  playerStats={aiCoachingStats}
                   playerInfo={{
                     nickname: profile?.nickname || router.query.nickname,
                     server:   router.query.server || 'steam',
@@ -2280,7 +2292,10 @@ async function buildSeoData(playerData, prisma) {
 
     const avgDamage = summary.avgDamage || 0;
     const avgKills  = summary.avgKills  || 0;
-    if (avgDamage === 0 && avgKills === 0) return empty; // 데이터 부족/신규 유저
+    // 데이터 빈약 페이지(5경기 미만 또는 시즌 스탯 없음) 제외 — noindex 기준과 동일
+    const isThin = (typeof summary.roundsPlayed === 'number' && summary.roundsPlayed < 5) ||
+      (avgDamage === 0 && avgKills === 0);
+    if (isThin) return empty;
 
     // headshotKillRatio는 경로에 따라 0~1 소수 또는 0~100 퍼센트로 저장됨 (PlaystyleCard와 동일 정규화)
     const headshotRate = summary.headshotKillRatio != null
@@ -2328,6 +2343,21 @@ async function buildSeoData(playerData, prisma) {
     const tier = getMMRTier(mmr || 0).label;
     const nickname = profile?.nickname || '이 플레이어';
 
+    // 평균 딜량 백분위 — /api/pubg/percentile.js와 동일한 계산 방식(PlayerCache 기준)을 SSR에서 직접 조회
+    let dmgPercentile = null;
+    try {
+      const [pcTotal, damageBelow] = await Promise.all([
+        prisma.playerCache.count({ where: { avgDamage: { gt: 0 } } }),
+        prisma.playerCache.count({ where: { avgDamage: { lt: avgDamage, gt: 0 } } }),
+      ]);
+      if (pcTotal >= 20) {
+        dmgPercentile = Math.max(1, Math.ceil((1 - damageBelow / pcTotal) * 100));
+      }
+    } catch (e) {
+      console.warn('[SEO] 백분위 조회 실패:', e.message);
+    }
+    const dmgClause = dmgPercentile ? `평균 딜량 ${Math.round(avgDamage)}(상위 ${dmgPercentile}%)로` : `평균 딜량 ${Math.round(avgDamage)}로`;
+
     // desc가 짧으면(30자 이하) 그대로 "…인 플레이어입니다"로 자연스럽게 연결,
     // 길어서 잘라야 하면 "…인 플레이어입니다"를 붙이지 않고 "유형입니다"로 대체
     // (잘린 문장 뒤에 서술어를 이어붙이면 어색해지는 것을 방지)
@@ -2343,7 +2373,7 @@ async function buildSeoData(playerData, prisma) {
         : `${ps.label} — ${ps.desc}인 플레이어입니다.`
       : `${ps.label} 유형입니다.`;
 
-    const seoText = `${nickname}는 봇을 제외하고도 K/D ${realKD}을 유지하는 실력파입니다. 평균 딜량 ${Math.round(avgDamage)}로 꾸준히 교전에 기여하며, Top10 진입률 ${(summary.top10Rate || 0).toFixed(1)}%의 ${secondClause} PKGG 점수 ${Math.round(mmr || 0)}점(${tier}).`;
+    const seoText = `${nickname}는 봇을 제외하고도 K/D ${realKD}을 유지하는 실력파입니다. ${dmgClause} 꾸준히 교전에 기여하며, Top10 진입률 ${(summary.top10Rate || 0).toFixed(1)}%의 ${secondClause} PKGG 점수 ${Math.round(mmr || 0)}점(${tier}).`;
 
     const metaDescription = `${nickname} 배그 전적 | 봇킬 제외 K/D ${realKD}, 평균 딜량 ${Math.round(avgDamage)}, ${ps.label} | PKGG`;
 
