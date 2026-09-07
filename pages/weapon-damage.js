@@ -67,7 +67,7 @@ const WEAPON_DATA = [
   { name: 'Micro UZI',  type: 'SMG', damage: 26, rpm: 1250, dps: 546,   magBase: 25, magExt: 35,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1', bulletSpeed: 350 },
 
   // ── 경기관총 (LMG) ──
-  { name: 'MG3',   type: 'LMG', damage: 44.1, rpm: 660,  dps: 485.1, rpm2: 990, dps2: 727.65, magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능', bulletSpeed: 820 },
+  { name: 'MG3',   type: 'LMG', damage: 42,   rpm: 660,  dps: 462,   rpm2: 990, dps2: 693,     magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능', bulletSpeed: 820 },
   { name: 'M249',  type: 'LMG', damage: 41, rpm: 800,  dps: 559.65,magBase: 75, magExt: 100,  modes: '완전자동',           caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 915 },
   { name: 'RPD',   type: 'LMG', damage: 43, rpm: 750,  dps: 537.5, magBase: 50, magExt: 110,  modes: '완전자동',           caliber: '7.62mm', dataFrom: 'Update 42.3', historyNote: 'U42.3: 신규 추가 (2026.08.12)', bulletSpeed: 735 },
 
@@ -84,6 +84,7 @@ const WEAPON_DATA = [
   // ── 권총 (PST) ──
   { name: 'R1895',        type: 'PST', damage: 64, rpm: 300,  dps: 320,  magBase: 7,  magExt: null, modes: '단발',     caliber: '7.62mm',   dataFrom: 'Update 28.1', bulletSpeed: 330 },
   { name: 'Desert Eagle', type: 'PST', damage: 62, rpm: null, dps: null,  magBase: 7,  magExt: null, modes: '단발',     caliber: '.357 Mag', dataFrom: 'Update 28.1', rpmUnknown: true, bulletSpeed: 450 },
+  { name: 'P1911',        type: 'PST', damage: 41, rpm: null, dps: null,  magBase: 7,  magExt: 13,  modes: '단발',     caliber: '.45 ACP',  dataFrom: 'Update 28.1', rpmUnknown: true, rpmNote: '400~600RPM 추정', historyNote: 'Update 42.1에서 삭제 예정으로 안내됐으나 실제로는 삭제되지 않음 — 비켄디 연구소 상자 등에서 여전히 획득 가능해 표에 재추가', bulletSpeed: 330 },
   { name: 'P92',          type: 'PST', damage: 34, rpm: 600,  dps: 340,  magBase: 15, magExt: 20,  modes: '단발',     caliber: '9mm',      dataFrom: 'Update 28.1', bulletSpeed: 380 },
   { name: 'P18C',         type: 'PST', damage: 23, rpm: 1100, dps: 414,  magBase: 17, magExt: 25,  modes: '완전자동', caliber: '9mm',      dataFrom: 'Update 28.1', bulletSpeed: 375 },
   { name: 'Skorpion',     type: 'PST', damage: 22, rpm: 850,  dps: 308,  magBase: 20, magExt: 35,  modes: '완전자동', caliber: '.32 ACP',  dataFrom: 'Update 28.1', bulletSpeed: 350 },
@@ -143,6 +144,7 @@ const WEAPON_IMG = {
   // PST
   'R1895':        '/weapons/Item_Weapon_NagantM1895_C.png',
   'Desert Eagle': '/weapons/Item_Weapon_DesertEagle_C.png',
+  'P1911':        '/weapons/Item_Weapon_M1911_C.png',
   'P92':          '/weapons/Item_Weapon_M9_C.png',
   'P18C':         '/weapons/Item_Weapon_G18_C.png',
   'Skorpion':     '/weapons/Item_Weapon_Skorpion_C.png',
@@ -561,7 +563,8 @@ const PATCH_NOTES = [
       {
         title: '총기 삭제',
         items: [
-          { weapon: '삭제 완료 6종', changes: ['QBU (DMR)', '모신 나강 (SR)', 'PP-19 Bizon (SMG)', 'DP-28 (LMG)', 'R45 (PST)', 'P1911 (PST)'] },
+          { weapon: '삭제 완료 5종', changes: ['QBU (DMR)', '모신 나강 (SR)', 'PP-19 Bizon (SMG)', 'DP-28 (LMG)', 'R45 (PST)'] },
+          { weapon: '정정: P1911 (PST)', changes: ['당초 삭제 대상으로 안내됐으나 실제로는 삭제되지 않음', '비켄디 연구소 상자 등에서 여전히 획득 가능한 유효 무기로 확인되어 표에 재추가'] },
         ],
       },
     ],
