@@ -8,6 +8,7 @@ const TOPIC_LABEL = {
   feature: '💡 기능 제안',
   data:    '📊 데이터 오류',
   forum:   '🚨 포럼 신고',
+  ad:      '📢 광고 문의',
   other:   '📬 기타',
 };
 
@@ -426,6 +427,7 @@ export default function AdminDashboard() {
               { key: 'batch',          label: '⚙️ 배치 실행' },
               { key: 'newUsers',       label: '🆕 신규 유저' },
               { key: 'streamers',      label: '📡 스트리머 관리' },
+              { key: 'banners',        label: '🖼️ 배너 광고' },
             ].map((t) => (
               <button
                 key={t.key}
@@ -1107,6 +1109,7 @@ export default function AdminDashboard() {
 
           {/* 스트리머 관리 탭 */}
           {tab === 'streamers' && <StreamerAdminTab />}
+          {tab === 'banners' && <AdBannerAdminTab />}
 
         </div>
       </div>
@@ -1230,6 +1233,233 @@ function StreamerAdminTab() {
                 <button onClick={() => handleDelete(s.id, s.streamerName)} disabled={deleting === s.id}
                   className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 flex-shrink-0 px-2 py-1">
                   {deleting === s.id ? '...' : '제거'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const BANNER_POSITION_LABEL = {
+  main_header:     '메인 헤더 (로고 자리, 728×90 권장)',
+  player_card_top: '플레이어 카드 상단 (300×250 권장)',
+}
+
+function AdBannerAdminTab() {
+  const [banners, setBanners] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({ position: 'main_header', imageUrl: '', imageUrlMobile: '', linkUrl: '', startDate: '', endDate: '' })
+  const [uploading, setUploading] = useState(false)
+  const [uploadingMobile, setUploadingMobile] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [addMsg, setAddMsg] = useState('')
+  const [deleting, setDeleting] = useState(null)
+  const [toggling, setToggling] = useState(null)
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/banners')
+      const data = await res.json()
+      setBanners(data.banners || [])
+    } catch {}
+    finally { setLoading(false) }
+  }
+
+  useState(() => { load() }, [])
+
+  const uploadImage = (file, onDone) => {
+    if (!file || !file.type.startsWith('image/')) { alert('이미지 파일만 업로드할 수 있습니다.'); return }
+    if (file.size > 5 * 1024 * 1024) { alert('이미지 크기는 5MB 이하여야 합니다.'); return }
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      try {
+        const res = await fetch('/api/admin/upload-banner', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64: ev.target.result, mimeType: file.type }),
+        })
+        const data = await res.json()
+        if (res.ok) onDone(data.url)
+        else alert(`❌ ${data.error}`)
+      } catch { alert('❌ 업로드 중 오류가 발생했습니다.') }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleUploadDesktop = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    uploadImage(file, (url) => { setForm((f) => ({ ...f, imageUrl: url })); setUploading(false) })
+    e.target.value = ''
+  }
+
+  const handleUploadMobile = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingMobile(true)
+    uploadImage(file, (url) => { setForm((f) => ({ ...f, imageUrlMobile: url })); setUploadingMobile(false) })
+    e.target.value = ''
+  }
+
+  const handleAdd = async (e) => {
+    e.preventDefault()
+    if (!form.imageUrl || !form.linkUrl) {
+      setAddMsg('❌ 이미지와 링크 URL은 필수입니다.')
+      return
+    }
+    setAdding(true); setAddMsg('')
+    try {
+      const res = await fetch('/api/admin/banners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok) { setAddMsg(`❌ ${data.error}`); return }
+      setAddMsg('✅ 등록됐습니다!')
+      setForm({ position: 'main_header', imageUrl: '', imageUrlMobile: '', linkUrl: '', startDate: '', endDate: '' })
+      load()
+    } catch { setAddMsg('❌ 오류가 발생했습니다.') }
+    finally { setAdding(false) }
+  }
+
+  const handleToggle = async (b) => {
+    setToggling(b.id)
+    try {
+      await fetch('/api/admin/banners', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: b.id, isActive: !b.isActive }),
+      })
+      load()
+    } catch {}
+    finally { setToggling(null) }
+  }
+
+  const handleDelete = async (id) => {
+    if (!confirm('이 배너를 삭제할까요?')) return
+    setDeleting(id)
+    try {
+      await fetch('/api/admin/banners', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      load()
+    } catch {}
+    finally { setDeleting(null) }
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold">🖼️ 배너 광고 관리</h1>
+
+      {/* 추가 폼 */}
+      <div className="bg-gray-800 rounded-2xl p-5">
+        <h2 className="text-sm font-bold text-gray-300 mb-4">배너 추가</h2>
+        <form onSubmit={handleAdd} className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">노출 위치</label>
+            <select value={form.position} onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white focus:outline-none">
+              {Object.entries(BANNER_POSITION_LABEL).map(([k, label]) => (
+                <option key={k} value={k}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">
+                {form.position === 'main_header' ? '데스크톱 이미지 (728×90 권장) *' : '배너 이미지 (300×250 권장) *'}
+              </label>
+              <input type="file" accept="image/*" onChange={handleUploadDesktop} disabled={uploading}
+                className="w-full text-xs text-gray-400 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:text-xs file:font-bold hover:file:bg-blue-500" />
+              {uploading && <p className="text-xs text-blue-400 mt-1">업로드 중...</p>}
+              {form.imageUrl && <img src={form.imageUrl} alt="미리보기" className="mt-2 max-h-16 rounded-lg border border-gray-600" />}
+            </div>
+            {form.position === 'main_header' && (
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">모바일 이미지 (320×50 권장, 선택)</label>
+                <input type="file" accept="image/*" onChange={handleUploadMobile} disabled={uploadingMobile}
+                  className="w-full text-xs text-gray-400 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:text-xs file:font-bold hover:file:bg-blue-500" />
+                {uploadingMobile && <p className="text-xs text-blue-400 mt-1">업로드 중...</p>}
+                {form.imageUrlMobile && <img src={form.imageUrlMobile} alt="미리보기" className="mt-2 max-h-16 rounded-lg border border-gray-600" />}
+                <p className="text-[10px] text-gray-600 mt-1">비워두면 데스크톱 이미지를 모바일에도 그대로 사용합니다.</p>
+              </div>
+            )}
+          </div>
+
+          <input value={form.linkUrl} onChange={(e) => setForm((f) => ({ ...f, linkUrl: e.target.value.trim() }))}
+            placeholder="클릭 시 이동할 링크 URL * (https://...)"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">시작일 (선택)</label>
+              <input type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white focus:outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">종료일 (선택)</label>
+              <input type="date" value={form.endDate} onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-xl text-sm text-white focus:outline-none" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={adding || uploading || uploadingMobile}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors">
+              {adding ? '등록 중...' : '등록'}
+            </button>
+            {addMsg && <span className="text-sm">{addMsg}</span>}
+          </div>
+        </form>
+      </div>
+
+      {/* 목록 */}
+      <div className="bg-gray-800 rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold text-gray-300">등록된 배너 ({banners.length}개)</h2>
+          <button onClick={load} className="text-xs text-blue-400 hover:text-blue-300">새로고침</button>
+        </div>
+        {loading ? (
+          <div className="text-center py-8 text-gray-500 text-sm">불러오는 중...</div>
+        ) : banners.length === 0 ? (
+          <div className="text-center py-8 text-gray-600 text-sm">등록된 배너가 없습니다.</div>
+        ) : (
+          <div className="space-y-2">
+            {banners.map((b) => (
+              <div key={b.id} className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-xl">
+                <img src={b.imageUrl} alt="배너" className="w-16 h-10 object-cover rounded-lg flex-shrink-0 bg-gray-900" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white truncate">{BANNER_POSITION_LABEL[b.position] || b.position}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${b.isActive ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'}`}>
+                      {b.isActive ? '활성' : '비활성'}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500 truncate block">{b.linkUrl}</span>
+                  {(b.startDate || b.endDate) && (
+                    <span className="text-[10px] text-gray-600">
+                      {b.startDate ? new Date(b.startDate).toLocaleDateString('ko-KR') : '제한 없음'} ~ {b.endDate ? new Date(b.endDate).toLocaleDateString('ko-KR') : '제한 없음'}
+                    </span>
+                  )}
+                </div>
+                <button onClick={() => handleToggle(b)} disabled={toggling === b.id}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-semibold flex-shrink-0 disabled:opacity-50 ${
+                    b.isActive ? 'bg-gray-600 text-gray-200 hover:bg-gray-500' : 'bg-blue-600 text-white hover:bg-blue-500'
+                  }`}>
+                  {toggling === b.id ? '...' : b.isActive ? '비활성화' : '활성화'}
+                </button>
+                <button onClick={() => handleDelete(b.id)} disabled={deleting === b.id}
+                  className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 flex-shrink-0 px-2 py-1">
+                  {deleting === b.id ? '...' : '삭제'}
                 </button>
               </div>
             ))}

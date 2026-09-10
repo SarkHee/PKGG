@@ -15,6 +15,7 @@ export default function Footer() {
         <Link href="/privacy" className="px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 text-xs font-medium transition-all border border-gray-200 whitespace-nowrap">{t('footer.privacy')}</Link>
         <Link href="/terms" className="px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 text-xs font-medium transition-all border border-gray-200 whitespace-nowrap">{t('footer.terms')}</Link>
         <Link href="/contact" className="px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 text-xs font-medium transition-all border border-gray-200 whitespace-nowrap">{t('footer.contact')}</Link>
+        <Link href="/ad-inquiry" className="px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 text-xs font-medium transition-all border border-gray-200 whitespace-nowrap">{t('footer.ad_inquiry')}</Link>
         {session?.user?.isAdmin && (
           <button
             onClick={() => router.push('/admin')}

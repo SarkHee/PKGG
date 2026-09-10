@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import Header from '../components/layout/Header';
 import { useT } from '../utils/i18n';
 
 export default function ContactPage() {
   const { t } = useT();
+  const router = useRouter();
   const TOPICS = [
     { id: 'bug',     label: t('contact.topic.bug'),     icon: '🐛' },
     { id: 'feature', label: t('contact.topic.feature'), icon: '💡' },
     { id: 'data',    label: t('contact.topic.data'),    icon: '📊' },
     { id: 'forum',   label: t('contact.topic.forum'),   icon: '🚨' },
+    { id: 'ad',      label: t('contact.topic.ad'),      icon: '📢' },
     { id: 'other',   label: t('contact.topic.other'),   icon: '📬' },
   ];
   const TOPIC_HINTS = {
@@ -18,9 +21,18 @@ export default function ContactPage() {
     data: t('contact.hint.data'),
     forum: t('contact.hint.forum'),
     feature: t('contact.hint.feature'),
+    ad: t('contact.hint.ad'),
     other: t('contact.hint.other'),
   };
   const [topic,    setTopic]    = useState('');
+
+  // /ad-inquiry 등에서 ?topic=ad 로 들어오면 광고 문의 유형 자동 선택
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = router.query.topic;
+    if (typeof q === 'string' && TOPICS.some((tp) => tp.id === q)) setTopic(q);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.query.topic]);
   const [message,  setMessage]  = useState('');
   const [email,    setEmail]    = useState('');
   const [loading,  setLoading]  = useState(false);

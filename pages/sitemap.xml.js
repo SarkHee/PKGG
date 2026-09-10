@@ -38,6 +38,7 @@ function generateSiteMap() {
     { url: '/privacy',              changefreq: 'monthly', priority: '0.3' },
     { url: '/terms',                changefreq: 'monthly', priority: '0.3' },
     { url: '/contact',              changefreq: 'monthly', priority: '0.3' },
+    { url: '/ad-inquiry',           changefreq: 'monthly', priority: '0.3' },
   ];
 
   const staticEntries = staticPages

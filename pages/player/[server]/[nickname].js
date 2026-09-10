@@ -11,6 +11,7 @@ import Header from '../../../components/layout/Header';
 import PlayerHeader from '../../../components/player/PlayerHeader';
 import MatchListRow from '../../../components/match/MatchListRow';
 import AdUnit from '../../../components/AdUnit';
+import AdBanner from '../../../components/AdBanner';
 
 // 무거운 컴포넌트 lazy load → 초기 JS 번들 분리, LCP 차단 제거
 const PlayerDashboard       = dynamic(() => import('../../../components/player/PlayerDashboard'), { ssr: false });
@@ -1798,6 +1799,9 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
             <span className="text-emerald-500 dark:text-emerald-400">— PUBG API에서 새로운 데이터를 불러왔습니다</span>
           </div>
         )}
+
+        {/* 배너 광고 (관리자가 등록한 경우에만 노출, 없으면 아무것도 표시 안 함) */}
+        <AdBanner position="player_card_top" className="mb-4 max-w-[300px] mx-auto rounded-lg overflow-hidden" />
 
         {/* 새로운 플레이어 헤더 */}
         <PlayerHeader

@@ -507,6 +507,7 @@ function MyInquiries() {
     feature: t('mypage.inquiry_topic.feature'),
     data: t('mypage.inquiry_topic.data'),
     forum: t('mypage.inquiry_topic.forum'),
+    ad: t('mypage.inquiry_topic.ad'),
     other: t('mypage.inquiry_topic.other'),
   };
   const [inquiries, setInquiries] = useState([]);

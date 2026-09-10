@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Header from '../components/layout/Header';
 import AdUnit from '../components/AdUnit';
+import AdBanner from '../components/AdBanner';
 import { useT } from '../utils/i18n';
 import { MAJOR, TYPES } from '../utils/playstyleClassifier';
 import { getMMRTier } from '../utils/mmrCalculator';
@@ -709,17 +710,19 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                 PUBG Stats &amp; Analytics
               </span>
             </div>
-            {/* 로고 */}
+            {/* 로고 (관리자가 배너를 등록해두면 로고 대신 배너 노출) */}
             <h1 className="mb-4 sm:mb-6">
-              <Image
-                src="/logo.png"
-                alt="PKGG"
-                width={518}
-                height={295}
-                className="w-44 sm:w-80 md:w-[460px] h-auto mx-auto"
-                style={{ filter: 'drop-shadow(0 0 36px rgba(59,130,246,0.55)) drop-shadow(0 6px 18px rgba(0,0,0,0.6))' }}
-                priority
-              />
+              <AdBanner position="main_header" className="max-w-[728px] mx-auto rounded-lg overflow-hidden">
+                <Image
+                  src="/logo.png"
+                  alt="PKGG"
+                  width={518}
+                  height={295}
+                  className="w-44 sm:w-80 md:w-[460px] h-auto mx-auto"
+                  style={{ filter: 'drop-shadow(0 0 36px rgba(59,130,246,0.55)) drop-shadow(0 6px 18px rgba(0,0,0,0.6))' }}
+                  priority
+                />
+              </AdBanner>
             </h1>
 
             {/* 서브타이틀 */}
