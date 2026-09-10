@@ -67,9 +67,9 @@ const WEAPON_DATA = [
   { name: 'Micro UZI',  type: 'SMG', damage: 26, rpm: 1250, dps: 546,   magBase: 25, magExt: 35,  modes: '완전자동', caliber: '9mm',     dataFrom: 'Update 28.1', bulletSpeed: 350 },
 
   // ── 경기관총 (LMG) ──
-  { name: 'MG3',   type: 'LMG', damage: 42,   rpm: 660,  dps: 462,   rpm2: 990, dps2: 693,     magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능', bulletSpeed: 820 },
-  { name: 'M249',  type: 'LMG', damage: 41, rpm: 800,  dps: 559.65,magBase: 75, magExt: 100,  modes: '완전자동',           caliber: '5.56mm', dataFrom: 'Update 28.1', bulletSpeed: 915 },
-  { name: 'RPD',   type: 'LMG', damage: 43, rpm: 750,  dps: 537.5, magBase: 50, magExt: 110,  modes: '완전자동',           caliber: '7.62mm', dataFrom: 'Update 42.3', historyNote: 'U42.3: 신규 추가 (2026.08.12)', bulletSpeed: 735 },
+  { name: 'MG3',   type: 'LMG', damage: 42,   rpm: 660,  dps: 462,   rpm2: 990, dps2: 693,     magBase: 75, magExt: null, modes: '완전자동 (660/990RPM)', caliber: '7.62mm', dataFrom: 'Update 28.1', historyNote: '연사력 2단계: 660RPM(저속) / 990RPM(고속) 전환 가능 · U43.1: 조준속도 증가, 차량 피해 배율 감소, 자세별 반동 제어 효과 감소, 월드 스폰량 감소 (데미지 변동 없음)', bulletSpeed: 820 },
+  { name: 'M249',  type: 'LMG', damage: 41, rpm: 800,  dps: 559.65,magBase: 75, magExt: 100,  modes: '완전자동',           caliber: '5.56mm', dataFrom: 'Update 28.1', historyNote: 'U43.1: 조준속도 증가, 차량 피해 배율 감소, 자세별 반동 제어 효과 감소, 월드 스폰량 감소 (데미지 변동 없음)', bulletSpeed: 915 },
+  { name: 'RPD',   type: 'LMG', damage: 43, rpm: 750,  dps: 537.5, magBase: 50, magExt: 110,  modes: '완전자동',           caliber: '7.62mm', dataFrom: 'Update 42.3', historyNote: 'U42.3: 신규 추가 (2026.08.12) · U43.1: 조준속도 증가, 차량 피해 배율 감소, 자세별 반동 제어 효과 감소, 월드 스폰량 감소 (데미지 변동 없음)', bulletSpeed: 735 },
 
   // ── 산탄총 (SGN) ──
   // O12: 단일 피해량 100 (펠렛 보정 없음) — 탄속 데이터 미제공
@@ -537,9 +537,22 @@ function WeaponDetailPanel({ weapon, armorLevel, helmetLevel, onArmorChange, onH
 // ─── 패치 노트 이력 ──────────────────────────────────────
 const PATCH_NOTES = [
   {
+    version: 'Update 43.1',
+    date: '2026.09.09',
+    isLatest: true,
+    sections: [
+      {
+        title: 'LMG 밸런스 조정',
+        items: [
+          { weapon: 'RPD / M249 / MG3', changes: ['조준(ADS) 속도 증가', '차량 대상 피해 배율 감소', '자세별(스탠스) 반동 제어 효과 감소', '월드 스폰량 감소', '데미지 수치 자체는 변경 없음'] },
+        ],
+      },
+    ],
+  },
+  {
     version: 'Update 42.3',
     date: '2026.08',
-    isLatest: true,
+    isLatest: false,
     sections: [
       {
         title: '신규 무기',
