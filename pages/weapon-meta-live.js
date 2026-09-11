@@ -135,7 +135,7 @@ function TypeBadge({ type }) {
 }
 
 // 알려진 시즌 목록 (seasonStart.js의 SEASON_STARTS와 동기화)
-const KNOWN_SEASONS = [41, 42]
+const KNOWN_SEASONS = [41, 42, 43]
 
 export default function WeaponMetaLivePage() {
   const { t } = useT()
