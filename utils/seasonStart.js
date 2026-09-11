@@ -8,7 +8,7 @@ import { redisGet, redisSet } from './redis.js'
 export const SEASON_STARTS = {
   41: '2026-03-12T00:00:00Z',
   42: '2026-06-18T00:00:00Z',
-  43: '2026-09-11T00:00:00Z',
+  43: '2026-09-10T08:30:00Z',
 }
 
 const KEY_ID    = 'pkgg:season:id'
