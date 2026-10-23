@@ -5,8 +5,10 @@ node_modules/
 .next/
 
 # local env
+.env
 .env.local
 .env.*
+!.env.example
 
 # macOS용
 .DS_Store
