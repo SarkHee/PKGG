@@ -387,20 +387,20 @@ const PlayerHeader = ({
       </div>
     )}
 
-    <div className="mb-8 rounded-2xl overflow-hidden shadow-xl">
+    <div className="crate-tile crate-tile-hi overflow-hidden mb-4">
       {/* 상단 헤더 영역 - 다크 블루 배경 */}
-      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 px-4 py-4 sm:px-8 sm:py-6">
+      <div className="bg-[#e9ecff] dark:bg-[#0f1330] border-b-2 border-[#1414e6] px-4 py-4 sm:px-8 sm:py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           {/* 플레이어 기본 정보 */}
           <div className="flex items-start gap-3 sm:gap-5 min-w-0 flex-1">
             {/* 아바타 */}
-            <div className="hidden sm:flex w-16 h-16 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl items-center justify-center text-2xl font-black text-white shadow-lg flex-shrink-0">
+            <div className="hidden sm:flex w-16 h-16 bg-[#1414e6] rounded items-center justify-center text-2xl font-black text-white flex-shrink-0">
               {(profile?.nickname || 'P').charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 w-full sm:w-auto sm:flex-1 flex flex-col gap-1.5">
               {/* 1행: 닉네임 */}
               <div className="flex items-center gap-2 min-w-0">
-                <h1 className="text-lg sm:text-3xl font-black text-white tracking-tight truncate leading-tight">
+                <h1 className="text-lg sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight truncate leading-tight">
                   {profile?.nickname || '-'}
                 </h1>
                 {/* 업데이트 시간 (데스크탑) */}
@@ -409,7 +409,7 @@ const PlayerHeader = ({
                   const ago = timeAgo(profile.lastCachedAt, t)
                   return (
                     <span suppressHydrationWarning className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border flex-shrink-0 ${
-                      isLive ? 'bg-emerald-900/50 border-emerald-600/50 text-emerald-300' : 'bg-gray-700/70 border-gray-600/50 text-gray-400'
+                      isLive ? 'bg-emerald-100 border-emerald-300 text-emerald-800 dark:bg-emerald-900/50 dark:border-emerald-600/50 dark:text-emerald-300' : 'bg-gray-200 border-gray-300 text-gray-600 dark:bg-gray-700/70 dark:border-gray-600/50 dark:text-gray-400'
                     }`} title={profile.lastCachedAt ? new Date(profile.lastCachedAt).toLocaleString('ko-KR') : ''}>
                       {isLive ? '✓' : '🕐'} {ago} {t('ph.update_label')}
                     </span>
@@ -424,7 +424,7 @@ const PlayerHeader = ({
                   const isLive = dataSource === 'pubg_api_refreshed' || dataSource === 'pubg_api'
                   return (
                     <span suppressHydrationWarning className={`sm:hidden inline-flex items-center gap-0.5 text-[10px] font-medium ${
-                      isLive ? 'text-emerald-400' : 'text-gray-500'
+                      isLive ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-500'
                     }`}>
                       {isLive ? '✓' : '🕐'} {timeAgo(profile.lastCachedAt, t)} {t('ph.update_label')}
                     </span>
@@ -433,11 +433,11 @@ const PlayerHeader = ({
                 {/* 플랫폼 */}
                 {(() => {
                   const PLATFORM = {
-                    steam:   { label: 'Steam',       icon: '🎮', cls: 'bg-[#1b2838]/80 border-[#2a475e] text-[#c7d5e0]' },
-                    kakao:   { label: 'Kakao',        icon: '🟡', cls: 'bg-yellow-900/40 border-yellow-600/50 text-yellow-300' },
-                    psn:     { label: 'PSN',          icon: '🎯', cls: 'bg-blue-900/60 border-blue-500/50 text-blue-300' },
-                    xbox:    { label: 'Xbox',         icon: '🟢', cls: 'bg-green-900/40 border-green-600/50 text-green-300' },
-                    console: { label: 'Console',      icon: '🎯', cls: 'bg-gray-700/60 border-gray-500/50 text-gray-300' },
+                    steam:   { label: 'Steam',       icon: '🎮', cls: 'bg-slate-200 border-slate-300 text-slate-700 dark:bg-[#1b2838]/80 dark:border-[#2a475e] dark:text-[#c7d5e0]' },
+                    kakao:   { label: 'Kakao',        icon: '🟡', cls: 'bg-yellow-100 border-yellow-400 text-yellow-800 dark:bg-yellow-900/40 dark:border-yellow-600/50 dark:text-yellow-300' },
+                    psn:     { label: 'PSN',          icon: '🎯', cls: 'bg-blue-100 border-blue-300 text-blue-800 dark:bg-blue-900/60 dark:border-blue-500/50 dark:text-blue-300' },
+                    xbox:    { label: 'Xbox',         icon: '🟢', cls: 'bg-green-100 border-green-300 text-green-800 dark:bg-green-900/40 dark:border-green-600/50 dark:text-green-300' },
+                    console: { label: 'Console',      icon: '🎯', cls: 'bg-gray-200 border-gray-300 text-gray-700 dark:bg-gray-700/60 dark:border-gray-500/50 dark:text-gray-300' },
                   };
                   const p = PLATFORM[shard] || PLATFORM.steam;
                   return (
@@ -448,7 +448,7 @@ const PlayerHeader = ({
                 })()}
                 {/* 클랜 */}
                 {clanInfo && (
-                  <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-700/50 text-blue-200 border border-blue-600/40 rounded-lg text-[10px] font-semibold max-w-[120px] truncate">
+                  <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-700/50 dark:text-blue-200 dark:border-blue-600/40 rounded-lg text-[10px] font-semibold max-w-[120px] truncate">
                     [{clanInfo.tag || 'CLAN'}] {clanInfo.name || '클랜'}
                     {clanInfo.level ? ` Lv.${clanInfo.level}` : ''}
                   </span>
@@ -460,10 +460,10 @@ const PlayerHeader = ({
                 {/* 플레이스타일 */}
                 <Tooltip content={`${psResult.desc}\n\n💡 ${psResult.tip}`}>
                   <span className="flex items-center gap-1 cursor-help">
-                    <span className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold border ${majorInfo.bg} ${majorInfo.border} ${majorInfo.color}`}>
+                    <span className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold border brightness-[.55] saturate-150 dark:brightness-100 dark:saturate-100 ${majorInfo.bg} ${majorInfo.border} ${majorInfo.color}`}>
                       {majorInfo.icon} {majorInfo.label}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold text-white ${psResult.bg}`}>
+                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold text-gray-900 dark:text-white ${psResult.bg}`}>
                       {psResult.label}
                     </span>
                   </span>
@@ -501,8 +501,8 @@ const PlayerHeader = ({
                     onClick={toggleFavorite}
                     className={`px-2.5 py-1.5 rounded-xl border text-sm font-bold transition-all select-none ${
                       isFav
-                        ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300 hover:bg-yellow-400/30'
-                        : 'bg-white/5 border-white/20 text-gray-400 hover:bg-white/10 hover:text-yellow-300'
+                        ? 'bg-yellow-400/25 border-yellow-500/60 text-yellow-700 hover:bg-yellow-400/35 dark:bg-yellow-400/20 dark:border-yellow-400/50 dark:text-yellow-300 dark:hover:bg-yellow-400/30'
+                        : 'bg-gray-900/5 border-gray-300 text-gray-600 hover:bg-gray-900/10 hover:text-yellow-700 dark:bg-white/5 dark:border-white/20 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-yellow-300'
                     }`}
                   >{isFav ? '★' : '☆'}</button>
                 </Tooltip>
@@ -511,7 +511,7 @@ const PlayerHeader = ({
                 <Tooltip content={t('ph.compare_tooltip')}>
                   <button
                     onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
-                    className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 hover:text-cyan-300 text-sm font-bold transition-all select-none"
+                    className="px-2.5 py-1.5 rounded-xl border border-gray-300 bg-gray-900/5 text-gray-700 hover:bg-cyan-500/15 hover:border-cyan-500/50 hover:text-cyan-700 dark:border-white/20 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-cyan-500/20 dark:hover:text-cyan-300 text-sm font-bold transition-all select-none"
                   >⚔️ {t('ph.compare')}</button>
                 </Tooltip>
               )}
@@ -519,7 +519,7 @@ const PlayerHeader = ({
                 <Tooltip content="시즌 리포트 카드 보기">
                   <button
                     onClick={openReport}
-                    className="px-2.5 py-1.5 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-300 hover:bg-purple-500/25 hover:border-purple-400/60 hover:text-purple-200 text-sm font-bold transition-all select-none"
+                    className="px-2.5 py-1.5 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-700 hover:bg-purple-500/20 hover:border-purple-500/60 dark:text-purple-300 dark:hover:bg-purple-500/25 dark:hover:border-purple-400/60 dark:hover:text-purple-200 text-sm font-bold transition-all select-none"
                   >📊 리포트</button>
                 </Tooltip>
               )}
@@ -543,7 +543,7 @@ const PlayerHeader = ({
             {/* 데스크탑 2줄: 시즌 선택 · 최신화 */}
             <div className="hidden sm:flex items-center gap-1.5">
               <select
-                className="px-2.5 py-1.5 bg-blue-800/60 border border-blue-600/50 rounded-lg text-xs font-medium text-blue-100 hover:bg-blue-700/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-2.5 py-1.5 bg-white border border-blue-300 rounded-lg text-xs font-medium text-blue-900 hover:bg-blue-50 dark:bg-blue-800/60 dark:border-blue-600/50 dark:text-blue-100 dark:hover:bg-blue-700/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 value={selectedSeasonId || 'current'}
                 onChange={e => onSeasonChange?.(e.target.value)}
                 disabled={seasonChanging}
@@ -566,7 +566,7 @@ const PlayerHeader = ({
                 disabled={refreshing || cooldown > 0}
                 className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center gap-1.5 ${
                   refreshing || cooldown > 0
-                    ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
+                    ? 'bg-blue-100 text-blue-500 cursor-not-allowed border border-blue-200 dark:bg-blue-800/40 dark:text-blue-400 dark:border-blue-700/40'
                     : 'bg-blue-500 hover:bg-blue-400 text-white shadow-md hover:shadow-lg'
                 }`}
               >
@@ -586,24 +586,24 @@ const PlayerHeader = ({
               onClick={toggleFavorite}
               className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl border text-[10px] font-bold transition-all select-none ${
                 isFav
-                  ? 'bg-yellow-400/20 border-yellow-400/50 text-yellow-300'
-                  : 'bg-white/5 border-white/20 text-gray-400'
+                  ? 'bg-yellow-400/25 border-yellow-500/60 text-yellow-700 dark:bg-yellow-400/20 dark:border-yellow-400/50 dark:text-yellow-300'
+                  : 'bg-gray-900/5 border-gray-300 text-gray-600 dark:bg-white/5 dark:border-white/20 dark:text-gray-400'
               }`}
             ><span className="text-sm leading-none">{isFav ? '★' : '☆'}</span><span>즐겨찾기</span></button>
             <button
               onClick={() => router.push(`/compare?a=${encodeURIComponent(nickname)}&shard=${shard}`)}
-              className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-white/20 bg-white/5 text-gray-300 text-[10px] font-bold transition-all select-none"
+              className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-gray-300 bg-gray-900/5 text-gray-700 dark:border-white/20 dark:bg-white/5 dark:text-gray-300 text-[10px] font-bold transition-all select-none"
             ><span className="text-sm leading-none">⚔️</span><span>비교</span></button>
             <button
               onClick={openReport}
-              className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-300 text-[10px] font-bold transition-all select-none"
+              className="h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-300 text-[10px] font-bold transition-all select-none"
             ><span className="text-sm leading-none">📊</span><span>리포트</span></button>
             <button
               onClick={onRefresh}
               disabled={refreshing || cooldown > 0}
               className={`h-12 flex flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-bold transition-all duration-200 ${
                 refreshing || cooldown > 0
-                  ? 'bg-blue-800/40 text-blue-400 cursor-not-allowed border border-blue-700/40'
+                  ? 'bg-blue-100 text-blue-500 cursor-not-allowed border border-blue-200 dark:bg-blue-800/40 dark:text-blue-400 dark:border-blue-700/40'
                   : 'bg-blue-500 text-white border border-blue-400/50'
               }`}
             >

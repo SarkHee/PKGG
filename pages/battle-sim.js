@@ -233,24 +233,24 @@ export default function BattleSim() {
     <>
       <Head><title>능선 전략 시뮬레이터 | PKGG</title></Head>
       <Header />
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-8 px-4">
+      <div className="crate-dark min-h-screen flex flex-col items-center justify-center gap-8 px-4">
         <div className="text-center">
           <div className="text-5xl mb-4">⚔️</div>
           <h1 className="text-3xl font-bold mb-2">능선 전략 시뮬레이터</h1>
           <p className="text-gray-400">5개 포지션 중 4명 배치 → 자동 전투 시뮬레이션</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full text-sm">
-          <div className="bg-gray-900 border border-emerald-700/40 rounded-xl p-4 text-center">
+          <div className="crate-tile crate-tile-hi p-4 text-center">
             <div className="text-2xl mb-1">▲</div>
             <div className="text-emerald-400 font-bold">고지 포지션</div>
             <div className="text-gray-400 text-xs mt-1">공격력 +20~40%<br />시야 넓음</div>
           </div>
-          <div className="bg-gray-900 border border-amber-700/40 rounded-xl p-4 text-center">
+          <div className="crate-tile crate-tile-hi p-4 text-center">
             <div className="text-2xl mb-1">🪨</div>
             <div className="text-amber-400 font-bold">엄폐 포지션</div>
             <div className="text-gray-400 text-xs mt-1">피해 -35%<br />생존력 최대</div>
           </div>
-          <div className="bg-gray-900 border border-gray-600/40 rounded-xl p-4 text-center">
+          <div className="crate-tile crate-tile-hi p-4 text-center">
             <div className="text-2xl mb-1">⚖️</div>
             <div className="text-gray-300 font-bold">균형 포지션</div>
             <div className="text-gray-400 text-xs mt-1">공격+방어 모두<br />중간 성능</div>
@@ -341,7 +341,7 @@ export default function BattleSim() {
             </div>
 
             {/* 호버 툴팁 */}
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 min-h-16 text-sm">
+            <div className="crate-tile crate-tile-hi p-4 min-h-16 text-sm">
               {hovPos ? (
                 <div className="flex gap-4 flex-wrap">
                   <div>
@@ -419,7 +419,7 @@ export default function BattleSim() {
             </div>
 
             {/* 적 HP */}
-            <div className="bg-gray-900 border border-red-900/50 rounded-xl p-4">
+            <div className="crate-tile crate-tile-hi p-4">
               <div className="text-red-400 font-bold text-sm mb-3">공격팀 (AI)</div>
               <div className="grid grid-cols-4 gap-3">
                 {atkSnap.map(a => (
@@ -435,7 +435,7 @@ export default function BattleSim() {
             </div>
 
             {/* 방어 HP */}
-            <div className="bg-gray-900 border border-blue-900/50 rounded-xl p-4">
+            <div className="crate-tile crate-tile-hi p-4">
               <div className="text-blue-400 font-bold text-sm mb-3">방어팀 (아군)</div>
               <div className="grid grid-cols-4 gap-3">
                 {defSnap.map(d => (
@@ -451,7 +451,7 @@ export default function BattleSim() {
             </div>
 
             {/* 이벤트 로그 */}
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 min-h-32 max-h-56 overflow-y-auto text-xs space-y-1">
+            <div className="crate-tile crate-tile-hi p-4 min-h-32 max-h-56 overflow-y-auto text-xs space-y-1">
               {shownRounds.flatMap((r, ri) => [
                 <div key={`r${ri}`} className="text-gray-600 font-mono text-[10px] pt-1">— 라운드 {r.round} —</div>,
                 ...r.events.map((ev, ei) => (
@@ -491,18 +491,18 @@ export default function BattleSim() {
           </div>
 
           <div className="grid grid-cols-2 gap-5 max-w-md w-full">
-            <div className="bg-gray-900 border border-blue-500/30 rounded-xl p-5 text-center">
+            <div className="crate-tile crate-tile-hi p-5 text-center">
               <div className="text-3xl font-bold text-blue-400">{defSurvived} / 4</div>
               <div className="text-gray-400 text-sm mt-1">아군 생존</div>
             </div>
-            <div className="bg-gray-900 border border-red-500/30 rounded-xl p-5 text-center">
+            <div className="crate-tile crate-tile-hi p-5 text-center">
               <div className="text-3xl font-bold text-red-400">{atkSurvived} / 4</div>
               <div className="text-gray-400 text-sm mt-1">적군 생존</div>
             </div>
           </div>
 
           {/* 내 포지션 요약 */}
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 w-full max-w-md">
+          <div className="crate-tile crate-tile-hi p-5 w-full max-w-md">
             <div className="text-gray-400 font-bold text-sm mb-3">내 포지션 구성</div>
             <div className="grid grid-cols-2 gap-2">
               {selPos.map(pos => (
@@ -517,7 +517,7 @@ export default function BattleSim() {
           </div>
 
           {/* 전략 분석 */}
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 w-full max-w-md text-sm">
+          <div className="crate-tile crate-tile-hi p-5 w-full max-w-md text-sm">
             <div className="font-bold text-gray-300 mb-3">전략 분석</div>
             <ul className="space-y-2">
               {tips.map((tip, i) => (

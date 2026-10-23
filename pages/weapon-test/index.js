@@ -33,7 +33,7 @@ function IntroScreen({ onStart }) {
   const [platform, setPlatform] = useState('steam');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 flex items-center justify-center px-4 py-12">
+    <div className="crate-dark min-h-screen flex items-center justify-center px-4 py-12">
       <div className="max-w-lg w-full">
         {/* 타이틀 */}
         <div className="text-center mb-10">
@@ -49,7 +49,7 @@ function IntroScreen({ onStart }) {
         </div>
 
         {/* 설명 카드 */}
-        <div className="bg-gray-900/80 border border-gray-700/50 rounded-2xl p-6 mb-6 backdrop-blur-sm">
+        <div className="crate-tile crate-tile-hi p-6 mb-6">
           <p className="text-gray-300 text-sm leading-relaxed mb-4">
             {t('wt.desc_pre')}<span className="text-blue-400 font-semibold">{t('wt.types')}</span>{t('wt.desc_post')}
           </p>
@@ -68,7 +68,7 @@ function IntroScreen({ onStart }) {
         </div>
 
         {/* 닉네임 입력 (선택) */}
-        <div className="bg-gray-900/60 border border-gray-700/40 rounded-2xl p-5 mb-6">
+        <div className="crate-tile crate-tile-hi p-5 mb-6">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-sm font-semibold text-gray-300">{t('wt.nickname_label')}</span>
             <span className="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded-full">{t('wt.nickname_optional')}</span>
@@ -375,13 +375,13 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
 
         {/* 레이더 차트 + 상위 특성 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📊 {t('wt.tendency_vector')}</h3>
             <div className="max-w-xs mx-auto">
               <VectorRadarChart vector={vector} color={type.color} />
             </div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">⚡ {t('wt.top_traits')}</h3>
             <div className="space-y-3">
               {topTraits.map((t, i) => (
@@ -419,7 +419,7 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
 
         {/* 약점 & 주의사항 */}
         {type.weaknesses && (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+          <div className="crate-tile crate-tile-hi p-5 mb-5">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">⚠️ 약점 & 주의사항</h3>
             <div className="flex flex-wrap gap-2">
               {type.weaknesses.map((w) => (
@@ -433,11 +433,11 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
 
         {/* 상황별 플레이 가이드 */}
         {type.situationalGuide && (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+          <div className="crate-tile crate-tile-hi p-5 mb-5">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📋 상황별 플레이 가이드</h3>
             <div className="space-y-3">
               {type.situationalGuide.map((guide, i) => (
-                <div key={i} className="flex gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/50">
+                <div key={i} className="crate-tile crate-tile-hi flex gap-3 p-3">
                   <span className="text-xl flex-shrink-0 mt-0.5">{guide.icon}</span>
                   <div>
                     <div className="text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">{guide.phase}</div>
@@ -451,14 +451,14 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
 
         {/* 팀 시너지 파트너 */}
         {type.teamSynergy && (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+          <div className="crate-tile crate-tile-hi p-5 mb-5">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🤝 팀 시너지 파트너</h3>
             <div className="flex gap-3">
               {type.teamSynergy.map((id) => {
                 const partner = PERSONALITY_TYPES.find((tp) => tp.id === id);
                 if (!partner) return null;
                 return (
-                  <div key={id} className="flex-1 bg-gray-800/60 rounded-xl p-4 text-center border border-gray-700/50">
+                  <div key={id} className="crate-tile crate-tile-hi flex-1 p-4 text-center">
                     <div className="text-3xl mb-2">{partner.emoji}</div>
                     <div className="text-sm font-bold text-gray-200">{partner.name}</div>
                     <div className="text-[10px] text-gray-500 mt-1">{partner.primaryWeapon} TYPE</div>
@@ -472,11 +472,11 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
 
         {/* 유사 타입 (2위·3위) */}
         {topTypes.length > 1 && (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+          <div className="crate-tile crate-tile-hi p-5 mb-5">
             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🔍 유사 성향 타입</h3>
             <div className="space-y-2">
               {topTypes.slice(1).map((item, i) => (
-                <div key={item.type.id} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/40">
+                <div key={item.type.id} className="crate-tile crate-tile-hi flex items-center gap-3 p-3">
                   <span className="text-2xl">{item.type.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold text-gray-300">{item.type.name}</div>
@@ -513,7 +513,7 @@ function ResultScreen({ result, nickname, sessionId, onRestart }) {
           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 text-center">{t('wt.other_types')}</h3>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {PERSONALITY_TYPES.filter((t) => t.id !== type.id).map((t) => (
-              <div key={t.id} className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center opacity-60 hover:opacity-100 transition-opacity cursor-default">
+              <div key={t.id} className="crate-tile crate-tile-hi p-3 text-center opacity-60 hover:opacity-100 transition-opacity cursor-default">
                 <div className="text-2xl mb-1">{t.emoji}</div>
                 <div className="text-xs text-gray-400 font-semibold leading-tight">{t.name}</div>
               </div>

@@ -44,7 +44,7 @@ export default function AboutPage() {
       </Head>
       <Header />
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen">
         {/* 히어로 */}
         <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
           <div className="max-w-3xl mx-auto px-4 py-16 text-center">
@@ -58,7 +58,7 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
 
           {/* 소개 */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">PKGG란?</h2>
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
               PKGG는 PUBG(배틀그라운드) 플레이어들을 위해 만들어진 무료 분석 플랫폼입니다.
@@ -75,7 +75,7 @@ export default function AboutPage() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">주요 기능</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {FEATURES.map((f) => (
-                <div key={f.title} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div key={f.title} className="crate-tile crate-tile-hi p-5">
                   <div className="text-2xl mb-2">{f.icon}</div>
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{f.title}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{f.desc}</p>
@@ -85,7 +85,7 @@ export default function AboutPage() {
           </div>
 
           {/* 데이터 출처 */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">데이터 출처</h2>
             <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
               <li className="flex gap-2"><span className="text-blue-500 flex-shrink-0">•</span>전적 데이터: PUBG 공식 API (api.pubg.com)</li>
@@ -105,7 +105,7 @@ export default function AboutPage() {
           </div>
 
           {/* 연락처 */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="crate-tile crate-tile-hi p-6 flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">문의 & 피드백</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">버그 제보, 기능 제안, 기타 문의는 언제든지 연락해주세요.</p>

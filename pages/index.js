@@ -2,10 +2,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Image from 'next/image';
 import Link from 'next/link';
 import Header from '../components/layout/Header';
-import AdUnit from '../components/AdUnit';
+import AdUnit, { AdBand } from '../components/AdUnit';
 import AdBanner from '../components/AdBanner';
 import { useT } from '../utils/i18n';
 import { MAJOR, TYPES } from '../utils/playstyleClassifier';
@@ -20,38 +19,6 @@ const WEAPON_META_MEM_TTL = 60 * 60 * 1000;
 const WEAPON_META_REDIS_KEY = 'home:weapon_meta';
 const WEAPON_META_REDIS_TTL = 3600;
 
-// ── 서버 상태 뱃지 ────────────────────────────────────────────────────────
-const SERVER_STATUS_META = {
-  online:      { dot: 'bg-green-400 animate-pulse', text: 'text-green-400', label: '서버 정상' },
-  maintenance: { dot: 'bg-red-400',                 text: 'text-red-400',   label: '서버 점검 중' },
-  offline:     { dot: 'bg-red-500',                 text: 'text-red-400',   label: '서버 접속 불가' },
-  degraded:    { dot: 'bg-yellow-400 animate-pulse', text: 'text-yellow-400', label: '서버 불안정' },
-}
-
-function ServerStatusBadge() {
-  const [status, setStatus] = useState(null)
-
-  useEffect(() => {
-    fetch('/api/pubg/server-status')
-      .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d) setStatus(d.status) })
-      .catch(() => {})
-  }, [])
-
-  if (!status) return null
-  const m = SERVER_STATUS_META[status]
-  if (!m) return null
-
-  return (
-    <Link href="/server-status">
-      <span className="inline-flex items-center gap-1.5 mb-4 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer text-xs font-semibold">
-        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${m.dot}`} />
-        <span className={m.text}>{m.label}</span>
-      </span>
-    </Link>
-  )
-}
-// ────────────────────────────────────────────────────────────────────────────
 
 const FAV_KEY      = 'pkgg_favorites';
 const SEARCH_KEY   = 'pkgg_recent_searches';
@@ -295,13 +262,11 @@ function PlayerResultCard({ result, onClose }) {
 const MAX_RECENT = 8;
 
 
-function FaqItem({ q, a }) {
+function FaqItem({ q, a, i }) {
   return (
-    <div className="bg-white/5 border border-blue-500/10 rounded-xl overflow-hidden">
-      <div className="px-5 py-4">
-        <h3 className="text-sm font-semibold text-gray-200 mb-2">{q}</h3>
-        <p className="text-sm text-gray-400 leading-relaxed">{a}</p>
-      </div>
+    <div className="crate-tile h-full p-5 sm:p-6" style={{ '--i': i + 20 }}>
+      <h3 className="text-base font-bold mb-2" style={{ color: 'var(--c-bone)' }}>{q}</h3>
+      <p className="text-[15px] leading-7" style={{ color: 'var(--c-mute)' }}>{a}</p>
     </div>
   );
 }
@@ -332,6 +297,61 @@ const SHARD_COLOR = {
   xbox: 'bg-green-800/40 text-green-300 border border-green-500/40',
   console: 'bg-blue-800/40 text-blue-300 border border-blue-500/40',
 }
+
+const SHARD_DOT = { steam: '#66c0f4', kakao: '#fee500', psn: '#4f8ff7', xbox: '#52b043', console: '#4f8ff7' }
+const SHARD_TEXT = { steam: 'STEAM', kakao: 'KAKAO', psn: 'PS', xbox: 'XBOX', console: 'CONSOLE' }
+
+// 티어 표 (utils/mmrCalculator.js getMMRTier 기준 하한값)
+const TIER_ROWS = [
+  { mmr: 2300, label: 'Legend' },
+  { mmr: 2050, label: 'Master' },
+  { mmr: 1825, label: 'Diamond' },
+  { mmr: 1600, label: 'Platinum' },
+  { mmr: 1375, label: 'Gold' },
+  { mmr: 1150, label: 'Silver' },
+  { mmr: 1000, label: 'Bronze' },
+]
+
+function ShardTag({ shard }) {
+  return (
+    <span className="crate-stencil inline-flex items-center gap-1.5 text-xs flex-shrink-0 px-2 py-0.5 rounded" style={{ border: '1px solid var(--c-line)', color: 'var(--c-bone)' }}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: SHARD_DOT[shard] || '#9aa68b' }} />
+      {SHARD_TEXT[shard] || String(shard).toUpperCase()}
+    </span>
+  );
+}
+
+// 섹션 구분 머리글 — 벤토 타일 묶음 위에 둔다
+function SectionHead({ title, desc }) {
+  return (
+    <div className="lg:col-span-12 mt-6 sm:mt-8 pb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1" style={{ borderBottom: '1px solid var(--c-line)' }}>
+      <h2 className="text-xl sm:text-2xl font-extrabold" style={{ color: 'var(--c-bone)' }}>{title}</h2>
+      {desc && <p className="text-sm sm:text-[15px]" style={{ color: 'var(--c-mute)' }}>{desc}</p>}
+    </div>
+  );
+}
+
+// 선 하나로 그린 아이콘 (이모지 대체)
+function Icon({ name, className = 'w-6 h-6' }) {
+  const paths = {
+    stats: 'M4 20V10m6 10V4m6 16v-7m4 7H2',
+    clan: 'M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2m18 0v-2a4 4 0 00-3-3.87M15 4.13a4 4 0 010 7.75M10 11a4 4 0 100-8 4 4 0 000 8z',
+    score: 'M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9L12 3z',
+    match: 'M12 22a10 10 0 100-20 10 10 0 000 20zm0-6a4 4 0 100-8 4 4 0 000 8zm0-12v3m0 10v3M2 12h3m14 0h3',
+    rank: 'M3 17l6-6 4 4 8-8m0 0h-5m5 0v5',
+    search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+    bolt: 'M13 2L4 14h7l-1 8 9-12h-7l1-8z',
+    bot: 'M12 8V4H8m4 4h4a4 4 0 014 4v5a3 3 0 01-3 3H7a3 3 0 01-3-3v-5a4 4 0 014-4h4zM9 13h.01M15 13h.01M2 14v3m20-3v3',
+    fire: 'M12 22c4 0 7-2.7 7-7 0-3-2-5-3.5-6.5C14.5 7.5 14 5.5 14 3c-3 2-6 5.5-6 9-1-.5-2-1.5-2-3-1.5 1.5-2 3.5-2 5 0 4.3 3 8 8 8z',
+  };
+  return (
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+      <path d={paths[name]} />
+    </svg>
+  );
+}
+
+const rankBadge = (i) => i === 0 ? 'bg-yellow-500 text-black' : i === 1 ? 'bg-gray-400 text-black' : i === 2 ? 'bg-amber-700 text-white' : 'bg-gray-500/25 text-[color:var(--c-mute)]'
 
 const WEAPON_DESC = {
   'M416':       '부착물 5종을 모두 지원하는 5.56mm 올라운더 AR. 안정적인 반동과 범용성으로 가장 많이 선택되는 주력 소총.',
@@ -628,6 +648,9 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
         <meta name="twitter:image:alt" content="PKGG - PUBG 전적조회 & 클랜 분석 플랫폼" />
 
         <link rel="canonical" href="https://pkgg.vercel.app/" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
+        <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Big+Shoulders+Stencil+Display:wght@600;800&display=swap" rel="stylesheet" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -647,341 +670,231 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
         />
       </Head>
 
-      <div className="min-h-screen text-white relative overflow-hidden" style={{ background: '#060614' }}>
-        {/* 오로라 그라디언트 배경 */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          {/* 파랑 오로라 */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              width: '70vw',
-              height: '70vw',
-              top: '-15%',
-              left: '-10%',
-              background: 'radial-gradient(circle, rgba(37,99,235,0.35) 0%, transparent 70%)',
-              filter: 'blur(60px)',
-              animation: 'aurora1 18s ease-in-out infinite alternate',
-            }}
-          />
-          {/* 보라 오로라 */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              width: '60vw',
-              height: '60vw',
-              top: '10%',
-              right: '-10%',
-              background: 'radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%)',
-              filter: 'blur(70px)',
-              animation: 'aurora2 22s ease-in-out infinite alternate',
-            }}
-          />
-          {/* 청록 오로라 */}
-          <div
-            className="absolute rounded-full"
-            style={{
-              width: '55vw',
-              height: '55vw',
-              bottom: '-10%',
-              left: '20%',
-              background: 'radial-gradient(circle, rgba(6,182,212,0.22) 0%, transparent 70%)',
-              filter: 'blur(65px)',
-              animation: 'aurora3 26s ease-in-out infinite alternate',
-            }}
-          />
-        </div>
-
+      <div className="min-h-screen relative">
         {/* 헤더 */}
         <Header />
 
-        {/* 메인 콘텐츠 */}
-        <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-3 pt-20 pb-10 sm:pt-24 sm:pb-16 sm:py-20">
-          <div className="text-center w-full max-w-4xl mx-auto mb-6 sm:mb-16">
+        <main className="relative z-10 max-w-6xl mx-auto px-3 sm:px-4 pt-6 sm:pt-10 pb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
 
-            {/* 배경 글로우 */}
-            <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none" style={{ top: '12%', zIndex: -1 }}>
-              <div className="w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)' }} />
-            </div>
+            {/* 상단 배너 광고 구역 */}
+            <AdBand slot="1234567890" show={mounted && !navigating} className="lg:col-span-12" />
 
-            {/* 배지 */}
-            <div className="mb-4 sm:mb-6">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full text-[10px] sm:text-xs font-bold tracking-widest text-blue-400 uppercase">
-                <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
-                PUBG Stats &amp; Analytics
-              </span>
-            </div>
-            {/* 로고 (관리자가 배너를 등록해두면 로고 대신 배너 노출) */}
-            <h1 className="mb-4 sm:mb-6">
-              <AdBanner position="main_header" className="max-w-[728px] mx-auto rounded-lg overflow-hidden">
-                <Image
-                  src="/logo.png"
-                  alt="PKGG"
-                  width={518}
-                  height={295}
-                  className="w-44 sm:w-80 md:w-[460px] h-auto mx-auto"
-                  style={{ filter: 'drop-shadow(0 0 36px rgba(59,130,246,0.55)) drop-shadow(0 6px 18px rgba(0,0,0,0.6))' }}
-                  priority
-                />
-              </AdBanner>
-            </h1>
+            {/* 검색 타일 */}
+            <section className="lg:col-span-12">
+              <div className="p-6 sm:p-12 max-w-3xl mx-auto text-center">
+                {/* 관리자가 등록한 메인 배너만 노출 (등록 전에는 아무것도 표시하지 않음) + SEO용 숨김 제목 */}
+                <h1 className="sr-only">PKGG - PUBG 전적 검색</h1>
+                <AdBanner position="main_header" className="max-w-[728px] mx-auto rounded-lg overflow-hidden mb-4" />
 
-            {/* 서브타이틀 */}
-            <p className="text-base sm:text-xl font-semibold text-white/75 mb-1 max-w-xl mx-auto leading-relaxed px-2">
-              {t('home.subtitle')}
-            </p>
-            <p className="text-xs text-yellow-400/70 mb-3 sm:mb-4">
-              다음 시즌부터 봇 킬 제외 순수 실력 데이터 제공
-            </p>
-
-            {/* 서버 상태 뱃지 */}
-            <ServerStatusBadge />
-
-{/* 검색 메시지 알림 */}
-            {searchMessage && (
-              <div className="mb-6 max-w-xl mx-auto px-4">
-                <div className="bg-orange-500/20 border border-orange-500/50 text-orange-300 px-4 py-3 rounded-xl">
-                  <div className="flex items-center gap-2 justify-center">
-                    <span>⚠️</span>
-                    <p className="text-sm font-medium">{searchMessage}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 검색 섹션 */}
-            <div className="w-full max-w-xl mx-auto px-0 sm:px-4 mb-4" ref={searchBoxRef}>
-              <div className="bg-white/5 backdrop-blur-md border border-blue-500/20 rounded-2xl p-3 sm:p-4 shadow-2xl shadow-blue-900/30">
-
-                {/* 닉네임 입력 */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="닉네임 입력 (최초 검색 유저는 대소문자 구분 필요)"
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setSearchCard(null); setPlatformResults(null); if (!e.target.value) setShowDropdown(true); }}
-                    onFocus={() => setShowDropdown(true)}
-                    onKeyDown={handleKeyPress}
-                    className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all"
-                    autoComplete="off"
-                  />
-                  <button
-                    onClick={() => handleSearch()}
-                    disabled={isSearching || !searchTerm.trim()}
-                    className="px-5 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/30 flex items-center gap-2 text-sm"
-                  >
-                    {isSearching
-                      ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
-                      : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    }
-                    {isSearching ? '검색 중...' : '검색'}
-                  </button>
-                </div>
-
-
-                {/* 최근 검색 드롭다운 */}
-                {showDropdown && recentSearches.length > 0 && (
-                  <div className="mt-2 border-t border-white/10 pt-2">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">🕐 최근 검색</span>
-                      <button onClick={clearAllRecent} className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors">전체 삭제</button>
-                    </div>
-                    <div className="space-y-0.5">
-                      {recentSearches
-                        .filter((s) => !searchTerm || s.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
-                        .map((s) => (
-                          <div
-                            key={`${s.shard}-${s.nickname}`}
-                            onClick={() => handleDirectNavigate(s.nickname, s.shard)}
-                            className="flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-white/10 cursor-pointer group transition-colors"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-gray-500 text-xs flex-shrink-0">🔍</span>
-                              <span className="text-sm text-gray-300 truncate">{s.nickname}</span>
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${SHARD_COLOR[s.shard] || ''}`}>{SHARD_LABEL[s.shard] || s.shard}</span>
-                            </div>
-                            <button onClick={(e) => removeRecentSearch(s.nickname, s.shard, e)} className="text-gray-700 hover:text-gray-400 text-xs opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 ml-2">×</button>
-                          </div>
-                        ))}
-                    </div>
+                {/* 검색 메시지 알림 */}
+                {searchMessage && (
+                  <div role="alert" className="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style={{ border: '1px solid var(--c-flare)', color: 'var(--c-flare)', background: 'var(--c-accent-soft)' }}>
+                    {searchMessage}
                   </div>
                 )}
-              </div>
-              {/* 플랫폼 선택 UI — 동일 닉네임이 여러 플랫폼에 존재할 때 */}
-              {platformResults && (
-                <div className="mt-3 border-t border-white/10 pt-3">
-                  <p className="text-xs text-yellow-400 font-semibold text-center mb-2">
-                    ⚠️ 동일한 닉네임이 여러 플랫폼에 있어요. 플랫폼을 선택해주세요.
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {platformResults.map((r) => {
-                      const tier = r.stats?.mmr ? getMMRTier(r.stats.mmr) : null;
-                      return (
-                        <Link
-                          key={r.shard}
-                          href={`/player/${r.shard}/${encodeURIComponent(r.nickname)}`}
-                          onClick={() => {
-                            setPlatformResults(null);
-                            saveRecentSearch(r.nickname, r.shard);
-                            setRecentSearches(loadRecentSearches());
-                            setNavigating(true);
-                          }}
-                          className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/40 transition-all text-left group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${SHARD_COLOR[r.shard] || 'bg-gray-700 text-gray-300 border border-gray-600'}`}>
-                              {SHARD_LABEL[r.shard] || r.shard}
-                            </span>
-                            <span className="text-sm font-semibold text-white">{r.nickname}</span>
-                            {tier && r.stats?.mmr && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${tier.bgColor} ${tier.borderColor} ${tier.textColor}`}>
-                                {r.stats.mmr.toLocaleString()} PK
-                              </span>
-                            )}
-                          </div>
-                          {r.stats && (
-                            <div className="flex items-center gap-3 text-[11px] text-gray-400">
-                              <span>딜 <span className="text-blue-300 font-bold">{Math.round(r.stats.avgDamage || 0)}</span></span>
-                              <span>킬 <span className="text-cyan-300 font-bold">{(r.stats.avgKills || 0).toFixed(1)}</span></span>
-                            </div>
-                          )}
-                          <span className="text-gray-600 group-hover:text-blue-400 text-sm transition-colors">→</span>
-                        </Link>
-                      );
-                    })}
+
+                <div ref={searchBoxRef}>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      aria-label="닉네임 검색"
+                      placeholder="닉네임 입력 (최초 검색 유저는 대소문자 구분 필요)"
+                      value={searchTerm}
+                      onChange={(e) => { setSearchTerm(e.target.value); setSearchCard(null); setPlatformResults(null); if (!e.target.value) setShowDropdown(true); }}
+                      onFocus={() => setShowDropdown(true)}
+                      onKeyDown={handleKeyPress}
+                      className="crate-input flex-1 min-w-0 px-4 py-3.5 text-base"
+                      autoComplete="off"
+                    />
+                    <button
+                      onClick={() => handleSearch()}
+                      disabled={isSearching || !searchTerm.trim()}
+                      className="crate-btn px-5 sm:px-7 py-3.5 disabled:opacity-75 disabled:saturate-75 flex items-center gap-2 text-sm"
+                    >
+                      {isSearching
+                        ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        : <Icon name="search" className="w-4 h-4" />
+                      }
+                      {isSearching ? '검색 중...' : '검색'}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setPlatformResults(null)}
-                    className="mt-2 w-full text-xs text-gray-600 hover:text-gray-400 py-1 transition-colors"
-                  >
-                    닫기
-                  </button>
-                </div>
-              )}
 
-              {/* 뱃지 */}
-              <div className="flex flex-wrap justify-center gap-2 mt-3">
-                {[t('home.badge1'), t('home.badge2'), t('home.badge3')].map((badge, bi) => (
-                  <span key={bi} className="text-[11px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1 rounded-full">{badge}</span>
-                ))}
-              </div>
-            </div>
-
-            {/* 즐겨찾기 섹션 */}
-            {favorites.length > 0 && (
-              <div className="max-w-xl mx-auto px-4 mb-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs text-gray-500 font-semibold tracking-wide">★ 즐겨찾기</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {favorites.map((fav) => (
-                    <div key={`${fav.shard}-${fav.nickname}`} className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-3 py-1 group">
+                  {/* 플랫폼 선택 UI — 동일 닉네임이 여러 플랫폼에 존재할 때 */}
+                  {platformResults && (
+                    <div className="mt-4 pt-4" style={{ borderTop: '1px dashed var(--c-line)' }}>
+                      <p className="text-sm font-semibold text-center mb-3" style={{ color: 'var(--c-khaki)' }}>
+                        동일한 닉네임이 여러 플랫폼에 있어요. 플랫폼을 선택해주세요.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {platformResults.map((r) => {
+                          const tier = r.stats?.mmr ? getMMRTier(r.stats.mmr) : null;
+                          return (
+                            <Link
+                              key={r.shard}
+                              href={`/player/${r.shard}/${encodeURIComponent(r.nickname)}`}
+                              onClick={() => {
+                                setPlatformResults(null);
+                                saveRecentSearch(r.nickname, r.shard);
+                                setRecentSearches(loadRecentSearches());
+                                setNavigating(true);
+                              }}
+                              className="crate-tile crate-tile-hi text-left p-4 flex flex-col gap-3"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <ShardTag shard={r.shard} />
+                                {tier && r.stats?.mmr && (
+                                  <span className="crate-stencil text-sm px-2 py-0.5 rounded" style={{ border: `2px solid ${tier.color}`, color: 'var(--c-bone)' }}>
+                                    {tier.label.toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-lg font-bold truncate" style={{ color: 'var(--c-bone)' }}>{r.nickname}</span>
+                              {r.stats ? (
+                                <div className="flex items-end gap-5">
+                                  <div>
+                                    <div className="crate-stencil text-2xl leading-none">{Math.round(r.stats.avgDamage || 0)}</div>
+                                    <div className="text-xs mt-1" style={{ color: 'var(--c-mute)' }}>평균 딜</div>
+                                  </div>
+                                  <div>
+                                    <div className="crate-stencil text-2xl leading-none">{(r.stats.avgKills || 0).toFixed(1)}</div>
+                                    <div className="text-xs mt-1" style={{ color: 'var(--c-mute)' }}>평균 킬</div>
+                                  </div>
+                                  {r.stats.mmr > 0 && (
+                                    <div>
+                                      <div className="crate-stencil text-2xl leading-none" style={{ color: 'var(--c-flare)' }}>{r.stats.mmr.toLocaleString()}</div>
+                                      <div className="text-xs mt-1" style={{ color: 'var(--c-mute)' }}>PK</div>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs" style={{ color: 'var(--c-mute)' }}>저장된 데이터 없음 · 눌러서 조회</span>
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </div>
                       <button
-                        onClick={() => handleDirectNavigate(fav.nickname, fav.shard)}
-                        className="text-xs text-gray-300 hover:text-white transition-colors font-medium"
+                        onClick={() => setPlatformResults(null)}
+                        className="mt-3 w-full text-sm py-1 hover:underline"
+                        style={{ color: 'var(--c-mute)' }}
                       >
-                        {fav.nickname}
-                        <span className="ml-1 text-gray-600 text-[10px]">{fav.shard}</span>
-                      </button>
-                      <button
-                        onClick={() => removeFavorite(fav.nickname, fav.shard)}
-                        className="text-gray-600 hover:text-red-400 transition-colors text-xs ml-0.5 opacity-0 group-hover:opacity-100"
-                      >
-                        ×
+                        닫기
                       </button>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+                  )}
 
-          {/* 특징 카드 섹션 */}
-          <div className="w-full max-w-6xl mx-auto px-4">
-            <div className="flex items-center justify-center gap-3 mb-8">
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
-              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">{t('home.features')}</h2>
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {/* 디스코드 봇 배너 카드 */}
-              <a
-                href="https://discord.com/api/oauth2/authorize?client_id=1498570099689521172&permissions=274877991936&scope=bot%20applications.commands"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="col-span-1 sm:col-span-2 md:col-span-3 flex items-center justify-between gap-3 px-5 py-4 rounded-xl border transition-all duration-200 hover:brightness-110 group"
-                style={{ background: 'rgba(88,101,242,0.12)', borderColor: 'rgba(88,101,242,0.35)' }}
-              >
-                <div className="flex items-center gap-3">
-                  <svg width="24" height="18" viewBox="0 0 71 55" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                    <path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.44077 45.4204 0.52529C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.52529C25.5141 0.44359 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.292408 45.3914C0.29801 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978ZM23.7259 37.3253C20.2276 37.3253 17.3451 34.1136 17.3451 30.1693C17.3451 26.225 20.1717 23.0133 23.7259 23.0133C27.308 23.0133 30.1626 26.2532 30.1066 30.1693C30.1066 34.1136 27.28 37.3253 23.7259 37.3253ZM47.3178 37.3253C43.8196 37.3253 40.9371 34.1136 40.9371 30.1693C40.9371 26.225 43.7636 23.0133 47.3178 23.0133C50.9 23.0133 53.7545 26.2532 53.6986 30.1693C53.6986 34.1136 50.9 37.3253 47.3178 37.3253Z" fill="#7289da"/>
-                  </svg>
-                  <div className="text-left">
-                    <p className="text-sm font-bold text-white leading-tight">디스코드 봇 추가하기</p>
-                    <p className="text-[11px] text-[#7289da] mt-0.5">/전적 /클랜 명령어로 디스코드에서 바로 전적 조회</p>
+                  {/* 최근 검색 */}
+                  {showDropdown && recentSearches.length > 0 && !platformResults && (
+                    <div className="mt-4 pt-4 text-left" style={{ borderTop: '1px dashed var(--c-line)' }}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-bold" style={{ color: 'var(--c-mute)' }}>최근 검색</span>
+                        <button onClick={clearAllRecent} className="text-xs hover:underline" style={{ color: 'var(--c-mute)' }}>전체 삭제</button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {recentSearches
+                          .filter((s) => !searchTerm || s.nickname.toLowerCase().includes(searchTerm.toLowerCase()))
+                          .map((s) => (
+                            <div key={`${s.shard}-${s.nickname}`} className="crate-chip flex items-center gap-2 pl-3 pr-1.5 py-1.5">
+                              <button
+                                onClick={() => handleDirectNavigate(s.nickname, s.shard)}
+                                className="flex items-center gap-2 text-sm"
+                              >
+                                <span className="truncate max-w-[160px]" style={{ color: 'var(--c-bone)' }}>{s.nickname}</span>
+                                <ShardTag shard={s.shard} />
+                              </button>
+                              <button
+                                onClick={(e) => removeRecentSearch(s.nickname, s.shard, e)}
+                                aria-label={`${s.nickname} 삭제`}
+                                className="w-5 h-5 flex items-center justify-center text-xs"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 뱃지 */}
+                  <div className="flex flex-wrap justify-center gap-2 mt-4">
+                    {[t('home.badge1'), t('home.badge2'), t('home.badge3')].map((badge, bi) => (
+                      <span key={bi} className="text-sm font-semibold px-3 py-1 rounded-full text-green-800 dark:text-green-200 bg-white/85 dark:bg-slate-900/70 border border-green-600/40 shadow-sm">{badge}</span>
+                    ))}
                   </div>
                 </div>
-                <svg className="w-4 h-4 text-[#7289da] group-hover:translate-x-0.5 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-              {[
-                { icon: '🤖', titleKey: 'feat.bot_title', descKey: 'feat.bot_desc', highlight: true },
-                { icon: '🔥', titleKey: 'feat.live_meta_title', descKey: 'feat.live_meta_desc', highlight: true },
-                { icon: '📊', titleKey: 'feat.stats_title', descKey: 'feat.stats_desc' },
-                { icon: '👥', titleKey: 'feat.clan_title', descKey: 'feat.clan_desc' },
-                { icon: '🏆', titleKey: 'feat.score_title', descKey: 'feat.score_desc' },
-                { icon: '🎯', titleKey: 'feat.match_title', descKey: 'feat.match_desc' },
-                { icon: '📈', titleKey: 'feat.rank_title', descKey: 'feat.rank_desc' },
-                { icon: '⚡', titleKey: 'feat.search_title', descKey: 'feat.search_desc' },
-              ].map((item) => (
-                <div
-                  key={item.titleKey || item.title}
-                  className={`border rounded-xl p-4 hover:brightness-110 transition-all duration-200 group ${
-                    item.highlight
-                      ? 'bg-blue-500/8 border-blue-500/30 hover:border-blue-400/50'
-                      : 'bg-white/5 border-blue-500/10 hover:border-blue-500/30 hover:bg-blue-500/5'
-                  }`}
-                >
-                  <div className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-200 inline-block">{item.icon}</div>
-                  <h3 className="text-sm font-bold text-gray-200 mb-1">{item.title || t(item.titleKey)}</h3>
-                  <p className="text-gray-500 text-xs leading-relaxed">{item.desc || t(item.descKey)}</p>
+              </div>
+            </section>
+
+            <SectionHead title="주요 기능" desc="닉네임 하나로 확인할 수 있는 분석" />
+
+            {/* 디스코드 봇 배너 카드 */}
+            <a
+              href="https://discord.com/api/oauth2/authorize?client_id=1498570099689521172&permissions=274877991936&scope=bot%20applications.commands"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="crate-tile lg:col-span-12 flex items-center justify-between gap-3 px-5 py-4 sm:px-7"
+              style={{ '--i': 2 }}
+            >
+              <div className="flex items-center gap-3">
+                <svg width="24" height="18" viewBox="0 0 71 55" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                    <path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.44077 45.4204 0.52529C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.52529C25.5141 0.44359 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.292408 45.3914C0.29801 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978ZM23.7259 37.3253C20.2276 37.3253 17.3451 34.1136 17.3451 30.1693C17.3451 26.225 20.1717 23.0133 23.7259 23.0133C27.308 23.0133 30.1626 26.2532 30.1066 30.1693C30.1066 34.1136 27.28 37.3253 23.7259 37.3253ZM47.3178 37.3253C43.8196 37.3253 40.9371 34.1136 40.9371 30.1693C40.9371 26.225 43.7636 23.0133 47.3178 23.0133C50.9 23.0133 53.7545 26.2532 53.6986 30.1693C53.6986 34.1136 50.9 37.3253 47.3178 37.3253Z" fill="#7289da"/>
+                  </svg>
+                <div className="text-left">
+                  <p className="text-base font-bold leading-tight" style={{ color: 'var(--c-bone)' }}>디스코드 봇 추가하기</p>
+                  <p className="text-sm mt-0.5" style={{ color: 'var(--c-mute)' }}>/전적 /클랜 명령어로 디스코드에서 바로 전적 조회</p>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+              <svg className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--c-flare)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
 
-          {/* 광고: 특징 카드 아래 — 콘텐츠 로드 후에만 노출 */}
-          <AdUnit slot="1234567890" format="horizontal" className="w-full max-w-6xl mx-auto px-4 mt-6" show={mounted && !navigating} />
+            {/* 기능 타일 — 크기를 달리한 벤토 */}
+            {[
+              { icon: 'bot', titleKey: 'feat.bot_title', descKey: 'feat.bot_desc', span: 'lg:col-span-6', big: true },
+              { icon: 'fire', titleKey: 'feat.live_meta_title', descKey: 'feat.live_meta_desc', span: 'lg:col-span-6', big: true },
+              { icon: 'stats', titleKey: 'feat.stats_title', descKey: 'feat.stats_desc', span: 'lg:col-span-4' },
+              { icon: 'clan', titleKey: 'feat.clan_title', descKey: 'feat.clan_desc', span: 'lg:col-span-4' },
+              { icon: 'score', titleKey: 'feat.score_title', descKey: 'feat.score_desc', span: 'lg:col-span-4' },
+              { icon: 'match', titleKey: 'feat.match_title', descKey: 'feat.match_desc', span: 'lg:col-span-4' },
+              { icon: 'rank', titleKey: 'feat.rank_title', descKey: 'feat.rank_desc', span: 'lg:col-span-4' },
+              { icon: 'bolt', titleKey: 'feat.search_title', descKey: 'feat.search_desc', span: 'lg:col-span-4' },
+            ].map((item, i) => (
+              <section
+                key={item.titleKey}
+                className={`crate-tile ${item.span} p-5 ${item.big ? 'sm:p-7' : ''}`}
+                style={{ '--i': i + 3 }}
+              >
+                <div style={{ color: 'var(--c-flare)' }}>
+                  <Icon name={item.icon} className={item.big ? 'w-9 h-9' : 'w-6 h-6'} />
+                </div>
+                <h3 className={`font-bold mt-3 mb-1.5 ${item.big ? 'text-2xl' : 'text-lg'}`} style={{ color: 'var(--c-bone)' }}>{t(item.titleKey)}</h3>
+                <p className={`leading-relaxed ${item.big ? 'text-base' : 'text-[15px]'}`} style={{ color: 'var(--c-mute)' }}>{t(item.descKey)}</p>
+              </section>
+            ))}
 
-          {/* PKGG 플레이 분석 카드 */}
-          <div className="w-full max-w-6xl mx-auto px-4 mt-8 sm:mt-12">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
-              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">PKGG 플레이 분석</h2>
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
-            </div>
-            <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-4 sm:p-6">
-              <p className="text-xs text-gray-500 text-center mb-4">
-                실제 전적 데이터를 기반으로 <strong className="text-gray-300">25가지 세부 유형</strong>으로 플레이스타일을 분석합니다
+            <SectionHead title="분석과 소개" desc="플레이스타일 유형과 PKGG가 무엇인지 알아보세요" />
+
+            {/* 플레이 분석 타일 */}
+            <section className="crate-tile lg:col-span-7 p-5 sm:p-6" style={{ '--i': 12 }}>
+              <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--c-bone)' }}>PKGG 플레이 분석</h2>
+              <p className="text-sm mb-4" style={{ color: 'var(--c-mute)' }}>
+                실제 전적 데이터를 기반으로 <strong style={{ color: 'var(--c-bone)' }}>25가지 세부 유형</strong>으로 플레이스타일을 분석합니다
               </p>
-              {/* 대카테고리 탭 */}
-              <div className="flex gap-2 mb-5 flex-wrap justify-center">
+              <div className="flex gap-2 mb-4 flex-wrap">
                 {Object.entries(MAJOR).map(([key, info]) => (
                   <button
                     key={key}
+                    aria-pressed={activeMajor === key}
                     onClick={() => { setActiveMajor(key); setActiveType(null); }}
-                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition-all border ${
-                      activeMajor === key
-                        ? `${info.bg} ${info.border} ${info.color}`
-                        : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10 hover:text-gray-300'
-                    }`}
+                    className="crate-chip px-3 py-1.5 text-sm font-bold"
                   >
                     {info.icon} {info.label}
                   </button>
                 ))}
               </div>
-              {/* 세부 유형 목록 */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {Object.values(TYPES)
                   .filter(tp => tp.major === activeMajor && tp.label !== '❓ 분류 불가')
                   .map(tp => {
@@ -989,213 +902,230 @@ export default function Home({ weaponMeta = [], topClans = [], patchNotes = [], 
                     return (
                       <button
                         key={tp.label}
+                        aria-pressed={isActive}
                         onClick={() => setActiveType(isActive ? null : tp)}
-                        className={`px-3 py-2.5 rounded-xl border text-center transition-all ${tp.bg} ${tp.border} ${
-                          isActive ? 'ring-2 ring-offset-1 ring-offset-transparent opacity-100 scale-[1.03]' : 'opacity-80 hover:opacity-100'
-                        }`}
-                        style={isActive ? { '--tw-ring-color': 'currentColor' } : {}}
+                        className="crate-chip px-3 py-2.5 text-center"
+                        style={isActive ? { borderColor: 'var(--c-flare)', color: 'var(--c-bone)' } : {}}
                       >
-                        <span className={`text-xs font-semibold ${tp.color}`}>{tp.label}</span>
+                        <span className="text-sm font-semibold" style={{ color: 'var(--c-bone)' }}>{tp.label}</span>
                       </button>
                     )
                   })}
               </div>
-              {/* 선택된 유형 설명 */}
               {activeType && (
-                <div className={`mt-2 px-4 py-3 rounded-xl border ${activeType.bg} ${activeType.border} transition-all`}>
+                <div className="mt-3 px-4 py-3 rounded-xl" style={{ border: '1px solid var(--c-flare)', background: 'var(--c-accent-soft)' }}>
                   <div className="flex items-start gap-2">
-                    <span className={`text-sm font-bold ${activeType.color} flex-shrink-0`}>{activeType.label}</span>
-                    <span className="text-xs text-gray-400 leading-relaxed">{activeType.desc}</span>
+                    <span className="text-sm font-bold flex-shrink-0" style={{ color: 'var(--c-bone)' }}>{activeType.label}</span>
+                    <span className="text-sm leading-relaxed" style={{ color: 'var(--c-mute)' }}>{activeType.desc}</span>
                   </div>
-                  <div className={`mt-1.5 text-[11px] ${activeType.color} opacity-70`}>💡 {activeType.tip}</div>
+                  <div className="mt-1.5 text-xs" style={{ color: 'var(--c-khaki)' }}>{activeType.tip}</div>
                 </div>
               )}
-            </div>
-          </div>
+            </section>
 
-          {/* ─── 서버 렌더링 정적 콘텐츠 (SEO / AdSense) ─── */}
-          <div className="w-full max-w-6xl mx-auto px-4 mt-10">
+            {/* PKGG란? 타일 */}
+            <section className="crate-tile lg:col-span-5 p-5 sm:p-6 space-y-4 text-[15px] leading-7" style={{ '--i': 13, color: 'var(--c-mute)' }}>
+              <h2 className="text-xl font-bold" style={{ color: 'var(--c-bone)' }}>{t('about.section_title')}</h2>
+              <p>{t('about.p1')}</p>
+              <p>{t('about.p2')}</p>
+              <p>{t('about.p3')}</p>
+              <p>{t('about.p4')}</p>
+            </section>
 
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
-              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">실시간 PUBG 데이터</h2>
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
-            </div>
+            {/* ─── 서버 렌더링 정적 콘텐츠 (SEO / AdSense) ─── */}
+            {(weaponMeta.length > 0 || topClans.length > 0 || patchNotes.length > 0 || mapRotation.length > 0 || recentPlayers.length > 0) && (
+              <SectionHead title="실시간 PUBG 데이터" desc="PKGG 수집 데이터와 최신 패치·맵 정보" />
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-              {/* 1. 무기 메타 TOP 5 */}
-              {weaponMeta.length > 0 && (
-                <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-5">
-                  <h2 className="text-sm font-bold text-white mb-1">🔥 실시간 무기 메타 TOP 5</h2>
-                  <p className="text-xs text-gray-500 mb-4">PKGG 수집 데이터 기반 킬 비중 순위</p>
-                  <ol className="space-y-3">
-                    {weaponMeta.map((w, i) => (
-                      <li key={w.id} className="flex items-start gap-3">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 mt-0.5 ${
-                          i === 0 ? 'bg-yellow-500 text-black' :
-                          i === 1 ? 'bg-gray-400 text-black' :
-                          i === 2 ? 'bg-amber-700 text-white' :
-                          'bg-white/10 text-gray-400'
-                        }`}>{i + 1}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-200">{w.name}</span>
-                            <span className="text-xs text-blue-400 font-bold">{w.pickRate}%</span>
-                          </div>
-                          {WEAPON_DESC[w.name] && (
-                            <p className="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{WEAPON_DESC[w.name]}</p>
-                          )}
-                          <div className="w-full bg-white/10 rounded-full h-1 mt-1.5">
-                            <div className="bg-blue-500 h-1 rounded-full" style={{ width: `${Math.min(100, parseFloat(w.pickRate) * 4)}%` }} />
-                          </div>
+            {/* 1. 무기 메타 TOP 5 */}
+            {weaponMeta.length > 0 && (
+              <section className="crate-tile lg:col-span-6 p-5 sm:p-6" style={{ '--i': 14 }}>
+                <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--c-bone)' }}>🔥 실시간 무기 메타 TOP 5</h2>
+                <p className="text-sm mb-4" style={{ color: 'var(--c-mute)' }}>PKGG 수집 데이터 기반 킬 비중 순위</p>
+                <ol className="space-y-3">
+                  {weaponMeta.map((w, i) => (
+                    <li key={w.id} className="flex items-start gap-3">
+                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 mt-0.5 ${rankBadge(i)}`}>{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-semibold" style={{ color: 'var(--c-bone)' }}>{w.name}</span>
+                          <span className="text-sm font-bold" style={{ color: 'var(--c-flare)' }}>{w.pickRate}%</span>
                         </div>
-                      </li>
-                    ))}
-                  </ol>
-                  <p className="text-[10px] text-gray-600 mt-3">※ 픽률은 전체 킬 기준 상대 비율 · 봇킬 제외</p>
-                </div>
-              )}
+                        {WEAPON_DESC[w.name] && (
+                          <p className="text-sm mt-0.5 leading-relaxed" style={{ color: 'var(--c-mute)' }}>{WEAPON_DESC[w.name]}</p>
+                        )}
+                        <div className="w-full rounded-full h-1.5 mt-1.5" style={{ background: 'var(--c-accent-soft)' }}>
+                          <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, parseFloat(w.pickRate) * 4)}%`, background: 'var(--c-btn-bg)' }} />
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                <p className="text-xs mt-3" style={{ color: 'var(--c-mute)' }}>※ 픽률은 전체 킬 기준 상대 비율 · 봇킬 제외</p>
+              </section>
+            )}
 
-              {/* 3. 클랜 랭킹 TOP 5 */}
-              {topClans.length > 0 && (
-                <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-5">
-                  <h2 className="text-sm font-bold text-white mb-1">
-                    👥 클랜 랭킹 TOP 5
-                  </h2>
-                  <p className="text-xs text-gray-500 mb-4">
-                    PKGG 점수(MMR) 기준 상위 클랜
-                  </p>
-                  <ol className="space-y-3">
-                    {topClans.map((clan, i) => {
-                      const masked = clan.name.length <= 2
-                        ? clan.name
-                        : clan.name.slice(0, 2) + '*'.repeat(clan.name.length - 2)
-                      return (
-                        <li key={clan.name}>
-                          <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
-                              i === 0 ? 'bg-yellow-500 text-black' :
-                              i === 1 ? 'bg-gray-400 text-black' :
-                              i === 2 ? 'bg-amber-700 text-white' :
-                              'bg-white/10 text-gray-400'
-                            }`}>{i + 1}</span>
-                            <span className="flex-1 text-sm font-semibold text-gray-200 truncate">
-                              {clan.pubgClanTag ? `[${clan.pubgClanTag}] ` : ''}{masked}
-                            </span>
-                            <span className="text-xs text-blue-400/70 flex-shrink-0">
-                              {clan.shard === 'kakao' ? '카카오' : 'Steam'}
-                            </span>
-                            <span className="text-xs text-yellow-400 font-bold flex-shrink-0">{clan.avgScore?.toLocaleString()} PK</span>
-                          </Link>
-                        </li>
-                      )
-                    })}
-                  </ol>
-                </div>
-              )}
-
-              {/* 4. 최신 PUBG 패치노트 */}
-              {patchNotes.length > 0 && (
-                <div className="md:col-span-2 bg-white/5 border border-blue-500/10 rounded-2xl p-5">
-                  <h2 className="text-sm font-bold text-white mb-1">📋 최신 PUBG 패치노트</h2>
-                  <p className="text-xs text-gray-500 mb-4">주요 무기·밸런스 업데이트 요약</p>
-                  <ul className="space-y-3">
-                    {patchNotes.map((note, i) => (
-                      <li key={i} className="border-l-2 border-blue-500/30 pl-3">
-                        <a
-                          href={note.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-gray-300 hover:text-white transition-colors leading-snug block"
-                        >
-                          {note.title}
-                        </a>
-                        <span className="text-xs text-gray-600">{note.date}</span>
+            {/* 3. 클랜 랭킹 TOP 5 */}
+            {topClans.length > 0 && (
+              <section className="crate-tile lg:col-span-6 p-5 sm:p-6" style={{ '--i': 15 }}>
+                <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--c-bone)' }}>👥 클랜 랭킹 TOP 5</h2>
+                <p className="text-sm mb-4" style={{ color: 'var(--c-mute)' }}>PKGG 점수(MMR) 기준 상위 클랜</p>
+                <ol className="space-y-3">
+                  {topClans.map((clan, i) => {
+                    const masked = clan.name.length <= 2
+                      ? clan.name
+                      : clan.name.slice(0, 2) + '*'.repeat(clan.name.length - 2)
+                    return (
+                      <li key={clan.name}>
+                        <Link href={`/clan/${encodeURIComponent(clan.name)}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 ${rankBadge(i)}`}>{i + 1}</span>
+                          <span className="flex-1 text-base font-semibold truncate" style={{ color: 'var(--c-bone)' }}>
+                            {clan.pubgClanTag ? `[${clan.pubgClanTag}] ` : ''}{masked}
+                          </span>
+                          <span className="text-sm flex-shrink-0" style={{ color: 'var(--c-mute)' }}>
+                            {clan.shard === 'kakao' ? '카카오' : 'Steam'}
+                          </span>
+                          <span className="text-sm font-bold flex-shrink-0" style={{ color: 'var(--c-flare)' }}>{clan.avgScore?.toLocaleString()} PK</span>
+                        </Link>
                       </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+                    )
+                  })}
+                </ol>
+              </section>
+            )}
+
+            {/* 4. 최신 PUBG 패치노트 */}
+            {patchNotes.length > 0 && (
+              <section className="crate-tile lg:col-span-12 p-5 sm:p-6" style={{ '--i': 16 }}>
+                <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--c-bone)' }}>📋 최신 PUBG 패치노트</h2>
+                <p className="text-sm mb-4" style={{ color: 'var(--c-mute)' }}>주요 무기·밸런스 업데이트 요약</p>
+                <ul className="space-y-3">
+                  {patchNotes.map((note, i) => (
+                    <li key={i} className="pl-3" style={{ borderLeft: '1px solid var(--c-line)' }}>
+                      <a
+                        href={note.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-base leading-snug block hover:underline"
+                        style={{ color: 'var(--c-bone)' }}
+                      >
+                        {note.title}
+                      </a>
+                      <span className="text-sm" style={{ color: 'var(--c-mute)' }}>{note.date}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {/* 5. 맵 로테이션 */}
             {mapRotation.length > 0 && (
-              <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-5 mt-5">
-                <h2 className="text-sm font-bold text-white mb-1">🗺️ 현재 맵 로테이션</h2>
-                <p className="text-xs text-gray-500 mb-4">일반 매치 기준 활성 맵 목록</p>
+              <section className="crate-tile lg:col-span-12 p-5 sm:p-6" style={{ '--i': 17 }}>
+                <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--c-bone)' }}>🗺️ 현재 맵 로테이션</h2>
+                <p className="text-sm mb-4" style={{ color: 'var(--c-mute)' }}>일반 매치 기준 활성 맵 목록</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                   {mapRotation.map((map) => (
-                    <div key={map.nameEn} className="bg-white/5 rounded-xl p-3 text-center">
-                      <p className="text-sm font-bold text-gray-200">{map.name}</p>
-                      <p className="text-[10px] text-gray-500 mt-0.5">{map.nameEn}</p>
-                      <p className="text-[10px] text-blue-400 mt-0.5">{map.size}</p>
-                      <p className="text-[10px] text-gray-400 mt-1 leading-tight text-left">{map.desc}</p>
+                    <div key={map.nameEn} className="crate-tile crate-tile-hi p-3 text-center">
+                      <p className="text-base font-bold" style={{ color: 'var(--c-bone)' }}>{map.name}</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--c-mute)' }}>{map.nameEn}</p>
+                      <p className="text-xs mt-0.5 font-semibold" style={{ color: 'var(--c-flare)' }}>{map.size}</p>
+                      <p className="text-xs mt-1 leading-tight text-left" style={{ color: 'var(--c-mute)' }}>{map.desc}</p>
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
             {/* 6. 최근 분석된 플레이어 — SSR 링크로 구글 크롤링 유도 */}
             {recentPlayers.length > 0 && (
-              <div className="bg-white/5 border border-blue-500/10 rounded-2xl p-5 mt-5">
-                <h2 className="text-sm font-bold text-white mb-1">👤 최근 분석된 플레이어</h2>
-                <p className="text-xs text-gray-500 mb-4">최근 PKGG에서 조회된 플레이어</p>
+              <section className="crate-tile lg:col-span-12 p-5 sm:p-6" style={{ '--i': 18 }}>
+                <h2 className="text-lg font-bold mb-1" style={{ color: 'var(--c-bone)' }}>👤 최근 분석된 플레이어</h2>
+                <p className="text-sm mb-4" style={{ color: 'var(--c-mute)' }}>최근 PKGG에서 조회된 플레이어</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
                   {recentPlayers.map((p) => (
                     <Link
                       key={`${p.pubgShardId}-${p.nickname}`}
                       href={`/player/${p.pubgShardId}/${encodeURIComponent(p.nickname)}`}
-                      className="flex flex-col px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-blue-500/30 transition-all group"
+                      className="crate-tile crate-tile-hi flex flex-col px-3 py-2"
                     >
-                      <span className="text-xs font-semibold text-gray-200 truncate group-hover:text-blue-400 transition-colors">{p.nickname}</span>
+                      <span className="text-sm font-semibold truncate" style={{ color: 'var(--c-bone)' }}>{p.nickname}</span>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] text-gray-500">{Math.round(p.avgDamage || 0)} 딜</span>
-                        <span className="text-[10px] text-gray-500">{(p.avgKills || 0).toFixed(1)} 킬</span>
+                        <span className="text-xs" style={{ color: 'var(--c-mute)' }}>{Math.round(p.avgDamage || 0)} 딜</span>
+                        <span className="text-xs" style={{ color: 'var(--c-mute)' }}>{(p.avgKills || 0).toFixed(1)} 킬</span>
                       </div>
                     </Link>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
+            {/* ─── 정적 콘텐츠 끝 ─── */}
+
+            <SectionHead title="내 기록과 티어" desc="즐겨찾는 플레이어와 PKGG MMR 티어 기준" />
+
+            {/* 즐겨찾기 타일 */}
+            <section className="crate-tile lg:col-span-7 p-5 sm:p-6" style={{ '--i': 19 }}>
+              <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--c-bone)' }}>즐겨찾기</h2>
+              {favorites.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {favorites.map((fav) => (
+                    <div key={`${fav.shard}-${fav.nickname}`} className="crate-chip flex items-center gap-1 pl-3 pr-1.5 py-1.5">
+                      <button
+                        onClick={() => handleDirectNavigate(fav.nickname, fav.shard)}
+                        className="text-sm font-semibold hover:underline"
+                        style={{ color: 'var(--c-bone)' }}
+                      >
+                        {fav.nickname}
+                        <span className="ml-1.5 text-xs" style={{ color: 'var(--c-mute)' }}>{fav.shard}</span>
+                      </button>
+                      <button
+                        onClick={() => removeFavorite(fav.nickname, fav.shard)}
+                        aria-label={`${fav.nickname} 즐겨찾기 삭제`}
+                        className="w-5 h-5 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[15px] leading-relaxed" style={{ color: 'var(--c-mute)' }}>
+                  플레이어 페이지에서 별 버튼을 누르면 여기에 모입니다.
+                </p>
+              )}
+            </section>
+
+            {/* 티어 타일 */}
+            <section className="crate-tile lg:col-span-5 p-5 sm:p-6" style={{ '--i': 20 }}>
+              <h2 className="text-lg font-bold mb-3" style={{ color: 'var(--c-bone)' }}>PKGG MMR 티어</h2>
+              <ul className="space-y-1.5">
+                {TIER_ROWS.map((row) => {
+                  const tier = getMMRTier(row.mmr);
+                  return (
+                    <li key={row.label} className="flex items-center gap-3">
+                      <span className="crate-stencil text-base w-24 px-2 py-0.5 rounded text-center" style={{ border: `2px solid ${tier.color}`, color: 'var(--c-bone)' }}>
+                        {row.label.toUpperCase()}
+                      </span>
+                      <span className="crate-stencil text-lg" style={{ color: 'var(--c-mute)' }}>{row.mmr === 1000 ? '1000~' : `${row.mmr}~`}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            <SectionHead title="자주 묻는 질문" desc="서비스 이용 전에 많이 궁금해하시는 내용" />
+
+            {/* FAQ 타일 */}
+            {[1,2,3,4,5,6,7,8].map((n, i) => (
+              <div key={n} className="lg:col-span-6 min-w-0">
+                <FaqItem q={t(`faq.q${n}`)} a={t(`faq.a${n}`)} i={i} />
+              </div>
+            ))}
+
+            {/* 하단 배너 광고 구역 */}
+            <AdBand slot="0987654321" show={mounted && !navigating} className="lg:col-span-12 mt-4" />
+
           </div>
-          {/* ─── 정적 콘텐츠 끝 ─── */}
-
-          {/* PKGG란? */}
-          <div className="w-full max-w-6xl mx-auto px-4 mt-8 sm:mt-14 mb-6 sm:mb-10">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
-              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">{t('about.section_title')}</h2>
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
-            </div>
-            <div className="bg-white/5 border border-blue-500/10 rounded-xl px-6 py-5 space-y-3 text-sm text-gray-400 leading-relaxed">
-              <p>{t('about.p1')}</p>
-              <p>{t('about.p2')}</p>
-              <p>{t('about.p3')}</p>
-              <p>{t('about.p4')}</p>
-            </div>
-          </div>
-
-          {/* FAQ */}
-          <div className="w-full max-w-6xl mx-auto px-4 mt-4 mb-4">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-r from-transparent to-blue-500/40" />
-              <h2 className="text-xs font-bold text-blue-400/70 uppercase tracking-widest">FAQ</h2>
-              <div className="h-px flex-1 max-w-[80px] bg-gradient-to-l from-transparent to-blue-500/40" />
-            </div>
-            <div className="space-y-3">
-              {[1,2,3,4,5,6,7,8].map(n => (
-                <FaqItem key={n} q={t(`faq.q${n}`)} a={t(`faq.a${n}`)} />
-              ))}
-            </div>
-          </div>
-
-          {/* 광고: FAQ 아래 — 콘텐츠 로드 후에만 노출 */}
-          <AdUnit slot="0987654321" format="horizontal" className="w-full max-w-6xl mx-auto px-4 mt-6" show={mounted && !navigating} />
-
         </main>
-
       </div>
     </>
   );

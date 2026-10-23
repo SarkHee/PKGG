@@ -10,7 +10,7 @@ import { useT } from '../../../utils/i18n';
 import Header from '../../../components/layout/Header';
 import PlayerHeader from '../../../components/player/PlayerHeader';
 import MatchListRow from '../../../components/match/MatchListRow';
-import AdUnit from '../../../components/AdUnit';
+import AdUnit, { AdBand } from '../../../components/AdUnit';
 import AdBanner from '../../../components/AdBanner';
 
 // 무거운 컴포넌트 lazy load → 초기 JS 번들 분리, LCP 차단 제거
@@ -640,9 +640,9 @@ function MapStatsCard({ matches }) {
   return (
     <div className="mb-6">
       <div className="flex items-center gap-3 mb-3 px-1">
-        <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
+        <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
         <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">주 플레이 맵</h2>
-        <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">최근 20경기 기준</span>
+        <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">최근 20경기 기준</span>
       </div>
       <div className="bg-white dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm space-y-2.5">
         {sorted.map(([name, count]) => (
@@ -1759,7 +1759,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
         </div>
       )}
       <Header />
-      <div className="bg-gray-50 dark:bg-gray-950 min-h-screen text-gray-900 dark:text-gray-100">
+      <div className="crate-scope min-h-screen">
         <div className="max-w-screen-xl mx-auto px-4 py-6">
         <Head>
           <title>{`${profile?.nickname || '플레이어'} 배그 전적 | PKGG`}</title>
@@ -1767,6 +1767,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
               (isSearchHidden과 동일한 패턴, 렌더 시점의 실시간 시즌 스탯 기준 — 별도 배치/컬럼 불필요) */}
           {isThinContent && <meta name="robots" content="noindex, follow" />}
           <meta name="description" content={ssrData?.metaDescription || `${profile?.nickname || '플레이어'}의 배틀그라운드 전적, PKGG 점수, 플레이스타일 분석`} />
+          <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Big+Shoulders+Stencil+Display:wght@600;800&display=swap" rel="stylesheet" />
           <meta property="og:type" content="profile" />
           <meta property="og:url" content={`https://pkgg.vercel.app/player/${router.query.server}/${profile?.nickname}`} />
           <meta property="og:title" content={`${profile?.nickname || '플레이어'} 배그 전적 | PKGG`} />
@@ -1778,6 +1779,9 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
           <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
           <link rel="canonical" href={`https://pkgg.vercel.app/player/${router.query.server}/${profile?.nickname}`} />
         </Head>
+
+        {/* 상단 배너 광고 구역 */}
+        <AdBand slot="2646189375" className="mb-4" />
 
         {/* 데이터 소스 알림 - 간결하게 */}
         {(dataSource === 'db_with_api_enhancement' || dataSource === 'enhanced') && (
@@ -1826,15 +1830,12 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
 
         {/* PKGG 분석 요약 — SSR 정적 SEO 텍스트 (클라이언트 재생성 없음) */}
         {ssrData?.seoText && (
-          <div className="mb-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3">
+          <div className="crate-tile crate-tile-hi mb-4 px-4 py-3">
             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">PKGG 분석 요약</div>
             <p className="text-sm text-gray-400">{ssrData.seoText}</p>
             <p className="text-[11px] text-gray-500 dark:text-gray-600 mt-1.5">※ 이 통계는 봇킬을 제거한 실제 대인전 기록입니다.</p>
           </div>
         )}
-
-        {/* 광고 1 */}
-        <AdUnit slot="2646189375" format="auto" className="mb-4" />
 
         <style>{`
           @keyframes tabFadeIn {
@@ -1845,7 +1846,7 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
         `}</style>
 
         {/* ── 섹션 탭 네비게이션 (sticky) ── */}
-        <div className="sticky top-[60px] z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 -mx-4 px-4 mb-6">
+        <div className="crate-nav sticky top-[68px] z-30 px-2 mb-6">
           <nav className="flex gap-1 overflow-x-auto scrollbar-none py-2">
             {SECTION_TABS.map(tab => (
               <button
@@ -1853,8 +1854,8 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                   activeTab === tab.key
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'
+                    ? 'bg-[color:var(--c-btn-bg)] text-white'
+                    : 'text-[color:var(--c-mute)] hover:bg-[color:var(--c-accent-soft)] hover:text-[color:var(--c-bone)]'
                 }`}
               >
                 <span className="hidden sm:inline">{tab.icon}</span>
@@ -1872,22 +1873,22 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
             <>
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">게임 모드별 통계</h2>
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">상세 분석</span>
+                  <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                  <h2 className="text-xl font-bold text-[color:var(--c-bone)]">게임 모드별 통계</h2>
+                  <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">상세 분석</span>
                 </div>
                 <SeasonStatsTabs seasonStatsBySeason={seasonStats || {}} />
               </div>
 
-              <AdUnit slot="2646189375" format="auto" className="mb-6" />
+              <AdBand slot="2646189375" className="mb-6" />
 
               <section className="recent-matches-section mb-8">
                 <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">최근 경기 내역</h2>
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">최근 20경기</span>
+                  <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                  <h2 className="text-xl font-bold text-[color:var(--c-bone)]">최근 경기 내역</h2>
+                  <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">최근 20경기</span>
                 </div>
-                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="crate-tile crate-tile-hi overflow-hidden">
                   <div className="border-b border-gray-100 dark:border-gray-700 px-4 py-3 overflow-x-auto">
                     <div className="flex gap-1 min-w-max">
                       {[
@@ -2006,11 +2007,11 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
                 {selectedMatchId && (
                   <div ref={detailRef} className="mt-6 mb-8">
                     <div className="flex items-center gap-3 mb-4 px-1">
-                      <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                      <h4 className="text-lg font-bold text-gray-800 dark:text-gray-100">경기 상세 정보</h4>
-                      <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">상세 분석</span>
+                      <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                      <h4 className="text-xl font-bold text-[color:var(--c-bone)]">경기 상세 정보</h4>
+                      <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">상세 분석</span>
                     </div>
-                    <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div className="crate-tile crate-tile-hi p-4 sm:p-6">
                       <MatchDetailExpandable matchId={selectedMatchId} />
                     </div>
                   </div>
@@ -2025,9 +2026,9 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
               {/* 성장 추적 - 맨 위 */}
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">성장 추적</h2>
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">시간별 성장 분석</span>
+                  <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                  <h2 className="text-xl font-bold text-[color:var(--c-bone)]">성장 추적</h2>
+                  <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">시간별 성장 분석</span>
                 </div>
                 {lazyVisible ? (
                   <GrowthChart
@@ -2063,11 +2064,11 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
                 return (
                   <div className="mb-6">
                     <div className="flex items-center gap-3 mb-4 px-1">
-                      <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                      <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">시즌 플레이 현황</h2>
-                      <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">이번 시즌 {total}경기</span>
+                      <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                      <h2 className="text-xl font-bold text-[color:var(--c-bone)]">시즌 플레이 현황</h2>
+                      <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">이번 시즌 {total}경기</span>
                     </div>
-                    <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div className="crate-tile crate-tile-hi p-4 sm:p-6">
                       <ModeDistributionChart modeDistribution={{
                         ranked: Math.round((rankedCount / total) * 100),
                         normal: Math.round((normalCount / total) * 100),
@@ -2082,11 +2083,11 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
               {/* 경기 추이 분석 */}
               <div className="mb-6">
                 <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">경기 추이 분석</h2>
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">성과 트렌드</span>
+                  <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                  <h2 className="text-xl font-bold text-[color:var(--c-bone)]">경기 추이 분석</h2>
+                  <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">성과 트렌드</span>
                 </div>
-                <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="crate-tile crate-tile-hi p-4 sm:p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-base">💪</span>
                     <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300">딜량 추이</h4>
@@ -2108,11 +2109,11 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
           {activeTab === 'weapons' && profile?.nickname && (
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-4 px-1">
-                <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">주사용 무기 통계</h2>
-                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">weapon mastery</span>
+                <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                <h2 className="text-xl font-bold text-[color:var(--c-bone)]">주사용 무기 통계</h2>
+                <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">weapon mastery</span>
               </div>
-              <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+              <div className="crate-tile crate-tile-hi p-4 sm:p-6">
                 {lazyVisible && <WeaponMasteryCard
                   playerId={profile.playerId || null}
                   nickname={profile.nickname}
@@ -2134,11 +2135,11 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
               {/* 최근 함께한 플레이어 */}
               <div>
                 <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-5 bg-indigo-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">최근 함께한 플레이어</h2>
-                  <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2.5 py-0.5 rounded-full font-semibold border border-indigo-200 dark:border-indigo-800">최근 20경기</span>
+                  <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                  <h2 className="text-xl font-bold text-[color:var(--c-bone)]">최근 함께한 플레이어</h2>
+                  <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">최근 20경기</span>
                 </div>
-                <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="crate-tile crate-tile-hi p-4 sm:p-6">
                   <RecentTeammatesCard
                     matches={recentMatches}
                     myNickname={profile?.nickname}
@@ -2149,11 +2150,11 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
               {/* 클랜 및 팀플레이 분석 */}
               <div>
                 <div className="flex items-center gap-3 mb-4 px-1">
-                  <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                  <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">클랜 및 팀플레이 분석</h2>
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">클랜 시너지</span>
+                  <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                  <h2 className="text-xl font-bold text-[color:var(--c-bone)]">클랜 및 팀플레이 분석</h2>
+                  <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">클랜 시너지</span>
                 </div>
-                <div className="bg-white dark:bg-gray-900 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="crate-tile crate-tile-hi p-4 sm:p-6">
                   <PlayerDashboard
                     profile={profile}
                     summary={summary}
@@ -2190,11 +2191,11 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
           {activeTab === 'ai' && (
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-4 px-1">
-                <div className="w-1 h-5 bg-blue-500 rounded-full flex-shrink-0"></div>
-                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">개인 맞춤형 AI 코칭</h2>
-                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full font-semibold border border-blue-200 dark:border-blue-800">훈련/피드백</span>
+                <div className="w-1 h-6 bg-[color:var(--c-flare)] flex-shrink-0"></div>
+                <h2 className="text-xl font-bold text-[color:var(--c-bone)]">개인 맞춤형 AI 코칭</h2>
+                <span className="text-sm bg-[color:var(--c-accent-soft)] text-[color:var(--c-flare)] px-2.5 py-0.5 rounded font-semibold border border-[color:var(--c-flare)]">훈련/피드백</span>
               </div>
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+              <div className="crate-tile crate-tile-hi">
                 {lazyVisible && <AICoachingCard
                   playerStats={aiCoachingStats}
                   playerInfo={{
@@ -2213,9 +2214,9 @@ export default function PlayerPage({ playerData: ssrData, error, isBanned, isSea
         </div>
 
         {/* 데이터 정보 푸터 */}
-        <div className="mt-8 mb-2 text-center text-xs text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1.5">
+        <div className="mt-8 mb-2 text-center text-sm text-[color:var(--c-mute)] flex items-center justify-center gap-1.5">
           <span>최종 업데이트:</span>
-          <span className="font-medium text-gray-500 dark:text-gray-400">
+          <span className="font-medium text-[color:var(--c-bone)]">
             {profile?.lastUpdated
               ? new Date(profile.lastUpdated).toLocaleString('ko-KR')
               : '알 수 없음'}

@@ -113,9 +113,9 @@ export default function TermsPage() {
         <meta name="description" content="PKGG 이용약관 — 서비스 이용 조건, 커뮤니티 규칙, 면책 조항" />
       </Head>
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen">
         {/* 헤더 */}
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <div className="crate-band ">
           <div className="max-w-3xl mx-auto px-4 py-6">
             <Link href="/" className="text-sm text-blue-600 hover:underline mb-3 inline-block">
               ← PKGG 홈으로
@@ -128,7 +128,7 @@ export default function TermsPage() {
         {/* 본문 */}
         <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
           {/* 소개 */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
               PKGG 서비스를 이용하시기 전에 아래 이용약관을 주의 깊게 읽어주시기 바랍니다.
               사이트를 이용함으로써 본 약관에 동의한 것으로 간주됩니다.
@@ -137,7 +137,7 @@ export default function TermsPage() {
 
           {/* 각 섹션 */}
           {sections.map((s) => (
-            <div key={s.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div key={s.id} className="crate-tile crate-tile-hi p-6">
               <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
                   {s.id}

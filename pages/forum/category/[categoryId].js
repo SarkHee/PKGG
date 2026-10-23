@@ -20,7 +20,7 @@ function PostCard({ post }) {
 
   return (
     <div
-      className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+      className="crate-tile crate-tile-hi p-4 hover:shadow-md transition-shadow cursor-pointer"
       onClick={() => router.push(`/forum/post/${post.id}`)}
     >
       <div className="flex items-start justify-between mb-3">
@@ -150,7 +150,7 @@ export default function ForumCategory() {
 
       <Header />
 
-      <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+      <div className="container mx-auto p-6 min-h-screen">
         {/* 브레드크럼 */}
         <div className="mb-6">
           <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
@@ -165,7 +165,7 @@ export default function ForumCategory() {
         </div>
 
         {/* 카테고리 헤더 */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700">
+        <div className="crate-tile crate-tile-hi p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div

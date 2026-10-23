@@ -183,7 +183,7 @@ export default function CreatePost() {
         <title>{t('forum.create_title')}</title>
       </Head>
       <Header />
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen">
         <div className="max-w-3xl mx-auto px-4 py-8">
           {/* 브레드크럼 */}
           <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
@@ -192,7 +192,7 @@ export default function CreatePost() {
             <span className="text-gray-800 dark:text-gray-200 font-medium">{t('forum.breadcrumb_create')}</span>
           </nav>
 
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="crate-tile crate-tile-hi overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
               <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('forum.create_heading')}</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('forum.create_subheading')}</p>

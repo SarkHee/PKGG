@@ -744,7 +744,7 @@ export default function MyPage() {
   // ── 로딩 ──
   if (status === 'loading') return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950" style={{ marginTop: '-5rem' }}>
+      <div className="min-h-screen" style={{ marginTop: '-5rem' }}>
         <div className="flex items-center justify-center h-screen">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -756,7 +756,7 @@ export default function MyPage() {
   if (status === 'unauthenticated') return (
     <Layout>
       <Head><title>{t('mypage.page_title')}</title></Head>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col items-center justify-center gap-6" style={{ marginTop: '-5rem' }}>
+      <div className="min-h-screen text-gray-900 dark:text-white flex flex-col items-center justify-center gap-6" style={{ marginTop: '-5rem' }}>
         <div className="text-center">
           <div className="text-5xl mb-4">🔐</div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('mypage.login_required')}</h1>
@@ -783,11 +783,11 @@ export default function MyPage() {
   return (
     <Layout>
       <Head><title>{t('mypage.page_title')}</title></Head>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white" style={{ marginTop: '-5rem' }}>
+      <div className="min-h-screen text-gray-900 dark:text-white" style={{ marginTop: '-5rem' }}>
         <div className="max-w-2xl mx-auto px-4 pt-28 pb-16 space-y-5">
 
           {/* ── 프로필 ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <div className="flex items-center gap-4">
               {user.image ? (
                 <Image src={user.image} alt={user.name || ''} width={64} height={64} className="rounded-full border-2 border-gray-700" />
@@ -819,7 +819,7 @@ export default function MyPage() {
           </div>
 
           {/* ── PUBG 계정 연동 ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
               🎮 <span>{t('mypage.pubg_link_title')}</span>
             </h2>
@@ -937,7 +937,7 @@ export default function MyPage() {
 
           {/* ── 클랜 정보 ── */}
           {userData?.clan && (
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+            <div className="crate-tile crate-tile-hi p-6">
               <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center justify-between">
                 <span className="flex items-center gap-2">🏰 {t('mypage.clan_title')}</span>
                 <Link
@@ -1017,7 +1017,7 @@ export default function MyPage() {
               {/* 리더 변경 문의 팝업 */}
               {showLeaderRequestPopup && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 w-full max-w-sm space-y-4">
+                  <div className="crate-tile crate-tile-hi p-6 w-full max-w-sm space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold text-gray-900 dark:text-white">{t('mypage.request_leader_change')}</span>
                       <button onClick={() => setShowLeaderRequestPopup(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white text-lg leading-none">×</button>
@@ -1079,7 +1079,7 @@ export default function MyPage() {
           )}
 
           {/* ── 커뮤니티 활동 ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
               ✏️ <span>{t('mypage.community_title')}</span>
             </h2>
@@ -1099,7 +1099,7 @@ export default function MyPage() {
           </div>
 
           {/* ── 클랜 놀이 기록 ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
               🎮 <span>{t('mypage.clanplay_title')}</span>
             </h2>
@@ -1107,7 +1107,7 @@ export default function MyPage() {
           </div>
 
           {/* ── 저장된 동선 ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
               🗺️ <span>저장된 동선</span>
             </h2>
@@ -1115,7 +1115,7 @@ export default function MyPage() {
           </div>
 
           {/* ── 내 문의 ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <h2 className="text-sm font-bold text-gray-200 mb-3 flex items-center gap-2">
               📮 <span>{t('mypage.myinquiries_title')}</span>
             </h2>
@@ -1123,7 +1123,7 @@ export default function MyPage() {
           </div>
 
           {/* ── 일일 목표 ── */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
               📅 <span>{t('mypage.daily_goal_title')}</span>
               {mainAccount && (

@@ -3,9 +3,7 @@
 import '../styles/globals.css';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
-import { Inter } from 'next/font/google';
 
-const inter = Inter({ subsets: ['latin'], display: 'swap' });
 import Script from 'next/script';
 import CookieBanner from '../components/CookieBanner';
 import Footer from '../components/layout/Footer';
@@ -209,6 +207,37 @@ function FloatingFavorites() {
 }
 
 
+// 배경: 파스텔 원이 천천히 떠다니고 마우스에 맞춰 살짝 따라 움직인다 (시차)
+function GlassBackdrop() {
+  const ref = useRef(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    let tx = 0, ty = 0, x = 0, y = 0, raf = 0
+    const tick = () => {
+      x += (tx - x) * 0.06
+      y += (ty - y) * 0.06
+      el.style.setProperty('--px', x.toFixed(3))
+      el.style.setProperty('--py', y.toFixed(3))
+      raf = (Math.abs(tx - x) > 0.002 || Math.abs(ty - y) > 0.002) ? requestAnimationFrame(tick) : 0
+    }
+    const onMove = (e) => {
+      tx = (e.clientX / window.innerWidth - 0.5) * 2
+      ty = (e.clientY / window.innerHeight - 0.5) * 2
+      if (!raf) raf = requestAnimationFrame(tick)
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => { window.removeEventListener('pointermove', onMove); cancelAnimationFrame(raf) }
+  }, [])
+  return (
+    <div ref={ref} className="crate-orbs" aria-hidden="true">
+      {['o1', 'o2', 'o3'].map((c) => (
+        <span key={c} className={`orb ${c}`}><i /></span>
+      ))}
+    </div>
+  )
+}
+
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const { pathname } = router;
@@ -265,6 +294,23 @@ function MyApp({ Component, pageProps }) {
     document.documentElement.classList.toggle('dark', isDark);
   }, []);
 
+  // 리퀴드 글라스: 포인터 위치를 카드에 전달해 빛 점이 따라다니게 한다
+  useEffect(() => {
+    let raf = 0
+    const onMove = (e) => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const el = e.target?.closest?.('.crate-tile')
+        if (!el) return
+        const r = el.getBoundingClientRect()
+        el.style.setProperty('--mx', `${e.clientX - r.left}px`)
+        el.style.setProperty('--my', `${e.clientY - r.top}px`)
+      })
+    }
+    document.addEventListener('pointermove', onMove, { passive: true })
+    return () => { document.removeEventListener('pointermove', onMove); cancelAnimationFrame(raf) }
+  }, [])
+
   const handleAccept = () => {
     localStorage.setItem('cookie_consent', 'accepted');
     setCookieConsent(true);
@@ -288,6 +334,8 @@ function MyApp({ Component, pageProps }) {
     <SessionProvider session={pageProps.session}>
     <AuthProvider>
     <LanguageProvider>
+      <div className="crate min-h-screen flex flex-col">
+      <GlassBackdrop />
       {/* 페이지 전환 로딩 바 */}
       {routeLoading && (
         <div className="fixed top-0 left-0 right-0 z-[9999] h-0.5 overflow-hidden">
@@ -300,14 +348,13 @@ function MyApp({ Component, pageProps }) {
         <CookieBanner onAccept={handleAccept} onReject={handleReject} />
       )}
 
-      <div className={`${inter.className} min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col`}>
         <div className="flex-1">
           <Component key={router.pathname === '/player/[server]/[nickname]' ? router.asPath : router.pathname} {...pageProps} />
         </div>
         {showFooter && <Footer variant={isDarkFooter ? 'dark' : 'light'} />}
-      </div>
       <FloatingFavorites />
       <FloatingInquiryPanel />
+      </div>
       <SpeedInsights sampleRate={0.1} />
       <Analytics />
     </LanguageProvider>

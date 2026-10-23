@@ -3,9 +3,9 @@ import Header from './Header';
 
 export default function Layout({ children }) {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="crate-dark min-h-screen">
       <Header />
-      <main className="min-h-screen bg-white dark:bg-gray-950">{children}</main>
+      <main className="min-h-screen">{children}</main>
     </div>
   );
 }

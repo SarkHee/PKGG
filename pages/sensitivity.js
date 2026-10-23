@@ -219,7 +219,7 @@ function AimDemo({ eDPI }) {
   const sensitivityLabel = eDPI < 25000 ? '느린 감도' : eDPI < 50000 ? '표준 감도' : '빠른 감도';
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden">
+    <div className="crate-tile crate-tile-hi overflow-hidden">
       {/* 헤더 */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-700">
         <div>
@@ -299,7 +299,7 @@ export default function SensitivityPage() {
   const zone  = getZone(eDPI);
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="crate-dark min-h-screen">
       <Head>
         <title>PUBG 감도 계산기 | PKGG</title>
         <meta name="description" content="PUBG 감도(eDPI, cm/360) 계산, 타 게임 감도 변환, 스코프별 권장 감도, 에임 체험 데모" />
@@ -320,7 +320,7 @@ export default function SensitivityPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* 입력 */}
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <h2 className="font-bold text-gray-200 mb-5 text-base">내 설정 입력</h2>
 
             {/* DPI */}
@@ -397,7 +397,7 @@ export default function SensitivityPage() {
           </div>
 
           {/* 결과 */}
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 space-y-4">
+          <div className="crate-tile crate-tile-hi p-6 space-y-4">
             <h2 className="font-bold text-gray-200 mb-1 text-base">계산 결과</h2>
 
             {/* eDPI */}
@@ -413,7 +413,7 @@ export default function SensitivityPage() {
             </div>
 
             {/* cm/360 */}
-            <div className="flex items-center justify-between p-4 bg-gray-800/60 rounded-xl border border-gray-700">
+            <div className="crate-tile crate-tile-hi flex items-center justify-between p-4">
               <div>
                 <div className="text-xs text-gray-400 mb-0.5">cm/360</div>
                 <div className="text-2xl font-black text-white">{cm360 ? cm360.toFixed(1) : '—'}<span className="text-sm text-gray-500 ml-1">cm</span></div>
@@ -482,7 +482,7 @@ export default function SensitivityPage() {
 
         {/* ── 섹션 4: 가이드 ── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <div className="text-xl mb-2">🐢</div>
             <div className="font-bold text-blue-400 text-sm mb-1">낮은 감도 추천</div>
             <div className="text-xs text-gray-400 leading-relaxed">
@@ -491,7 +491,7 @@ export default function SensitivityPage() {
               큰 마우스패드를 사용하는 것이 좋습니다.
             </div>
           </div>
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <div className="text-xl mb-2">⚖️</div>
             <div className="font-bold text-emerald-400 text-sm mb-1">중간 감도 추천</div>
             <div className="text-xs text-gray-400 leading-relaxed">
@@ -500,7 +500,7 @@ export default function SensitivityPage() {
               DPI 800 + 감도 40~60이 가장 흔한 조합입니다.
             </div>
           </div>
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <div className="text-xl mb-2">⚡</div>
             <div className="font-bold text-yellow-400 text-sm mb-1">높은 감도 주의</div>
             <div className="text-xs text-gray-400 leading-relaxed">

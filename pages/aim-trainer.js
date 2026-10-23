@@ -393,7 +393,7 @@ function Results({ result, onRetry }) {
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-700 rounded-2xl p-10 text-center">
+    <div className="crate-tile crate-tile-hi p-10 text-center">
       <div className="text-6xl font-black text-emerald-400 mb-1">{mainVal}</div>
       <div className="text-gray-400 text-sm mb-2">{mainLabel}</div>
       <div className="text-gray-100 font-semibold text-lg mb-8">{rating}</div>
@@ -429,7 +429,7 @@ export default function AimTrainerPage() {
   const changeMode  = (m) => { setMode(m); setResult(null); setGameKey(k => k + 1); };
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="crate-dark min-h-screen">
       <Head>
         <title>배그 에임 트레이너 | PKGG</title>
         <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
@@ -481,7 +481,7 @@ export default function AimTrainerPage() {
 
         {/* 가이드 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <div className="text-xl mb-2">⚡</div>
             <div className="font-bold text-yellow-400 text-sm mb-1">반응속도 기준</div>
             <div className="text-xs text-gray-400 leading-relaxed">
@@ -491,14 +491,14 @@ export default function AimTrainerPage() {
               420ms 이상: 개선 여지 있음
             </div>
           </div>
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <div className="text-xl mb-2">🎯</div>
             <div className="font-bold text-emerald-400 text-sm mb-1">플리커 에임 팁</div>
             <div className="text-xs text-gray-400 leading-relaxed">
               30초에 22개 이상이면 훌륭한 수준. 원 색이 빨개질수록 사라질 시간이 가까우니 우선 클릭하세요.
             </div>
           </div>
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi p-5">
             <div className="text-xl mb-2">🔴</div>
             <div className="font-bold text-red-400 text-sm mb-1">이동 타겟 팁</div>
             <div className="text-xs text-gray-400 leading-relaxed">

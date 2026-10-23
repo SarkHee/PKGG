@@ -164,9 +164,9 @@ export default function PrivacyPage() {
         <meta name="description" content="PKGG 개인정보처리방침 — 수집 정보, 쿠키, 광고, 이용자 권리 안내" />
       </Head>
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen">
         {/* 헤더 */}
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <div className="crate-band ">
           <div className="max-w-3xl mx-auto px-4 py-6">
             <Link href="/" className="text-sm text-blue-600 hover:underline mb-3 inline-block">
               ← PKGG 홈으로
@@ -179,7 +179,7 @@ export default function PrivacyPage() {
         {/* 본문 */}
         <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
           {/* 소개 */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
               <strong className="text-gray-900 dark:text-gray-100">PKGG</strong>(이하 "사이트")는 이용자의 개인정보를 중요하게 생각하며, 개인정보 보호법 및
               관련 법령을 준수합니다. 본 방침은 사이트가 어떠한 정보를 수집하고, 어떻게 이용·보관·보호하는지를
@@ -189,7 +189,7 @@ export default function PrivacyPage() {
 
           {/* 각 섹션 */}
           {sections.map((s) => (
-            <div key={s.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div key={s.id} className="crate-tile crate-tile-hi p-6">
               <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold flex-shrink-0">
                   {s.id}

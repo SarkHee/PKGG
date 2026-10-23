@@ -687,7 +687,7 @@ function AiComparison({ playerA, playerB }) {
       });
 
   return (
-    <div className="relative rounded-2xl mb-8 overflow-hidden border border-violet-300 dark:border-violet-500/30 bg-white dark:bg-gray-900">
+    <div className="crate-tile crate-tile-hi relative mb-8 overflow-hidden border-violet-300">
       {/* 상단 레인보우 바 */}
       <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-fuchsia-500 to-orange-500" />
 
@@ -909,7 +909,7 @@ export default function ComparePage() {
         <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
       </Head>
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+      <div className="min-h-screen text-gray-900 dark:text-white">
         <Header />
 
         {/* ── 히어로 ── */}
@@ -1005,7 +1005,7 @@ export default function ComparePage() {
                 return (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                     {/* 스탯 비교 바 */}
-                    <div className="bg-white dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                    <div className="crate-tile crate-tile-hi p-6">
                       <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">📊 스탯 비교</h2>
 
                       <div className="flex justify-between mb-3 text-sm font-semibold">

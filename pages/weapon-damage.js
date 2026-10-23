@@ -361,7 +361,7 @@ function WeaponDetailPanel({ weapon, armorLevel, helmetLevel, onArmorChange, onH
   const badge = weapon ? (TYPE_BADGE[weapon.type] || TYPE_BADGE.AR) : null;
 
   return (
-    <div className="bg-gray-900 border border-gray-700/50 rounded-2xl overflow-hidden">
+    <div className="crate-tile crate-tile-hi overflow-hidden">
       {/* 무기 정보 */}
       <div className="px-5 py-4 border-b border-gray-700/50 bg-gray-800/40">
         {weapon ? (
@@ -802,7 +802,7 @@ export default function WeaponDamage() {
       </Head>
       <Header />
 
-      <div className="min-h-screen bg-neutral-950 text-white">
+      <div className="crate-dark min-h-screen">
         <div className="max-w-6xl mx-auto px-4 py-8">
 
           {/* 헤더 */}
@@ -963,7 +963,7 @@ export default function WeaponDamage() {
               </div>
 
               {/* ── 데스크탑 테이블 (sm 이상) ── */}
-              <div className="hidden sm:block bg-gray-900 rounded-2xl border border-gray-700/50 overflow-hidden">
+              <div className="crate-tile crate-tile-hi hidden sm:block overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -1200,7 +1200,7 @@ export default function WeaponDamage() {
             );
 
             return (
-              <div className="mt-4 bg-gray-900 border border-emerald-500/30 rounded-2xl p-5">
+              <div className="crate-tile crate-tile-hi mt-4 p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
                     🆚 무기 비교 — {compareWeapons.map((w) => w.name).join(' vs ')}

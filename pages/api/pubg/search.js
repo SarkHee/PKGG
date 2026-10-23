@@ -213,7 +213,7 @@ export default async function handler(req, res) {
         },
         orderBy: { lastUpdated: 'desc' },
         select: { pubgPlayerId: true, pubgShardId: true, nickname: true },
-      })
+      }).catch(() => null) // DB 장애 시 건너뛰고 PUBG API로 진행
 
       if (dbHit?.pubgPlayerId) {
         if (await isRestricted(dbHit.nickname)) {
@@ -248,7 +248,7 @@ export default async function handler(req, res) {
         where: { nickname: { equals: name, mode: 'insensitive' }, pubgPlayerId: { not: null } },
         orderBy: { lastUpdated: 'desc' },
         select: { pubgPlayerId: true, pubgShardId: true, nickname: true },
-      })
+      }).catch(() => []) // DB 장애 시 빈 결과로 간주해 PUBG API로 진행
 
       if (dbRows.length > 0) {
         if (await isRestricted(dbRows[0].nickname)) {
@@ -306,7 +306,7 @@ export default async function handler(req, res) {
           winRate: true, top10Rate: true, style: true, lastUpdated: true, roundsPlayed: true,
           isSearchHidden: true,
         },
-      })
+      }).catch(() => null) // DB 장애 시 스탯 없이 반환
 
       // 본인이 검색 노출을 꺼둔 계정은 검색 결과에서 제외 (누가 검색하든 예외 없음)
       if (cache?.isSearchHidden) return null

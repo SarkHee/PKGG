@@ -72,7 +72,7 @@ export default function ReplayListPage({ accessError, matches }) {
       <Layout>
         <Head><title>{t('replay.list_title')}</title></Head>
         <div className="max-w-2xl mx-auto mt-20 p-6">
-          <div className="bg-gray-900 rounded-2xl p-8 border border-gray-700 shadow-lg text-center">
+          <div className="crate-tile crate-tile-hi p-8 text-center">
             <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-4xl">{GATE.icon}</span>
             </div>
@@ -101,7 +101,7 @@ export default function ReplayListPage({ accessError, matches }) {
         </p>
 
         {matches.length === 0 && (
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-8 text-center text-gray-400 text-sm">
+          <div className="crate-tile crate-tile-hi p-8 text-center text-gray-400 text-sm">
             {t('replay.list_empty')}
           </div>
         )}

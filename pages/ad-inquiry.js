@@ -75,7 +75,7 @@ export default function AdInquiryPage({ totalPlayers, totalClans }) {
       </Head>
       <Header />
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen">
         {/* 히어로 */}
         <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
           <div className="max-w-3xl mx-auto px-4 py-16 text-center">
@@ -89,7 +89,7 @@ export default function AdInquiryPage({ totalPlayers, totalClans }) {
         <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
 
           {/* 트래픽 지표 */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">트래픽 지표</h2>
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">과장 없이 서비스 DB 기준 실측 수치만 제공합니다.</p>
             <div className="grid grid-cols-2 gap-4">
@@ -116,7 +116,7 @@ export default function AdInquiryPage({ totalPlayers, totalClans }) {
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">배너 위치 안내</h2>
             <div className="space-y-5">
               {POSITIONS.map((p) => (
-                <div key={p.key} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+                <div key={p.key} className="crate-tile crate-tile-hi p-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-start">
                     <div>
                       <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">{p.title}</h3>
@@ -134,7 +134,7 @@ export default function AdInquiryPage({ totalPlayers, totalClans }) {
           </div>
 
           {/* 진행 방식 */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">진행 방식</h2>
             <ul className="space-y-2 text-gray-600 dark:text-gray-400 text-sm">
               <li className="flex gap-2"><span className="text-blue-500 flex-shrink-0">1.</span>아래 버튼으로 광고 문의를 보내주세요 (원하는 위치·게재 기간·예산을 함께 적어주시면 빠르게 안내드립니다)</li>
@@ -144,7 +144,7 @@ export default function AdInquiryPage({ totalPlayers, totalClans }) {
           </div>
 
           {/* CTA */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="crate-tile crate-tile-hi p-6 flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">광고 문의하기</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">희망 위치·기간·예산을 남겨주시면 빠르게 안내해드립니다.</p>

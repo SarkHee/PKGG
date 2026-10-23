@@ -59,7 +59,7 @@ export default function InquiryPage() {
 
       <Header />
 
-      <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+      <div className="container mx-auto p-6 min-h-screen">
         {/* 브레드크럼 */}
         <div className="mb-6">
           <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
@@ -105,7 +105,7 @@ export default function InquiryPage() {
         </div>
 
         {/* 문의 양식 */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm">
+        <div className="crate-tile crate-tile-hi ">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               문의 양식

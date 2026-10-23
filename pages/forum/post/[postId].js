@@ -379,7 +379,7 @@ export default function PostDetail() {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-gray-500 text-sm">{t('fpost.loading_post')}</p>
@@ -393,7 +393,7 @@ export default function PostDetail() {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="text-5xl mb-4">📭</div>
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{t('fpost.post_not_found')}</h2>
@@ -422,7 +422,7 @@ export default function PostDetail() {
         />
       )}
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen">
         <div className="max-w-3xl mx-auto px-4 py-8">
           {/* 브레드크럼 */}
           <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
@@ -436,7 +436,7 @@ export default function PostDetail() {
           </nav>
 
           {/* 게시글 */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm mb-4">
+          <div className="crate-tile crate-tile-hi mb-4">
             <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-lg">{post.category?.icon}</span>
@@ -497,7 +497,7 @@ export default function PostDetail() {
           </div>
 
           {/* 댓글 섹션 */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="crate-tile crate-tile-hi ">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
               <h2 className="font-bold text-gray-900 dark:text-gray-100 text-base">{t('fpost.reply_count').replace('{n}', replies.length)}</h2>
             </div>

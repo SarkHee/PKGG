@@ -313,7 +313,7 @@ export default function AwardsPage() {
 
       <Header />
 
-      <main className="min-h-screen" style={{ background: '#030712' }}>
+      <main className="crate-dark min-h-screen" style={{ background: '#030712' }}>
 
         {/* ── 히어로 ── */}
         <div className="relative overflow-hidden">

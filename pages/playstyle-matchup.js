@@ -147,7 +147,7 @@ export default function PlaystyleMatchup() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="crate-dark min-h-screen">
       <Head>
         <title>{t('pm.title')}</title>
         <meta name="description" content={t('pm.meta_desc')} />
@@ -314,7 +314,7 @@ export default function PlaystyleMatchup() {
             </div>
 
             {/* 안내 */}
-            <div className="p-4 bg-gray-900/50 border border-gray-800 rounded-2xl text-xs text-gray-600 mb-6">
+            <div className="crate-tile crate-tile-hi p-4 text-xs text-gray-600 mb-6">
               <strong className="text-gray-400">{t('pm.note_label')}</strong> {t('pm.note_desc')}
               {t('pm.legend')}
             </div>
@@ -331,7 +331,7 @@ export default function PlaystyleMatchup() {
 
         {showMatrix && (
           <div className="mt-4 overflow-x-auto rounded-2xl border border-gray-800">
-            <div className="flex flex-wrap gap-3 p-3 bg-gray-900/60 border-b border-gray-800">
+            <div className="crate-band flex flex-wrap gap-3 p-3">
               {[
                 {s:5,l:t('pm.score_very_favorable')},
                 {s:4,l:t('pm.score_favorable')},

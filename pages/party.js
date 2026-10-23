@@ -61,7 +61,7 @@ function PartyCard({ post }) {
 
   return (
     <div
-      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 hover:border-blue-500/40 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group"
+      className="crate-tile crate-tile-hi p-5 hover:border-blue-500/40 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group"
       onClick={() => router.push(`/forum/post/${post.id}`)}
     >
       {/* 배지 + 시간 */}
@@ -176,7 +176,7 @@ export default function PartyPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen">
       <Head>
         <title>{t('party.title')}</title>
         <meta name="description" content={t('party.meta_desc')} />
@@ -198,7 +198,7 @@ export default function PartyPage() {
         </div>
 
         {/* 필터 바 */}
-        <div className="flex flex-wrap gap-2 mb-6 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl">
+        <div className="crate-tile crate-tile-hi flex flex-wrap gap-2 mb-6 p-4">
           <select
             value={modeFilter}
             onChange={(e) => setModeFilter(e.target.value)}

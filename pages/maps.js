@@ -398,7 +398,7 @@ export default function MapsPage() {
 
         {/* 모바일 전용: 선택된 맵 기본 정보 */}
         {selected && (
-          <div className="sm:hidden flex-shrink-0 flex items-center gap-3 px-3 py-2 rounded-xl bg-gray-900 border border-gray-700">
+          <div className="crate-tile crate-tile-hi sm:hidden flex-shrink-0 flex items-center gap-3 px-3 py-2">
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${selected.tagColor}`}>{t(selected.tagKey)}</span>
             <span className="text-white font-bold text-sm">{t(`maps.${selected.id}.name`)}</span>
             <span className="text-gray-400 text-xs">{selected.size}</span>
@@ -526,7 +526,7 @@ export default function MapsPage() {
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
                   {pendingList.length > 0 ? (
                     <>
-                      <div className="flex items-center gap-2 bg-gray-900/95 border border-gray-600 rounded-xl px-3 py-2 shadow-xl backdrop-blur-sm">
+                      <div className="crate-tile crate-tile-hi flex items-center gap-2 px-3 py-2">
                         <span className="text-yellow-400 text-xs">●</span>
                         <span className="text-white text-xs font-bold">{pendingList.length}</span>
                         <span className="text-gray-400 text-xs">{t('maps.selected')}</span>
