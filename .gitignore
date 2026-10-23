@@ -7,6 +7,7 @@ node_modules/
 # local env
 .env.local
 .env.*
+!.env.example
 
 # macOS용
 .DS_Store
