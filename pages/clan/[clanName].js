@@ -119,7 +119,7 @@ const TierBar = ({ expert, advanced, intermediate, beginner }) => {
 
 // 탑 퍼포머 리스트
 const TopList = ({ label, icon, items, unit = '' }) => (
-  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+  <div className="crate-tile crate-tile-hi p-4">
     <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold mb-3 flex items-center gap-1.5">
       <span>{icon}</span> {label}
     </div>
@@ -304,7 +304,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
         <meta name="twitter:image" content="https://pkgg.vercel.app/og-image.png" />
         <link rel="canonical" href={clanUrl} />
       </Head>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white" style={{ marginTop: '-5rem' }}>
+      <div className="min-h-screen text-gray-900 dark:text-white" style={{ marginTop: '-5rem' }}>
 
         {/* ── 히어로 헤더 ─────────────────────────────────────────────── */}
         <div className="bg-gradient-to-b from-gray-200 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b border-gray-200 dark:border-gray-700/60 pt-28 pb-8 px-4">
@@ -401,7 +401,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                     { label: t('cd.avg_winrate'), value: `${stats.winRate}%`, color: 'text-green-400' },
                     { label: t('cd.top10_rate'), value: `${stats.top10Rate}%`, color: 'text-purple-400' },
                   ].map(({ label, value, color }) => (
-                    <div key={label} className="bg-white/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/50 rounded-xl px-4 py-3 text-center min-w-[90px]">
+                    <div key={label} className="crate-tile crate-tile-hi px-4 py-3 text-center min-w-[90px]">
                       <div className={`text-xl font-black ${color}`}>{value}</div>
                       <div className="text-xs text-gray-500 mt-0.5">{label}</div>
                     </div>
@@ -478,7 +478,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                       { icon: '👑', label: t('cd.winrate'), value: `${stats.winRate}%`, color: 'text-green-400', sub: t('cd.total_basis') },
                       { icon: '🛡️', label: t('cd.top10'), value: `${stats.top10Rate}%`, color: 'text-purple-400', sub: t('cd.entry_rate') },
                     ].map(({ icon, label, value, color, sub }) => (
-                      <div key={label} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
+                      <div key={label} className="crate-tile crate-tile-hi p-4 text-center">
                         <div className="text-xl mb-1">{icon}</div>
                         <div className={`text-xl font-black ${color}`}>{value}</div>
                         <div className="text-xs text-gray-500 mt-0.5">{label}</div>
@@ -522,7 +522,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                     </div>
                   )}
                   {/* 순위 카드 */}
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+                  <div className="crate-tile crate-tile-hi p-6">
                     <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">{t('cd.total_rank')}</div>
                     <div className="flex items-end gap-2">
                       <span className={`text-5xl font-black ${ranking?.overall <= 3 ? 'text-yellow-400' : ranking?.overall <= 10 ? 'text-orange-400' : 'text-gray-900 dark:text-white'}`}>
@@ -541,7 +541,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
               {distribution && (
                 <section>
                   <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.member_dist')}</h2>
-                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+                  <div className="crate-tile crate-tile-hi p-5">
                     <TierBar {...distribution} />
                   </div>
                 </section>
@@ -671,7 +671,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                   const isInactive = !member.lastActiveAt || (Date.now() - new Date(member.lastActiveAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
                   const noRankedData = memberStatMode === 'ranked' && !member.rankedStats;
                   return (
-                    <div key={member.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-3">
+                    <div key={member.id} className="crate-tile crate-tile-hi p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <span className={`font-black text-sm flex-shrink-0 ${getRankColor(i)}`}>
@@ -814,7 +814,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                   {/* 배그 평균 대비 비교 */}
                   <section>
                     <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.stats_vs_avg')}</h2>
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
+                    <div className="crate-tile crate-tile-hi p-5 space-y-4">
                       <p className="text-xs text-gray-500 mb-2">{t('cd.bar_note')}</p>
                       <StatBar label={t('cd.avg_damage')} value={Number(stats.avgDamage)} max={500} color="bg-orange-500"
                         sub={`${stats.avgDamage} (${t('cd.pubg_avg_prefix')} ~200)`} />
@@ -835,7 +835,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                   {distribution && (
                     <section>
                       <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.member_mmr_dist')}</h2>
-                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+                      <div className="crate-tile crate-tile-hi p-5">
                         <TierBar {...distribution} />
                         <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
                           {[
@@ -872,7 +872,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                   {/* 수치 요약 테이블 */}
                   <section>
                     <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.summary')}</h2>
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                    <div className="crate-tile crate-tile-hi overflow-hidden">
                       <table className="w-full text-sm">
                         <thead className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs">
                           <tr>
@@ -985,7 +985,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                   {styleDistribution && stats.memberCount > 0 && (
                     <section>
                       <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.style_dist')}</h2>
-                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-3">
+                      <div className="crate-tile crate-tile-hi p-5 space-y-3">
                         {[
                           { key: 'aggressive', labelKey: 'cd.aggressive', icon: '⚔️', color: 'bg-red-500', desc: '킬 2.5+ & 딜 300+' },
                           { key: 'passive', labelKey: 'cd.passive', icon: '🛡️', color: 'bg-blue-500', desc: '생존 1200s+ & Top10 30%+' },
@@ -1017,7 +1017,7 @@ export default function ClanDetail({ initialClanData, clanNameParam }) {
                   {members && (
                     <section>
                       <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">{t('cd.activity')}</h2>
-                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+                      <div className="crate-tile crate-tile-hi p-5">
                         {(() => {
                           const now = Date.now();
                           const buckets = { d30: 0, d60: 0, d90: 0, old: 0 };
@@ -1144,7 +1144,7 @@ function ClanRankingTab({ data, loading }) {
 
       {/* 전체 리더보드 */}
       {lbTab === 'leaderboard' && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="crate-tile crate-tile-hi overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-wrap">
             <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">정렬:</span>
             {[
@@ -1271,7 +1271,7 @@ function ClanRankingTab({ data, loading }) {
               {/* 2위~ 모바일 카드 */}
               <div className="sm:hidden space-y-2">
                 {weeklyMvp.map((m, i) => (
-                  <div key={m.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3">
+                  <div key={m.id} className="crate-tile crate-tile-hi px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-bold text-sm flex-shrink-0">{rankMedal(i)}</span>
@@ -1369,7 +1369,7 @@ function ClanRankingTab({ data, loading }) {
               {/* 성장왕 모바일 카드 */}
               <div className="sm:hidden space-y-2">
                 {growthKing.map((m, i) => (
-                  <div key={m.nickname} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3">
+                  <div key={m.nickname} className="crate-tile crate-tile-hi px-4 py-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="font-bold text-sm flex-shrink-0">{rankMedal(i)}</span>
@@ -1594,7 +1594,7 @@ function MemberCard({ member, idx, allMembers, showTier }) {
 function SquadBlock({ squad, squadIdx, label, allMembers, gridCols, showTier }) {
   const balScore = teamBalanceScore(squad, allMembers);
   return (
-    <div className="bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
+    <div className="crate-tile crate-tile-hi p-4">
       <div className="flex items-center gap-3 mb-3">
         <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
           {squadIdx + 1}
@@ -1632,7 +1632,7 @@ function UnassignedRow({ members, size }) {
         {members.map(member => {
           const role = ROLE_META[member._role] || ROLE_META.support;
           return (
-            <div key={member.playerName || member.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div key={member.playerName || member.id} className="crate-tile crate-tile-hi flex items-center gap-3 p-3">
               <span className="text-base w-6 text-center">{role.emoji}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{member.playerName}</div>
@@ -1696,7 +1696,7 @@ function SquadCustomTab({ members, allSquads, setAllSquads }) {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4">
 
         {/* 클랜원 선택 리스트 */}
-        <div className="bg-white dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl p-4">
+        <div className="crate-tile crate-tile-hi p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
               <span className="text-sm font-bold text-gray-800 dark:text-gray-200">클랜원 선택</span>

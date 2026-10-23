@@ -44,21 +44,19 @@ function NavDropdown({ label, links, isActive, t, openKey, openMenu, setOpenMenu
         </svg>
       </button>
       {/* SSR HTML에 항상 링크가 존재하도록 조건부 마운트 대신 hidden 클래스로 토글 (구글 크롤링 대응) */}
-      <div className={`absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[160px] ${isOpen ? '' : 'hidden'}`}>
+      <div className={`crate-pop absolute left-0 top-full mt-2 z-[999] min-w-[200px] p-1.5 ${isOpen ? '' : 'hidden'}`}>
         {links.map((link) => (
           <Link key={link.href} href={link.href} passHref>
             <span
               onClick={() => setOpenMenu(null)}
-              className={`relative flex items-center gap-2 px-4 py-2.5 text-sm cursor-pointer transition-colors ${
-                isActive(link.href)
-                  ? 'bg-blue-50 text-blue-700 font-semibold dark:bg-blue-900/30 dark:text-blue-400'
-                  : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/60'
+              className={`crate-pop-item group relative flex items-center gap-3 px-2.5 py-2 text-sm cursor-pointer ${
+                isActive(link.href) ? 'is-active font-semibold' : 'font-medium'
               }`}
             >
-              <span>{link.icon}</span>
-              {t(link.labelKey)}
+              <span className="crate-pop-icon">{link.icon}</span>
+              <span className="flex-1">{t(link.labelKey)}</span>
               {link.highlight && !isActive(link.href) && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-red-500 rounded-full" />
+                <span className="crate-pop-dot" aria-label="NEW" />
               )}
             </span>
           </Link>
@@ -255,7 +253,7 @@ const handleSearchSubmit = async (e) => {
       {/* 상단 강조선 */}
       <div className="h-0.5 bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 w-full" />
 
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 shadow-sm dark:shadow-gray-900/50">
+      <header className="crate-header sticky top-0 z-50">
         <div className="max-w-screen-2xl mx-auto px-4">
           <div className="flex items-center justify-between h-14 gap-2">
 
@@ -355,7 +353,7 @@ const handleSearchSubmit = async (e) => {
                   <span className="hidden sm:inline">버그·제안</span>
                 </button>
                 {feedbackOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-4 z-[999]">
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-4 z-[999]">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-bold text-gray-800 dark:text-gray-100">피드백 보내기</span>
                       <button onClick={() => setFeedbackOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">×</button>
@@ -429,7 +427,7 @@ const handleSearchSubmit = async (e) => {
                   </svg>
                 </button>
                 {langMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[130px]">
+                  <div className="absolute right-0 top-full mt-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-[999] min-w-[130px]">
                     {LANG_OPTIONS.map((option) => (
                       <button
                         key={option.code}
@@ -466,7 +464,7 @@ const handleSearchSubmit = async (e) => {
         </div>
 
         {/* 모바일 메뉴 — SSR HTML에 항상 링크가 존재하도록 조건부 마운트 대신 hidden 클래스로 토글 (구글 크롤링 대응) */}
-        <div className={`lg:hidden border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 ${mobileMenuOpen ? '' : 'hidden'}`}>
+        <div className={`lg:hidden border-t border-gray-100 dark:border-gray-800 bg-white/85 dark:bg-gray-900/85 backdrop-blur-xl ${mobileMenuOpen ? '' : 'hidden'}`}>
             {/* 빠른 닉네임 검색 (훈련 도구 페이지에서는 숨김) */}
             {!['/sensitivity-analyzer', '/sensitivity', '/aim-trainer', '/recoil-pattern', '/peek-trainer', '/pubg-survivors'].includes(router.pathname) && (
             <div className="px-4 pt-3 pb-2">

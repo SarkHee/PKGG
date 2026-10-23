@@ -135,7 +135,7 @@ export default function PartyCreate() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen">
       <Head>
         <title>{t('partycreate.title')}</title>
       </Head>

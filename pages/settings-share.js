@@ -43,7 +43,7 @@ function SettingsCard({ post }) {
 
   return (
     <div
-      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 hover:border-purple-500/40 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group"
+      className="crate-tile crate-tile-hi p-5 hover:border-purple-500/40 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group"
       onClick={() => router.push(`/forum/post/${post.id}`)}
     >
       {/* 배지 + 시간 */}
@@ -138,7 +138,7 @@ export default function SettingsSharePage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen">
       <Head>
         <title>{t('settings.title')}</title>
         <meta name="description" content={t('settings.meta_desc')} />

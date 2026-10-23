@@ -183,10 +183,10 @@ export default function ModerationPanel() {
 
       <Header />
 
-      <div className="container mx-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
+      <div className="container mx-auto p-6 min-h-screen">
         <div className="max-w-6xl mx-auto">
           {/* 헤더 */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700">
+          <div className="crate-tile crate-tile-hi p-6 mb-6">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-2xl">🛡️</span>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -208,7 +208,7 @@ export default function ModerationPanel() {
           </div>
 
           {/* 탭 메뉴 */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700">
+          <div className="crate-tile crate-tile-hi p-6">
             <div className="flex gap-2 mb-6">
               <button
                 onClick={() => setActiveTab('banned-users')}

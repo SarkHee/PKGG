@@ -58,7 +58,7 @@ export default function SharedResultPage({ rowData, error }) {
     return (
       <>
         <Header />
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center text-center px-4">
+        <div className="crate-dark min-h-screen flex items-center justify-center text-center px-4">
           <div>
             <div className="text-5xl mb-4">🔍</div>
             <h1 className="text-xl font-bold text-white mb-2">{t('wt.not_found')}</h1>
@@ -168,13 +168,13 @@ export default function SharedResultPage({ rowData, error }) {
 
           {/* 레이더 + 특성 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+            <div className="crate-tile crate-tile-hi p-5">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📊 {t('wt.tendency_vector')}</h3>
               <div className="max-w-xs mx-auto">
                 <VectorRadarChart vector={vector} color={type.color} />
               </div>
             </div>
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+            <div className="crate-tile crate-tile-hi p-5">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">⚡ {t('wt.top_traits')}</h3>
               <div className="space-y-3">
                 {topTraits.map((t) => (
@@ -208,7 +208,7 @@ export default function SharedResultPage({ rowData, error }) {
 
           {/* 약점 & 주의사항 */}
           {type.weaknesses && (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+            <div className="crate-tile crate-tile-hi p-5 mb-5">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">⚠️ 약점 & 주의사항</h3>
               <div className="flex flex-wrap gap-2">
                 {type.weaknesses.map((w) => (
@@ -222,11 +222,11 @@ export default function SharedResultPage({ rowData, error }) {
 
           {/* 상황별 플레이 가이드 */}
           {type.situationalGuide && (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+            <div className="crate-tile crate-tile-hi p-5 mb-5">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">📋 상황별 플레이 가이드</h3>
               <div className="space-y-3">
                 {type.situationalGuide.map((guide, i) => (
-                  <div key={i} className="flex gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/50">
+                  <div key={i} className="crate-tile crate-tile-hi flex gap-3 p-3">
                     <span className="text-xl flex-shrink-0 mt-0.5">{guide.icon}</span>
                     <div>
                       <div className="text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">{guide.phase}</div>
@@ -240,14 +240,14 @@ export default function SharedResultPage({ rowData, error }) {
 
           {/* 팀 시너지 파트너 */}
           {type.teamSynergy && (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+            <div className="crate-tile crate-tile-hi p-5 mb-5">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🤝 팀 시너지 파트너</h3>
               <div className="flex gap-3">
                 {type.teamSynergy.map((id) => {
                   const partner = PERSONALITY_TYPES.find((tp) => tp.id === id);
                   if (!partner) return null;
                   return (
-                    <div key={id} className="flex-1 bg-gray-800/60 rounded-xl p-4 text-center border border-gray-700/50">
+                    <div key={id} className="crate-tile crate-tile-hi flex-1 p-4 text-center">
                       <div className="text-3xl mb-2">{partner.emoji}</div>
                       <div className="text-sm font-bold text-gray-200">{partner.name}</div>
                       <div className="text-[10px] text-gray-500 mt-1">{partner.primaryWeapon} TYPE</div>
@@ -261,11 +261,11 @@ export default function SharedResultPage({ rowData, error }) {
 
           {/* 유사 타입 (2위·3위) */}
           {topTypes.length > 1 && (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-5">
+            <div className="crate-tile crate-tile-hi p-5 mb-5">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">🔍 유사 성향 타입</h3>
               <div className="space-y-2">
                 {topTypes.slice(1).map((item) => (
-                  <div key={item.type.id} className="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700/40">
+                  <div key={item.type.id} className="crate-tile crate-tile-hi flex items-center gap-3 p-3">
                     <span className="text-2xl">{item.type.emoji}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold text-gray-300">{item.type.name}</div>

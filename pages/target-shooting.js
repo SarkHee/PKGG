@@ -335,7 +335,7 @@ export default function TargetShootingPage() {
         <meta name="description" content={t('ts.meta_description')} />
       </Head>
       <Header />
-      <div className="min-h-screen bg-gray-950 text-white px-4 py-8">
+      <div className="crate-dark min-h-screen px-4 py-8">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl font-bold mb-1">{t('ts.heading')}</h1>
           <p className="text-sm text-gray-400 mb-6">

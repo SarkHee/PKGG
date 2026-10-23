@@ -102,7 +102,7 @@ function StreamerCard({ streamer }) {
 
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl overflow-hidden border border-gray-800 bg-gray-900 animate-pulse">
+    <div className="crate-tile crate-tile-hi overflow-hidden animate-pulse">
       <div className="w-full aspect-video bg-gray-800" />
       <div className="p-3 flex gap-2.5">
         <div className="w-9 h-9 rounded-full bg-gray-800 flex-shrink-0" />
@@ -228,7 +228,7 @@ export default function StreamersPage() {
 
       <Header />
 
-      <main className="min-h-screen bg-gray-950 text-gray-100">
+      <main className="crate-dark min-h-screen">
 
         {/* 히어로 */}
         <div className="relative overflow-hidden">

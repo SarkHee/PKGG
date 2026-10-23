@@ -118,7 +118,7 @@ export default function LeaderboardPage() {
         <meta property="og:description" content={t('lb.meta_desc')} />
       </Head>
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen">
         <Header />
 
         <main className="max-w-5xl mx-auto px-4 py-8">
@@ -138,7 +138,7 @@ export default function LeaderboardPage() {
           </div>
 
           {/* 필터 */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-4 mb-5 flex flex-wrap gap-4">
+          <div className="crate-tile crate-tile-hi p-4 mb-5 flex flex-wrap gap-4">
 
             {/* 서버 */}
             <div className="flex flex-col gap-1.5">
@@ -254,7 +254,7 @@ export default function LeaderboardPage() {
 
           {/* 테이블 */}
           <div className="overflow-x-auto -mx-1">
-          <div className="min-w-[580px] bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="crate-tile crate-tile-hi min-w-[580px] overflow-hidden">
 
             {/* 테이블 헤더 */}
             <div className="grid grid-cols-[48px_1fr_120px_80px_68px_80px_68px] gap-x-3 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">

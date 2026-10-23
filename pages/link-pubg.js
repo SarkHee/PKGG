@@ -44,7 +44,7 @@ export default function LinkPubg() {
         <title>PUBG 계정 연결 | PKGG</title>
         <meta name="robots" content="noindex" />
       </Head>
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+      <div className="crate-dark min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-md">
           {/* 로고 */}
           <div className="text-center mb-8">
@@ -56,7 +56,7 @@ export default function LinkPubg() {
             </p>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+          <div className="crate-tile crate-tile-hi p-6">
             {result ? (
               <div className="text-center py-4">
                 <div className="text-4xl mb-3">✅</div>

@@ -1795,7 +1795,7 @@ export default function PubgSurvivors() {
         <title>PUBG 서바이버 - PK.GG</title>
         <meta name="description" content="PUBG 테마 뱀파이어 서바이벌 게임" />
       </Head>
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="crate-dark min-h-screen">
         <Header />
         <div className="flex flex-col items-center pt-4 pb-8 px-4">
           <h1 className="text-2xl font-bold mb-1 text-yellow-400">PUBG 서바이버</h1>
@@ -2067,7 +2067,7 @@ export default function PubgSurvivors() {
                 <div className={`text-2xl font-bold mb-4 ${uiState.won ? 'text-yellow-400' : 'text-red-400'}`}>
                   {uiState.won ? '치킨 드셨나요? 🍗' : '게임 오버'}
                 </div>
-                <div className="bg-gray-800 border border-gray-600 rounded-xl p-6 mb-4 w-72 space-y-3">
+                <div className="crate-tile crate-tile-hi p-6 mb-4 w-72 space-y-3">
                   <div className="flex justify-between"><span className="text-gray-400">생존 시간</span><span className="text-white font-bold">{fmtTime(uiState.elapsed)}</span></div>
                   <div className="flex justify-between"><span className="text-gray-400">킬 수</span><span className="text-white font-bold">{uiState.kills}</span></div>
                   <div className="flex justify-between"><span className="text-gray-400">점수</span><span className="text-yellow-400 font-bold">{uiState.score?.toLocaleString()}</span></div>

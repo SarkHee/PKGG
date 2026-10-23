@@ -556,7 +556,7 @@ export default function PeekTrainer() {
         <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
       </Head>
       <Header />
-      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center gap-8 px-4">
+      <div className="crate-dark min-h-screen flex flex-col items-center justify-center gap-8 px-4">
         <div className="text-center">
           <div className="text-5xl mb-4">🎯</div>
           <h1 className="text-4xl font-bold mb-2">피킹 트레이너</h1>
@@ -564,7 +564,7 @@ export default function PeekTrainer() {
         </div>
 
         {/* 다이어그램 */}
-        <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-lg w-full">
+        <div className="crate-tile crate-tile-hi p-6 max-w-lg w-full">
           <div className="font-mono text-sm text-center mb-5">
             <div className="flex items-center justify-center gap-4 text-gray-300">
               <div className="text-center">
@@ -611,15 +611,15 @@ export default function PeekTrainer() {
         </div>
 
         <div className="grid grid-cols-3 gap-3 max-w-lg w-full text-center text-xs">
-          <div className="bg-gray-900 border border-yellow-500/30 rounded-xl p-3">
+          <div className="crate-tile crate-tile-hi p-3">
             <div className="text-yellow-400 font-bold text-xl">+150~230</div>
             <div className="text-gray-400 mt-1">헤드샷</div>
           </div>
-          <div className="bg-gray-900 border border-green-500/30 rounded-xl p-3">
+          <div className="crate-tile crate-tile-hi p-3">
             <div className="text-green-400 font-bold text-xl">+80~120</div>
             <div className="text-gray-400 mt-1">바디샷</div>
           </div>
-          <div className="bg-gray-900 border border-red-500/30 rounded-xl p-3">
+          <div className="crate-tile crate-tile-hi p-3">
             <div className="text-red-400 font-bold text-xl">-20 / -50</div>
             <div className="text-gray-400 mt-1">오피킹 / 피격</div>
           </div>
@@ -665,7 +665,7 @@ export default function PeekTrainer() {
               </div>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 w-full max-w-md">
+          <div className="crate-tile crate-tile-hi p-4 w-full max-w-md">
             <div className="text-xs text-gray-500 mb-2 px-1">라운드 기록</div>
             <div className="max-h-44 overflow-y-auto space-y-1">
               {rounds.map((r, i) => (

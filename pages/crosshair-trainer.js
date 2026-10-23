@@ -210,20 +210,20 @@ export default function CrosshairTrainer() {
         <title>배그 크로스헤어 트레이너 | PKGG</title>
         <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
       </Head>
-      <div style={{ minHeight: '100vh', background: '#030712', color: '#fff', padding: '24px 16px', fontFamily: 'sans-serif' }}>
+      <div style={{ minHeight: '100vh', color: 'var(--c-bone)', padding: '24px 16px', fontFamily: 'sans-serif' }}>
         <div style={{ maxWidth: 560, margin: '0 auto' }}>
           <div style={{ marginBottom: 20 }}>
-            <a href="/" style={{ color: '#6b7280', fontSize: 13, textDecoration: 'none' }}>← 홈으로</a>
+            <a href="/" style={{ color: 'var(--c-mute)', fontSize: 13, textDecoration: 'none' }}>← 홈으로</a>
             <h1 style={{ fontSize: 22, fontWeight: 900, margin: '8px 0 4px' }}>🎯 크로스헤어 배치 트레이너</h1>
-            <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>각 상황에서 최적의 크로스헤어 위치를 클릭하세요</p>
+            <p style={{ fontSize: 13, color: 'var(--c-mute)', margin: 0 }}>각 상황에서 최적의 크로스헤어 위치를 클릭하세요</p>
           </div>
 
           {/* 시작 */}
           {phase === 'start' && (
-            <div style={{ background: '#111827', borderRadius: 16, padding: 28, textAlign: 'center' }}>
+            <div style={{ background: 'var(--c-glass-hi)', borderRadius: 16, padding: 28, textAlign: 'center' }}>
               <div style={{ fontSize: 52, marginBottom: 12 }}>🏹</div>
               <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Pre-aim 배치 연습</h2>
-              <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.7, marginBottom: 20 }}>
+              <p style={{ fontSize: 13, color: 'var(--c-mute)', lineHeight: 1.7, marginBottom: 20 }}>
                 문·창문·코너 등 5가지 상황에서<br/>크로스헤어를 어디 놓아야 하는지 클릭하세요.<br/>
                 <span style={{ color: '#60a5fa' }}>정확도에 따라 0~3점</span>이 부여됩니다.
               </p>
@@ -232,7 +232,7 @@ export default function CrosshairTrainer() {
                   <div key={sc} style={{ background: '#1e293b', borderRadius: 8, padding: 10 }}>
                     <div style={{ fontSize: 16 }}>{ic}</div>
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{sc}</div>
-                    <div style={{ fontSize: 10, color: '#6b7280' }}>{lb}</div>
+                    <div style={{ fontSize: 10, color: 'var(--c-mute)' }}>{lb}</div>
                   </div>
                 ))}
               </div>
@@ -248,7 +248,7 @@ export default function CrosshairTrainer() {
             <div>
               {/* 진행 */}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, color: '#9ca3af' }}>{round + 1} / {scenarios.length}</span>
+                <span style={{ fontSize: 13, color: 'var(--c-mute)' }}>{round + 1} / {scenarios.length}</span>
                 <span style={{ fontSize: 13, color: '#4ade80', fontWeight: 700 }}>
                   {scores.reduce((s,v)=>s+v,0)} / {round * 3} pts
                 </span>
@@ -258,9 +258,9 @@ export default function CrosshairTrainer() {
               </div>
 
               {/* 상황 설명 */}
-              <div style={{ background: '#111827', borderRadius: 10, padding: '10px 14px', marginBottom: 10 }}>
+              <div style={{ background: 'var(--c-glass-hi)', borderRadius: 10, padding: '10px 14px', marginBottom: 10 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: '0 0 2px' }}>{cur.name}</p>
-                <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>{cur.desc}</p>
+                <p style={{ fontSize: 11, color: 'var(--c-mute)', margin: 0 }}>{cur.desc}</p>
               </div>
 
               {/* 캔버스 */}
@@ -271,7 +271,7 @@ export default function CrosshairTrainer() {
                 {!clickPos && !confirmed && (
                   <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
                     background: 'rgba(0,0,0,0.6)', borderRadius: 8, padding: '6px 12px', pointerEvents: 'none' }}>
-                    <p style={{ fontSize: 12, color: '#9ca3af', margin: 0 }}>클릭으로 크로스헤어 위치 선택</p>
+                    <p style={{ fontSize: 12, color: 'var(--c-mute)', margin: 0 }}>클릭으로 크로스헤어 위치 선택</p>
                   </div>
                 )}
               </div>
@@ -286,7 +286,7 @@ export default function CrosshairTrainer() {
                     {history.at(-1)?.score === 3 ? '⭐⭐⭐ 완벽!' : history.at(-1)?.score === 2 ? '⭐⭐ 좋아요!' : history.at(-1)?.score === 1 ? '⭐ 아쉬워요' : '❌ 미스'}
                     {' '}+{history.at(-1)?.score}점
                   </p>
-                  <p style={{ fontSize: 11, color: '#9ca3af', margin: 0 }}>💡 {cur.tip}</p>
+                  <p style={{ fontSize: 11, color: 'var(--c-mute)', margin: 0 }}>💡 {cur.tip}</p>
                 </div>
               )}
 
@@ -308,7 +308,7 @@ export default function CrosshairTrainer() {
 
           {/* 결과 */}
           {phase === 'result' && (
-            <div style={{ background: '#111827', borderRadius: 16, padding: 24 }}>
+            <div style={{ background: 'var(--c-glass-hi)', borderRadius: 16, padding: 24 }}>
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 <div style={{ fontSize: 52, marginBottom: 8 }}>
                   {pct >= 90 ? '🏆' : pct >= 70 ? '🎯' : pct >= 50 ? '📊' : '💪'}
@@ -317,7 +317,7 @@ export default function CrosshairTrainer() {
                   {totalScore} / {maxScore} 점
                 </h2>
                 <p style={{ fontSize: 26, fontWeight: 900, color: pct >= 90 ? '#fbbf24' : pct >= 70 ? '#4ade80' : pct >= 50 ? '#60a5fa' : '#f87171', margin: '0 0 6px' }}>{pct}%</p>
-                <p style={{ fontSize: 13, color: '#9ca3af' }}>
+                <p style={{ fontSize: 13, color: 'var(--c-mute)' }}>
                   {pct >= 90 ? '크로스헤어 배치 마스터!' : pct >= 70 ? '우수한 Pre-aim 실력!' : pct >= 50 ? '조금 더 연습이 필요해요' : '기초부터 다시 연습해보세요!'}
                 </p>
               </div>
@@ -340,7 +340,7 @@ export default function CrosshairTrainer() {
                   다시 도전
                 </button>
                 <a href="/peek-trainer"
-                  style={{ flex: 1, padding: 13, borderRadius: 10, background: '#1e293b', color: '#9ca3af', fontWeight: 700, textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  style={{ flex: 1, padding: 13, borderRadius: 10, background: '#1e293b', color: 'var(--c-mute)', fontWeight: 700, textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   피킹 트레이너
                 </a>
               </div>

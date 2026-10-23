@@ -176,7 +176,7 @@ const PlayStyleBadge = ({ style }) => {
 // 개요 통계 카드
 function StatCard({ label, value, sub, color = 'text-blue-400' }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+    <div className="crate-tile crate-tile-hi p-5">
       <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">{label}</div>
       <div className={`text-3xl font-black ${color}`}>{value}</div>
       {sub && <div className="text-xs text-gray-600 mt-1">{sub}</div>}
@@ -445,7 +445,7 @@ export default function ClanAnalytics() {
         <link rel="canonical" href="https://pkgg.vercel.app/clan-analytics" />
       </Head>
         <Header />
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="crate-dark min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4" />
             <p className="text-gray-400">{t('ca.loading')}</p>
@@ -551,7 +551,7 @@ export default function ClanAnalytics() {
       {/* 비로그인 / PUBG 미연동 팝업 오버레이 */}
       {needsAuthGate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+          <div className="crate-tile crate-tile-hi p-8 max-w-sm w-full mx-4 text-center">
             <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-5">
               <span className="text-2xl">{user === null ? '🔐' : '🎮'}</span>
             </div>
@@ -603,7 +603,7 @@ export default function ClanAnalytics() {
 
           {/* 클랜 미가입 안내 배너 — PUBG 연동은 됐지만 클랜 소속이 없는 경우만 (미연동은 위 오버레이가 처리) */}
           {user && hasLinkedPubg && !myClanId && !isSteamAdmin && !isAdmin && (
-            <div className="mb-6 bg-gray-900 border border-yellow-500/30 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="crate-tile crate-tile-hi mb-6 p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -688,7 +688,7 @@ export default function ClanAnalytics() {
           })()}
 
           {/* 필터 & 검색 */}
-          <div className="mb-8 bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="crate-tile crate-tile-hi mb-8 p-5">
             <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('ca.filter_title')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 지역 필터 */}
@@ -771,7 +771,7 @@ export default function ClanAnalytics() {
           {/* 검색 결과 모달 */}
           {showSearchResult && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+              <div className="crate-tile crate-tile-hi p-6 max-w-md w-full">
                 <div className="flex justify-between items-center mb-5">
                   <h3 className="text-lg font-bold text-white">{t('ca.search_result')}</h3>
                   <button onClick={closeSearchResult} className="text-gray-500 hover:text-white text-2xl leading-none">×</button>
@@ -861,7 +861,7 @@ export default function ClanAnalytics() {
                   </div>
 
                   {/* PC 테이블 */}
-                  <div className="hidden sm:block bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+                  <div className="crate-tile crate-tile-hi hidden sm:block overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full min-w-[700px]">
                         <thead>
@@ -914,7 +914,7 @@ export default function ClanAnalytics() {
           {/* 분포 통계 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
             {/* 레벨별 분포 */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+            <div className="crate-tile crate-tile-hi p-5">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('ca.level_dist')}</h3>
               <div className="space-y-2.5">
                 {Object.entries(distributions.byLevel)
@@ -935,7 +935,7 @@ export default function ClanAnalytics() {
             </div>
 
             {/* 규모별 분포 */}
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+            <div className="crate-tile crate-tile-hi p-5">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">{t('ca.member_dist')}</h3>
               <div className="space-y-2.5">
                 {[
@@ -980,7 +980,7 @@ export default function ClanAnalytics() {
             </div>
 
             {/* PC 테이블 */}
-            <div className="hidden sm:block bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+            <div className="crate-tile crate-tile-hi hidden sm:block overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[600px]">
                   <thead>

@@ -28,7 +28,7 @@ function StatusDot({ status, size = 'md', animate = true }) {
 function RegionCard({ regionKey, status, t }) {
   const sm = STATUS_META[status] || STATUS_META.unknown
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col items-center gap-3">
+    <div className="crate-tile crate-tile-hi p-5 flex flex-col items-center gap-3">
       <span className="text-3xl">{REGION_KEYS[regionKey]}</span>
       <div className="text-center">
         <div className="font-bold text-white text-sm">{t(`ss.region.${regionKey}`)}</div>
@@ -128,7 +128,7 @@ export default function ServerStatusPage() {
 
       <Header />
 
-      <main className="min-h-screen bg-gray-950 text-gray-100">
+      <main className="crate-dark min-h-screen">
 
         {/* 히어로 */}
         <div className="relative overflow-hidden">
@@ -219,7 +219,7 @@ export default function ServerStatusPage() {
             <h2 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-2">
               <span>📋</span> {t('ss.history_title')}
             </h2>
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+            <div className="crate-tile crate-tile-hi p-4">
               {history.length === 0 ? (
                 <div className="py-8 text-center text-gray-700 text-sm">
                   {loading ? t('ss.loading') : t('ss.history_empty')}
@@ -233,7 +233,7 @@ export default function ServerStatusPage() {
           </section>
 
           {/* 안내 */}
-          <section className="p-4 bg-gray-900/40 border border-gray-800 rounded-2xl text-xs text-gray-600 space-y-1">
+          <section className="crate-tile crate-tile-hi p-4 text-xs text-gray-600 space-y-1">
             <p className="font-bold text-gray-500 mb-2">{t('ss.info_title')}</p>
             <p>• {t('ss.info_1')}</p>
             <p>• {t('ss.info_2')}</p>

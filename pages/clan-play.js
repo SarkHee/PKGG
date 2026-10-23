@@ -67,7 +67,7 @@ function CreateBattleForm({ type = 'battle', onCreated, onCancel }) {
   };
 
   return (
-    <div className="bg-gray-900 rounded-xl p-4 mb-4">
+    <div className="crate-tile crate-tile-hi p-4 mb-4">
       <p className="text-sm font-bold text-white mb-3">{type === 'killmatch' ? '킬내기 생성' : '내전 생성'}</p>
       <input
         value={title}
@@ -220,7 +220,7 @@ function BattleSummaryModal({ battleId, onViewDetail, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-6 max-w-md w-full max-h-[85vh] overflow-y-auto">
+      <div className="crate-tile crate-tile-hi p-6 max-w-md w-full max-h-[85vh] overflow-y-auto">
         {loading && (
           <div className="flex flex-col items-center py-10">
             <div className="w-8 h-8 border-4 border-gray-700 border-t-white rounded-full animate-spin mb-3" />
@@ -352,7 +352,7 @@ function BattleList({ type = 'battle', onSelect }) {
 
       <div className="flex flex-col gap-2">
         {battles.map((b) => (
-          <div key={b.id} className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 rounded-xl px-4 py-3 transition-colors">
+          <div key={b.id} className="crate-tile crate-tile-hi flex items-center gap-2 hover:bg-gray-800 px-4 py-3 transition-colors">
             <button
               onClick={() => (b.status === 'ended' ? setSummaryBattleId(b.id) : onSelect(b))}
               className="flex-1 min-w-0 text-left"
@@ -1199,7 +1199,7 @@ function BattleDetail({ battle: initialBattle, onBack }) {
 
       {showEndModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+          <div className="crate-tile crate-tile-hi p-6 max-w-sm w-full">
             <h4 className="text-base font-bold text-white mb-1">{battleLabel} 종료 확인</h4>
             <p className="text-sm text-gray-400 mb-4">"{battle.title}" {battleLabel}을(를) 종료하시겠습니까?</p>
 
@@ -1231,7 +1231,7 @@ function BattleDetail({ battle: initialBattle, onBack }) {
         </div>
       )}
 
-      <div className="flex gap-1 bg-gray-900 rounded-xl p-1 mb-4">
+      <div className="crate-tile crate-tile-hi flex gap-1 p-1 mb-4">
         {[['players', '참가자'], ['matches', '경기 결과'], ['standings', '순위']].map(([key, label]) => {
           const locked = key === 'matches' && !battle.confirmedAt;
           return (
@@ -1514,7 +1514,7 @@ function BattleDetail({ battle: initialBattle, onBack }) {
       )}
 
       {section === 'matches' && !battle.confirmedAt && (
-        <div className="bg-gray-900 rounded-xl p-6 text-center">
+        <div className="crate-tile crate-tile-hi p-6 text-center">
           <p className="text-3xl mb-2">🔒</p>
           <p className="text-sm text-gray-400 mb-3">참가자를 먼저 확정해주세요</p>
           <button
@@ -1561,7 +1561,7 @@ function BattleDetail({ battle: initialBattle, onBack }) {
 
               <div className="flex gap-3 overflow-x-auto pb-2">
                 {squadStandings.map((s) => (
-                  <div key={s.squadId} className="flex-shrink-0 w-48 bg-gray-900 border border-purple-500/20 rounded-xl p-3">
+                  <div key={s.squadId} className="crate-tile crate-tile-hi flex-shrink-0 w-48 p-3">
                     <p className="text-sm font-bold text-purple-300 mb-0.5 truncate">🧩 {s.squadName}</p>
                     <p className="text-xs text-yellow-400 font-bold mb-2">총점 {s.totalScore}점</p>
                     <div className="flex flex-col gap-1.5">
@@ -1615,7 +1615,7 @@ function BattleDetail({ battle: initialBattle, onBack }) {
           )}
 
           {canManageMatches && battle.type !== 'killmatch' && (
-            <div className="bg-gray-900 border border-blue-500/20 rounded-xl p-3 mb-3">
+            <div className="crate-tile crate-tile-hi p-3 mb-3">
               <div className="flex items-center gap-2 mb-2">
                 <button
                   onClick={handleLoadRecentMatches}
@@ -1711,7 +1711,7 @@ function BattleDetail({ battle: initialBattle, onBack }) {
             };
 
             return (
-              <div className="bg-gray-900 rounded-xl p-4 mb-4">
+              <div className="crate-tile crate-tile-hi p-4 mb-4">
                 <p className="text-sm font-bold text-white mb-1">경기 #{(battle.matches?.length || 0) + 1} 결과 입력</p>
                 <p className="text-[11px] text-gray-500 mb-2">스쿼드 등수는 스쿼드 헤더에서 한 번만 입력하면 소속 참가자 전원에게 적용됩니다.</p>
                 <div className="flex items-center gap-2 mb-3">
@@ -1998,7 +1998,7 @@ function BattleDetail({ battle: initialBattle, onBack }) {
               </div>
             )}
 
-            <div className="flex gap-1 bg-gray-900 rounded-xl p-1 mb-3">
+            <div className="crate-tile crate-tile-hi flex gap-1 p-1 mb-3">
               {[['individual', '개인 순위'], ['squad', '스쿼드 순위']].map(([key, label]) => (
                 <button
                   key={key}
@@ -2262,7 +2262,7 @@ export default function ClanPlay() {
       {/* 비로그인 / PUBG 미연동 팝업 오버레이 */}
       {!isLoading && needsAuthGate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center">
+          <div className="crate-tile crate-tile-hi p-8 max-w-sm w-full mx-4 text-center">
             <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-5">
               <span className="text-2xl">{user === null ? '🔐' : '🎮'}</span>
             </div>
@@ -2303,7 +2303,7 @@ export default function ClanPlay() {
         </div>
       )}
 
-      <div className={`min-h-screen bg-gray-950 text-white px-4 py-8 ${needsAuthGate || isLoading ? 'blur-sm pointer-events-none select-none' : ''}`}>
+      <div className={`crate-dark min-h-screen px-4 py-8 ${needsAuthGate || isLoading ? 'blur-sm pointer-events-none select-none' : ''}`}>
         <div className="max-w-6xl mx-auto">
           <div className="mb-5">
             <Link href="/" className="text-gray-500 text-sm hover:text-gray-300 transition-colors">← 홈으로</Link>
@@ -2312,7 +2312,7 @@ export default function ClanPlay() {
           </div>
 
           {/* 메인 탭 */}
-          <div className="flex gap-1 bg-gray-900 rounded-xl p-1 mb-4">
+          <div className="crate-tile crate-tile-hi flex gap-1 p-1 mb-4">
             {[['kill', '🎯 클랜 킬내기'], ['battle', '⚔️ 클랜 내전']].map(([key, label]) => (
               <button
                 key={key}

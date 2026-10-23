@@ -72,7 +72,7 @@ export default function ContactPage() {
       </Head>
       <Header />
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen">
         <div className="max-w-2xl mx-auto px-4 py-12 space-y-6">
 
           <div>
@@ -84,7 +84,7 @@ export default function ContactPage() {
           </div>
 
           {done ? (
-            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-800 p-8 text-center">
+            <div className="crate-tile crate-tile-hi border-green-200 p-8 text-center">
               <div className="text-4xl mb-3">✅</div>
               <div className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">{t('contact.done_title')}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400">{t('contact.done_desc')}</div>

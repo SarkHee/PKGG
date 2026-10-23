@@ -533,7 +533,7 @@ function PracticeMode({ weapon, attachActive }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
           {/* DPI */}
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-3">
+          <div className="crate-tile crate-tile-hi p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-gray-400">DPI 설정</span>
               <input
@@ -564,7 +564,7 @@ function PracticeMode({ weapon, attachActive }) {
           </div>
 
           {/* 스코프 */}
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-3">
+          <div className="crate-tile crate-tile-hi p-3">
             <div className="text-xs font-semibold text-gray-400 mb-2">스코프 모드</div>
             <div className="flex gap-1 flex-wrap">
               {SCOPE_PRESETS.map((s) => (
@@ -640,7 +640,7 @@ function PracticeMode({ weapon, attachActive }) {
       <div className="space-y-4">
 
         {/* 방법 안내 */}
-        <div className="bg-gray-900 border border-gray-700 rounded-2xl p-4">
+        <div className="crate-tile crate-tile-hi p-4">
           <h3 className="font-bold text-white mb-3 text-sm">🎯 연습 방법</h3>
           <div className="space-y-2 text-sm text-gray-400">
             <p><span className="text-white font-semibold">1.</span> DPI · 스코프 설정 후 시작</p>
@@ -656,7 +656,7 @@ function PracticeMode({ weapon, attachActive }) {
         </div>
 
         {/* 현재 무기 */}
-        <div className="bg-gray-900 border border-gray-700 rounded-2xl p-4">
+        <div className="crate-tile crate-tile-hi p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: weapon.color }} />
             <span className="font-bold text-white">{weapon.name}</span>
@@ -678,7 +678,7 @@ function PracticeMode({ weapon, attachActive }) {
         </div>
 
         {/* 현재 설정 요약 */}
-        <div className="bg-gray-900 border border-gray-700 rounded-2xl p-4 text-xs space-y-1.5 text-gray-400">
+        <div className="crate-tile crate-tile-hi p-4 text-xs space-y-1.5 text-gray-400">
           <div className="text-gray-300 font-semibold text-sm mb-2">현재 감도 설정</div>
           <div className="flex justify-between"><span>DPI</span><span className="text-white font-mono">{dpi}</span></div>
           <div className="flex justify-between"><span>스코프</span><span className="text-white">{scope.label} (×{scope.mult})</span></div>
@@ -742,7 +742,7 @@ export default function RecoilPattern() {
                  : lastNx > 0 ? '↙' : '↘';
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="crate-dark min-h-screen">
       <Head>
         <title>배그 반동 패턴 시뮬레이터 | PKGG</title>
         <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
@@ -763,7 +763,7 @@ export default function RecoilPattern() {
         </div>
 
         {/* 모드 탭 */}
-        <div className="flex gap-1 bg-gray-900 border border-gray-700 rounded-xl p-1 w-fit">
+        <div className="crate-tile crate-tile-hi flex gap-1 p-1 w-fit">
           {[
             { key: 'view',     label: '📊 패턴 보기' },
             { key: 'practice', label: '🎮 반동 연습' },
@@ -802,11 +802,11 @@ export default function RecoilPattern() {
 
             {/* 좌측: 캔버스 */}
             <div className="space-y-3">
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-3">
+              <div className="crate-tile crate-tile-hi p-3">
                 <PatternCanvas weapon={weapon} attachActive={active} animFrame={animFrame} />
               </div>
 
-              <div className="bg-gray-900 border border-gray-700 rounded-xl p-3 space-y-2.5">
+              <div className="crate-tile crate-tile-hi p-3 space-y-2.5">
                 {/* 총구 슬롯 */}
                 <div>
                   <div className="text-[10px] text-gray-600 font-semibold mb-1.5 uppercase tracking-wider">총구</div>
@@ -866,7 +866,7 @@ export default function RecoilPattern() {
 
             {/* 우측: 정보 */}
             <div className="space-y-4">
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+              <div className="crate-tile crate-tile-hi p-5">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: weapon.color }} />
                   <h2 className="font-black text-white text-xl">{weapon.name}</h2>
@@ -883,7 +883,7 @@ export default function RecoilPattern() {
                 <p className="text-sm text-gray-400 leading-relaxed">{weapon.desc}</p>
               </div>
 
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+              <div className="crate-tile crate-tile-hi p-5">
                 <h3 className="font-bold text-gray-200 mb-4 text-sm">🖱️ 마우스 보정 가이드</h3>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="bg-gray-800 rounded-xl p-4">
@@ -908,7 +908,7 @@ export default function RecoilPattern() {
                 </div>
               </div>
 
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+              <div className="crate-tile crate-tile-hi p-5">
                 <h3 className="font-bold text-gray-200 mb-3 text-sm">💡 연사 제어 팁</h3>
                 <div className="space-y-2.5 text-sm text-gray-400">
                   <p>• 처음 3~5발은 가장 강하게 당기고, 이후 일정한 속도로 유지합니다.</p>
@@ -923,7 +923,7 @@ export default function RecoilPattern() {
                 </div>
               </div>
 
-              <div className="bg-gray-900 border border-gray-700 rounded-2xl p-5">
+              <div className="crate-tile crate-tile-hi p-5">
                 <h3 className="font-bold text-gray-200 mb-3 text-sm">🔧 어태치먼트 효과 비교</h3>
                 <div className="space-y-2">
                   {ATTACHMENTS.map(a => (

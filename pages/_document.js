@@ -4,6 +4,10 @@ export default function Document() {
   return (
     <Html lang="ko">
       <Head>
+        {/* 보급상자 디자인 시스템 서체 */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
+        <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Big+Shoulders+Stencil+Display:wght@600;800&display=swap" rel="stylesheet" />
         {/* Google AdSense */}
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7884456727026548" crossOrigin="anonymous" />
         {/* Google Analytics */}

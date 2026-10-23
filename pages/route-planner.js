@@ -623,7 +623,7 @@ export default function RoutePlanner() {
       </Head>
       <Header />
 
-      <main className="min-h-screen bg-gray-950 text-gray-100">
+      <main className="crate-dark min-h-screen">
         <div className="max-w-screen-xl mx-auto px-4 py-5">
 
           <div className="mb-4">
@@ -651,7 +651,7 @@ export default function RoutePlanner() {
             <div className="flex-1 min-w-0">
               <div
                 ref={mapRef}
-                className="relative rounded-2xl overflow-hidden border border-gray-700 bg-gray-950"
+                className="crate-tile crate-tile-hi relative overflow-hidden"
                 style={{
                   aspectRatio: '1/1',
                   cursor: dragging ? 'grabbing' : 'crosshair',
@@ -730,7 +730,7 @@ export default function RoutePlanner() {
             <div className="w-full lg:w-64 flex flex-col gap-3">
 
               {/* 도구 선택 */}
-              <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
+              <div className="crate-tile crate-tile-hi p-3">
                 <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">도구</div>
                 <div className="grid grid-cols-2 gap-1.5">
                   {[
@@ -769,7 +769,7 @@ export default function RoutePlanner() {
 
               {/* 색상 */}
               {tool !== 'bluezone' && (
-                <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
+                <div className="crate-tile crate-tile-hi p-3">
                   <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">색상</div>
                   <div className="flex gap-2 flex-wrap">
                     {COLORS.map(c => (
@@ -783,7 +783,7 @@ export default function RoutePlanner() {
               )}
 
               {/* 도구별 설정 */}
-              <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
+              <div className="crate-tile crate-tile-hi p-3">
                 <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">
                   {tool === 'measure' ? '거리측정 안내' : tool === 'bluezone' ? '페이즈 선택' : '설정'}
                 </div>
@@ -834,7 +834,7 @@ export default function RoutePlanner() {
 
               {/* 배치된 자기장 목록 (블루존 설정 모드) */}
               {tool === 'bluezone' && placedZones.length > 0 && (
-                <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
+                <div className="crate-tile crate-tile-hi p-3">
                   <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider mb-2">
                     배치된 자기장 · {placedZones.length}개
                   </div>
@@ -856,7 +856,7 @@ export default function RoutePlanner() {
 
               {/* 경로 목록 (동선 모드) */}
               {tool === 'route' && (
-                <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3">
+                <div className="crate-tile crate-tile-hi p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-[10px] font-semibold text-gray-600 uppercase tracking-wider">경로 목록</div>
                     <button onClick={() => {
@@ -910,7 +910,7 @@ export default function RoutePlanner() {
               )}
 
               {/* 액션 */}
-              <div className="bg-gray-900 rounded-2xl border border-gray-700/50 p-3 space-y-1.5">
+              <div className="crate-tile crate-tile-hi p-3 space-y-1.5">
                 <button onClick={undo}
                   className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-xl transition-colors"
                 >↩ 되돌리기</button>

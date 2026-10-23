@@ -47,3 +47,26 @@ export default function AdUnit({ slot, format = 'auto', className = '', show = t
     </div>
   );
 }
+
+/**
+ * 배너 광고 구역 — 벤토 그리드 안에서 광고 자리를 분명히 구분하는 띠
+ * 광고 비활성(NEXT_PUBLIC_ADS_ENABLED !== 'true') 시: 개발 환경에서만 자리 표시, 운영에서는 렌더링 안 함
+ * @param {string} slot - AdSense 광고 단위 ID
+ * @param {boolean} show - 콘텐츠 로드 전에는 숨김 (AdUnit과 동일)
+ * @param {string} className - 그리드 배치용 추가 클래스 (예: lg:col-span-12)
+ */
+export function AdBand({ slot = '1234567890', show = true, className = '' }) {
+  const enabled = process.env.NEXT_PUBLIC_ADS_ENABLED === 'true';
+  if (!enabled && process.env.NODE_ENV === 'production') return null;
+  if (!show) return null;
+  return (
+    <aside className={`crate-ad ${className}`} aria-label="광고">
+      <span className="crate-ad-label">광고</span>
+      {enabled ? (
+        <AdUnit slot={slot} format="horizontal" />
+      ) : (
+        <div className="crate-ad-empty">배너 광고 영역 (AdSense 활성화 시 노출 · 728×90 / 반응형)</div>
+      )}
+    </aside>
+  );
+}

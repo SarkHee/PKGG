@@ -1215,7 +1215,7 @@ export default function SensitivityAnalyzer() {
         <title>배그 감도 분석기 | PKGG</title>
         <meta name="description" content="배틀그라운드 에임, 반동, 피킹 연습 미니게임 무료 제공" />
       </Head>
-      <div className="min-h-screen bg-gray-950 text-white">
+      <div className="crate-dark min-h-screen">
         <Header />
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* hidden canvas for template matching */}

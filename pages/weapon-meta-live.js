@@ -203,9 +203,9 @@ export default function WeaponMetaLivePage() {
 
       <Header />
 
-      <main className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-16">
+      <main className="min-h-screen pb-16">
         {/* 헤더 */}
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-8">
+        <div className="crate-band px-4 py-8">
           <div className="max-w-5xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
@@ -378,7 +378,7 @@ export default function WeaponMetaLivePage() {
               </div>
 
               {/* 순위 테이블 */}
-              <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+              <div className="crate-tile crate-tile-hi overflow-hidden">
                 {/* 테이블 헤더 */}
                 <div className="grid grid-cols-[40px_1fr_60px_80px_80px_80px_60px] gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 text-xs font-semibold text-gray-400 dark:text-gray-500">
                   <div className="text-center">#</div>
