@@ -43,3 +43,10 @@ public/uploads/
 docs/.bkit-memory.json
 docs/.pdca-status.json
 docs/.pdca-snapshots/
+
+# desktop-app 모델 가중치 (용량 큼)
+desktop-app/*.pt
+desktop-app/*.onnx.data
+
+# 로컬 SQLite
+prisma/dev.db
