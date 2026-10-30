@@ -1,4 +1,15 @@
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth].js';
 import prisma from '../../../utils/prisma.js';
+
+const ADMIN_EMAIL = 'sssyck123@gmail.com';
+
+async function checkAdmin(req, res) {
+  const pw = req.headers['x-admin-token'] || req.query.pw;
+  if (pw && pw === process.env.ADMIN_PASSWORD) return true;
+  const session = await getServerSession(req, res, authOptions);
+  return session?.user?.email === ADMIN_EMAIL;
+}
 
 const VALID_CATEGORIES = [
   { id: 'strategy', name: '전략 & 팁', description: '게임 전략, 팁, 가이드를 공유하세요', icon: '🧠', color: '#3B82F6', order: 1 },
@@ -16,6 +27,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!(await checkAdmin(req, res)))
+    return res.status(401).json({ error: '인증 필요' });
 
   try {
     // 1. 불필요한 카테고리 게시글을 general로 이전 후 카테고리 삭제

@@ -271,16 +271,6 @@ function MyApp({ Component, pageProps }) {
   }, [router.events]);
 
   useEffect(() => {
-    // 앱 시작 시 포럼 카테고리 초기화
-    const initializeForum = async () => {
-      try {
-        await fetch('/api/forum/init', { method: 'POST' });
-      } catch (error) {
-        console.log('포럼 초기화 요청 실패:', error.message);
-      }
-    };
-    initializeForum();
-
     // 저장된 쿠키 동의 여부 확인
     const saved = localStorage.getItem('cookie_consent');
     if (saved === 'accepted') setCookieConsent(true);

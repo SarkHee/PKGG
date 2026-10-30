@@ -250,6 +250,13 @@ if (raw) {
 
 ## 최근 주요 변경 이력
 
+### 2026-10-30 인증 누락 API 보강 + 코드 정리
+- **공지 API 인증**: `notices` POST/PUT/DELETE, `forum/init` POST에 `checkAdmin` 적용 (GET은 공개 유지)
+- **삭제**: 인증 없는 쓰기 API `admin/refresh-clan`·`player/update-season-stats`·`clan/update-member`, 미사용 중복 `components/PersonalCoachingSystem.jsx`(루트), `temp/`, `pubg_bot_kills/`, `prisma/dev.db`, `scripts/test-*.js`
+- **`_app.js`**: 방문마다 `/api/forum/init`을 호출하던 코드 제거 (카테고리가 비면 관리자 로그인 후 수동 호출)
+- **의존성 제거**: `three`, `resend`, `localtunnel`
+- **`.gitignore`**: `desktop-app/*.pt`, `desktop-app/*.onnx.data`, `prisma/dev.db` 추가 (모델 파일은 추적만 해제)
+
 ### 2026-05-26 리포트 OG 이미지 + 봇포함경기 개선 + 시즌 필터
 
 - **리포트 OG 이미지** (`pages/api/og/report.js`): Edge Runtime + `@vercel/og`. `/report/[nickname]` 공유 시 800×420 PNG 미리보기. Satori 제약: 모든 `<div>` `display:'flex'` 필수, 텍스트 노드는 template literal, 조건부 렌더링은 ternary `? : null`
